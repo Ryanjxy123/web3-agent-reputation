@@ -1,10 +1,10 @@
 """Check delivered reference logic, JSON parsing, required files and UTF-8.
 This is not a replacement for integration/security/chain tests.
 """
-from pathlib import Path
 import json
 import subprocess
 import sys
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 

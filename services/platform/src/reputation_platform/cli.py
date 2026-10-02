@@ -9,8 +9,17 @@ import sys
 def main() -> int:
     parser = argparse.ArgumentParser(prog="reputation")
     parser.add_argument("--version", action="version", version=importlib.metadata.version("reputation-platform"))
-    parser.add_argument("command", choices=["doctor"])
-    parser.parse_args()
+    parser.add_argument("command", choices=["doctor", "migrate"])
+    args = parser.parse_args()
+    if args.command == "migrate":
+        from alembic import command
+        from alembic.config import Config
+
+        from reputation_platform.infrastructure.db.connection import repo_root
+
+        command.upgrade(Config(str(repo_root() / "alembic.ini")), "head")
+        print("Database migrations are at head.")
+        return 0
     tools = {name: bool(shutil.which(name)) for name in ("git", "node", "pnpm", "forge", "anvil", "docker", "psql")}
     print(json.dumps({
         "python": ".".join(map(str, sys.version_info[:3])),

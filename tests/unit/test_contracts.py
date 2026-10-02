@@ -12,17 +12,15 @@ from reputation_core.models import (
     AnchorReceipt,
     AssertionResult,
     CapabilityClaim,
-    CaseSlot,
-    ChainIdentity,
-    ExpectedFacts,
     RunPlan,
     ScoreResult,
-    TaskEnvelope,
     TaskLink,
 )
 from reputation_core.models.base import BasisPoints, Timestamp
 from reputation_core.registry import require_protocol
 from reputation_core.scoring_reference import evaluate_from_stats
+
+from tests.factories import agent, plan_data, slot
 
 ROOT = Path(__file__).resolve().parents[2]
 HASH = "0x" + "a1" * 32
@@ -32,56 +30,40 @@ NOW = "2026-10-02T12:00:00.000Z"
 DEADLINE = "2026-10-02T12:01:00.000Z"
 
 
-def agent():
-    return AgentRef(chain_id="31337", registry_address=ADDRESS, agent_id=str(2**255 + 123))
-
-
-def slot():
-    chain = ChainIdentity(chain_id="31337", genesis_hash=HASH, deployment_instance_id=HASH,
-                          registry_code_hash=HASH, instance_hash=HASH)
-    expected = ExpectedFacts(agent_ref=agent(), snapshot_hash=HASH, execution_chain=chain,
-                             executor=ADDRESS, target_contract=ADDRESS, request_id=HASH,
-                             record_hash=HASH, binding_id=uuid4(), window_start=NOW,
-                             deadline=DEADLINE, pre_dispatch_block="1",
-                             pre_dispatch_block_hash=HASH, confirmation_depth=1)
-    task = TaskEnvelope(request_id=HASH, snapshot_hash=HASH, chain_id="31337",
-                        chain_instance_id=HASH, target_contract=ADDRESS,
-                        record_hash=HASH, deadline=DEADLINE)
-    return CaseSlot(slot_id=uuid4(), slot_key="anchor-1", capability_id="anchor_record",
-                    purpose="functional", case_kind="positive", required_class="normal",
-                    expected_outcome="PASS", task=task, expected=expected, grant_id=uuid4())
-
-
-def plan_data():
-    return dict(run_id=uuid4(), snapshot_hash=HASH, review_version=1,
-                policy_version="policy-v1", policy_hash=HASH, profile="record-write-v1",
-                confirmed_capabilities=["anchor_record"], suite_id="m1-smoke-v1",
-                template_version="anchor_record@1", planning_time=NOW, slots=[slot()])
-
-
 def test_large_agent_id_roundtrip_and_address_normalization():
     ref = agent()
     assert AgentRef.model_validate_json(ref.model_dump_json()) == ref
     assert json.loads(ref.model_dump_json())["agent_id"] == str(2**255 + 123)
-    assert AgentRef(chain_id="1", registry_address=ADDRESS.upper().replace("0X", "0x"),
-                    agent_id="1").registry_address == ADDRESS
+    assert (
+        AgentRef(
+            chain_id="1", registry_address=ADDRESS.upper().replace("0X", "0x"), agent_id="1"
+        ).registry_address
+        == ADDRESS
+    )
     assert ref.key_text == f"eip155:31337:{ADDRESS}:{2**255 + 123}"
 
 
-@pytest.mark.parametrize("value", [1, -1, True, "01", "-1", "1.0", "1e3", str(2**256), "9"*79])
+@pytest.mark.parametrize("value", [1, -1, True, "01", "-1", "1.0", "1e3", str(2**256), "9" * 79])
 def test_invalid_uint256(value):
     with pytest.raises(ValidationError):
         AgentRef(chain_id="1", registry_address=ADDRESS, agent_id=value)
 
 
-@pytest.mark.parametrize("value", ["0x12", "z"*42, "0x"+"gg"*20, "0x"+"00"*20])
+@pytest.mark.parametrize("value", ["0x12", "z" * 42, "0x" + "gg" * 20, "0x" + "00" * 20])
 def test_invalid_registry_address(value):
     with pytest.raises(ValidationError):
         AgentRef(chain_id="1", registry_address=value, agent_id="1")
 
 
-@pytest.mark.parametrize("value", ["2026-02-30T12:00:00.000Z", "2026-10-02T12:00:00Z",
-                                   "2026-10-02T20:00:00.000+08:00", "2026-10-02"])
+@pytest.mark.parametrize(
+    "value",
+    [
+        "2026-02-30T12:00:00.000Z",
+        "2026-10-02T12:00:00Z",
+        "2026-10-02T20:00:00.000+08:00",
+        "2026-10-02",
+    ],
+)
 def test_timestamp_requires_real_utc_millisecond_time(value):
     with pytest.raises(ValidationError):
         TypeAdapter(Timestamp).validate_python(value)
@@ -94,9 +76,18 @@ def test_scores_are_integer_basis_points(value):
 
 
 def test_unknown_requires_reason_and_decision_requires_evidence():
-    values = dict(assertion_id=uuid4(), slot_id=uuid4(), rule_id="CHAIN_MATCH",
-                  rule_version="1", outcome="UNKNOWN", reason_code=None, expected="31337",
-                  observed=None, evidence_refs=[], critical=False)
+    values = dict(
+        assertion_id=uuid4(),
+        slot_id=uuid4(),
+        rule_id="CHAIN_MATCH",
+        rule_version="1",
+        outcome="UNKNOWN",
+        reason_code=None,
+        expected="31337",
+        observed=None,
+        evidence_refs=[],
+        critical=False,
+    )
     with pytest.raises(ValidationError):
         AssertionResult(**values)
     values["reason_code"] = "PLATFORM_RPC_ERROR"
@@ -110,16 +101,26 @@ def test_unknown_requires_reason_and_decision_requires_evidence():
 
 def test_plan_rejects_snapshot_mismatch_duplicate_requests_and_readonly_writes():
     assert RunPlan(**plan_data()).profile == "record-write-v1"
-    for mutation in ({"profile": "record-read-v1"}, {"snapshot_hash": ZERO},
-                     {"slots": [slot(), slot()]}):
+    for mutation in (
+        {"profile": "record-read-v1"},
+        {"snapshot_hash": ZERO},
+        {"slots": [slot(), slot()]},
+    ):
         with pytest.raises(ValidationError):
             RunPlan(**(plan_data() | mutation))
 
 
 def test_task_link_does_not_equate_candidate_with_verified():
-    values = dict(request_id=HASH, candidate_tx_hash=HASH, verified_tx_hash=None,
-                  executor=ADDRESS, block_number=None, block_hash=None, log_index=None,
-                  match_status="UNKNOWN")
+    values = dict(
+        request_id=HASH,
+        candidate_tx_hash=HASH,
+        verified_tx_hash=None,
+        executor=ADDRESS,
+        block_number=None,
+        block_hash=None,
+        log_index=None,
+        match_status="UNKNOWN",
+    )
     assert TaskLink(**values).verified_tx_hash is None
     with pytest.raises(ValidationError):
         TaskLink(**(values | {"match_status": "PASS"}))
@@ -128,18 +129,35 @@ def test_task_link_does_not_equate_candidate_with_verified():
 
 
 def test_claim_span_counts_unicode_codepoints():
-    values = dict(source_evidence_id=uuid4(), field_path="description", quote="核验🦄",
-                  start=2, end=5, polarity="positive", candidate_capability="verify_record",
-                  extractor_version="manual-v1")
+    values = dict(
+        source_evidence_id=uuid4(),
+        field_path="description",
+        quote="核验🦄",
+        start=2,
+        end=5,
+        polarity="positive",
+        candidate_capability="verify_record",
+        extractor_version="manual-v1",
+    )
     assert CapabilityClaim(**values).end == 5
     with pytest.raises(ValidationError):
         CapabilityClaim(**(values | {"end": 6}))
 
 
 def test_confirmed_anchor_needs_actual_transaction():
-    values = dict(report_hash=HASH, status="NOT_REQUESTED", trusted_chain_key="local-demo",
-                  chain_instance_id=HASH, contract=ADDRESS, publisher=ADDRESS, tx_hash=None,
-                  sequence=None, block_number=None, block_hash=None, confirmations=0)
+    values = dict(
+        report_hash=HASH,
+        status="NOT_REQUESTED",
+        trusted_chain_key="local-demo",
+        chain_instance_id=HASH,
+        contract=ADDRESS,
+        publisher=ADDRESS,
+        tx_hash=None,
+        sequence=None,
+        block_number=None,
+        block_hash=None,
+        confirmations=0,
+    )
     AnchorReceipt(**values)
     with pytest.raises(ValidationError):
         AnchorReceipt(**(values | {"status": "CONFIRMED"}))
@@ -193,8 +211,17 @@ def test_ethereum_keccak_is_not_nist_sha3():
     assert hash_bytes(b"") != "0x" + hashlib.sha3_256(b"").hexdigest()
 
 
-@pytest.mark.parametrize("data", [b'{"a":1,"a":2}', b'{"x":NaN}', b'{"x":Infinity}',
-                                  b'\xef\xbb\xbf{}', b'{"x":"\\ud800"}', b'\xff'])
+@pytest.mark.parametrize(
+    "data",
+    [
+        b'{"a":1,"a":2}',
+        b'{"x":NaN}',
+        b'{"x":Infinity}',
+        b"\xef\xbb\xbf{}",
+        b'{"x":"\\ud800"}',
+        b"\xff",
+    ],
+)
 def test_strict_json_rejects_ambiguous_or_noncanonical_input(data):
     with pytest.raises((ValueError, UnicodeError)):
         strict_json(data)

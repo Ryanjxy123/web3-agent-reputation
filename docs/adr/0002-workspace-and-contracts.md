@@ -9,3 +9,5 @@ Windows 缺失工具优先安装到被忽略的 runtime/tools，不修改系统 
 领域 DTO 是 Pydantic v2 单一来源。JSON Schema、OpenAPI 和 TS 从其生成。新增必填字段、修改安全语义需同步测试及格式版本；M0 初始版本 1.0.0，目前没有已发布报告需要迁移。
 
 回归：原 policy-v1 与 36 条 golden/reference 测试保持不变。仅将参考模块中歧义变量 l 重命名为 timely，评分公式不变。架构测试禁止 core 网络/DB依赖，禁止 verifier 导入平台。
+
+M0-04 实测：EDB Windows initdb 在当前中文安装路径将 ANSI 路径嵌入 UTF-8 初始化 SQL 后失败。使用动态空闲 subst 盘符仅映射项目 runtime；二进制和数据仍位于唯一正式项目中，Git/代码/文档操作仍在原中文路径。PostgreSQL 17.11 的 initdb、迁移、事务和并发测试通过。Compose/Linux 不需要此 Windows 兼容层。

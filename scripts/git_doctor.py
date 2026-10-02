@@ -2,11 +2,11 @@
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
 import os
 import re
 import shutil
 import subprocess
+from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
 
 EXPECTED = "ryanjxy123/web3-agent-reputation"

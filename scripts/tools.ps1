@@ -5,6 +5,8 @@ $ToolRoot = Join-Path $RepoRoot 'runtime/tools'
 $UvEnvironment = Join-Path $ToolRoot 'uv-env'
 $UvBin = Join-Path $UvEnvironment 'Scripts'
 $FoundryBin = Join-Path $ToolRoot 'foundry-v1.8.4'
+$PostgresRoot = Join-Path $ToolRoot 'postgresql-17.11'
+$PostgresBin = Join-Path $PostgresRoot 'pgsql/bin'
 if ($Install) {
     if (-not (Test-Path -LiteralPath (Join-Path $UvBin 'uv.exe'))) {
         python -m venv $UvEnvironment
@@ -23,7 +25,18 @@ if ($Install) {
         }
         Expand-Archive -LiteralPath $ArchivePath -DestinationPath $FoundryBin
     }
+    if (-not (Test-Path -LiteralPath (Join-Path $PostgresBin 'postgres.exe'))) {
+        $PgArchive = Join-Path $ToolRoot 'postgresql-17.11-windows-x64.zip'
+        if (-not (Test-Path -LiteralPath $PgArchive)) {
+            Invoke-WebRequest -Uri 'https://sbp.enterprisedb.com/getfile.jsp?fileid=1260616' -OutFile $PgArchive
+        }
+        $PgExpectedHash = '80379b2c04d51c30225532e0ae04509899141e9957ed096fe749d7fd9df8f82f'
+        if ((Get-FileHash -LiteralPath $PgArchive -Algorithm SHA256).Hash.ToLowerInvariant() -ne $PgExpectedHash) {
+            throw 'PostgreSQL archive checksum mismatch'
+        }
+        Expand-Archive -LiteralPath $PgArchive -DestinationPath $PostgresRoot
+    }
 }
-$env:PATH = "$UvBin;$FoundryBin;$env:PATH"
+$env:PATH = "$UvBin;$FoundryBin;$PostgresBin;$env:PATH"
 $env:UV_LINK_MODE = 'copy'
 Write-Output 'Project tools added to this PowerShell process only.'

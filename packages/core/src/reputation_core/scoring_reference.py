@@ -186,9 +186,10 @@ def evaluate_from_stats(data: dict[str, Any], policy: dict[str, Any]) -> dict[st
         dimensions["behavior"] = {"state": "NOT_APPLICABLE", "score_bp": None, "observed_score_bp": None, "coverage_bp": None, "sample_bp": None, "freshness_bp": None, "sufficiency_bp": None, "reason_codes": ["NOT_DECLARED_READ_ONLY"]}
 
     q = min(qualities.values(), default=Fraction(0))
-    complete = all(values[k] is not None for k in weights)
+    decided_values = {key: value for key, value in values.items() if value is not None}
+    complete = all(key in decided_values for key in weights)
     gate_ok = complete and q >= min_q and (profile != "record-write-v1" or binding_ok)
-    overall = sum((values[k] * Fraction(w, SCALE) for k, w in weights.items()), Fraction(0)) if gate_ok else None
+    overall = sum((decided_values[k] * Fraction(w, SCALE) for k, w in weights.items()), Fraction(0)) if gate_ok else None
     rec = policy["recommendation"]
     if critical and rec["critical_conflict_veto"]:
         advice = "NOT_RECOMMENDED"
@@ -196,7 +197,7 @@ def evaluate_from_stats(data: dict[str, Any], policy: dict[str, Any]) -> dict[st
         advice = "INSUFFICIENT_EVIDENCE"
     elif overall < Fraction(rec["limited_total_min_bp"], SCALE):
         advice = "NOT_RECOMMENDED"
-    elif overall >= Fraction(rec["recommended_total_min_bp"], SCALE) and all(values[k] >= Fraction(rec["recommended_dimension_min_bp"], SCALE) for k in weights):
+    elif overall >= Fraction(rec["recommended_total_min_bp"], SCALE) and all(decided_values[k] >= Fraction(rec["recommended_dimension_min_bp"], SCALE) for k in weights):
         advice = "RECOMMENDED_WITHIN_SCOPE"
     else:
         advice = "LIMITED_OR_MANUAL_REVIEW"

@@ -31,6 +31,9 @@ Windows PowerShell，从仓库根目录执行（工具安装只写入 Git 忽略
 ```powershell
 . ./scripts/tools.ps1 -Install
 uv sync --locked --all-packages
+uv run --all-packages python scripts/local_postgres.py init
+uv run --all-packages python scripts/local_postgres.py start
+uv run --all-packages reputation migrate
 uv run --all-packages pytest
 uv run ruff check packages services fixtures/agents tests/unit
 pnpm --dir apps/web install --frozen-lockfile
@@ -42,3 +45,7 @@ uv run --package reputation-platform reputation doctor
 ```
 
 doctor 会明确报告未就绪工具并返回非零；它不代表完整平台已启动。Python 使用 3.12（当前验证 3.12.4），Node 22.17.0，pnpm 10.12.4。运行环境与依赖版本见 configs/toolchain.json 和锁文件。
+
+PostgreSQL 在项目 runtime 中运行，仅监听 127.0.0.1:55432；凭证自动随机生成并被 Git 忽略。Windows 原生 PostgreSQL 对中文路径存在启动编码问题，脚本将同一 runtime 动态映射到空闲盘符，不复制项目。运行期间保留该映射；停止数据库使用 `uv run --all-packages python scripts/local_postgres.py stop`。测试只创建并删除自身的 reputation_test_* 临时数据库，不清空开发数据库。仅离线单元检查可运行 `uv run --all-packages pytest tests/unit tests/reference`，不能作为完整数据库验收。
+
+领域类型生成：`uv run --all-packages python scripts/generate_schemas.py`、`pnpm --dir apps/web generate:types`。类型检查：`uv run --all-packages mypy -p reputation_core -p reputation_platform -p reputation_verifier -p fixture_agents`。
