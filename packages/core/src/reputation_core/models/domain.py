@@ -20,6 +20,7 @@ from .enums import AnchorStatus, DispatchState, Outcome, Purpose, Reason, RunSta
 
 Capability = Literal["get_tx_status", "verify_record", "anchor_record"]
 Profile = Literal["record-read-v1", "record-write-v1"]
+SourceType = Literal["controlled", "public_registry", "replay"]
 
 
 class AgentRef(Model):
@@ -58,7 +59,7 @@ class ChainIdentity(Model):
 class SnapshotCore(Model):
     schema_version: Literal["1.0.0"] = "1.0.0"
     agent_ref: AgentRef
-    source_type: Literal["controlled", "public_registry", "replay"]
+    source_type: SourceType
     owner: NonzeroAddress
     declared_executor: Address | None
     agent_uri: SafeText

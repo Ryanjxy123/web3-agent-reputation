@@ -28,4 +28,4 @@ API `http://127.0.0.1:8000`，前端 `http://127.0.0.1:5173`，Anvil `http://127
 
 停止使用 `docker compose down`，默认保留数据卷；不要为排错使用 `down -v`。原生数据库使用 `uv run --all-packages python scripts/local_postgres.py stop`。
 
-本机 Docker Desktop 4.93.0 已按用户安装，但首次 WSL 导入报 `Wsl/ERROR_PATH_NOT_FOUND`，尚未获得本机 Compose 运行结果。没有重置或注销已有 WSL 发行版。原生 PostgreSQL/API/worker 测试与 Compose 配置解析已通过；不能把配置通过当容器已启动。
+本机 Docker Desktop 4.93.0 已按用户安装，但首次 WSL 导入报 `Wsl/ERROR_PATH_NOT_FOUND`，尚未获得本机 Compose 运行结果。没有重置或注销已有 WSL 发行版。原生 PostgreSQL/API/worker 已通过；Linux CI run 37017699537 的真实 Compose 构建/迁移/运行/HTTP/RPC smoke 已通过。两种环境的结果分别记录。

@@ -22,7 +22,7 @@
     "cli": "29.8.1"
   },
   "compose": {
-    "status": "CONFIG_VERIFIED_RUNTIME_PENDING",
+    "status": "LINUX_CI_RUNTIME_VERIFIED_WINDOWS_ENGINE_BLOCKED",
     "version": "5.5.1"
   }
 }

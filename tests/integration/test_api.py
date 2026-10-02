@@ -1,8 +1,8 @@
 import pytest
 from fastapi.testclient import TestClient
 from reputation_platform.api.app import create_app
-from reputation_platform.infrastructure.db.tables import audit_logs
-from sqlalchemy import select
+from reputation_platform.infrastructure.db.tables import agents, audit_logs
+from sqlalchemy import insert, select
 
 from tests.factories import agent
 
@@ -57,3 +57,15 @@ def test_error_responses_do_not_echo_secrets_or_private_paths(db):
 def test_api_requires_generated_operator_token(db):
     with pytest.raises(RuntimeError, match="OPERATOR_TOKEN"):
         create_app(db, "short")
+
+
+def test_controlled_identity_retains_its_source_label(db):
+    with db.begin() as connection:
+        identifier = connection.execute(
+            insert(agents).values(**agent().model_dump(), source_type="controlled")
+            .returning(agents.c.id)
+        ).scalar_one()
+    with TestClient(create_app(db, TOKEN)) as client:
+        response = client.get(f"/api/v1/agents/{identifier}")
+    assert response.status_code == 200
+    assert response.json()["source_type"] == "controlled"

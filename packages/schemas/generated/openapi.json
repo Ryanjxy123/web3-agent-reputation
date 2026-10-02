@@ -307,8 +307,9 @@
           },
           "source_type": {
             "enum": [
+              "controlled",
               "public_registry",
-              "controlled_fixture"
+              "replay"
             ],
             "title": "Source Type",
             "type": "string"

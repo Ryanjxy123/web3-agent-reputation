@@ -4,7 +4,7 @@ from typing import Literal
 from pydantic import UUID4, Field
 
 from .base import Hash32, Model, NonzeroAddress, SafeText
-from .domain import AgentRef, Capability, Profile
+from .domain import AgentRef, Capability, Profile, SourceType
 from .enums import JobStatus
 
 
@@ -15,7 +15,7 @@ class AgentCreate(Model):
 class AgentView(Model):
     id: UUID4
     agent_ref: AgentRef
-    source_type: Literal["public_registry", "controlled_fixture"]
+    source_type: SourceType
     status: Literal["UNVERIFIED"] = "UNVERIFIED"
 
 

@@ -219,7 +219,7 @@ export interface components {
              * Source Type
              * @enum {string}
              */
-            source_type: "public_registry" | "controlled_fixture";
+            source_type: "controlled" | "public_registry" | "replay";
             /**
              * Status
              * @default UNVERIFIED
