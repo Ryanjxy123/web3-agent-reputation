@@ -196,5 +196,5 @@
 - Live evidence：smoke_reports退出0，runtime/local-chain/report-a.zip（131066 bytes）及report-d.zip（131661 bytes），各132成员；report-smoke.json记录真实report_id/hash。A为PARTIAL/INSUFFICIENT_EVIDENCE，D为PARTIAL/NOT_RECOMMENDED，两者overall=null、回执NOT_REQUESTED。源码存在未提交实现时正确标记-dirty，没有声称来自干净release。
 - Runtime：原生API/worker已加载报告实现；全量测试期间A/D停止，完成后恢复。报告smoke复用已核验任务，不重新执行Agent写入。已冻结的本地A/D报告应在M1-07继续发布；不要新建竞争previous的未发布报告。
 - Known limitations：发布outbox、真实锚定和独立ZIP verifier尚未实现；导出成功不等于独立复核通过。无Git部署需配置实际CODE_VERSION，完整Compose/E2E收尾归M1-08。本机Docker WSL与外部OpenAPI403仍单列。
-- CI/Git：上一阶段b04a04a的run37033866824核实success；391d2c9旧run被后续提交取消。本次分支feat/foundation-m0-m1，暂存diff/实际密钥/大小检查通过，待提交/推送。
+- CI/Git：上一阶段b04a04a的run37033866824核实success；391d2c9旧run被后续提交取消。本次实现3f052d3已推送feat/foundation-m0-m1至预期origin，暂存diff/实际密钥/大小检查通过，新CI待核实。本验收状态另行提交；M1整体仍未完成。
 - Next task：M1-07：持久签名/nonce后广播、unknown broadcast reconcile、独立安全ZIP与规则复算、可信配置下真实Anchor核验、篡改/换链测试。
