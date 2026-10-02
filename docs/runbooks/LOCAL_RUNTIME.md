@@ -14,7 +14,7 @@ uv run --all-packages reputation migrate
 uv run --env-file .env --all-packages uvicorn reputation_platform.api.app:create_app --factory --host 127.0.0.1 --port 8000 --no-access-log
 ```
 
-另开终端运行 `uv run --all-packages reputation worker`。M0 worker 已验证领取、心跳和 fencing；业务 handler 在 M1 接入。`/health/ready` 检查 PostgreSQL 迁移版本；注册仅创建未核验候选，不代表测试通过。
+另开终端运行 `uv run --all-packages reputation worker`。worker 已接入 ingest handler；领取、心跳和 fencing 使用 PostgreSQL。`/health/ready` 当前检查 PostgreSQL 迁移版本；本地链配置与实例在执行身份操作时核验，不能把基础 readiness 当完整链路就绪。注册仅创建未核验候选，不代表测试通过。
 
 容器启动（需可用 Docker Linux 引擎）：
 
@@ -61,3 +61,17 @@ uv run --all-packages uvicorn fixture_agents.service:create_app --factory --host
 D 使用 `fixture-d.json` 和端口 9102。每服务默认一个进程，由独立 SQLite 账本持久化；平台不会读取异常模式。
 
 `uv run --all-packages python scripts/smoke_agents.py` 验证真实 HTTP、A 匹配事件、D 无关成功事件。重启 A/D 后运行同命令加 `--recheck`，要求旧 request 返回原 txHash，无重复记录。该命令使用 synthetic snapshot，是协议 smoke；完整身份绑定、平台 worker、报告和复核由 M1 后续任务提供。当前 Compose 验证仅覆盖基础服务，fixture 编排在纵向集成阶段接入。
+
+## M1 快照与双签绑定
+
+完成 deploy/seed，启动新版 API 和独立 worker 后运行：
+
+```powershell
+uv run --all-packages python scripts/smoke_identity.py
+```
+
+该本地操作者脚本从忽略的 `.env` 获取 token，从 `setup-secrets.json` 获取演示 owner/executor 密钥，在客户端分别签署两个角色的 EIP-712 消息。私钥不会发送给 API/worker。它依次调用注册、异步 refresh、人工确认映射、challenge、verify，输出 `IDENTITY_SMOKE_PASS`，公共结果保存为 `runtime/local-chain/identity-smoke.json`。A/D 的身份都应 VERIFIED；D 的任务正确性仍需后续独立断言，不能从绑定结果推断。
+
+平台默认读取 `runtime/local-chain/deployment.json`；使用新实例目录时，为 API 和 worker 设置 `LOCAL_CHAIN_CONFIG` 为相应公共配置的绝对路径。`EVIDENCE_ROOT` 可指定脱敏证据目录，默认 `runtime/evidence`。API 和 worker 必须使用相同配置与证据目录，均不读取 setup/publisher 私钥文件。操作者 smoke 当前使用默认本地目录；其他实例需显式按 API 流程签署。
+
+refresh 每次追加新快照，旧快照可读，但不用于新的声明确认或绑定；新版本需要重新确认和签名。双签仅支持本地 EOA，合约账户为 UNKNOWN。注册文件只接受受控结构；公网注册文件抓取尚未开启。

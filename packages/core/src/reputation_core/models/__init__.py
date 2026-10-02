@@ -5,6 +5,7 @@ from .api import (
     AgentView,
     ApiError,
     BindingChallengeRequest,
+    BindingChallengeView,
     BindingVerifyRequest,
     ClaimsConfirm,
     ErrorDetail,
@@ -53,6 +54,7 @@ from .enums import (
 from .runtime import ControlledTaskView, DeployedContract, LocalDeployment, TaskResult
 
 __all__ = [
+    "BindingChallengeView",
     "ControlledTaskView", "DeployedContract", "LocalDeployment", "TaskResult",
     "AcceptedJob", "AgentCreate", "AgentView", "JobView", "ApiError", "BindingChallengeRequest", "BindingVerifyRequest",
     "ClaimsConfirm", "ErrorDetail", "EvaluationCreate", "RefreshRequest",

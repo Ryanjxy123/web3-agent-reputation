@@ -32,6 +32,19 @@
       "default": null,
       "title": "Reason Code"
     },
+    "snapshot_id": {
+      "anyOf": [
+        {
+          "format": "uuid4",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Snapshot Id"
+    },
     "state": {
       "$ref": "#/$defs/JobStatus"
     }

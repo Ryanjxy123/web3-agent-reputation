@@ -1,4 +1,4 @@
-"""M0 authenticated registration and health; later routes reuse these boundaries."""
+"""Authenticated operator routes; identity reads and writes use application services."""
 
 import hmac
 import os
@@ -9,27 +9,45 @@ from fastapi import Depends, FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from reputation_core.models import AgentCreate, AgentView, ApiError, ErrorDetail, JobView
+from reputation_core.models import (
+    AcceptedJob,
+    AgentCreate,
+    AgentSnapshot,
+    AgentView,
+    ApiError,
+    BindingChallengeRequest,
+    BindingChallengeView,
+    BindingVerifyRequest,
+    ClaimReview,
+    ClaimsConfirm,
+    ErrorDetail,
+    ExecutorBinding,
+    JobView,
+    LocalDeployment,
+    RefreshRequest,
+)
 from sqlalchemy import Engine, select, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import SQLAlchemyError
 
+from reputation_platform.application.errors import ApplicationError as ApiProblem
+from reputation_platform.application.identity import IdentityService
 from reputation_platform.infrastructure.db.connection import engine
 from reputation_platform.infrastructure.db.tables import agents, audit_logs, jobs
 
 SCHEMA_HEAD = "6aa7efd8cbc4"
 
 
-class ApiProblem(Exception):
-    def __init__(self, status: int, code: str, message: str, retryable: bool = False):
-        self.status, self.code, self.message, self.retryable = status, code, message, retryable
-
-
-def create_app(db: Engine | None = None, operator_token: str | None = None) -> FastAPI:
+def create_app(
+    db: Engine | None = None,
+    operator_token: str | None = None,
+    deployment: LocalDeployment | None = None,
+) -> FastAPI:
     token = operator_token or os.environ.get("OPERATOR_TOKEN")
     if not token or len(token) < 32:
         raise RuntimeError("OPERATOR_TOKEN must contain at least 32 characters")
     database = db or engine()
+    identity = IdentityService(database, deployment)
 
     @asynccontextmanager
     async def lifespan(app):
@@ -39,6 +57,7 @@ def create_app(db: Engine | None = None, operator_token: str | None = None) -> F
 
     app = FastAPI(title="Web3 Agent Reputation", version="1.0.0", lifespan=lifespan)
     app.state.db = database
+    app.state.identity = identity
 
     @app.middleware("http")
     async def request_id(request: Request, call_next):
@@ -71,7 +90,9 @@ def create_app(db: Engine | None = None, operator_token: str | None = None) -> F
             request, 503, "DATABASE_UNAVAILABLE", "Database operation unavailable.", True
         )
 
-    def operator(auth: HTTPAuthorizationCredentials | None = Depends(HTTPBearer(auto_error=False))) -> str:
+    def operator(
+        auth: HTTPAuthorizationCredentials | None = Depends(HTTPBearer(auto_error=False)),
+    ) -> str:
         supplied = auth.credentials if auth else ""
         if (
             not auth
@@ -95,13 +116,17 @@ def create_app(db: Engine | None = None, operator_token: str | None = None) -> F
             raise ApiProblem(503, "MIGRATION_REQUIRED", "Database schema is not current.", True)
         return {"status": "ok", "database": "ready", "schema_revision": revision}
 
-    @app.post("/api/v1/agents", response_model=AgentView, responses={201: {"model": AgentView}, 401: {"model": ApiError}, 422: {"model": ApiError}})
+    @app.post(
+        "/api/v1/agents",
+        response_model=AgentView,
+        responses={201: {"model": AgentView}, 401: {"model": ApiError}, 422: {"model": ApiError}},
+    )
     def add_agent(body: AgentCreate, response: Response, actor: str = Depends(operator)):
         ref = body.agent_ref.model_dump()
         with database.begin() as connection:
             new_id = connection.execute(
                 insert(agents)
-                .values(**ref, source_type="public_registry")
+                .values(**ref, source_type=identity.source_type(body.agent_ref))
                 .on_conflict_do_nothing(
                     index_elements=["namespace", "chain_id", "registry_address", "agent_id"]
                 )
@@ -124,37 +149,61 @@ def create_app(db: Engine | None = None, operator_token: str | None = None) -> F
             )
         # Registry reads/confirmation happen separately; registration is never evaluation.
         response.status_code = 201 if created else 200
-        return AgentView(id=new_id, agent_ref=body.agent_ref, source_type="public_registry")
+        return identity.agent(new_id)
 
     @app.get("/api/v1/agents/{agent_id}", response_model=AgentView)
     def get_agent(agent_id: UUID):
-        with database.connect() as connection:
-            row = (
-                connection.execute(select(agents).where(agents.c.id == agent_id)).mappings().first()
-            )
-        if row is None:
-            raise ApiProblem(404, "NOT_FOUND", "Agent does not exist.")
-        return {
-            "id": str(row["id"]),
-            "agent_ref": {
-                key: row[key] for key in ("namespace", "chain_id", "registry_address", "agent_id")
-            },
-            "source_type": row["source_type"],
-            "status": "UNVERIFIED",
-        }
+        return identity.agent(agent_id)
+
+    @app.post("/api/v1/agents/{agent_id}/refresh", response_model=AcceptedJob, status_code=202)
+    def refresh(agent_id: UUID, body: RefreshRequest, actor: str = Depends(operator)):
+        return identity.refresh(agent_id, body, actor)
+
+    @app.get("/api/v1/snapshots/{snapshot_id}", response_model=AgentSnapshot)
+    def get_snapshot(snapshot_id: UUID):
+        return identity.snapshot(snapshot_id)
+
+    @app.post("/api/v1/snapshots/{snapshot_id}/claims/confirm", response_model=ClaimReview)
+    def confirm_claims(snapshot_id: UUID, body: ClaimsConfirm, actor: str = Depends(operator)):
+        return identity.confirm(snapshot_id, body, actor)
+
+    @app.post(
+        "/api/v1/snapshots/{snapshot_id}/bindings/challenge", response_model=BindingChallengeView
+    )
+    def binding_challenge(
+        snapshot_id: UUID, body: BindingChallengeRequest, actor: str = Depends(operator)
+    ):
+        return identity.challenge(snapshot_id, body, actor)
+
+    @app.post("/api/v1/snapshots/{snapshot_id}/bindings/verify", response_model=ExecutorBinding)
+    def binding_verify(
+        snapshot_id: UUID, body: BindingVerifyRequest, actor: str = Depends(operator)
+    ):
+        return identity.verify(snapshot_id, body, actor)
+
+    @app.get("/api/v1/snapshots/{snapshot_id}/bindings", response_model=list[ExecutorBinding])
+    def get_bindings(snapshot_id: UUID):
+        return identity.proofs(snapshot_id)
 
     @app.get("/api/v1/jobs/{job_id}", response_model=JobView)
     def get_job(job_id: UUID, actor: str = Depends(operator)):
         with database.connect() as connection:
             row = (
                 connection.execute(
-                    select(jobs.c.id, jobs.c.state, jobs.c.last_error).where(jobs.c.id == job_id)
+                    select(jobs.c.id, jobs.c.state, jobs.c.last_error, jobs.c.payload).where(
+                        jobs.c.id == job_id
+                    )
                 )
                 .mappings()
                 .first()
             )
         if row is None:
             raise ApiProblem(404, "NOT_FOUND", "Job does not exist.")
-        return {"id": str(row["id"]), "state": row["state"], "reason_code": row["last_error"]}
+        return {
+            "id": str(row["id"]),
+            "state": row["state"],
+            "reason_code": row["last_error"],
+            "snapshot_id": row["payload"].get("snapshot_id"),
+        }
 
     return app

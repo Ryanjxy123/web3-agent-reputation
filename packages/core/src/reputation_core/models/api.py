@@ -1,10 +1,10 @@
 """API input/output contracts; callers cannot supply scores, RPC URLs or clocks."""
 from typing import Literal
 
-from pydantic import UUID4, Field
+from pydantic import UUID4, Field, JsonValue
 
 from .base import Hash32, Model, NonzeroAddress, SafeText
-from .domain import AgentRef, Capability, Profile, SourceType
+from .domain import AgentRef, BindingMessage, Capability, Profile, SourceType
 from .enums import JobStatus
 
 
@@ -16,13 +16,15 @@ class AgentView(Model):
     id: UUID4
     agent_ref: AgentRef
     source_type: SourceType
-    status: Literal["UNVERIFIED"] = "UNVERIFIED"
+    status: Literal["UNVERIFIED", "SNAPSHOT_CAPTURED"] = "UNVERIFIED"
+    current_snapshot_id: UUID4 | None = None
 
 
 class JobView(Model):
     id: UUID4
     state: JobStatus
     reason_code: str | None = None
+    snapshot_id: UUID4 | None = None
 
 
 class ClaimsConfirm(Model):
@@ -42,6 +44,14 @@ class BindingVerifyRequest(Model):
     challenge_id: UUID4
     owner_signature: str = Field(pattern=r"^0x[0-9a-f]{130}$")
     executor_signature: str = Field(pattern=r"^0x[0-9a-f]{130}$")
+
+
+class BindingChallengeView(Model):
+    challenge_id: UUID4
+    message: BindingMessage
+    owner_typed_data: dict[str, JsonValue]
+    executor_typed_data: dict[str, JsonValue]
+    scope: Literal["local-demo-eoa-only"] = "local-demo-eoa-only"
 
 
 class EvaluationCreate(Model):

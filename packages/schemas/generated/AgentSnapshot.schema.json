@@ -240,6 +240,15 @@
     "core": {
       "$ref": "#/$defs/SnapshotCore"
     },
+    "evidence_refs": {
+      "default": [],
+      "items": {
+        "format": "uuid4",
+        "type": "string"
+      },
+      "title": "Evidence Refs",
+      "type": "array"
+    },
     "snapshot_hash": {
       "pattern": "^0x[0-9a-f]{64}$",
       "title": "Snapshot Hash",

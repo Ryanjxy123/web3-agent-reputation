@@ -10,6 +10,8 @@ from uuid import uuid4
 
 from sqlalchemy import Connection, Engine, update
 
+from reputation_platform.application.errors import ApplicationError
+from reputation_platform.application.identity import IdentityService
 from reputation_platform.infrastructure.db.connection import engine
 from reputation_platform.infrastructure.db.jobs import JobQueue, Lease, LostLease
 from reputation_platform.infrastructure.db.tables import jobs
@@ -57,6 +59,12 @@ class Worker:
             await asyncio.to_thread(self.queue.complete, lease)
         except LostLease:
             LOG.warning("Lease lost for job %s; dispatch state must be reconciled.", lease.job_id)
+        except ApplicationError as exc:
+            with suppress(LostLease):
+                if exc.retryable:
+                    await asyncio.to_thread(self.queue.retry, lease, exc.code)
+                else:
+                    await asyncio.to_thread(self._fail, lease, exc.code)
         except Exception:
             # Do not log response bodies, secrets, or arbitrary exception text.
             LOG.error("Handler failed for job %s; scheduling bounded reconciliation.", lease.job_id)
@@ -72,7 +80,7 @@ class Worker:
 async def serve(once: bool = False) -> None:
     database = engine()
     # Only reviewed in-process adapters may register here. No metadata-driven import.
-    handlers: dict[str, Handler] = {}
+    handlers: dict[str, Handler] = {"ingest": IdentityService(database).ingest}
     worker = Worker(database, handlers)
     try:
         while True:

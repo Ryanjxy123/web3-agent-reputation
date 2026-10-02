@@ -38,6 +38,19 @@
     "agent_ref": {
       "$ref": "#/$defs/AgentRef"
     },
+    "current_snapshot_id": {
+      "anyOf": [
+        {
+          "format": "uuid4",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Current Snapshot Id"
+    },
     "id": {
       "format": "uuid4",
       "title": "Id",
@@ -53,8 +66,11 @@
       "type": "string"
     },
     "status": {
-      "const": "UNVERIFIED",
       "default": "UNVERIFIED",
+      "enum": [
+        "UNVERIFIED",
+        "SNAPSHOT_CAPTURED"
+      ],
       "title": "Status",
       "type": "string"
     }

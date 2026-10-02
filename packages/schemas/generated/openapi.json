@@ -275,6 +275,15 @@
           "core": {
             "$ref": "#/components/schemas/SnapshotCore"
           },
+          "evidence_refs": {
+            "default": [],
+            "items": {
+              "format": "uuid4",
+              "type": "string"
+            },
+            "title": "Evidence Refs",
+            "type": "array"
+          },
           "snapshot_hash": {
             "pattern": "^0x[0-9a-f]{64}$",
             "title": "Snapshot Hash",
@@ -300,6 +309,19 @@
           "agent_ref": {
             "$ref": "#/components/schemas/AgentRef"
           },
+          "current_snapshot_id": {
+            "anyOf": [
+              {
+                "format": "uuid4",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Current Snapshot Id"
+          },
           "id": {
             "format": "uuid4",
             "title": "Id",
@@ -315,8 +337,11 @@
             "type": "string"
           },
           "status": {
-            "const": "UNVERIFIED",
             "default": "UNVERIFIED",
+            "enum": [
+              "UNVERIFIED",
+              "SNAPSHOT_CAPTURED"
+            ],
             "title": "Status",
             "type": "string"
           }
@@ -554,6 +579,47 @@
           "execution_chain_key"
         ],
         "title": "BindingChallengeRequest",
+        "type": "object"
+      },
+      "BindingChallengeView": {
+        "additionalProperties": false,
+        "properties": {
+          "challenge_id": {
+            "format": "uuid4",
+            "title": "Challenge Id",
+            "type": "string"
+          },
+          "executor_typed_data": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "title": "Executor Typed Data",
+            "type": "object"
+          },
+          "message": {
+            "$ref": "#/components/schemas/BindingMessage"
+          },
+          "owner_typed_data": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "title": "Owner Typed Data",
+            "type": "object"
+          },
+          "scope": {
+            "const": "local-demo-eoa-only",
+            "default": "local-demo-eoa-only",
+            "title": "Scope",
+            "type": "string"
+          }
+        },
+        "required": [
+          "challenge_id",
+          "message",
+          "owner_typed_data",
+          "executor_typed_data"
+        ],
+        "title": "BindingChallengeView",
         "type": "object"
       },
       "BindingMessage": {
@@ -1543,6 +1609,19 @@
             ],
             "default": null,
             "title": "Reason Code"
+          },
+          "snapshot_id": {
+            "anyOf": [
+              {
+                "format": "uuid4",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Snapshot Id"
           },
           "state": {
             "$ref": "#/components/schemas/JobStatus"
@@ -2755,6 +2834,61 @@
         "summary": "Get Agent"
       }
     },
+    "/api/v1/agents/{agent_id}/refresh": {
+      "post": {
+        "operationId": "refresh_api_v1_agents__agent_id__refresh_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "agent_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Agent Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcceptedJob"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Refresh"
+      }
+    },
     "/api/v1/jobs/{job_id}": {
       "get": {
         "operationId": "get_job_api_v1_jobs__job_id__get",
@@ -2798,6 +2932,255 @@
           }
         ],
         "summary": "Get Job"
+      }
+    },
+    "/api/v1/snapshots/{snapshot_id}": {
+      "get": {
+        "operationId": "get_snapshot_api_v1_snapshots__snapshot_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "snapshot_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Snapshot Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentSnapshot"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Snapshot"
+      }
+    },
+    "/api/v1/snapshots/{snapshot_id}/bindings": {
+      "get": {
+        "operationId": "get_bindings_api_v1_snapshots__snapshot_id__bindings_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "snapshot_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Snapshot Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ExecutorBinding"
+                  },
+                  "title": "Response Get Bindings Api V1 Snapshots  Snapshot Id  Bindings Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Bindings"
+      }
+    },
+    "/api/v1/snapshots/{snapshot_id}/bindings/challenge": {
+      "post": {
+        "operationId": "binding_challenge_api_v1_snapshots__snapshot_id__bindings_challenge_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "snapshot_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Snapshot Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BindingChallengeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BindingChallengeView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Binding Challenge"
+      }
+    },
+    "/api/v1/snapshots/{snapshot_id}/bindings/verify": {
+      "post": {
+        "operationId": "binding_verify_api_v1_snapshots__snapshot_id__bindings_verify_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "snapshot_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Snapshot Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BindingVerifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutorBinding"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Binding Verify"
+      }
+    },
+    "/api/v1/snapshots/{snapshot_id}/claims/confirm": {
+      "post": {
+        "operationId": "confirm_claims_api_v1_snapshots__snapshot_id__claims_confirm_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "snapshot_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Snapshot Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClaimsConfirm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClaimReview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Confirm Claims"
       }
     },
     "/health/live": {

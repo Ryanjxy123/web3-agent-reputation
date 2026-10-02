@@ -38,6 +38,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/agents/{agent_id}/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Refresh */
+        post: operations["refresh_api_v1_agents__agent_id__refresh_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/jobs/{job_id}": {
         parameters: {
             query?: never;
@@ -49,6 +66,91 @@ export interface paths {
         get: operations["get_job_api_v1_jobs__job_id__get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/snapshots/{snapshot_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Snapshot */
+        get: operations["get_snapshot_api_v1_snapshots__snapshot_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/snapshots/{snapshot_id}/bindings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Bindings */
+        get: operations["get_bindings_api_v1_snapshots__snapshot_id__bindings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/snapshots/{snapshot_id}/bindings/challenge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Binding Challenge */
+        post: operations["binding_challenge_api_v1_snapshots__snapshot_id__bindings_challenge_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/snapshots/{snapshot_id}/bindings/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Binding Verify */
+        post: operations["binding_verify_api_v1_snapshots__snapshot_id__bindings_verify_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/snapshots/{snapshot_id}/claims/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm Claims */
+        post: operations["confirm_claims_api_v1_snapshots__snapshot_id__claims_confirm_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -199,6 +301,11 @@ export interface components {
         /** AgentSnapshot */
         AgentSnapshot: {
             core: components["schemas"]["SnapshotCore"];
+            /**
+             * Evidence Refs
+             * @default []
+             */
+            evidence_refs: string[];
             /** Snapshot Hash */
             snapshot_hash: string;
             /**
@@ -210,6 +317,11 @@ export interface components {
         /** AgentView */
         AgentView: {
             agent_ref: components["schemas"]["AgentRef"];
+            /**
+             * Current Snapshot Id
+             * @default null
+             */
+            current_snapshot_id: string | null;
             /**
              * Id
              * Format: uuid4
@@ -223,9 +335,9 @@ export interface components {
             /**
              * Status
              * @default UNVERIFIED
-             * @constant
+             * @enum {string}
              */
-            status: "UNVERIFIED";
+            status: "UNVERIFIED" | "SNAPSHOT_CAPTURED";
         };
         /** AnchorReceipt */
         AnchorReceipt: {
@@ -299,6 +411,29 @@ export interface components {
             execution_chain_key: "local-demo";
             /** Executor */
             executor: string;
+        };
+        /** BindingChallengeView */
+        BindingChallengeView: {
+            /**
+             * Challenge Id
+             * Format: uuid4
+             */
+            challenge_id: string;
+            /** Executor Typed Data */
+            executor_typed_data: {
+                [key: string]: components["schemas"]["JsonValue"];
+            };
+            message: components["schemas"]["BindingMessage"];
+            /** Owner Typed Data */
+            owner_typed_data: {
+                [key: string]: components["schemas"]["JsonValue"];
+            };
+            /**
+             * Scope
+             * @default local-demo-eoa-only
+             * @constant
+             */
+            scope: "local-demo-eoa-only";
         };
         /** BindingMessage */
         BindingMessage: {
@@ -677,6 +812,11 @@ export interface components {
              * @default null
              */
             reason_code: string | null;
+            /**
+             * Snapshot Id
+             * @default null
+             */
+            snapshot_id: string | null;
             state: components["schemas"]["JobStatus"];
         };
         JsonValue: unknown;
@@ -1139,6 +1279,41 @@ export interface operations {
             };
         };
     };
+    refresh_api_v1_agents__agent_id__refresh_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                agent_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefreshRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcceptedJob"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_job_api_v1_jobs__job_id__get: {
         parameters: {
             query?: never;
@@ -1157,6 +1332,173 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JobView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_snapshot_api_v1_snapshots__snapshot_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                snapshot_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentSnapshot"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_bindings_api_v1_snapshots__snapshot_id__bindings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                snapshot_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExecutorBinding"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    binding_challenge_api_v1_snapshots__snapshot_id__bindings_challenge_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                snapshot_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BindingChallengeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BindingChallengeView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    binding_verify_api_v1_snapshots__snapshot_id__bindings_verify_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                snapshot_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BindingVerifyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExecutorBinding"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_claims_api_v1_snapshots__snapshot_id__claims_confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                snapshot_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClaimsConfirm"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClaimReview"];
                 };
             };
             /** @description Validation Error */

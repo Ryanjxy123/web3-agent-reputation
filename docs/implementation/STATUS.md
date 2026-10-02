@@ -141,3 +141,17 @@
 - Branch：feat/foundation-m0-m1；实现提交 b8684a0 已推送；上一个 CI 29e4425 为 success，新代码 CI run 37021958255 已启动，结果待核实。
 - Blockers：无当前实现阻塞；本机 Docker WSL 问题、8004scan 403 继续单列。
 - Next task：M1-03 真实注册快照、人工映射确认与 owner/executor 双 EIP-712 签名绑定。
+
+## 2026-10-02 / M1-03
+
+- Implemented：固定真实区块的 demo reader；异步 ingest 快照；人工声明版本确认；随机单次 nonce 与 owner/executor 双 EIP-712 验证；当前身份核对/旧快照拒绝/合约账户 UNKNOWN；脱敏后 CAS 证据；API 与独立 worker 静态接入。
+- Files changed：core binding/DTO、identity service/demo reader/evidence store、API/worker、生成 Schema/OpenAPI/TS、smoke_identity、ADR 0006 与运行说明。
+- Commands executed：真实 PostgreSQL + Anvil pytest；ruff/mypy；Schema generate/check + TS generate；Vue build/test；forge test/ABI check；重启原生 API、独立 worker 进程运行 smoke_identity。
+- Tests：135 Python passed（新增 16 身份链/数据库集成用例及 1 脱敏存储测试）、14 Foundry passed/0 skipped、2 Vue passed、40 Schema 验证、mypy 37 files、ruff、Vue typecheck/build 与 ABI 检查退出 0。首轮发现全零签名抛 BadSignature，已修复且回归通过。保留两项上游弃用警告。
+- Live evidence：runtime/local-chain/identity-smoke.json 保存 A/D 真实 snapshot、review、binding 和 job 引用；两者 VERIFIED。签名发生在操作者脚本，API/worker 不读取 owner/executor 私钥。D 身份通过不表示 D 业务正确，后续需独立业务断言。
+- Recovery/security：同 nonce 并发只有一个成功；提交快照后退出重领保留同一 snapshot_id；竞争 refresh 返回 SNAPSHOT_CONFLICT；已刷新旧版本不能新签；错误 Agent/endpoint/nonce/domain/role/signer/expired challenge 拒绝；敏感元数据拒绝且不保存。
+- Compatibility：无需 DB migration；DTO 新增可选结果引用和挑战类型；JSON Schema/OpenAPI/TS 同源生成。未开启公网注册抓取。
+- CI：前一提交 2119c0e 的 run 37022077859 已核实 success；本次提交的 CI 待推送后核实。
+- Known limitations：health readiness 当前仅检查 DB/migration；链配置/实例在身份操作时核验。M1 评价执行、报告、发布、独立复核及完整 Compose E2E 尚未完成。Windows Docker WSL 和外部 OpenAPI 403 仍单列。
+- Branch：feat/foundation-m0-m1；当前 M1-03 实现待分批提交并推送。
+- Next task：M1-04 授权边界、预持久化任务计划、执行/重启 reconciliation；不降低评分门槛。

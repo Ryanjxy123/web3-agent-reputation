@@ -77,6 +77,7 @@ class AgentSnapshot(Model):
     snapshot_id: UUID4
     core: SnapshotCore
     snapshot_hash: Hash32
+    evidence_refs: tuple[UUID4, ...] = ()
 
 
 class CapabilityClaim(Model):
