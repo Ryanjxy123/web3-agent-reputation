@@ -94,13 +94,13 @@ def evaluate_from_stats(data: dict[str, Any], policy: dict[str, Any]) -> dict[st
     qualities: dict[str, Fraction] = {}
 
     a = data["availability"]
-    n, planned, s, l = [_count(a[k], k) for k in ("decided", "planned", "responded", "within_latency")]
-    if not l <= s <= n <= planned:
+    n, planned, s, timely = [_count(a[k], k) for k in ("decided", "planned", "responded", "within_latency")]
+    if not timely <= s <= n <= planned:
         raise ValueError("availability counts must satisfy latency <= responded <= decided <= planned")
     amin = _count(policy["availability"]["min_samples"], "min_samples")
     aq = _quality(n, planned, amin, a.get("oldest_age_seconds"), ttl)
     av = (Fraction(policy["availability"]["valid_response_weight_bp"], SCALE) * Fraction(s, n)
-          + Fraction(policy["availability"]["latency_weight_bp"], SCALE) * Fraction(l, n)) if n else None
+          + Fraction(policy["availability"]["latency_weight_bp"], SCALE) * Fraction(timely, n)) if n else None
     ar = ([] if n >= amin else ["INSUFFICIENT_SAMPLES"]) + ([] if aq[0] >= min_cov else ["INSUFFICIENT_COVERAGE"])
     dimensions["availability"], values["availability"], qualities["availability"] = _dimension("UNKNOWN" if not n else ("COMPLETE" if not ar else "PARTIAL"), av, aq, ar)
 
