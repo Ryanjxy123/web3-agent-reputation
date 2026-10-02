@@ -1,0 +1,12 @@
+# Default owner. This file does not grant repository permissions.
+# Owner PRs also need another authorized teammate for independent review.
+* @Ryanjxy123
+/AGENTS.md @Ryanjxy123
+/PLAN.md @Ryanjxy123
+/packages/core/ @Ryanjxy123
+/packages/verifier/ @Ryanjxy123
+/contracts/ @Ryanjxy123
+/configs/policies/ @Ryanjxy123
+/services/platform/src/reputation_platform/infrastructure/network/ @Ryanjxy123
+/.github/ @Ryanjxy123
+# Replace/add actual teammate handles after the owner invites them.

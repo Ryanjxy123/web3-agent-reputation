@@ -1,0 +1,38 @@
+{
+  "schema_version": "chain-config-v1",
+  "default_mode": "local-demo",
+  "public_access_enabled": false,
+  "local_demo": {
+    "chain_id": "31337",
+    "rpc_env": "LOCAL_RPC_URL",
+    "genesis_hash": null,
+    "deployment_instance_id": null,
+    "contracts": {
+      "demo_agent_registry": null,
+      "demo_record_registry": null,
+      "evaluation_anchor": null
+    },
+    "confirmation_depth": 1,
+    "allow_transactions": true,
+    "require_instance_check": true
+  },
+  "public_registry_read": {
+    "enabled": false,
+    "chain_id": "11155111",
+    "identity_registry": "0x8004A818BFB912233c491871b3d84c89A494BD9e",
+    "rpc_env": "PUBLIC_READ_RPC_URL",
+    "source": "official-repository-webpage-example-not-rpc-verified",
+    "upstream_lock_required": true,
+    "allow_transactions": false
+  },
+  "public_execution": {
+    "enabled": false,
+    "allowed_chain_ids": [],
+    "allowed_contracts": []
+  },
+  "anchor_trust": {
+    "source": "operator_local_file_not_bundle",
+    "allowed_evaluators": [],
+    "allowed_anchor_contracts": []
+  }
+}
