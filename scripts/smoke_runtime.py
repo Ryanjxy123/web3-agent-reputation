@@ -10,15 +10,17 @@ def main() -> None:
     deadline = time.monotonic() + 120
     urls = ["http://127.0.0.1:8000/health/ready", "http://127.0.0.1:5173/health/ready"]
     for url in urls:
+        print(f"Checking {url}", flush=True)
         while True:
             try:
                 with urllib.request.urlopen(url, timeout=3) as response:
                     body = json.load(response)
                 assert body["database"] == "ready"
+                print("Ready", flush=True)
                 break
             except (OSError, ValueError):
                 if time.monotonic() >= deadline:
-                    raise RuntimeError("Runtime health did not become ready") from None
+                    raise RuntimeError(f"Runtime health did not become ready: {url}") from None
                 time.sleep(2)
     request = urllib.request.Request(
         "http://127.0.0.1:8545",

@@ -28,6 +28,7 @@ services:
 
   api:
     image: reputation-platform:local
+    pull_policy: never
     environment:
       DATABASE_URL: postgresql+psycopg://reputation:${POSTGRES_PASSWORD}@postgres:5432/reputation
       OPERATOR_TOKEN: ${OPERATOR_TOKEN:?Run scripts/init_local.py first}
@@ -45,6 +46,7 @@ services:
 
   worker:
     image: reputation-platform:local
+    pull_policy: never
     command: ["reputation", "worker"]
     environment:
       DATABASE_URL: postgresql+psycopg://reputation:${POSTGRES_PASSWORD}@postgres:5432/reputation

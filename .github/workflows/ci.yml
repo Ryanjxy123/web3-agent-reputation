@@ -64,5 +64,9 @@ jobs:
       - run: docker compose up --build -d
       - run: python3 scripts/smoke_runtime.py
       - run: docker compose exec -T worker reputation worker --once
+      - if: failure()
+        run: |
+          docker compose ps -a
+          docker compose logs --no-color --tail 60 api web worker
       - if: always()
         run: docker compose down

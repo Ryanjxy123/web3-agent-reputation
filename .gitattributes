@@ -15,3 +15,7 @@
 *.zip binary
 *.docx binary
 *.pdf binary
+# Hashes commit the exact upstream response bytes, including whitespace/newlines.
+third_party/erc8004/IdentityRegistry.json -text -diff
+third_party/erc8004/UPSTREAM_README.md -text -diff
+third_party/erc8004/eip-8004.html -text -diff
