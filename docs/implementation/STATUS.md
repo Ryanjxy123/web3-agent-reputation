@@ -151,7 +151,7 @@
 - Live evidence：runtime/local-chain/identity-smoke.json 保存 A/D 真实 snapshot、review、binding 和 job 引用；两者 VERIFIED。签名发生在操作者脚本，API/worker 不读取 owner/executor 私钥。D 身份通过不表示 D 业务正确，后续需独立业务断言。
 - Recovery/security：同 nonce 并发只有一个成功；提交快照后退出重领保留同一 snapshot_id；竞争 refresh 返回 SNAPSHOT_CONFLICT；已刷新旧版本不能新签；错误 Agent/endpoint/nonce/domain/role/signer/expired challenge 拒绝；敏感元数据拒绝且不保存。
 - Compatibility：无需 DB migration；DTO 新增可选结果引用和挑战类型；JSON Schema/OpenAPI/TS 同源生成。未开启公网注册抓取。
-- CI：前一提交 2119c0e 的 run 37022077859 已核实 success；本次提交的 CI 待推送后核实。
+- CI：前一提交 2119c0e 的 run 37022077859 已核实 success；本次 eea511a 的 run 37024611634 已启动，结果待核实。
 - Known limitations：health readiness 当前仅检查 DB/migration；链配置/实例在身份操作时核验。M1 评价执行、报告、发布、独立复核及完整 Compose E2E 尚未完成。Windows Docker WSL 和外部 OpenAPI 403 仍单列。
-- Branch：feat/foundation-m0-m1；当前 M1-03 实现待分批提交并推送。
+- Branch：feat/foundation-m0-m1；M1-03 实现提交 eea511a 已推送预期 origin；本验收状态单独更新。
 - Next task：M1-04 授权边界、预持久化任务计划、执行/重启 reconciliation；不降低评分门槛。
