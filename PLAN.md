@@ -1,6 +1,6 @@
 # 从零构造执行计划（ExecPlan）
 
-版本：foundation-v1.1，2026-10-02。状态：M0 基础验收完成（原生 Windows + Linux Compose CI）；M0-07 公网 OpenAPI 403 单列；开始 M1-01。
+版本：foundation-v1.1，2026-10-02。状态：M0 基础验收完成（原生 Windows + Linux Compose CI）；M0-07 公网 OpenAPI 403 单列；M1-01 已完成，下一步 M1-02。
 
 ## 1. 最终要交付的系统
 对同类凭证业务 Agent 固定身份与声明快照，执行合规测试，将返回结果与独立链上观测关联，生成三维证据评价，并以报告摘要存证和独立复核支撑审计。
