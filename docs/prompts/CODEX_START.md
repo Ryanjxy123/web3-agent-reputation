@@ -4,7 +4,7 @@
 
 ```text
 你正在为一个区块链比赛实现 Web3 Agent 多源证据声誉评价平台。我是项目/仓库负责人。
-本地目录：D:\大三上\软件前沿技术\web3-agent-reputation
+本地目录：D:\大三上\软件前沿技术\区块链竞赛\web3-agent-reputation
 预期远程：https://github.com/Ryanjxy123/web3-agent-reputation.git
 
 本次不是再讨论方案，请按已落地的规划开始写实际代码。首轮范围严格限定 M0 + M1；通过后交接，不自行扩成多链、付费LLM、完整A2A/MCP或主网业务。

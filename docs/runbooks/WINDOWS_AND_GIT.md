@@ -1,13 +1,13 @@
 # Windows本地开工与Git协作
 
-目标：`D:\大三上\软件前沿技术\web3-agent-reputation`
+目标：`D:\大三上\软件前沿技术\区块链竞赛\web3-agent-reputation`
 预期远程：`https://github.com/Ryanjxy123/web3-agent-reputation.git`
 本交接包没有访问该目录、修改remote、提交或push。共享网页未读取到仓库内容，以下必须由本地Codex按实际状态分支处理。
 
 ## 1. 先检查，不要先初始化
 PowerShell：
 ```powershell
-$Repo = 'D:\大三上\软件前沿技术\web3-agent-reputation'
+$Repo = 'D:\大三上\软件前沿技术\区块链竞赛\web3-agent-reputation'
 if (Test-Path -LiteralPath $Repo) {
     Set-Location -LiteralPath $Repo
     Get-ChildItem -Force
@@ -23,9 +23,9 @@ if (Test-Path -LiteralPath $Repo) {
 ### A. 本地尚不存在或为空，远程已有提交
 优先在父目录clone，让远程历史自然进入本地：
 ```powershell
-Set-Location -LiteralPath 'D:\大三上\软件前沿技术'
+Set-Location -LiteralPath 'D:\大三上\软件前沿技术\区块链竞赛'
 git clone https://github.com/Ryanjxy123/web3-agent-reputation.git web3-agent-reputation
-Set-Location -LiteralPath 'D:\大三上\软件前沿技术\web3-agent-reputation'
+Set-Location -LiteralPath 'D:\大三上\软件前沿技术\区块链竞赛\web3-agent-reputation'
 ```
 再安装本规划包，保留已有README/LICENSE/.gitignore等；不要先制造另一套无关Git历史。
 clone失败可能是登录/权限/网络，不是仓库为空。已有非空文件夹不要直接clone进去或删除重来。
@@ -59,8 +59,8 @@ git remote add origin https://github.com/Ryanjxy123/web3-agent-reputation.git
 压缩包展开后的目录是 `web3-agent-reputation-codex-kit`，其中 `repo` 是要放进项目的文件，外层安装器不属于应用源码。
 PowerShell示例（把$Kit改成实际解压目录，不是仓库路径）：
 ```powershell
-$Repo = 'D:\大三上\软件前沿技术\web3-agent-reputation'
-$Kit = 'C:\Users\你的Windows用户名\Downloads\web3-agent-reputation-codex-kit'
+$Repo = 'D:\大三上\软件前沿技术\区块链竞赛\web3-agent-reputation'
+$Kit = 'D:\大三上\软件前沿技术\区块链竞赛\web3-agent-reputation-codex-kit'
 py -3 "$Kit\install_plan.py" --target "$Repo" --on-conflict sidecar --dry-run
 py -3 "$Kit\install_plan.py" --target "$Repo" --on-conflict sidecar
 Set-Location -LiteralPath $Repo
@@ -112,7 +112,7 @@ Codex可在适当Windows环境工作；涉及Foundry/Linux工具链时，Docker�
 项目路径含中文不需要改名；PowerShell用`-LiteralPath`和引号，Python用Path，不拼接未转义Shell字符串。
 使用WSL2时同目录映射：
 ```bash
-cd '/mnt/d/大三上/软件前沿技术/web3-agent-reputation'
+cd '/mnt/d/大三上/软件前沿技术/区块链竞赛/web3-agent-reputation'
 ```
 在Windows/WSL只选择一处作为当前构建依赖环境；不要混用同一.venv/node_modules。Compose建议named volumes隔离Linux依赖。
 首次镜像/依赖下载需要网络；准备完毕的local demo不应依赖8004scan、付费LLM或公网写链。
