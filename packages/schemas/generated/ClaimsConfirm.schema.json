@@ -1,0 +1,46 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "confirmed_claims": {
+      "items": {
+        "enum": [
+          "get_tx_status",
+          "verify_record",
+          "anchor_record"
+        ],
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Confirmed Claims",
+      "type": "array"
+    },
+    "expected_review_version": {
+      "minimum": 0,
+      "title": "Expected Review Version",
+      "type": "integer"
+    },
+    "reason": {
+      "maxLength": 2000,
+      "minLength": 1,
+      "title": "Reason",
+      "type": "string"
+    },
+    "unsupported_claims": {
+      "default": [],
+      "items": {
+        "maxLength": 2000,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Unsupported Claims",
+      "type": "array"
+    }
+  },
+  "required": [
+    "confirmed_claims",
+    "reason",
+    "expected_review_version"
+  ],
+  "title": "ClaimsConfirm",
+  "type": "object"
+}

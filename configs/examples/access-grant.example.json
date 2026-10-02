@@ -1,0 +1,29 @@
+{
+  "schema_version": "access-grant-v1",
+  "enabled": false,
+  "grant_id": "EXAMPLE_ONLY",
+  "agent_key": null,
+  "snapshot_hash": null,
+  "approved_by": null,
+  "approved_at": null,
+  "valid_until": null,
+  "revoked_at": null,
+  "protocols": [
+    "controlled-http-v1"
+  ],
+  "purposes": [
+    "functional"
+  ],
+  "capabilities": [
+    "anchor_record"
+  ],
+  "execution_chain_id": "31337",
+  "deployment_instance_id": null,
+  "allowed_executor": null,
+  "allowed_target_contract": null,
+  "allowed_endpoint": null,
+  "max_tasks": 2,
+  "max_concurrency": 1,
+  "secrets_ref": null,
+  "public_write_allowed": false
+}

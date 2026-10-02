@@ -1,0 +1,21 @@
+* text=auto
+*.md text eol=lf
+*.py text eol=lf
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.toml text eol=lf
+*.sh text eol=lf
+*.sol text eol=lf
+*.ts text eol=lf
+*.vue text eol=lf
+*.ps1 text eol=crlf
+*.png binary
+*.jpg binary
+*.zip binary
+*.docx binary
+*.pdf binary
+# Hashes commit the exact upstream response bytes, including whitespace/newlines.
+third_party/erc8004/IdentityRegistry.json -text -diff
+third_party/erc8004/UPSTREAM_README.md -text -diff
+third_party/erc8004/eip-8004.html -text -diff

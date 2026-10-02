@@ -1,0 +1,56 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "endpoint_id": {
+      "maxLength": 100,
+      "minLength": 1,
+      "title": "Endpoint Id",
+      "type": "string"
+    },
+    "host": {
+      "pattern": "^[a-z0-9][a-z0-9.-]{0,252}$",
+      "title": "Host",
+      "type": "string"
+    },
+    "method": {
+      "const": "POST",
+      "title": "Method",
+      "type": "string"
+    },
+    "path": {
+      "pattern": "^/[a-zA-Z0-9/_-]*$",
+      "title": "Path",
+      "type": "string"
+    },
+    "port": {
+      "maximum": 65535,
+      "minimum": 1,
+      "title": "Port",
+      "type": "integer"
+    },
+    "protocol": {
+      "const": "controlled-http-v1",
+      "title": "Protocol",
+      "type": "string"
+    },
+    "scheme": {
+      "enum": [
+        "http",
+        "https"
+      ],
+      "title": "Scheme",
+      "type": "string"
+    }
+  },
+  "required": [
+    "endpoint_id",
+    "scheme",
+    "host",
+    "port",
+    "path",
+    "method",
+    "protocol"
+  ],
+  "title": "Endpoint",
+  "type": "object"
+}

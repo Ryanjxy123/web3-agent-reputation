@@ -1,0 +1,28 @@
+{
+  "name": "reputation-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "packageManager": "pnpm@10.12.4",
+  "engines": {
+    "node": ">=22.12.0 <23"
+  },
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vue-tsc --noEmit && vite build",
+    "test": "vitest run",
+    "generate:types": "openapi-typescript ../../packages/schemas/generated/openapi.json -o src/api/generated/schema.ts"
+  },
+  "dependencies": {
+    "vue": "3.5.22"
+  },
+  "devDependencies": {
+    "@types/node": "22.18.11",
+    "@vitejs/plugin-vue": "6.0.1",
+    "openapi-typescript": "7.10.1",
+    "typescript": "5.9.3",
+    "vite": "7.1.9",
+    "vitest": "3.2.4",
+    "vue-tsc": "3.1.1"
+  }
+}

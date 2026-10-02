@@ -1,0 +1,28 @@
+[project]
+name = "reputation-platform"
+version = "0.1.0"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "reputation-core",
+  "reputation-verifier",
+  "fastapi>=0.119,<1",
+  "uvicorn>=0.37,<1",
+  "sqlalchemy>=2.0.44,<2.1",
+  "alembic>=1.17,<2",
+  "psycopg[binary]>=3.2.10,<4",
+  "httpx>=0.28,<0.29",
+  "web3>=7.14,<8",
+  "requests>=2.32,<3",
+  "python-multipart>=0.0.20,<1",
+]
+
+[project.scripts]
+reputation = "reputation_platform.cli:main"
+
+[tool.uv.sources]
+reputation-core = { workspace = true }
+reputation-verifier = { workspace = true }
+
+[build-system]
+requires = ["hatchling==1.27.0"]
+build-backend = "hatchling.build"

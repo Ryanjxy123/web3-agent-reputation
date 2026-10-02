@@ -1,0 +1,95 @@
+{
+  "$defs": {
+    "TaskResult": {
+      "additionalProperties": false,
+      "properties": {
+        "chain_id": {
+          "pattern": "^(0|[1-9][0-9]{0,77})$",
+          "title": "Chain Id",
+          "type": "string"
+        },
+        "executor": {
+          "title": "Executor",
+          "type": "string"
+        },
+        "record_hash": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Record Hash",
+          "type": "string"
+        },
+        "tx_hash": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Tx Hash",
+          "type": "string"
+        }
+      },
+      "required": [
+        "chain_id",
+        "tx_hash",
+        "executor",
+        "record_hash"
+      ],
+      "title": "TaskResult",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "accepted": {
+      "const": true,
+      "default": true,
+      "title": "Accepted",
+      "type": "boolean"
+    },
+    "reason_code": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reason Code"
+    },
+    "request_id": {
+      "pattern": "^0x[0-9a-f]{64}$",
+      "title": "Request Id",
+      "type": "string"
+    },
+    "result": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TaskResult"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "status_path": {
+      "pattern": "^/tasks/0x[0-9a-f]{64}$",
+      "title": "Status Path",
+      "type": "string"
+    },
+    "task_status": {
+      "enum": [
+        "accepted",
+        "running",
+        "succeeded",
+        "failed"
+      ],
+      "title": "Task Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "request_id",
+    "task_status",
+    "status_path"
+  ],
+  "title": "ControlledTaskView",
+  "type": "object"
+}

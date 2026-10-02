@@ -1,0 +1,140 @@
+{
+  "$defs": {
+    "ChainIdentity": {
+      "additionalProperties": false,
+      "properties": {
+        "chain_id": {
+          "pattern": "^(0|[1-9][0-9]{0,77})$",
+          "title": "Chain Id",
+          "type": "string"
+        },
+        "deployment_instance_id": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Deployment Instance Id",
+          "type": "string"
+        },
+        "genesis_hash": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Genesis Hash",
+          "type": "string"
+        },
+        "instance_hash": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Instance Hash",
+          "type": "string"
+        },
+        "registry_code_hash": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Registry Code Hash",
+          "type": "string"
+        }
+      },
+      "required": [
+        "chain_id",
+        "genesis_hash",
+        "deployment_instance_id",
+        "registry_code_hash",
+        "instance_hash"
+      ],
+      "title": "ChainIdentity",
+      "type": "object"
+    },
+    "DeployedContract": {
+      "additionalProperties": false,
+      "properties": {
+        "address": {
+          "title": "Address",
+          "type": "string"
+        },
+        "block_hash": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Block Hash",
+          "type": "string"
+        },
+        "block_number": {
+          "pattern": "^(0|[1-9][0-9]{0,77})$",
+          "title": "Block Number",
+          "type": "string"
+        },
+        "code_hash": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Code Hash",
+          "type": "string"
+        },
+        "transaction_hash": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Transaction Hash",
+          "type": "string"
+        }
+      },
+      "required": [
+        "address",
+        "code_hash",
+        "transaction_hash",
+        "block_number",
+        "block_hash"
+      ],
+      "title": "DeployedContract",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "admin": {
+      "title": "Admin",
+      "type": "string"
+    },
+    "anchor": {
+      "$ref": "#/$defs/DeployedContract"
+    },
+    "chain": {
+      "$ref": "#/$defs/ChainIdentity"
+    },
+    "confirmation_depth": {
+      "default": 1,
+      "maximum": 100,
+      "minimum": 1,
+      "title": "Confirmation Depth",
+      "type": "integer"
+    },
+    "evaluator": {
+      "title": "Evaluator",
+      "type": "string"
+    },
+    "platform_instance_id": {
+      "pattern": "^0x[0-9a-f]{64}$",
+      "title": "Platform Instance Id",
+      "type": "string"
+    },
+    "record": {
+      "$ref": "#/$defs/DeployedContract"
+    },
+    "registry": {
+      "$ref": "#/$defs/DeployedContract"
+    },
+    "rpc_url": {
+      "maxLength": 2000,
+      "minLength": 1,
+      "title": "Rpc Url",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "local-deployment-v1",
+      "default": "local-deployment-v1",
+      "title": "Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "rpc_url",
+    "chain",
+    "registry",
+    "record",
+    "anchor",
+    "admin",
+    "evaluator",
+    "platform_instance_id"
+  ],
+  "title": "LocalDeployment",
+  "type": "object"
+}

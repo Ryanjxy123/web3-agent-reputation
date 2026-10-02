@@ -1,0 +1,39 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "chain_id": {
+      "pattern": "^(0|[1-9][0-9]{0,77})$",
+      "title": "Chain Id",
+      "type": "string"
+    },
+    "deployment_instance_id": {
+      "pattern": "^0x[0-9a-f]{64}$",
+      "title": "Deployment Instance Id",
+      "type": "string"
+    },
+    "genesis_hash": {
+      "pattern": "^0x[0-9a-f]{64}$",
+      "title": "Genesis Hash",
+      "type": "string"
+    },
+    "instance_hash": {
+      "pattern": "^0x[0-9a-f]{64}$",
+      "title": "Instance Hash",
+      "type": "string"
+    },
+    "registry_code_hash": {
+      "pattern": "^0x[0-9a-f]{64}$",
+      "title": "Registry Code Hash",
+      "type": "string"
+    }
+  },
+  "required": [
+    "chain_id",
+    "genesis_hash",
+    "deployment_instance_id",
+    "registry_code_hash",
+    "instance_hash"
+  ],
+  "title": "ChainIdentity",
+  "type": "object"
+}
