@@ -14,7 +14,7 @@ uv run --all-packages reputation migrate
 uv run --env-file .env --all-packages uvicorn reputation_platform.api.app:create_app --factory --host 127.0.0.1 --port 8000 --no-access-log
 ```
 
-另开终端运行 `uv run --all-packages reputation worker`。worker 已接入 ingest handler；领取、心跳和 fencing 使用 PostgreSQL。`/health/ready` 当前检查 PostgreSQL 迁移版本；本地链配置与实例在执行身份操作时核验，不能把基础 readiness 当完整链路就绪。注册仅创建未核验候选，不代表测试通过。
+另开终端运行 `uv run --all-packages reputation worker`。worker 已接入 ingest/evaluate/verify handler；领取、心跳和 fencing 使用 PostgreSQL。`/health/ready` 当前检查 PostgreSQL 迁移版本；本地链配置与实例在执行身份操作时核验，不能把基础 readiness 当完整链路就绪。注册仅创建未核验候选，不代表测试通过。
 
 容器启动（需可用 Docker Linux 引擎）：
 
@@ -88,4 +88,10 @@ uv run --all-packages python scripts/smoke_execution.py
 
 新 API 支持 access-grants 创建/读取/撤销、带 Idempotency-Key 的 evaluations 创建、plan/observations/state 读取及 cancel。M1 grant 的方法、路径、能力、链和合约由服务器固定到最小受控范围；响应中返回完整授权。重复按钮沿用同一个 key；修改请求时使用新 key。一个 Agent 同时一个 active run，授权额度按已冻结槽位预留，不因取消退回。
 
-执行测试会启动独立 Agent 占用 127.0.0.1:9101，因此跑全量 pytest 前先停止 demo A，完成后按上面的 fixture-a 命令重启。测试不会自动杀掉端口占用者，也不会操作开发数据库；其 PostgreSQL/Anvil/Agent ledger 均隔离。其他终端可继续运行 API/worker/D。
+执行与验证测试会启动独立 Agent 占用 127.0.0.1:9101/9102，因此跑全量 pytest 前先停止 demo A/D，完成后按上面的 fixture-a/d 命令重启。测试不会自动杀掉端口占用者，也不会操作开发数据库；其 PostgreSQL/Anvil/Agent ledger 均隔离。其他终端可继续运行 API/worker。
+
+## 独立业务核验
+
+新版 API/worker 与 A/D 启动后运行 `uv run --all-packages python scripts/smoke_verification.py`。它会创建新快照、绑定和计划，等待独立 RPC 采集及纯规则核验；要求 A PASS、D receipt.success PASS 但 TASK_ID_MISMATCH/RECORD_HASH_MISMATCH，并输出 VERIFICATION_SMOKE_PASS。结果保存到忽略的 runtime/local-chain/verification-smoke.json。
+
+核验接口为 GET /api/v1/evaluations/{run_id}/verification，未完成返回 404 NOT_VERIFIED。旧计划缺 target_code_hash 时不能追填，应另建新计划。当前核验结果不等于报告、存证或独立 bundle verifier 完成。

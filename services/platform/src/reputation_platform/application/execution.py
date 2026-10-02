@@ -21,7 +21,7 @@ from sqlalchemy import Engine, func, insert, select, update
 
 from reputation_platform.adapters.evm.record import reconcile_record
 from reputation_platform.adapters.registries.demo import timestamp
-from reputation_platform.infrastructure.db.jobs import JobQueue, Lease
+from reputation_platform.infrastructure.db.jobs import JobQueue, Lease, enqueue
 from reputation_platform.infrastructure.db.tables import (
     attempts,
     bindings,
@@ -169,6 +169,7 @@ class ExecutionService:
                         "candidate_tx_hash": candidate,
                     },
                 )
+                enqueue(connection, "verify", f"verify:{plan.run_id}", {"run_id": str(plan.run_id)}, plan.run_id)
                 connection.execute(
                     update(runs)
                     .where(runs.c.id == plan.run_id)

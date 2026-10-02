@@ -31,6 +31,7 @@ from reputation_core.models import (
     LocalDeployment,
     Observation,
     ReasonRequest,
+    RecordVerificationResult,
     RefreshRequest,
     RunPlan,
 )
@@ -41,6 +42,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from reputation_platform.application.errors import ApplicationError as ApiProblem
 from reputation_platform.application.evaluations import EvaluationService
 from reputation_platform.application.identity import IdentityService
+from reputation_platform.application.verification import VerificationService
 from reputation_platform.infrastructure.db.connection import engine
 from reputation_platform.infrastructure.db.tables import agents, audit_logs, jobs
 
@@ -58,6 +60,7 @@ def create_app(
     database = db or engine()
     identity = IdentityService(database, deployment)
     evaluations = EvaluationService(database, identity)
+    verification = VerificationService(database, identity)
 
     @asynccontextmanager
     async def lifespan(app):
@@ -248,6 +251,10 @@ def create_app(
     @app.get("/api/v1/evaluations/{run_id}/plan", response_model=RunPlan)
     def get_plan(run_id: UUID):
         return evaluations.row(run_id)["plan"]
+
+    @app.get("/api/v1/evaluations/{run_id}/verification", response_model=RecordVerificationResult)
+    def get_verification(run_id: UUID):
+        return verification.result(run_id)
 
     @app.post("/api/v1/evaluations/{run_id}/cancel", response_model=EvaluationRun)
     def cancel_evaluation(run_id: UUID, body: ReasonRequest, actor: str = Depends(operator)):

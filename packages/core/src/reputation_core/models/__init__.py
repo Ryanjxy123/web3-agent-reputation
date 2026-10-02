@@ -56,8 +56,15 @@ from .enums import (
     VerificationStep,
 )
 from .runtime import ControlledTaskView, DeployedContract, LocalDeployment, TaskResult
+from .verification import (
+    EvmReadEvidence,
+    RecordVerificationInput,
+    RecordVerificationResult,
+    RegistryWitness,
+)
 
 __all__ = [
+    "EvmReadEvidence", "RecordVerificationInput", "RecordVerificationResult", "RegistryWitness",
     "AccessGrantCreate", "GrantView", "ReasonRequest", "AcceptedEvaluation",
     "BindingChallengeView",
     "ControlledTaskView", "DeployedContract", "LocalDeployment", "TaskResult",

@@ -314,6 +314,7 @@ class EvaluationService:
                 execution_chain=config.chain,
                 executor=proof.message.executor,
                 target_contract=task.target_contract,
+                target_code_hash=config.record.code_hash,
                 request_id=task.request_id,
                 record_hash=task.record_hash,
                 binding_id=proof.binding_id,

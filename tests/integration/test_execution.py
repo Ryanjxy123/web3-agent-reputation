@@ -45,18 +45,34 @@ __all__ = ["flow", "identity_chain"]
 
 
 @pytest.fixture
-def prepared(flow):
+def prepared(flow, request):
     client, identity, samples, keys, web3, deployment, runtime = flow
+    sample = getattr(request, "param", "a")
+    port = 9101 if sample == "a" else 9102
+    replay = None
+    if sample == "d":
+        contract = web3.eth.contract(
+            address=Web3.to_checksum_address(deployment.record.address),
+            abi=contract_abi(identity.root, "DemoRecordRegistry"),
+        )
+        replay = (
+            contract.events.RecordAnchored()
+            .get_logs(
+                from_block=0,
+                argument_filters={"executor": Web3.to_checksum_address(samples["d"]["executor"])},
+            )[0]["transactionHash"]
+            .to_0x_hex()
+        )
     config = {
         "deployment": deployment.model_dump(mode="json"),
-        "metadata": samples["a"]["metadata"],
-        "private_key": keys["executor-a"],
-        "mode": "normal",
-        "replay_tx_hash": None,
+        "metadata": samples[sample]["metadata"],
+        "private_key": keys[f"executor-{sample}"],
+        "mode": "normal" if sample == "a" else "replay",
+        "replay_tx_hash": replay,
         "registry_abi": contract_abi(identity.root, "DemoAgentRegistry"),
         "record_abi": contract_abi(identity.root, "DemoRecordRegistry"),
     }
-    path = runtime / "fixture-a.json"
+    path = runtime / f"fixture-{sample}.json"
     path.write_text(json.dumps(config), encoding="utf-8")
     process = subprocess.Popen(
         [
@@ -68,7 +84,7 @@ def prepared(flow):
             "--host",
             "127.0.0.1",
             "--port",
-            "9101",
+            str(port),
             "--no-access-log",
         ],
         env={
@@ -83,27 +99,33 @@ def prepared(flow):
         stderr=subprocess.DEVNULL,
     )
     try:
-        deadline = time.monotonic() + 30
+        # Process/import startup is outside the task's separately frozen execution deadline.
+        deadline = time.monotonic() + 90
         with httpx.Client(trust_env=False, timeout=1) as probe:
             while True:
                 assert process.poll() is None, (
-                    "Test Agent could not start; stop any demo A occupying port 9101"
+                    f"Test Agent could not start; stop the demo occupying port {port}"
                 )
                 try:
-                    if probe.get("http://127.0.0.1:9101/health").status_code == 200:
+                    if probe.get(f"http://127.0.0.1:{port}/health").status_code == 200:
                         break
                 except httpx.HTTPError:
                     pass
                 assert time.monotonic() < deadline, "Real HTTP Agent did not start"
                 time.sleep(0.1)
-        _, snapshot, _ = capture(flow)
-        assert verify(flow, snapshot, signed(flow, challenge(flow, snapshot))).status_code == 200
+        _, snapshot, _ = capture(flow, sample)
+        assert (
+            verify(
+                flow, snapshot, signed(flow, challenge(flow, snapshot, sample), sample)
+            ).status_code
+            == 200
+        )
         grant_response = client.post(
             "/api/v1/access-grants",
             headers=AUTH,
             json={
                 "snapshot_id": snapshot["snapshot_id"],
-                "endpoint_id": "fixture-a",
+                "endpoint_id": f"fixture-{sample}",
                 "max_tasks": 1,
                 "expires_at": (datetime.now(UTC) + timedelta(hours=1))
                 .isoformat(timespec="milliseconds")

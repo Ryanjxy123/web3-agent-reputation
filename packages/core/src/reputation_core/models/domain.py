@@ -187,6 +187,7 @@ class ExpectedFacts(Model):
     execution_chain: ChainIdentity
     executor: NonzeroAddress
     target_contract: NonzeroAddress
+    target_code_hash: Hash32 | None = None
     request_id: Challenge
     record_hash: Challenge
     binding_id: UUID4

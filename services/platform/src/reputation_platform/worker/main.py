@@ -13,6 +13,7 @@ from sqlalchemy import Connection, Engine, update
 from reputation_platform.application.errors import ApplicationError
 from reputation_platform.application.execution import ExecutionService
 from reputation_platform.application.identity import IdentityService
+from reputation_platform.application.verification import VerificationService
 from reputation_platform.infrastructure.db.connection import engine
 from reputation_platform.infrastructure.db.jobs import JobQueue, Lease, LostLease, mark_run_failed
 from reputation_platform.infrastructure.db.tables import jobs
@@ -92,6 +93,7 @@ async def serve(once: bool = False) -> None:
     handlers: dict[str, Handler] = {
         "ingest": IdentityService(database).ingest,
         "evaluate": ExecutionService(database).execute,
+        "verify": VerificationService(database).verify,
     }
     worker = Worker(database, handlers)
     try:

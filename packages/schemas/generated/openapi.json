@@ -1494,6 +1494,59 @@
         "title": "EvidenceRecord",
         "type": "object"
       },
+      "EvmReadEvidence": {
+        "additionalProperties": false,
+        "properties": {
+          "candidate_tx_hash": {
+            "anyOf": [
+              {
+                "pattern": "^0x[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Candidate Tx Hash"
+          },
+          "error_reason": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Reason"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "observed_at": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+            "title": "Observed At",
+            "type": "string"
+          },
+          "results": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "title": "Results",
+            "type": "object"
+          },
+          "schema_version": {
+            "const": "evm-task-evidence-v1",
+            "default": "evm-task-evidence-v1",
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "candidate_tx_hash",
+          "observed_at",
+          "results"
+        ],
+        "title": "EvmReadEvidence",
+        "type": "object"
+      },
       "ExecutorBinding": {
         "additionalProperties": false,
         "properties": {
@@ -1629,6 +1682,19 @@
             "pattern": "^0x[0-9a-f]{64}$",
             "title": "Snapshot Hash",
             "type": "string"
+          },
+          "target_code_hash": {
+            "anyOf": [
+              {
+                "pattern": "^0x[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Target Code Hash"
           },
           "target_contract": {
             "title": "Target Contract",
@@ -2023,6 +2089,166 @@
         "title": "ReasonRequest",
         "type": "object"
       },
+      "RecordVerificationInput": {
+        "additionalProperties": false,
+        "properties": {
+          "binding": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExecutorBinding"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "dispatch_payload_hash": {
+            "anyOf": [
+              {
+                "pattern": "^0x[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dispatch Payload Hash"
+          },
+          "dispatch_started_at": {
+            "anyOf": [
+              {
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dispatch Started At"
+          },
+          "evm": {
+            "$ref": "#/components/schemas/EvmReadEvidence"
+          },
+          "execution_reason": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Reason"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "grant": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccessGrant"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "intent_persisted_at": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+            "title": "Intent Persisted At",
+            "type": "string"
+          },
+          "platform_instance_id": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Platform Instance Id",
+            "type": "string"
+          },
+          "registry_witness": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RegistryWitness"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "review": {
+            "$ref": "#/components/schemas/ClaimReview"
+          },
+          "review_version": {
+            "minimum": 1,
+            "title": "Review Version",
+            "type": "integer"
+          },
+          "schema_version": {
+            "const": "record-verification-input-v1",
+            "default": "record-verification-input-v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "slot": {
+            "$ref": "#/components/schemas/CaseSlot"
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/AgentSnapshot"
+          }
+        },
+        "required": [
+          "slot",
+          "snapshot",
+          "review",
+          "review_version",
+          "platform_instance_id",
+          "binding",
+          "grant",
+          "intent_persisted_at",
+          "dispatch_started_at",
+          "dispatch_payload_hash",
+          "registry_witness",
+          "execution_reason",
+          "evm"
+        ],
+        "title": "RecordVerificationInput",
+        "type": "object"
+      },
+      "RecordVerificationResult": {
+        "additionalProperties": false,
+        "properties": {
+          "assertions": {
+            "items": {
+              "$ref": "#/components/schemas/AssertionResult"
+            },
+            "title": "Assertions",
+            "type": "array"
+          },
+          "critical_conflict": {
+            "title": "Critical Conflict",
+            "type": "boolean"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/Outcome"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Reason"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "task_link": {
+            "$ref": "#/components/schemas/TaskLink"
+          }
+        },
+        "required": [
+          "assertions",
+          "task_link",
+          "outcome",
+          "reason_code",
+          "critical_conflict"
+        ],
+        "title": "RecordVerificationResult",
+        "type": "object"
+      },
       "RefreshRequest": {
         "additionalProperties": false,
         "properties": {
@@ -2041,6 +2267,35 @@
           }
         },
         "title": "RefreshRequest",
+        "type": "object"
+      },
+      "RegistryWitness": {
+        "additionalProperties": false,
+        "properties": {
+          "executor_code": {
+            "title": "Executor Code",
+            "type": "string"
+          },
+          "owner_code": {
+            "title": "Owner Code",
+            "type": "string"
+          },
+          "read_method": {
+            "const": "eth_call_at_block_number",
+            "title": "Read Method",
+            "type": "string"
+          },
+          "snapshot_core": {
+            "$ref": "#/components/schemas/SnapshotCore"
+          }
+        },
+        "required": [
+          "snapshot_core",
+          "owner_code",
+          "executor_code",
+          "read_method"
+        ],
+        "title": "RegistryWitness",
         "type": "object"
       },
       "ReportCore": {
@@ -3400,6 +3655,46 @@
           }
         },
         "summary": "Get Plan"
+      }
+    },
+    "/api/v1/evaluations/{run_id}/verification": {
+      "get": {
+        "operationId": "get_verification_api_v1_evaluations__run_id__verification_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecordVerificationResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Verification"
       }
     },
     "/api/v1/jobs/{job_id}": {

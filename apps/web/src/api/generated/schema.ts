@@ -191,6 +191,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/evaluations/{run_id}/verification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Verification */
+        get: operations["get_verification_api_v1_evaluations__run_id__verification_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/jobs/{job_id}": {
         parameters: {
             query?: never;
@@ -912,6 +929,25 @@ export interface components {
             /** Trust Group */
             trust_group: string;
         };
+        /** EvmReadEvidence */
+        EvmReadEvidence: {
+            /** Candidate Tx Hash */
+            candidate_tx_hash: string | null;
+            /** @default null */
+            error_reason: components["schemas"]["Reason"] | null;
+            /** Observed At */
+            observed_at: string;
+            /** Results */
+            results: {
+                [key: string]: components["schemas"]["JsonValue"];
+            };
+            /**
+             * Schema Version
+             * @default evm-task-evidence-v1
+             * @constant
+             */
+            schema_version: "evm-task-evidence-v1";
+        };
         /** ExecutorBinding */
         ExecutorBinding: {
             /**
@@ -966,6 +1002,11 @@ export interface components {
             request_id: string;
             /** Snapshot Hash */
             snapshot_hash: string;
+            /**
+             * Target Code Hash
+             * @default null
+             */
+            target_code_hash: string | null;
             /** Target Contract */
             target_contract: string;
             /** Window Start */
@@ -1091,6 +1132,43 @@ export interface components {
             /** Reason */
             reason: string;
         };
+        /** RecordVerificationInput */
+        RecordVerificationInput: {
+            binding: components["schemas"]["ExecutorBinding"] | null;
+            /** Dispatch Payload Hash */
+            dispatch_payload_hash: string | null;
+            /** Dispatch Started At */
+            dispatch_started_at: string | null;
+            evm: components["schemas"]["EvmReadEvidence"];
+            execution_reason: components["schemas"]["Reason"] | null;
+            grant: components["schemas"]["AccessGrant"] | null;
+            /** Intent Persisted At */
+            intent_persisted_at: string;
+            /** Platform Instance Id */
+            platform_instance_id: string;
+            registry_witness: components["schemas"]["RegistryWitness"] | null;
+            review: components["schemas"]["ClaimReview"];
+            /** Review Version */
+            review_version: number;
+            /**
+             * Schema Version
+             * @default record-verification-input-v1
+             * @constant
+             */
+            schema_version: "record-verification-input-v1";
+            slot: components["schemas"]["CaseSlot"];
+            snapshot: components["schemas"]["AgentSnapshot"];
+        };
+        /** RecordVerificationResult */
+        RecordVerificationResult: {
+            /** Assertions */
+            assertions: components["schemas"]["AssertionResult"][];
+            /** Critical Conflict */
+            critical_conflict: boolean;
+            outcome: components["schemas"]["Outcome"];
+            reason_code: components["schemas"]["Reason"] | null;
+            task_link: components["schemas"]["TaskLink"];
+        };
         /** RefreshRequest */
         RefreshRequest: {
             /**
@@ -1098,6 +1176,19 @@ export interface components {
              * @default null
              */
             expected_snapshot_hash: string | null;
+        };
+        /** RegistryWitness */
+        RegistryWitness: {
+            /** Executor Code */
+            executor_code: string;
+            /** Owner Code */
+            owner_code: string;
+            /**
+             * Read Method
+             * @constant
+             */
+            read_method: "eth_call_at_block_number";
+            snapshot_core: components["schemas"]["SnapshotCore"];
         };
         /** ReportCore */
         ReportCore: {
@@ -1760,6 +1851,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RunPlan"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_verification_api_v1_evaluations__run_id__verification_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordVerificationResult"];
                 };
             };
             /** @description Validation Error */
