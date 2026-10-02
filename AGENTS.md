@@ -34,10 +34,12 @@ Python 使用根 uv workspace；前端独立 pnpm 锁文件。先验证再锁版
 先 `git status --short --branch`、检查顶层目录、remote、未提交修改、默认远程分支和远程读取权限。
 不能因网页 404 或 ls-remote 失败推断“空仓库”。不重建已有 .git，不覆盖不明 origin。
 只创建短任务分支。例：`chore/m0-foundation`、`feat/m1-evidence-loop`。
-禁止 `reset --hard`、`clean -fd`、强推、自动合并、删除队友分支、改写共享历史、静默 stash、修改全局 Git 配置。
+禁止 `reset --hard`、`clean -fd`、强推、未经授权的自动合并、删除队友分支、改写共享历史、静默 stash、修改全局 Git 配置。
 不得猜测 user.name/user.email。身份缺失时保留文件与待提交说明，不伪造提交者。
 按逻辑分批提交；显式 `git add <paths>`，检查 staged diff 和敏感信息，再 commit。
-用户授权推送时，仅推核实过的当前工作分支并建立 upstream；不推主分支、不自动合并。
+用户授权推送时，仅推核实过的当前工作分支并建立 upstream；不直接推主分支。
+负责人已授权：本人仓库的 Codex 工作任务完成并 push 后主动创建 PR，等待所有 required CI/status checks；仅在 required checks 全通过、无冲突、无 required reviewer approval、base 为预期 main、head 为当前 Codex 工作分支，且不涉及仓库权限、敏感配置、密钥或破坏性变更时，允许通过 GitHub CLI 自动合并。不得 bypass branch protection，不得在 CI 失败时强行合并；规则要求其他 reviewer approval 时停止合并并告知负责人。
+合并完成后 `git fetch origin`，安全切换/同步本地 main，确认 main 与 origin/main 一致，再删除已完成的本地功能分支；确认合并后的对应远程功能分支也可删除。保留不相关的已有改动和其他分支。
 远程真正为空时，初始默认分支建立按 Windows/Git runbook 的负责人 bootstrap 例外执行；不是日常直推许可。
 认证或网络受限时记录 PUSH_BLOCKED，继续不依赖远程的可做工作，不声称已同步。
 
