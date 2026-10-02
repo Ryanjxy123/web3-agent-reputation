@@ -10,7 +10,7 @@
 | M0-04 | DONE | 真实 PostgreSQL 迁移、只追加约束、幂等存储、租约/fencing 和并发测试通过 |
 | M0-05 | IN_PROGRESS | 认证 API、真实 OpenAPI、网络出口和 worker 租约测试通过；Compose 配置通过，本机引擎导入 WSL 失败 |
 | M0-06 | IN_PROGRESS | 固定 SHA 的只读 CI、全套检查脚本已本地通过；待远端质量与 Compose 运行 |
-| M0-07 | NOT_STARTED | 公网上游准备不阻塞本地 M1 |
+| M0-07 | PARTIAL_EXTERNAL_BLOCKED | ERC-8004 真实 commit/ABI/许可与规范字节已锁；8004scan OpenAPI HTTP 403，不阻塞本地 M1 |
 | M1-01..08 | NOT_STARTED | 合约、Agent、worker、报告、存证和复核尚未实现 |
 
 ## 2026-10-02 / M0-01
@@ -89,3 +89,13 @@
 - Known limitations：远端 Actions/Compose 尚待执行；本机 WSL 引擎问题独立记录，未将 mock 视为容器验收。
 - Branch：feat/foundation-m0-m1；M0-05 commit 6ceb06a；当前任务待提交/推送。
 - Next task：检查真实 CI，修复失败；M0-07 固定可取得的上游资料。
+
+## 2026-10-02 / M0-07
+
+- Implemented：读取官方 master 当前 commit b9e466c250744a7e06b13dff9d3c2844ed64f825；保存原始 Identity ABI、含 CC0 声明的 README 和官方 EIP 页面；真实字节数/SHA-256/来源登记；外部接入仍 disabled。
+- Files changed：configs/upstream-lock.json、third_party/erc8004、tests/unit/test_upstream.py。
+- Commands executed：gh api repo/commits/tree；官方 raw/EIP/OpenAPI HTTP GET；pytest 上游字节/接口/禁用状态校验；ruff。
+- Tests：1 passed；ruff 通过。远端 ecaf110 的 foundation-quality 已通过，Compose smoke 正在运行。
+- Known limitations / Blockers：8004scan OpenAPI HTTP 403 → BLOCKED_DOWNLOAD；没有生成假 hash/文件。没有公网 RPC 部署核验，usable=false。上游无独立 LICENSE 文件，实际许可声明在已保留 README。
+- Branch：feat/foundation-m0-m1；M0-06 ecaf110 已成功推送；当前任务待提交。
+- Next task：收尾 M0 CI 运行验证，然后 M1-01 三个真实演示合约。
