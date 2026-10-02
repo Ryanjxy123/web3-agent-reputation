@@ -12,6 +12,7 @@ dependencies = [
   "psycopg[binary]>=3.2.10,<4",
   "httpx>=0.28,<0.29",
   "web3>=7.14,<8",
+  "requests>=2.32,<3",
   "python-multipart>=0.0.20,<1",
 ]
 

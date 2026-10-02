@@ -50,8 +50,10 @@ from .enums import (
     RunStatus,
     VerificationStep,
 )
+from .runtime import ControlledTaskView, DeployedContract, LocalDeployment, TaskResult
 
 __all__ = [
+    "ControlledTaskView", "DeployedContract", "LocalDeployment", "TaskResult",
     "AcceptedJob", "AgentCreate", "AgentView", "JobView", "ApiError", "BindingChallengeRequest", "BindingVerifyRequest",
     "ClaimsConfirm", "ErrorDetail", "EvaluationCreate", "RefreshRequest",
     "AccessGrant", "AgentKey", "AgentRef", "AgentSnapshot", "AnchorReceipt", "AnchorStatus",

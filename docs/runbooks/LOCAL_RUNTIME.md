@@ -29,3 +29,35 @@ API `http://127.0.0.1:8000`，前端 `http://127.0.0.1:5173`，Anvil `http://127
 停止使用 `docker compose down`，默认保留数据卷；不要为排错使用 `down -v`。原生数据库使用 `uv run --all-packages python scripts/local_postgres.py stop`。
 
 本机 Docker Desktop 4.93.0 已按用户安装，但首次 WSL 导入报 `Wsl/ERROR_PATH_NOT_FOUND`，尚未获得本机 Compose 运行结果。没有重置或注销已有 WSL 发行版。原生 PostgreSQL/API/worker 已通过；Linux CI run 37017699537 的真实 Compose 构建/迁移/运行/HTTP/RPC smoke 已通过。两种环境的结果分别记录。
+
+## M1 本地合约与受控服务
+
+启动独立回环开发链：
+
+```powershell
+. ./scripts/tools.ps1
+anvil --host 127.0.0.1 --port 8545 --chain-id 31337 --silent
+```
+
+另开终端，在仓库根目录：
+
+```powershell
+. ./scripts/tools.ps1
+forge build --root contracts
+uv run --all-packages reputation deploy-local
+uv run --all-packages reputation seed
+```
+
+密钥与各服务账本位于忽略的 `runtime/local-chain`，不得提交、分享或配置公网 RPC。重复 deploy/seed 查询已部署实例和旧交易，不重复注册；链 reset 后命令拒绝旧配置，保留旧目录。新实例使用 `reputation deploy-local --runtime-dir runtime/local-chain-v2`，再用相同参数运行 `reputation seed`，并把服务 FIXTURE_CONFIG 指向该目录。不能用删除旧账本来“修复”重放。
+
+分别在两个终端启动 A/D：
+
+```powershell
+. ./scripts/tools.ps1
+$env:FIXTURE_CONFIG = Join-Path (Get-Location) 'runtime/local-chain/fixture-a.json'
+uv run --all-packages uvicorn fixture_agents.service:create_app --factory --host 127.0.0.1 --port 9101 --no-access-log
+```
+
+D 使用 `fixture-d.json` 和端口 9102。每服务默认一个进程，由独立 SQLite 账本持久化；平台不会读取异常模式。
+
+`uv run --all-packages python scripts/smoke_agents.py` 验证真实 HTTP、A 匹配事件、D 无关成功事件。重启 A/D 后运行同命令加 `--recheck`，要求旧 request 返回原 txHash，无重复记录。该命令使用 synthetic snapshot，是协议 smoke；完整身份绑定、平台 worker、报告和复核由 M1 后续任务提供。当前 Compose 验证仅覆盖基础服务，fixture 编排在纵向集成阶段接入。

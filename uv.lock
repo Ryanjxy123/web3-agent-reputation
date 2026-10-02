@@ -402,6 +402,7 @@ source = { editable = "fixtures/agents" }
 dependencies = [
     { name = "fastapi" },
     { name = "reputation-core" },
+    { name = "requests" },
     { name = "uvicorn" },
     { name = "web3" },
 ]
@@ -410,6 +411,7 @@ dependencies = [
 requires-dist = [
     { name = "fastapi", specifier = ">=0.119,<1" },
     { name = "reputation-core", editable = "packages/core" },
+    { name = "requests", specifier = ">=2.32,<3" },
     { name = "uvicorn", specifier = ">=0.37,<1" },
     { name = "web3", specifier = ">=7.14,<8" },
 ]
@@ -985,6 +987,7 @@ dependencies = [
     { name = "python-multipart" },
     { name = "reputation-core" },
     { name = "reputation-verifier" },
+    { name = "requests" },
     { name = "sqlalchemy" },
     { name = "uvicorn" },
     { name = "web3" },
@@ -999,6 +1002,7 @@ requires-dist = [
     { name = "python-multipart", specifier = ">=0.0.20,<1" },
     { name = "reputation-core", editable = "packages/core" },
     { name = "reputation-verifier", editable = "packages/verifier" },
+    { name = "requests", specifier = ">=2.32,<3" },
     { name = "sqlalchemy", specifier = ">=2.0.44,<2.1" },
     { name = "uvicorn", specifier = ">=0.37,<1" },
     { name = "web3", specifier = ">=7.14,<8" },

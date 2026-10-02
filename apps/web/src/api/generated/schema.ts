@@ -436,6 +436,44 @@ export interface components {
              */
             unsupported_claims: string[];
         };
+        /** ControlledTaskView */
+        ControlledTaskView: {
+            /**
+             * Accepted
+             * @default true
+             * @constant
+             */
+            accepted: true;
+            /**
+             * Reason Code
+             * @default null
+             */
+            reason_code: string | null;
+            /** Request Id */
+            request_id: string;
+            /** @default null */
+            result: components["schemas"]["TaskResult"] | null;
+            /** Status Path */
+            status_path: string;
+            /**
+             * Task Status
+             * @enum {string}
+             */
+            task_status: "accepted" | "running" | "succeeded" | "failed";
+        };
+        /** DeployedContract */
+        DeployedContract: {
+            /** Address */
+            address: string;
+            /** Block Hash */
+            block_hash: string;
+            /** Block Number */
+            block_number: string;
+            /** Code Hash */
+            code_hash: string;
+            /** Transaction Hash */
+            transaction_hash: string;
+        };
         /**
          * DispatchState
          * @enum {string}
@@ -642,6 +680,32 @@ export interface components {
             state: components["schemas"]["JobStatus"];
         };
         JsonValue: unknown;
+        /** LocalDeployment */
+        LocalDeployment: {
+            /** Admin */
+            admin: string;
+            anchor: components["schemas"]["DeployedContract"];
+            chain: components["schemas"]["ChainIdentity"];
+            /**
+             * Confirmation Depth
+             * @default 1
+             */
+            confirmation_depth: number;
+            /** Evaluator */
+            evaluator: string;
+            /** Platform Instance Id */
+            platform_instance_id: string;
+            record: components["schemas"]["DeployedContract"];
+            registry: components["schemas"]["DeployedContract"];
+            /** Rpc Url */
+            rpc_url: string;
+            /**
+             * Schema Version
+             * @default local-deployment-v1
+             * @constant
+             */
+            schema_version: "local-deployment-v1";
+        };
         /** Observation */
         Observation: {
             /** Accepted */
@@ -959,6 +1023,17 @@ export interface components {
             request_id: string;
             /** Verified Tx Hash */
             verified_tx_hash: string | null;
+        };
+        /** TaskResult */
+        TaskResult: {
+            /** Chain Id */
+            chain_id: string;
+            /** Executor */
+            executor: string;
+            /** Record Hash */
+            record_hash: string;
+            /** Tx Hash */
+            tx_hash: string;
         };
         /** ValidationError */
         ValidationError: {
