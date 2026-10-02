@@ -9,7 +9,7 @@
 | M0-03 | DONE | 共享 DTO、33 份生成契约、TS 类型、确定性哈希及校验测试通过 |
 | M0-04 | DONE | 真实 PostgreSQL 迁移、只追加约束、幂等存储、租约/fencing 和并发测试通过 |
 | M0-05 | IN_PROGRESS | 认证 API、真实 OpenAPI、网络出口和 worker 租约测试通过；Compose 配置通过，本机引擎导入 WSL 失败 |
-| M0-06 | NOT_STARTED | CI 待实现 |
+| M0-06 | IN_PROGRESS | 固定 SHA 的只读 CI、全套检查脚本已本地通过；待远端质量与 Compose 运行 |
 | M0-07 | NOT_STARTED | 公网上游准备不阻塞本地 M1 |
 | M1-01..08 | NOT_STARTED | 合约、Agent、worker、报告、存证和复核尚未实现 |
 
@@ -79,3 +79,13 @@
 - Blocker：Docker Desktop per-user 安装成功，WSL import-in-place 报 Wsl/ERROR_PATH_NOT_FOUND；VHD 文件存在且原有发行版可运行。未修改/注销用户发行版；继续原生验证与 Linux CI，不以此阻断独立开发。
 - Branch：feat/foundation-m0-m1；M0-04 commit 5f67ac8，已推送；本任务待提交。
 - Next task：M0-06 CI，完成容器构建/启动验证；M0 总体仍待验收。
+
+## 2026-10-02 / M0-06
+
+- Implemented：foundation-quality 与 foundation-compose 两个固定 CI check；actions 固定真实 commit，contents:read，不注入生产凭证；完整 check.py、真实 HTTP/RPC smoke、禁止跳过测试的 CI gate。
+- Files changed：.github/workflows/ci.yml、scripts/check.py、scripts/smoke_runtime.py、tests/conftest.py。
+- Commands executed：uv run --all-packages python scripts/check.py（退出 0）。
+- Tests：107 Python passed / 0 skipped；ruff、mypy 25 files、35 schema、生成 TS 无漂移；Vue build 和 2 tests；Foundry 1 passed / 0 skipped。
+- Known limitations：远端 Actions/Compose 尚待执行；本机 WSL 引擎问题独立记录，未将 mock 视为容器验收。
+- Branch：feat/foundation-m0-m1；M0-05 commit 6ceb06a；当前任务待提交/推送。
+- Next task：检查真实 CI，修复失败；M0-07 固定可取得的上游资料。
