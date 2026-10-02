@@ -34,7 +34,7 @@ services:
       OPERATOR_TOKEN: ${OPERATOR_TOKEN:?Run scripts/init_local.py first}
       PUBLIC_ACCESS_ENABLED: "false"
     ports: ["127.0.0.1:8000:8000"]
-    networks: [control]
+    networks: [control, ingress]
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -62,7 +62,7 @@ services:
     entrypoint: ["anvil"]
     command: ["--host", "0.0.0.0", "--chain-id", "31337", "--silent"]
     ports: ["127.0.0.1:8545:8545"]
-    networks: [demo]
+    networks: [demo, ingress]
 
   web:
     build:
@@ -72,12 +72,14 @@ services:
     environment:
       PLATFORM_API_ORIGIN: http://api:8000
     ports: ["127.0.0.1:5173:5173"]
-    networks: [control]
+    networks: [control, ingress]
     depends_on:
       api:
         condition: service_healthy
 
 networks:
+  ingress:
+    driver: bridge
   control:
     internal: true
   demo:

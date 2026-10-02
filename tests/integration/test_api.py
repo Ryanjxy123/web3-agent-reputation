@@ -47,6 +47,11 @@ def test_error_responses_do_not_echo_secrets_or_private_paths(db):
             headers={"Authorization": "Bearer wrong-secret"},
         )
         assert bad_token.status_code == 401 and "wrong-secret" not in bad_token.text
+        non_ascii_token = client.post(
+            "/api/v1/agents", json={"agent_ref": agent().model_dump()},
+            headers={b"Authorization": b"Bearer \xff"},
+        )
+        assert non_ascii_token.status_code == 401
 
 
 def test_api_requires_generated_operator_token(db):

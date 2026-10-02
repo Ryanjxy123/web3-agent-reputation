@@ -76,7 +76,7 @@ def create_app(db: Engine | None = None, operator_token: str | None = None) -> F
         if (
             not auth
             or auth.scheme.lower() != "bearer"
-            or not hmac.compare_digest(supplied, token)
+            or not hmac.compare_digest(supplied.encode("utf-8"), token.encode("utf-8"))
         ):
             raise ApiProblem(401, "AUTH_REQUIRED", "Operator authentication required.")
         return "local-operator"
