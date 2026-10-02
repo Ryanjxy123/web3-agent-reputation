@@ -11,8 +11,10 @@
   "solidity": "0.8.30",
   "evm_version": "prague",
   "postgresql": {
-    "status": "INSTALLING",
-    "version": "17.11"
+    "status": "BINARY_VERIFIED",
+    "version": "17.11",
+    "windows_archive_sha256": "80379b2c04d51c30225532e0ae04509899141e9957ed096fe749d7fd9df8f82f",
+    "source": "https://sbp.enterprisedb.com/getfile.jsp?fileid=1260616"
   },
   "docker": {
     "status": "NOT_INSTALLED"

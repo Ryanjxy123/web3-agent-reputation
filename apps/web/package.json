@@ -10,7 +10,8 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "vue-tsc --noEmit && vite build",
-    "test": "vitest run"
+    "test": "vitest run",
+    "generate:types": "openapi-typescript ../../packages/schemas/generated/openapi.json -o src/api/generated/schema.ts"
   },
   "dependencies": {
     "vue": "3.5.22"

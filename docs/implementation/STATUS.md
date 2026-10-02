@@ -6,7 +6,8 @@
 |---|---|---|
 | M0-01 | DONE | 已克隆私有仓库、保留 main 历史、创建功能分支、安全安装启动基线并合并 README；36 项参考测试通过 |
 | M0-02 | DONE | 四包 uv workspace、真实锁、Vue 构建、Foundry 编译与测试通过 |
-| M0-03..06 | NOT_STARTED | 契约、数据库、API、CI 尚未完成 |
+| M0-03 | DONE | 共享 DTO、33 份生成契约、TS 类型、确定性哈希及校验测试通过 |
+| M0-04..06 | NOT_STARTED | 数据库、API、CI 尚未完成 |
 | M0-07 | NOT_STARTED | 公网上游准备不阻塞本地 M1 |
 | M1-01..08 | NOT_STARTED | 合约、Agent、worker、报告、存证和复核尚未实现 |
 
@@ -37,3 +38,16 @@
 - Commit SHA：仓库基线 0903f76；路径迁移 e72b039；本任务待提交，下一任务记录实值。
 - Push status：NOT_PUSHED；将在基础检查通过后推当前功能分支。
 - Next task：M0-03 共享领域契约、Schema 和生成类型。
+
+## 2026-10-02 / M0-03
+
+- Implemented：身份/快照/声明/双签绑定/grant/run/slot/observation/assertion/task-link/report/receipt；严格地址、uint256 字符串、UTC 毫秒时间、整数基点；四态及原因码；静态协议注册表和 ports；JCS 与 Ethereum Keccak 公用函数；API 输入契约；由 DTO 生成 JSON Schema/OpenAPI components/TS。
+- Files changed：core/models、evidence.py、ports.py、registry.py；schemas/generated；scripts/generate_schemas.py；web generated types；domain 示例；tests/unit/test_contracts.py。
+- Commands executed：pytest -q；ruff check；mypy；generate_schemas / --check；pnpm generate:types；pnpm build。
+- Tests：79 passed；ruff 通过；mypy 8 source files 通过；33 份 Schema 验证和重新生成无漂移；TS 类型检查及 Vue build 通过。初次新增测试导入了不存在的 evaluate，已修正为实际 evaluate_from_stats，完整重跑通过。
+- Known limitations：OpenAPI 此时只有类型，没有声称路由已实现；M1 task DTO 只执行 anchor_record；其他能力的完整任务适配属于 M2。哈希一致性不代表链上真实性。
+- Blockers：无。PostgreSQL 17.11 便携二进制已成功运行 --version；数据库迁移和队列尚待 M0-04。
+- Branch：feat/foundation-m0-m1。
+- Commit SHA：M0-02 a0a0ed1；当前任务提交待生成。
+- Push status：a0a0ed1 已成功推送 origin/feat/foundation-m0-m1；未推 main。
+- Next task：M0-04：真实 PostgreSQL 模型、迁移、租约与 fencing 验收。

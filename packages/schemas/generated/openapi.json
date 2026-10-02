@@ -1,0 +1,2261 @@
+{
+  "components": {
+    "schemas": {
+      "AcceptedJob": {
+        "additionalProperties": false,
+        "properties": {
+          "job_id": {
+            "format": "uuid4",
+            "title": "Job Id",
+            "type": "string"
+          },
+          "status": {
+            "const": "QUEUED",
+            "default": "QUEUED",
+            "title": "Status",
+            "type": "string"
+          },
+          "status_url": {
+            "pattern": "^/api/v1/[a-z/-]+[0-9a-f-]+$",
+            "title": "Status Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id",
+          "status_url"
+        ],
+        "title": "AcceptedJob",
+        "type": "object"
+      },
+      "AccessGrant": {
+        "additionalProperties": false,
+        "properties": {
+          "capabilities": {
+            "items": {
+              "enum": [
+                "get_tx_status",
+                "verify_record",
+                "anchor_record"
+              ],
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Capabilities",
+            "type": "array"
+          },
+          "chain_instances": {
+            "items": {
+              "pattern": "^0x[0-9a-f]{64}$",
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Chain Instances",
+            "type": "array"
+          },
+          "concurrency": {
+            "const": 1,
+            "default": 1,
+            "title": "Concurrency",
+            "type": "integer"
+          },
+          "consent_ref": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Consent Ref",
+            "type": "string"
+          },
+          "contract_allowlist": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Contract Allowlist",
+            "type": "array"
+          },
+          "endpoint_ids": {
+            "items": {
+              "maxLength": 100,
+              "minLength": 1,
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Endpoint Ids",
+            "type": "array"
+          },
+          "expires_at": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "grant_id": {
+            "format": "uuid4",
+            "title": "Grant Id",
+            "type": "string"
+          },
+          "interval_ms": {
+            "minimum": 1000,
+            "title": "Interval Ms",
+            "type": "integer"
+          },
+          "max_tasks": {
+            "maximum": 100,
+            "minimum": 1,
+            "title": "Max Tasks",
+            "type": "integer"
+          },
+          "methods": {
+            "items": {
+              "enum": [
+                "POST",
+                "GET"
+              ],
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Methods",
+            "type": "array"
+          },
+          "operator": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Operator",
+            "type": "string"
+          },
+          "paths": {
+            "items": {
+              "enum": [
+                "/tasks",
+                "/tasks/{request_id}",
+                "/health",
+                "/capabilities"
+              ],
+              "type": "string"
+            },
+            "title": "Paths",
+            "type": "array"
+          },
+          "snapshot_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Snapshot Hash",
+            "type": "string"
+          }
+        },
+        "required": [
+          "grant_id",
+          "snapshot_hash",
+          "endpoint_ids",
+          "capabilities",
+          "methods",
+          "paths",
+          "chain_instances",
+          "contract_allowlist",
+          "max_tasks",
+          "interval_ms",
+          "expires_at",
+          "operator",
+          "consent_ref"
+        ],
+        "title": "AccessGrant",
+        "type": "object"
+      },
+      "AgentCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "agent_ref": {
+            "$ref": "#/components/schemas/AgentRef"
+          }
+        },
+        "required": [
+          "agent_ref"
+        ],
+        "title": "AgentCreate",
+        "type": "object"
+      },
+      "AgentRef": {
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "pattern": "^(0|[1-9][0-9]{0,77})$",
+            "title": "Agent Id",
+            "type": "string"
+          },
+          "chain_id": {
+            "pattern": "^(0|[1-9][0-9]{0,77})$",
+            "title": "Chain Id",
+            "type": "string"
+          },
+          "namespace": {
+            "const": "eip155",
+            "default": "eip155",
+            "title": "Namespace",
+            "type": "string"
+          },
+          "registry_address": {
+            "title": "Registry Address",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chain_id",
+          "registry_address",
+          "agent_id"
+        ],
+        "title": "AgentRef",
+        "type": "object"
+      },
+      "AgentSnapshot": {
+        "additionalProperties": false,
+        "properties": {
+          "core": {
+            "$ref": "#/components/schemas/SnapshotCore"
+          },
+          "snapshot_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Snapshot Hash",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "format": "uuid4",
+            "title": "Snapshot Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "snapshot_id",
+          "core",
+          "snapshot_hash"
+        ],
+        "title": "AgentSnapshot",
+        "type": "object"
+      },
+      "AnchorReceipt": {
+        "additionalProperties": false,
+        "properties": {
+          "block_hash": {
+            "anyOf": [
+              {
+                "pattern": "^0x[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Block Hash"
+          },
+          "block_number": {
+            "anyOf": [
+              {
+                "pattern": "^(0|[1-9][0-9]{0,77})$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Block Number"
+          },
+          "chain_instance_id": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Chain Instance Id",
+            "type": "string"
+          },
+          "confirmations": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Confirmations",
+            "type": "integer"
+          },
+          "contract": {
+            "title": "Contract",
+            "type": "string"
+          },
+          "publisher": {
+            "title": "Publisher",
+            "type": "string"
+          },
+          "report_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Report Hash",
+            "type": "string"
+          },
+          "sequence": {
+            "anyOf": [
+              {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sequence"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AnchorStatus"
+          },
+          "trusted_chain_key": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Trusted Chain Key",
+            "type": "string"
+          },
+          "tx_hash": {
+            "anyOf": [
+              {
+                "pattern": "^0x[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tx Hash"
+          }
+        },
+        "required": [
+          "report_hash",
+          "status",
+          "trusted_chain_key",
+          "chain_instance_id",
+          "contract",
+          "publisher",
+          "tx_hash",
+          "sequence",
+          "block_number",
+          "block_hash",
+          "confirmations"
+        ],
+        "title": "AnchorReceipt",
+        "type": "object"
+      },
+      "AnchorStatus": {
+        "enum": [
+          "NOT_REQUESTED",
+          "QUEUED",
+          "SIGNED",
+          "BROADCAST",
+          "CONFIRMING",
+          "CONFIRMED",
+          "FAILED",
+          "REORGED"
+        ],
+        "title": "AnchorStatus",
+        "type": "string"
+      },
+      "ApiError": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorDetail"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "title": "ApiError",
+        "type": "object"
+      },
+      "AssertionResult": {
+        "additionalProperties": false,
+        "properties": {
+          "assertion_id": {
+            "format": "uuid4",
+            "title": "Assertion Id",
+            "type": "string"
+          },
+          "critical": {
+            "title": "Critical",
+            "type": "boolean"
+          },
+          "evidence_refs": {
+            "items": {
+              "format": "uuid4",
+              "type": "string"
+            },
+            "title": "Evidence Refs",
+            "type": "array"
+          },
+          "expected": {
+            "$ref": "#/components/schemas/JsonValue"
+          },
+          "observed": {
+            "$ref": "#/components/schemas/JsonValue"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/Outcome"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Reason"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rule_id": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Rule Id",
+            "type": "string"
+          },
+          "rule_version": {
+            "const": "1",
+            "title": "Rule Version",
+            "type": "string"
+          },
+          "slot_id": {
+            "format": "uuid4",
+            "title": "Slot Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "assertion_id",
+          "slot_id",
+          "rule_id",
+          "rule_version",
+          "outcome",
+          "reason_code",
+          "expected",
+          "observed",
+          "evidence_refs",
+          "critical"
+        ],
+        "title": "AssertionResult",
+        "type": "object"
+      },
+      "BindingChallengeRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "endpoint_id": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Endpoint Id",
+            "type": "string"
+          },
+          "execution_chain_key": {
+            "const": "local-demo",
+            "title": "Execution Chain Key",
+            "type": "string"
+          },
+          "executor": {
+            "title": "Executor",
+            "type": "string"
+          }
+        },
+        "required": [
+          "executor",
+          "endpoint_id",
+          "execution_chain_key"
+        ],
+        "title": "BindingChallengeRequest",
+        "type": "object"
+      },
+      "BindingMessage": {
+        "additionalProperties": false,
+        "properties": {
+          "agent_key_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Agent Key Hash",
+            "type": "string"
+          },
+          "deadline": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Deadline",
+            "type": "integer"
+          },
+          "endpoint_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Endpoint Hash",
+            "type": "string"
+          },
+          "execution_chain_id": {
+            "pattern": "^(0|[1-9][0-9]{0,77})$",
+            "title": "Execution Chain Id",
+            "type": "string"
+          },
+          "execution_chain_instance_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Execution Chain Instance Hash",
+            "type": "string"
+          },
+          "executor": {
+            "title": "Executor",
+            "type": "string"
+          },
+          "issued_at": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Issued At",
+            "type": "integer"
+          },
+          "nonce": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Nonce",
+            "type": "string"
+          },
+          "snapshot_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Snapshot Hash",
+            "type": "string"
+          }
+        },
+        "required": [
+          "agent_key_hash",
+          "snapshot_hash",
+          "executor",
+          "endpoint_hash",
+          "execution_chain_id",
+          "execution_chain_instance_hash",
+          "nonce",
+          "issued_at",
+          "deadline"
+        ],
+        "title": "BindingMessage",
+        "type": "object"
+      },
+      "BindingVerifyRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "challenge_id": {
+            "format": "uuid4",
+            "title": "Challenge Id",
+            "type": "string"
+          },
+          "executor_signature": {
+            "pattern": "^0x[0-9a-f]{130}$",
+            "title": "Executor Signature",
+            "type": "string"
+          },
+          "owner_signature": {
+            "pattern": "^0x[0-9a-f]{130}$",
+            "title": "Owner Signature",
+            "type": "string"
+          }
+        },
+        "required": [
+          "challenge_id",
+          "owner_signature",
+          "executor_signature"
+        ],
+        "title": "BindingVerifyRequest",
+        "type": "object"
+      },
+      "CapabilityClaim": {
+        "additionalProperties": false,
+        "properties": {
+          "candidate_capability": {
+            "anyOf": [
+              {
+                "enum": [
+                  "get_tx_status",
+                  "verify_record",
+                  "anchor_record"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Candidate Capability"
+          },
+          "end": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "End",
+            "type": "integer"
+          },
+          "extractor_version": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Extractor Version",
+            "type": "string"
+          },
+          "field_path": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Field Path",
+            "type": "string"
+          },
+          "polarity": {
+            "enum": [
+              "positive",
+              "negative",
+              "ambiguous"
+            ],
+            "title": "Polarity",
+            "type": "string"
+          },
+          "quote": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Quote",
+            "type": "string"
+          },
+          "source_evidence_id": {
+            "format": "uuid4",
+            "title": "Source Evidence Id",
+            "type": "string"
+          },
+          "start": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Start",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "source_evidence_id",
+          "field_path",
+          "quote",
+          "start",
+          "end",
+          "polarity",
+          "candidate_capability",
+          "extractor_version"
+        ],
+        "title": "CapabilityClaim",
+        "type": "object"
+      },
+      "CaseSlot": {
+        "additionalProperties": false,
+        "properties": {
+          "capability_id": {
+            "enum": [
+              "get_tx_status",
+              "verify_record",
+              "anchor_record"
+            ],
+            "title": "Capability Id",
+            "type": "string"
+          },
+          "case_kind": {
+            "enum": [
+              "positive",
+              "negative"
+            ],
+            "title": "Case Kind",
+            "type": "string"
+          },
+          "expected": {
+            "$ref": "#/components/schemas/ExpectedFacts"
+          },
+          "expected_outcome": {
+            "$ref": "#/components/schemas/Outcome"
+          },
+          "grant_id": {
+            "format": "uuid4",
+            "title": "Grant Id",
+            "type": "string"
+          },
+          "purpose": {
+            "$ref": "#/components/schemas/Purpose"
+          },
+          "required_class": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Required Class",
+            "type": "string"
+          },
+          "slot_id": {
+            "format": "uuid4",
+            "title": "Slot Id",
+            "type": "string"
+          },
+          "slot_key": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Slot Key",
+            "type": "string"
+          },
+          "task": {
+            "$ref": "#/components/schemas/TaskEnvelope"
+          }
+        },
+        "required": [
+          "slot_id",
+          "slot_key",
+          "capability_id",
+          "purpose",
+          "case_kind",
+          "required_class",
+          "expected_outcome",
+          "task",
+          "expected",
+          "grant_id"
+        ],
+        "title": "CaseSlot",
+        "type": "object"
+      },
+      "ChainIdentity": {
+        "additionalProperties": false,
+        "properties": {
+          "chain_id": {
+            "pattern": "^(0|[1-9][0-9]{0,77})$",
+            "title": "Chain Id",
+            "type": "string"
+          },
+          "deployment_instance_id": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Deployment Instance Id",
+            "type": "string"
+          },
+          "genesis_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Genesis Hash",
+            "type": "string"
+          },
+          "instance_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Instance Hash",
+            "type": "string"
+          },
+          "registry_code_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Registry Code Hash",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chain_id",
+          "genesis_hash",
+          "deployment_instance_id",
+          "registry_code_hash",
+          "instance_hash"
+        ],
+        "title": "ChainIdentity",
+        "type": "object"
+      },
+      "ClaimReview": {
+        "additionalProperties": false,
+        "properties": {
+          "actor": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Actor",
+            "type": "string"
+          },
+          "confirmed_claims": {
+            "items": {
+              "enum": [
+                "get_tx_status",
+                "verify_record",
+                "anchor_record"
+              ],
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Confirmed Claims",
+            "type": "array"
+          },
+          "mapping_evidence_ids": {
+            "items": {
+              "format": "uuid4",
+              "type": "string"
+            },
+            "title": "Mapping Evidence Ids",
+            "type": "array"
+          },
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "review_version": {
+            "minimum": 1,
+            "title": "Review Version",
+            "type": "integer"
+          },
+          "snapshot_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Snapshot Hash",
+            "type": "string"
+          },
+          "unsupported_claims": {
+            "default": [],
+            "items": {
+              "maxLength": 2000,
+              "minLength": 1,
+              "type": "string"
+            },
+            "title": "Unsupported Claims",
+            "type": "array"
+          }
+        },
+        "required": [
+          "snapshot_hash",
+          "review_version",
+          "confirmed_claims",
+          "mapping_evidence_ids",
+          "actor",
+          "reason"
+        ],
+        "title": "ClaimReview",
+        "type": "object"
+      },
+      "ClaimsConfirm": {
+        "additionalProperties": false,
+        "properties": {
+          "confirmed_claims": {
+            "items": {
+              "enum": [
+                "get_tx_status",
+                "verify_record",
+                "anchor_record"
+              ],
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Confirmed Claims",
+            "type": "array"
+          },
+          "expected_review_version": {
+            "minimum": 0,
+            "title": "Expected Review Version",
+            "type": "integer"
+          },
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "unsupported_claims": {
+            "default": [],
+            "items": {
+              "maxLength": 2000,
+              "minLength": 1,
+              "type": "string"
+            },
+            "title": "Unsupported Claims",
+            "type": "array"
+          }
+        },
+        "required": [
+          "confirmed_claims",
+          "reason",
+          "expected_review_version"
+        ],
+        "title": "ClaimsConfirm",
+        "type": "object"
+      },
+      "DispatchState": {
+        "enum": [
+          "NOT_SENT",
+          "SENDING",
+          "ACKNOWLEDGED",
+          "DISPATCH_UNCERTAIN",
+          "RESOLVING",
+          "SETTLED"
+        ],
+        "title": "DispatchState",
+        "type": "string"
+      },
+      "Endpoint": {
+        "additionalProperties": false,
+        "properties": {
+          "endpoint_id": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Endpoint Id",
+            "type": "string"
+          },
+          "host": {
+            "pattern": "^[a-z0-9][a-z0-9.-]{0,252}$",
+            "title": "Host",
+            "type": "string"
+          },
+          "method": {
+            "const": "POST",
+            "title": "Method",
+            "type": "string"
+          },
+          "path": {
+            "pattern": "^/[a-zA-Z0-9/_-]*$",
+            "title": "Path",
+            "type": "string"
+          },
+          "port": {
+            "maximum": 65535,
+            "minimum": 1,
+            "title": "Port",
+            "type": "integer"
+          },
+          "protocol": {
+            "const": "controlled-http-v1",
+            "title": "Protocol",
+            "type": "string"
+          },
+          "scheme": {
+            "enum": [
+              "http",
+              "https"
+            ],
+            "title": "Scheme",
+            "type": "string"
+          }
+        },
+        "required": [
+          "endpoint_id",
+          "scheme",
+          "host",
+          "port",
+          "path",
+          "method",
+          "protocol"
+        ],
+        "title": "Endpoint",
+        "type": "object"
+      },
+      "ErrorDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Message",
+            "type": "string"
+          },
+          "request_id": {
+            "format": "uuid4",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "retryable": {
+            "title": "Retryable",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "request_id",
+          "retryable"
+        ],
+        "title": "ErrorDetail",
+        "type": "object"
+      },
+      "EvaluationCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "grant_ids": {
+            "items": {
+              "format": "uuid4",
+              "type": "string"
+            },
+            "maxItems": 10,
+            "minItems": 1,
+            "title": "Grant Ids",
+            "type": "array"
+          },
+          "policy_version": {
+            "const": "policy-v1",
+            "title": "Policy Version",
+            "type": "string"
+          },
+          "profile": {
+            "enum": [
+              "record-read-v1",
+              "record-write-v1"
+            ],
+            "title": "Profile",
+            "type": "string"
+          },
+          "review_version": {
+            "minimum": 1,
+            "title": "Review Version",
+            "type": "integer"
+          },
+          "snapshot_id": {
+            "format": "uuid4",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "suite_id": {
+            "const": "m1-smoke-v1",
+            "title": "Suite Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "snapshot_id",
+          "review_version",
+          "profile",
+          "policy_version",
+          "grant_ids",
+          "suite_id"
+        ],
+        "title": "EvaluationCreate",
+        "type": "object"
+      },
+      "EvaluationRun": {
+        "additionalProperties": false,
+        "properties": {
+          "latest_report_id": {
+            "anyOf": [
+              {
+                "format": "uuid4",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Report Id"
+          },
+          "planned": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Planned",
+            "type": "integer"
+          },
+          "run_id": {
+            "format": "uuid4",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "settled": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Settled",
+            "type": "integer"
+          },
+          "stage": {
+            "$ref": "#/components/schemas/RunStage"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RunStatus"
+          },
+          "unknown": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Unknown",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "run_id",
+          "status",
+          "stage",
+          "planned",
+          "settled",
+          "unknown",
+          "latest_report_id"
+        ],
+        "title": "EvaluationRun",
+        "type": "object"
+      },
+      "EvidenceRecord": {
+        "additionalProperties": false,
+        "properties": {
+          "blob_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Blob Hash",
+            "type": "string"
+          },
+          "byte_count": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Byte Count",
+            "type": "integer"
+          },
+          "collector_version": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Collector Version",
+            "type": "string"
+          },
+          "evidence_id": {
+            "format": "uuid4",
+            "title": "Evidence Id",
+            "type": "string"
+          },
+          "media_type": {
+            "enum": [
+              "application/json",
+              "application/octet-stream",
+              "text/plain"
+            ],
+            "title": "Media Type",
+            "type": "string"
+          },
+          "observed_at": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+            "title": "Observed At",
+            "type": "string"
+          },
+          "path": {
+            "pattern": "^blobs/[0-9a-f]{64}\\.bin$",
+            "title": "Path",
+            "type": "string"
+          },
+          "redaction_profile": {
+            "const": "credentials-v1",
+            "title": "Redaction Profile",
+            "type": "string"
+          },
+          "source": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Source",
+            "type": "string"
+          },
+          "trust_group": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Trust Group",
+            "type": "string"
+          }
+        },
+        "required": [
+          "evidence_id",
+          "path",
+          "blob_hash",
+          "byte_count",
+          "media_type",
+          "source",
+          "observed_at",
+          "collector_version",
+          "redaction_profile",
+          "trust_group"
+        ],
+        "title": "EvidenceRecord",
+        "type": "object"
+      },
+      "ExecutorBinding": {
+        "additionalProperties": false,
+        "properties": {
+          "binding_id": {
+            "format": "uuid4",
+            "title": "Binding Id",
+            "type": "string"
+          },
+          "domain_chain_id": {
+            "pattern": "^(0|[1-9][0-9]{0,77})$",
+            "title": "Domain Chain Id",
+            "type": "string"
+          },
+          "domain_registry": {
+            "title": "Domain Registry",
+            "type": "string"
+          },
+          "domain_salt": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Domain Salt",
+            "type": "string"
+          },
+          "executor_signature": {
+            "pattern": "^0x[0-9a-f]{130}$",
+            "title": "Executor Signature",
+            "type": "string"
+          },
+          "message": {
+            "$ref": "#/components/schemas/BindingMessage"
+          },
+          "owner": {
+            "title": "Owner",
+            "type": "string"
+          },
+          "owner_signature": {
+            "pattern": "^0x[0-9a-f]{130}$",
+            "title": "Owner Signature",
+            "type": "string"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Reason"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "enum": [
+              "VERIFIED",
+              "UNKNOWN"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "verification_evidence": {
+            "items": {
+              "format": "uuid4",
+              "type": "string"
+            },
+            "title": "Verification Evidence",
+            "type": "array"
+          }
+        },
+        "required": [
+          "binding_id",
+          "message",
+          "owner",
+          "owner_signature",
+          "executor_signature",
+          "domain_chain_id",
+          "domain_registry",
+          "domain_salt",
+          "status",
+          "reason_code",
+          "verification_evidence"
+        ],
+        "title": "ExecutorBinding",
+        "type": "object"
+      },
+      "ExpectedFacts": {
+        "additionalProperties": false,
+        "properties": {
+          "agent_ref": {
+            "$ref": "#/components/schemas/AgentRef"
+          },
+          "binding_id": {
+            "format": "uuid4",
+            "title": "Binding Id",
+            "type": "string"
+          },
+          "confirmation_depth": {
+            "maximum": 100,
+            "minimum": 1,
+            "title": "Confirmation Depth",
+            "type": "integer"
+          },
+          "deadline": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+            "title": "Deadline",
+            "type": "string"
+          },
+          "execution_chain": {
+            "$ref": "#/components/schemas/ChainIdentity"
+          },
+          "executor": {
+            "title": "Executor",
+            "type": "string"
+          },
+          "pre_dispatch_block": {
+            "pattern": "^(0|[1-9][0-9]{0,77})$",
+            "title": "Pre Dispatch Block",
+            "type": "string"
+          },
+          "pre_dispatch_block_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Pre Dispatch Block Hash",
+            "type": "string"
+          },
+          "record_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Record Hash",
+            "type": "string"
+          },
+          "request_id": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "snapshot_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Snapshot Hash",
+            "type": "string"
+          },
+          "target_contract": {
+            "title": "Target Contract",
+            "type": "string"
+          },
+          "window_start": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+            "title": "Window Start",
+            "type": "string"
+          }
+        },
+        "required": [
+          "agent_ref",
+          "snapshot_hash",
+          "execution_chain",
+          "executor",
+          "target_contract",
+          "request_id",
+          "record_hash",
+          "binding_id",
+          "window_start",
+          "deadline",
+          "pre_dispatch_block",
+          "pre_dispatch_block_hash",
+          "confirmation_depth"
+        ],
+        "title": "ExpectedFacts",
+        "type": "object"
+      },
+      "JsonValue": {},
+      "Observation": {
+        "additionalProperties": false,
+        "properties": {
+          "accepted": {
+            "title": "Accepted",
+            "type": "boolean"
+          },
+          "attempt_no": {
+            "minimum": 1,
+            "title": "Attempt No",
+            "type": "integer"
+          },
+          "candidate_tx_hash": {
+            "anyOf": [
+              {
+                "pattern": "^0x[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Candidate Tx Hash"
+          },
+          "diagnostic_only": {
+            "title": "Diagnostic Only",
+            "type": "boolean"
+          },
+          "dispatch_state": {
+            "$ref": "#/components/schemas/DispatchState"
+          },
+          "ended_at": {
+            "anyOf": [
+              {
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ended At"
+          },
+          "error_origin": {
+            "anyOf": [
+              {
+                "enum": [
+                  "platform",
+                  "agent",
+                  "unknown"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Origin"
+          },
+          "evidence_refs": {
+            "items": {
+              "format": "uuid4",
+              "type": "string"
+            },
+            "title": "Evidence Refs",
+            "type": "array"
+          },
+          "http_status": {
+            "anyOf": [
+              {
+                "maximum": 599,
+                "minimum": 100,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Http Status"
+          },
+          "latency_ms": {
+            "anyOf": [
+              {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latency Ms"
+          },
+          "observation_id": {
+            "format": "uuid4",
+            "title": "Observation Id",
+            "type": "string"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Reason"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "slot_id": {
+            "format": "uuid4",
+            "title": "Slot Id",
+            "type": "string"
+          },
+          "started_at": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+            "title": "Started At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "observation_id",
+          "slot_id",
+          "attempt_no",
+          "dispatch_state",
+          "started_at",
+          "ended_at",
+          "latency_ms",
+          "error_origin",
+          "reason_code",
+          "accepted",
+          "candidate_tx_hash",
+          "evidence_refs",
+          "diagnostic_only"
+        ],
+        "title": "Observation",
+        "type": "object"
+      },
+      "Outcome": {
+        "enum": [
+          "PASS",
+          "FAIL",
+          "UNKNOWN",
+          "NOT_APPLICABLE"
+        ],
+        "title": "Outcome",
+        "type": "string"
+      },
+      "Purpose": {
+        "enum": [
+          "availability",
+          "functional",
+          "behavioral",
+          "background"
+        ],
+        "title": "Purpose",
+        "type": "string"
+      },
+      "Reason": {
+        "enum": [
+          "AUTH_REQUIRED",
+          "ACCESS_NOT_GRANTED",
+          "UNSUPPORTED_PROTOCOL",
+          "MAPPING_UNCONFIRMED",
+          "CAPABILITY_EXPLICITLY_UNSUPPORTED",
+          "BINDING_UNVERIFIED",
+          "BINDING_EXPIRED",
+          "PLATFORM_RPC_ERROR",
+          "PLATFORM_NETWORK_ERROR",
+          "INSUFFICIENT_SAMPLES",
+          "INSUFFICIENT_COVERAGE",
+          "PENDING_FINALITY",
+          "RPC_RECEIPT_NOT_FOUND",
+          "TIMEOUT",
+          "SERVICE_TIMEOUT",
+          "SCHEMA_ERROR",
+          "SEMANTIC_MISMATCH",
+          "IDENTITY_CHANGED",
+          "CHAIN_INSTANCE_CHANGED",
+          "TX_WRONG_CHAIN",
+          "TX_WRONG_EXECUTOR",
+          "TX_WRONG_TARGET",
+          "TASK_ID_MISMATCH",
+          "RECORD_HASH_MISMATCH",
+          "LOG_EMITTER_MISMATCH",
+          "TX_REVERTED",
+          "ACCEPTED_TASK_DEADLINE_EXCEEDED",
+          "DISPATCH_UNCERTAIN",
+          "STALE_EVIDENCE",
+          "NOT_DECLARED_READ_ONLY",
+          "CANCELLED_BY_OPERATOR",
+          "CONTENT_HASH_MISMATCH",
+          "MISSING_EVIDENCE",
+          "ANCHOR_NOT_CONFIRMED",
+          "RATE_LIMIT_PLATFORM_EXCEEDED",
+          "RATE_LIMIT_UNATTRIBUTED"
+        ],
+        "title": "Reason",
+        "type": "string"
+      },
+      "RefreshRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_snapshot_hash": {
+            "anyOf": [
+              {
+                "pattern": "^0x[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Expected Snapshot Hash"
+          }
+        },
+        "title": "RefreshRequest",
+        "type": "object"
+      },
+      "ReportCore": {
+        "additionalProperties": false,
+        "properties": {
+          "agent_key_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Agent Key Hash",
+            "type": "string"
+          },
+          "agent_ref": {
+            "$ref": "#/components/schemas/AgentRef"
+          },
+          "assertions": {
+            "items": {
+              "$ref": "#/components/schemas/AssertionResult"
+            },
+            "title": "Assertions",
+            "type": "array"
+          },
+          "code_version": {
+            "pattern": "^[0-9a-f]{40}(?:-dirty)?$",
+            "title": "Code Version",
+            "type": "string"
+          },
+          "evaluated_at": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+            "title": "Evaluated At",
+            "type": "string"
+          },
+          "evidence_manifest_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Evidence Manifest Hash",
+            "type": "string"
+          },
+          "limitations": {
+            "items": {
+              "maxLength": 2000,
+              "minLength": 1,
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Limitations",
+            "type": "array"
+          },
+          "observation_end": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+            "title": "Observation End",
+            "type": "string"
+          },
+          "observation_start": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+            "title": "Observation Start",
+            "type": "string"
+          },
+          "policy_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Policy Hash",
+            "type": "string"
+          },
+          "policy_version": {
+            "const": "policy-v1",
+            "title": "Policy Version",
+            "type": "string"
+          },
+          "previous_report_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Previous Report Hash",
+            "type": "string"
+          },
+          "profile": {
+            "enum": [
+              "record-read-v1",
+              "record-write-v1"
+            ],
+            "title": "Profile",
+            "type": "string"
+          },
+          "raw_statistics": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "title": "Raw Statistics",
+            "type": "object"
+          },
+          "run_id": {
+            "format": "uuid4",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "1.0.0",
+            "default": "1.0.0",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "scores": {
+            "$ref": "#/components/schemas/ScoreResult"
+          },
+          "snapshot_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Snapshot Hash",
+            "type": "string"
+          }
+        },
+        "required": [
+          "agent_ref",
+          "agent_key_hash",
+          "snapshot_hash",
+          "run_id",
+          "profile",
+          "observation_start",
+          "observation_end",
+          "evaluated_at",
+          "policy_version",
+          "policy_hash",
+          "code_version",
+          "raw_statistics",
+          "scores",
+          "assertions",
+          "evidence_manifest_hash",
+          "previous_report_hash",
+          "limitations"
+        ],
+        "title": "ReportCore",
+        "type": "object"
+      },
+      "RunPlan": {
+        "additionalProperties": false,
+        "properties": {
+          "confirmed_capabilities": {
+            "items": {
+              "enum": [
+                "get_tx_status",
+                "verify_record",
+                "anchor_record"
+              ],
+              "type": "string"
+            },
+            "title": "Confirmed Capabilities",
+            "type": "array"
+          },
+          "planning_time": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+            "title": "Planning Time",
+            "type": "string"
+          },
+          "policy_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Policy Hash",
+            "type": "string"
+          },
+          "policy_version": {
+            "const": "policy-v1",
+            "title": "Policy Version",
+            "type": "string"
+          },
+          "profile": {
+            "enum": [
+              "record-read-v1",
+              "record-write-v1"
+            ],
+            "title": "Profile",
+            "type": "string"
+          },
+          "review_version": {
+            "minimum": 1,
+            "title": "Review Version",
+            "type": "integer"
+          },
+          "run_id": {
+            "format": "uuid4",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "1.0.0",
+            "default": "1.0.0",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "slots": {
+            "items": {
+              "$ref": "#/components/schemas/CaseSlot"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Slots",
+            "type": "array"
+          },
+          "snapshot_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Snapshot Hash",
+            "type": "string"
+          },
+          "suite_id": {
+            "const": "m1-smoke-v1",
+            "title": "Suite Id",
+            "type": "string"
+          },
+          "template_version": {
+            "const": "anchor_record@1",
+            "title": "Template Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "snapshot_hash",
+          "review_version",
+          "policy_version",
+          "policy_hash",
+          "profile",
+          "confirmed_capabilities",
+          "suite_id",
+          "template_version",
+          "planning_time",
+          "slots"
+        ],
+        "title": "RunPlan",
+        "type": "object"
+      },
+      "RunStage": {
+        "enum": [
+          "SNAPSHOTTING",
+          "PLANNING",
+          "PROBING",
+          "EXECUTING",
+          "VERIFYING",
+          "SCORING",
+          "REPORTING",
+          "DONE"
+        ],
+        "title": "RunStage",
+        "type": "string"
+      },
+      "RunStatus": {
+        "enum": [
+          "QUEUED",
+          "RUNNING",
+          "PARTIAL",
+          "COMPLETED",
+          "FAILED",
+          "CANCELLED"
+        ],
+        "title": "RunStatus",
+        "type": "string"
+      },
+      "ScoreDimension": {
+        "additionalProperties": false,
+        "properties": {
+          "capabilities": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": {
+                    "$ref": "#/components/schemas/JsonValue"
+                  },
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Capabilities"
+          },
+          "coverage_bp": {
+            "anyOf": [
+              {
+                "maximum": 10000,
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coverage Bp"
+          },
+          "freshness_bp": {
+            "anyOf": [
+              {
+                "maximum": 10000,
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Freshness Bp"
+          },
+          "observed_score_bp": {
+            "anyOf": [
+              {
+                "maximum": 10000,
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed Score Bp"
+          },
+          "reason_codes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reason Codes",
+            "type": "array"
+          },
+          "sample_bp": {
+            "anyOf": [
+              {
+                "maximum": 10000,
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sample Bp"
+          },
+          "score_bp": {
+            "anyOf": [
+              {
+                "maximum": 10000,
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score Bp"
+          },
+          "state": {
+            "enum": [
+              "COMPLETE",
+              "PARTIAL",
+              "UNKNOWN",
+              "NOT_APPLICABLE"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "sufficiency_bp": {
+            "anyOf": [
+              {
+                "maximum": 10000,
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sufficiency Bp"
+          }
+        },
+        "required": [
+          "state",
+          "score_bp",
+          "observed_score_bp",
+          "coverage_bp",
+          "sample_bp",
+          "freshness_bp",
+          "sufficiency_bp",
+          "reason_codes"
+        ],
+        "title": "ScoreDimension",
+        "type": "object"
+      },
+      "ScoreResult": {
+        "additionalProperties": false,
+        "properties": {
+          "advice": {
+            "enum": [
+              "NOT_RECOMMENDED",
+              "INSUFFICIENT_EVIDENCE",
+              "RECOMMENDED_WITHIN_SCOPE",
+              "LIMITED_OR_MANUAL_REVIEW"
+            ],
+            "title": "Advice",
+            "type": "string"
+          },
+          "critical_conflict": {
+            "title": "Critical Conflict",
+            "type": "boolean"
+          },
+          "dimensions": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ScoreDimension"
+            },
+            "propertyNames": {
+              "enum": [
+                "availability",
+                "consistency",
+                "behavior"
+              ]
+            },
+            "title": "Dimensions",
+            "type": "object"
+          },
+          "evaluation_state": {
+            "enum": [
+              "COMPLETE",
+              "PARTIAL"
+            ],
+            "title": "Evaluation State",
+            "type": "string"
+          },
+          "limitations": {
+            "items": {
+              "maxLength": 2000,
+              "minLength": 1,
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "overall_score_bp": {
+            "anyOf": [
+              {
+                "maximum": 10000,
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Overall Score Bp"
+          },
+          "policy_version": {
+            "const": "policy-v1",
+            "title": "Policy Version",
+            "type": "string"
+          },
+          "profile": {
+            "enum": [
+              "record-read-v1",
+              "record-write-v1"
+            ],
+            "title": "Profile",
+            "type": "string"
+          },
+          "sufficiency_bp": {
+            "maximum": 10000,
+            "minimum": 0,
+            "title": "Sufficiency Bp",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "policy_version",
+          "profile",
+          "evaluation_state",
+          "dimensions",
+          "overall_score_bp",
+          "sufficiency_bp",
+          "advice",
+          "critical_conflict",
+          "limitations"
+        ],
+        "title": "ScoreResult",
+        "type": "object"
+      },
+      "SnapshotCore": {
+        "additionalProperties": false,
+        "properties": {
+          "agent_ref": {
+            "$ref": "#/components/schemas/AgentRef"
+          },
+          "agent_uri": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Agent Uri",
+            "type": "string"
+          },
+          "captured_at": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+            "title": "Captured At",
+            "type": "string"
+          },
+          "declared_executor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Declared Executor"
+          },
+          "endpoints": {
+            "items": {
+              "$ref": "#/components/schemas/Endpoint"
+            },
+            "maxItems": 10,
+            "minItems": 1,
+            "title": "Endpoints",
+            "type": "array"
+          },
+          "metadata_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Metadata Hash",
+            "type": "string"
+          },
+          "normalized_metadata": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "title": "Normalized Metadata",
+            "type": "object"
+          },
+          "owner": {
+            "title": "Owner",
+            "type": "string"
+          },
+          "read_block_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Read Block Hash",
+            "type": "string"
+          },
+          "read_block_number": {
+            "pattern": "^(0|[1-9][0-9]{0,77})$",
+            "title": "Read Block Number",
+            "type": "string"
+          },
+          "registry_chain": {
+            "$ref": "#/components/schemas/ChainIdentity"
+          },
+          "registry_revision": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Registry Revision",
+            "type": "integer"
+          },
+          "schema_version": {
+            "const": "1.0.0",
+            "default": "1.0.0",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "source_type": {
+            "enum": [
+              "controlled",
+              "public_registry",
+              "replay"
+            ],
+            "title": "Source Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "agent_ref",
+          "source_type",
+          "owner",
+          "declared_executor",
+          "agent_uri",
+          "registry_revision",
+          "metadata_hash",
+          "normalized_metadata",
+          "endpoints",
+          "read_block_number",
+          "read_block_hash",
+          "captured_at",
+          "registry_chain"
+        ],
+        "title": "SnapshotCore",
+        "type": "object"
+      },
+      "TaskEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "capability_id": {
+            "const": "anchor_record",
+            "default": "anchor_record",
+            "title": "Capability Id",
+            "type": "string"
+          },
+          "chain_id": {
+            "pattern": "^(0|[1-9][0-9]{0,77})$",
+            "title": "Chain Id",
+            "type": "string"
+          },
+          "chain_instance_id": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Chain Instance Id",
+            "type": "string"
+          },
+          "deadline": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+            "title": "Deadline",
+            "type": "string"
+          },
+          "protocol": {
+            "const": "controlled-http-v1",
+            "default": "controlled-http-v1",
+            "title": "Protocol",
+            "type": "string"
+          },
+          "record_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Record Hash",
+            "type": "string"
+          },
+          "request_id": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "snapshot_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Snapshot Hash",
+            "type": "string"
+          },
+          "target_contract": {
+            "title": "Target Contract",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "snapshot_hash",
+          "chain_id",
+          "chain_instance_id",
+          "target_contract",
+          "record_hash",
+          "deadline"
+        ],
+        "title": "TaskEnvelope",
+        "type": "object"
+      },
+      "TaskLink": {
+        "additionalProperties": false,
+        "properties": {
+          "block_hash": {
+            "anyOf": [
+              {
+                "pattern": "^0x[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Block Hash"
+          },
+          "block_number": {
+            "anyOf": [
+              {
+                "pattern": "^(0|[1-9][0-9]{0,77})$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Block Number"
+          },
+          "candidate_tx_hash": {
+            "anyOf": [
+              {
+                "pattern": "^0x[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Candidate Tx Hash"
+          },
+          "executor": {
+            "title": "Executor",
+            "type": "string"
+          },
+          "log_index": {
+            "anyOf": [
+              {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Log Index"
+          },
+          "match_status": {
+            "$ref": "#/components/schemas/Outcome"
+          },
+          "request_id": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "verified_tx_hash": {
+            "anyOf": [
+              {
+                "pattern": "^0x[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verified Tx Hash"
+          }
+        },
+        "required": [
+          "request_id",
+          "candidate_tx_hash",
+          "verified_tx_hash",
+          "executor",
+          "block_number",
+          "block_hash",
+          "log_index",
+          "match_status"
+        ],
+        "title": "TaskLink",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "Web3 Agent Reputation",
+    "version": "1.0.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {}
+}

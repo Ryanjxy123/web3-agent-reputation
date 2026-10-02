@@ -1,0 +1,53 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "grant_ids": {
+      "items": {
+        "format": "uuid4",
+        "type": "string"
+      },
+      "maxItems": 10,
+      "minItems": 1,
+      "title": "Grant Ids",
+      "type": "array"
+    },
+    "policy_version": {
+      "const": "policy-v1",
+      "title": "Policy Version",
+      "type": "string"
+    },
+    "profile": {
+      "enum": [
+        "record-read-v1",
+        "record-write-v1"
+      ],
+      "title": "Profile",
+      "type": "string"
+    },
+    "review_version": {
+      "minimum": 1,
+      "title": "Review Version",
+      "type": "integer"
+    },
+    "snapshot_id": {
+      "format": "uuid4",
+      "title": "Snapshot Id",
+      "type": "string"
+    },
+    "suite_id": {
+      "const": "m1-smoke-v1",
+      "title": "Suite Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "snapshot_id",
+    "review_version",
+    "profile",
+    "policy_version",
+    "grant_ids",
+    "suite_id"
+  ],
+  "title": "EvaluationCreate",
+  "type": "object"
+}
