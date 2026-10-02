@@ -2,12 +2,14 @@
 from .api import (
     AcceptedJob,
     AgentCreate,
+    AgentView,
     ApiError,
     BindingChallengeRequest,
     BindingVerifyRequest,
     ClaimsConfirm,
     ErrorDetail,
     EvaluationCreate,
+    JobView,
     RefreshRequest,
 )
 from .domain import (
@@ -50,7 +52,7 @@ from .enums import (
 )
 
 __all__ = [
-    "AcceptedJob", "AgentCreate", "ApiError", "BindingChallengeRequest", "BindingVerifyRequest",
+    "AcceptedJob", "AgentCreate", "AgentView", "JobView", "ApiError", "BindingChallengeRequest", "BindingVerifyRequest",
     "ClaimsConfirm", "ErrorDetail", "EvaluationCreate", "RefreshRequest",
     "AccessGrant", "AgentKey", "AgentRef", "AgentSnapshot", "AnchorReceipt", "AnchorStatus",
     "AssertionResult", "BindingMessage", "CapabilityClaim", "CaseSlot", "ChainIdentity",

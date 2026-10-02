@@ -11,15 +11,18 @@
   "solidity": "0.8.30",
   "evm_version": "prague",
   "postgresql": {
-    "status": "BINARY_VERIFIED",
+    "status": "NATIVE_INTEGRATION_VERIFIED",
     "version": "17.11",
     "windows_archive_sha256": "80379b2c04d51c30225532e0ae04509899141e9957ed096fe749d7fd9df8f82f",
     "source": "https://sbp.enterprisedb.com/getfile.jsp?fileid=1260616"
   },
   "docker": {
-    "status": "NOT_INSTALLED"
+    "status": "INSTALLED_ENGINE_BLOCKED_WSL_IMPORT",
+    "desktop": "4.93.0.240920",
+    "cli": "29.8.1"
   },
   "compose": {
-    "status": "NOT_INSTALLED"
+    "status": "CONFIG_VERIFIED_RUNTIME_PENDING",
+    "version": "5.5.1"
   }
 }

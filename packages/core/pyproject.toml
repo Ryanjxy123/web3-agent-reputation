@@ -5,5 +5,5 @@ requires-python = ">=3.12,<3.13"
 dependencies = ["pydantic>=2.12,<3", "rfc8785>=0.1.4,<0.2", "eth-hash[pycryptodome]>=0.7,<0.8"]
 
 [build-system]
-requires = ["hatchling>=1.27,<2"]
+requires = ["hatchling==1.27.0"]
 build-backend = "hatchling.build"

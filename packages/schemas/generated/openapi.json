@@ -204,6 +204,71 @@
         "title": "AgentRef",
         "type": "object"
       },
+      "AgentRef-Input": {
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "pattern": "^(0|[1-9][0-9]{0,77})$",
+            "title": "Agent Id",
+            "type": "string"
+          },
+          "chain_id": {
+            "pattern": "^(0|[1-9][0-9]{0,77})$",
+            "title": "Chain Id",
+            "type": "string"
+          },
+          "namespace": {
+            "const": "eip155",
+            "default": "eip155",
+            "title": "Namespace",
+            "type": "string"
+          },
+          "registry_address": {
+            "title": "Registry Address",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chain_id",
+          "registry_address",
+          "agent_id"
+        ],
+        "title": "AgentRef",
+        "type": "object"
+      },
+      "AgentRef-Output": {
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "pattern": "^(0|[1-9][0-9]{0,77})$",
+            "title": "Agent Id",
+            "type": "string"
+          },
+          "chain_id": {
+            "pattern": "^(0|[1-9][0-9]{0,77})$",
+            "title": "Chain Id",
+            "type": "string"
+          },
+          "namespace": {
+            "const": "eip155",
+            "default": "eip155",
+            "title": "Namespace",
+            "type": "string"
+          },
+          "registry_address": {
+            "pattern": "^0x[0-9a-f]{40}$",
+            "title": "Registry Address",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chain_id",
+          "registry_address",
+          "agent_id"
+        ],
+        "title": "AgentRef",
+        "type": "object"
+      },
       "AgentSnapshot": {
         "additionalProperties": false,
         "properties": {
@@ -227,6 +292,40 @@
           "snapshot_hash"
         ],
         "title": "AgentSnapshot",
+        "type": "object"
+      },
+      "AgentView": {
+        "additionalProperties": false,
+        "properties": {
+          "agent_ref": {
+            "$ref": "#/components/schemas/AgentRef"
+          },
+          "id": {
+            "format": "uuid4",
+            "title": "Id",
+            "type": "string"
+          },
+          "source_type": {
+            "enum": [
+              "public_registry",
+              "controlled_fixture"
+            ],
+            "title": "Source Type",
+            "type": "string"
+          },
+          "status": {
+            "const": "UNVERIFIED",
+            "default": "UNVERIFIED",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "agent_ref",
+          "source_type"
+        ],
+        "title": "AgentView",
         "type": "object"
       },
       "AnchorReceipt": {
@@ -1300,6 +1399,62 @@
         "title": "ExpectedFacts",
         "type": "object"
       },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "JobStatus": {
+        "enum": [
+          "QUEUED",
+          "LEASED",
+          "RETRY_WAIT",
+          "SUCCEEDED",
+          "FAILED",
+          "CANCELLED"
+        ],
+        "title": "JobStatus",
+        "type": "string"
+      },
+      "JobView": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid4",
+            "title": "Id",
+            "type": "string"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Reason Code"
+          },
+          "state": {
+            "$ref": "#/components/schemas/JobStatus"
+          }
+        },
+        "required": [
+          "id",
+          "state"
+        ],
+        "title": "JobView",
+        "type": "object"
+      },
       "JsonValue": {},
       "Observation": {
         "additionalProperties": false,
@@ -2249,6 +2404,52 @@
         ],
         "title": "TaskLink",
         "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "scheme": "bearer",
+        "type": "http"
       }
     }
   },
@@ -2257,5 +2458,186 @@
     "version": "1.0.0"
   },
   "openapi": "3.1.0",
-  "paths": {}
+  "paths": {
+    "/api/v1/agents": {
+      "post": {
+        "operationId": "add_agent_api_v1_agents_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentView"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Add Agent"
+      }
+    },
+    "/api/v1/agents/{agent_id}": {
+      "get": {
+        "operationId": "get_agent_api_v1_agents__agent_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "agent_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Agent Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Agent"
+      }
+    },
+    "/api/v1/jobs/{job_id}": {
+      "get": {
+        "operationId": "get_job_api_v1_jobs__job_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Job"
+      }
+    },
+    "/health/live": {
+      "get": {
+        "operationId": "live_health_live_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Live"
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "operationId": "ready_health_ready_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Ready"
+      }
+    }
+  }
 }

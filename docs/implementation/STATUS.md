@@ -8,7 +8,8 @@
 | M0-02 | DONE | 四包 uv workspace、真实锁、Vue 构建、Foundry 编译与测试通过 |
 | M0-03 | DONE | 共享 DTO、33 份生成契约、TS 类型、确定性哈希及校验测试通过 |
 | M0-04 | DONE | 真实 PostgreSQL 迁移、只追加约束、幂等存储、租约/fencing 和并发测试通过 |
-| M0-05..06 | NOT_STARTED | API、安全编排、CI 尚未完成 |
+| M0-05 | IN_PROGRESS | 认证 API、真实 OpenAPI、网络出口和 worker 租约测试通过；Compose 配置通过，本机引擎导入 WSL 失败 |
+| M0-06 | NOT_STARTED | CI 待实现 |
 | M0-07 | NOT_STARTED | 公网上游准备不阻塞本地 M1 |
 | M1-01..08 | NOT_STARTED | 合约、Agent、worker、报告、存证和复核尚未实现 |
 
@@ -67,3 +68,14 @@
 - Push status：远端已到 a0a0ed1；后续提交待推送。
 - Blockers：无用户阻塞。WSL 2.7.3 可用，正在下载签名官方 Docker Desktop，准备 M0-05 per-user 安装和 Compose 验证。
 - Next task：M0-05 安全网络、认证 API/worker 与本地编排。
+
+## 2026-10-02 / M0-05 实现与原生验收
+
+- Implemented：随机本地凭证、恒定时间 bearer 认证、结构化错误与 request ID；真实 DB readiness/候选注册/查询；共享输出 DTO 和真实路由 OpenAPI/TS；精确受控出口、无代理/跳转、大小/深度/压缩限制；独立 worker 的心跳、失租取消、有限重试；隔离 Compose 网络和 digest 固定镜像。
+- Files changed：api、worker、network、init_local、Dockerfile/compose/env.example、schema generator/生成契约、worker/API/network tests、LOCAL_RUNTIME runbook、工具链记录。
+- Commands executed：pytest -q；ruff check；mypy 四包；generate_schemas / --check；pnpm generate:types/build/test；真实 uvicorn HTTP live/ready；docker compose config --quiet；buildx imagetools inspect 四个基础镜像。
+- Tests：107 passed；ruff 通过；mypy 25 files 通过；35 份契约无漂移；Vue build/typecheck、2 tests 通过；真实 HTTP health 通过；Compose 配置解析通过。Starlette TestClient 提示 httpx 将弃用，当前测试通过，无隐藏跳过。
+- Known limitations：M0 worker 只有经过集成测试的调度器，M1 业务 handlers 尚未接入；本地 Docker 引擎尚未启动，不能宣称容器验收通过。公网 HTTP 禁用。
+- Blocker：Docker Desktop per-user 安装成功，WSL import-in-place 报 Wsl/ERROR_PATH_NOT_FOUND；VHD 文件存在且原有发行版可运行。未修改/注销用户发行版；继续原生验证与 Linux CI，不以此阻断独立开发。
+- Branch：feat/foundation-m0-m1；M0-04 commit 5f67ac8，已推送；本任务待提交。
+- Next task：M0-06 CI，完成容器构建/启动验证；M0 总体仍待验收。

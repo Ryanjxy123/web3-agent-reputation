@@ -1,0 +1,1 @@
+"""Authenticated platform HTTP API."""

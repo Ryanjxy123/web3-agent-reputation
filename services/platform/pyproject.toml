@@ -23,5 +23,5 @@ reputation-core = { workspace = true }
 reputation-verifier = { workspace = true }
 
 [build-system]
-requires = ["hatchling>=1.27,<2"]
+requires = ["hatchling==1.27.0"]
 build-backend = "hatchling.build"

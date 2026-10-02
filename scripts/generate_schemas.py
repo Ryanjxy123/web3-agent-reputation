@@ -26,13 +26,17 @@ def render() -> dict[str, str]:
         openapi_schema = model.model_json_schema(ref_template="#/components/schemas/{model}")
         definitions.update(openapi_schema.pop("$defs", {}))
         definitions[model.__name__] = openapi_schema
-    # M0-03 publishes components only. Actual routes are exported from FastAPI at M0-05.
-    documents["openapi.json"] = json.dumps({
-        "openapi": "3.1.0",
-        "info": {"title": "Web3 Agent Reputation", "version": "1.0.0"},
-        "paths": {},
-        "components": {"schemas": definitions},
-    }, ensure_ascii=False, sort_keys=True, indent=2) + "\n"
+    from reputation_platform.api.app import create_app
+    from sqlalchemy import create_engine
+
+    # Schema export never opens a DB connection and needs no credentials.
+    database = create_engine("postgresql+psycopg://schema-export.invalid/unused")
+    spec = create_app(db=database, operator_token="schema-export-only-" * 3).openapi()
+    spec["components"]["schemas"].update(definitions)
+    database.dispose()
+    documents["openapi.json"] = json.dumps(
+        spec, ensure_ascii=False, sort_keys=True, indent=2
+    ) + "\n"
     return documents
 
 

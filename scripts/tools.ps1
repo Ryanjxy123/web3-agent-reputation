@@ -7,6 +7,7 @@ $UvBin = Join-Path $UvEnvironment 'Scripts'
 $FoundryBin = Join-Path $ToolRoot 'foundry-v1.8.4'
 $PostgresRoot = Join-Path $ToolRoot 'postgresql-17.11'
 $PostgresBin = Join-Path $PostgresRoot 'pgsql/bin'
+$DockerBin = Join-Path $env:LOCALAPPDATA 'Programs/DockerDesktop/resources/bin'
 if ($Install) {
     if (-not (Test-Path -LiteralPath (Join-Path $UvBin 'uv.exe'))) {
         python -m venv $UvEnvironment
@@ -38,5 +39,6 @@ if ($Install) {
     }
 }
 $env:PATH = "$UvBin;$FoundryBin;$PostgresBin;$env:PATH"
+if (Test-Path -LiteralPath $DockerBin) { $env:PATH = "$DockerBin;$env:PATH" }
 $env:UV_LINK_MODE = 'copy'
 Write-Output 'Project tools added to this PowerShell process only.'

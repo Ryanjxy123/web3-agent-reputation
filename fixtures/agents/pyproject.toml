@@ -8,5 +8,5 @@ dependencies = ["reputation-core", "fastapi>=0.119,<1", "uvicorn>=0.37,<1", "web
 reputation-core = { workspace = true }
 
 [build-system]
-requires = ["hatchling>=1.27,<2"]
+requires = ["hatchling==1.27.0"]
 build-backend = "hatchling.build"

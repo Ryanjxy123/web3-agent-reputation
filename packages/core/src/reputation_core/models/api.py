@@ -5,10 +5,24 @@ from pydantic import UUID4, Field
 
 from .base import Hash32, Model, NonzeroAddress, SafeText
 from .domain import AgentRef, Capability, Profile
+from .enums import JobStatus
 
 
 class AgentCreate(Model):
     agent_ref: AgentRef
+
+
+class AgentView(Model):
+    id: UUID4
+    agent_ref: AgentRef
+    source_type: Literal["public_registry", "controlled_fixture"]
+    status: Literal["UNVERIFIED"] = "UNVERIFIED"
+
+
+class JobView(Model):
+    id: UUID4
+    state: JobStatus
+    reason_code: str | None = None
 
 
 class ClaimsConfirm(Model):
