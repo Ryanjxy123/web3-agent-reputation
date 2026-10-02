@@ -14,7 +14,7 @@ uv run --all-packages reputation migrate
 uv run --env-file .env --all-packages uvicorn reputation_platform.api.app:create_app --factory --host 127.0.0.1 --port 8000 --no-access-log
 ```
 
-另开终端运行 `uv run --all-packages reputation worker`。worker 已接入 ingest/evaluate/verify handler；领取、心跳和 fencing 使用 PostgreSQL。`/health/ready` 当前检查 PostgreSQL 迁移版本；本地链配置与实例在执行身份操作时核验，不能把基础 readiness 当完整链路就绪。注册仅创建未核验候选，不代表测试通过。
+另开终端运行 `uv run --all-packages reputation worker`。worker 已接入 ingest/evaluate/verify/report handler；领取、心跳和 fencing 使用 PostgreSQL。`/health/ready` 当前检查 PostgreSQL 迁移版本；本地链配置与实例在执行身份操作时核验，不能把基础 readiness 当完整链路就绪。注册仅创建未核验候选，不代表测试通过。
 
 容器启动（需可用 Docker Linux 引擎）：
 
@@ -95,3 +95,13 @@ uv run --all-packages python scripts/smoke_execution.py
 新版 API/worker 与 A/D 启动后运行 `uv run --all-packages python scripts/smoke_verification.py`。它会创建新快照、绑定和计划，等待独立 RPC 采集及纯规则核验；要求 A PASS、D receipt.success PASS 但 TASK_ID_MISMATCH/RECORD_HASH_MISMATCH，并输出 VERIFICATION_SMOKE_PASS。结果保存到忽略的 runtime/local-chain/verification-smoke.json。
 
 核验接口为 GET /api/v1/evaluations/{run_id}/verification，未完成返回 404 NOT_VERIFIED。旧计划缺 target_code_hash 时不能追填，应另建新计划。当前核验结果不等于报告、存证或独立 bundle verifier 完成。
+
+## 冻结报告与 ZIP 导出
+
+新版 worker 在 verify 提交后自动排入 report 作业；旧的已核验 run 可通过认证 POST /api/v1/evaluations/{run_id}/report 入队。GET 同一路径读取报告，GET /api/v1/reports/{report_id}/bundle 导出 ZIP。没有客户端评分入口，所有统计来自冻结的任务证据。
+
+运行 `uv run --all-packages python scripts/smoke_reports.py`：存在 verification-smoke.json 时复用最近的 A/D run，否则先执行真实核验 smoke。脚本等待报告 worker，校验 PARTIAL/overall=null 与 D 关键冲突，重复下载检查稳定字节，保存 report-a.zip、report-d.zip、report-smoke.json。本阶段脚本要求尚未发布的 NOT_REQUESTED 回执；后续发布/独立复核由 M1-07 提供。
+
+每个发布者/Agent/链/合约同一时间只允许一个尚未接入链头的新冻结报告。已有未发布报告时应继续处理原报告；不要反复创建新 run 绕过 previous 约束。RPC 不可读会阻止安全冻结并保留平台错误；链上证据变更需新评价，旧报告不能改写。
+
+报告文件、Schema 和原始证据从冻结 CAS 导出，不会因后续修改项目 Schema 文件而改变旧 ZIP。代码版本来自实际 Git SHA，未提交改动标 -dirty；无 Git 的部署需设置真实 CODE_VERSION。anchor_receipt 不在 report_core 摘要中。导出成功仅证明文件承诺已生成，不代表独立 verifier 或链上锚定已通过。

@@ -1,6 +1,6 @@
 # 真实进度与会话交接
 
-更新时间：2026-10-02；环境：用户 Windows 正式项目工作目录。
+更新时间：2026-10-03；环境：用户 Windows 正式项目工作目录。
 
 | Task ID | Status | 实施结果 |
 |---|---|---|
@@ -13,7 +13,11 @@
 | M0-07 | PARTIAL_EXTERNAL_BLOCKED | ERC-8004 真实 commit/ABI/许可与规范字节已锁；8004scan OpenAPI HTTP 403，不阻塞本地 M1 |
 | M1-01 | DONE | 三个自研合约、生成 ABI、14 项 Foundry 测试（含 256 次 fuzz）通过 |
 | M1-02 | DONE | 三合约真实部署、双 seed、持久 A/D、9 项真实 Anvil 测试及原生服务重启后的 HTTP 幂等复查通过 |
-| M1-03..08 | NOT_STARTED | 身份绑定、业务 worker、报告、存证和独立复核尚未实现 |
+| M1-03 | DONE | 真实快照、声明 review、owner/executor 双 EIP-712 签名与单次 nonce |
+| M1-04 | DONE | 授权、冻结意图、HTTP 发送与租约/crash reconcile 恢复 |
+| M1-05 | DONE | 独立 RPC/纯断言，真实 A PASS、D 成功回执但 SEMANTIC_MISMATCH；CI b04a04a 通过 |
+| M1-06 | DONE | 报告冻结、确定性 ZIP、并发/恢复/缺失/篡改拒绝、原生 A/D 报告 smoke 及166项全量回归通过 |
+| M1-07..08 | NOT_STARTED | 发布 outbox、独立 ZIP verifier 和完整 M1 Compose/E2E 尚未完成 |
 
 ## 2026-10-02 / M0-01
 
@@ -182,3 +186,15 @@
 - Known limitations：M1-06/07/08 报告、存证、独立 bundle verifier、完整 E2E 尚未完成。未降低 policy 门槛。Windows Docker WSL 与外部 OpenAPI 403 仍单列；本次未声称本机容器通过。
 - Branch：feat/foundation-m0-m1；PR 授权规则 794c681、M1-05 实现 391d2c9 均已推送预期 origin；本验收状态另行提交。整项 M0+M1 尚未完成，尚未创建最终 PR。
 - Next task：M1-06：从槽位/观测/独立断言派生统计，冻结 PARTIAL/overall=null 报告及无循环承诺的证据包。
+
+## 2026-10-03 / M1-06
+
+- Implemented：纯规则重新执行任务断言并派生互斥目的统计；复用原 policy-v1/scoring_reference，保持20/10/10与80%/60%门槛，mapping不因人工确认默认正确；PARTIAL/overall=null，D保留关键冲突建议。report worker 在冻结前再查链上证据与实际 Anchor head；短事务 fencing/advisory lock、同run幂等、前一报告未发布时拒绝竞争previous；CAS/manifest/ReportCore无循环承诺、稳定ZIP导出、真实源码版本。
+- Files changed：core/reporting 与4个共享报告类型、application/reports、API/worker/verify入队、52份生成Schema/TS、smoke_reports、报告集成/manifest边界测试、ADR0009及运行文档。没有DB migration。
+- Commands executed：ruff/mypy；Schema generate/check、TS generate；pytest报告定向及全量（FAIL_ON_SKIP=1）；前端build/test；forge test/ABI check；原生新版API/worker的smoke_reports。
+- Tests：5项真实PG+Anvil报告集成通过（121.72s）；全量166 passed/0 skipped（591.52s）；mypy48 files、ruff、52 Schema、Vue2 tests/build、Foundry14 tests及ABI检查通过。覆盖A/D部分报告、完整文件承诺、固定JSON顺序与ZIP字节、真实密钥不出包、双作业仅一份revision且均成功、报告提交后作业ACK前中断恢复、旧lease拒绝、CAS修改/丢失拒绝。manifest另有8项循环和非可移植路径拒绝测试。
+- Live evidence：smoke_reports退出0，runtime/local-chain/report-a.zip（131066 bytes）及report-d.zip（131661 bytes），各132成员；report-smoke.json记录真实report_id/hash。A为PARTIAL/INSUFFICIENT_EVIDENCE，D为PARTIAL/NOT_RECOMMENDED，两者overall=null、回执NOT_REQUESTED。源码存在未提交实现时正确标记-dirty，没有声称来自干净release。
+- Runtime：原生API/worker已加载报告实现；全量测试期间A/D停止，完成后恢复。报告smoke复用已核验任务，不重新执行Agent写入。已冻结的本地A/D报告应在M1-07继续发布；不要新建竞争previous的未发布报告。
+- Known limitations：发布outbox、真实锚定和独立ZIP verifier尚未实现；导出成功不等于独立复核通过。无Git部署需配置实际CODE_VERSION，完整Compose/E2E收尾归M1-08。本机Docker WSL与外部OpenAPI403仍单列。
+- CI/Git：上一阶段b04a04a的run37033866824核实success；391d2c9旧run被后续提交取消。本次分支feat/foundation-m0-m1，暂存diff/实际密钥/大小检查通过，待提交/推送。
+- Next task：M1-07：持久签名/nonce后广播、unknown broadcast reconcile、独立安全ZIP与规则复算、可信配置下真实Anchor核验、篡改/换链测试。

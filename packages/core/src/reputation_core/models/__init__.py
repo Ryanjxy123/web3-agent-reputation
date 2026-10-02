@@ -55,6 +55,7 @@ from .enums import (
     RunStatus,
     VerificationStep,
 )
+from .reporting import EvidenceManifest, ManifestDocument, PublicationContext, ReportView
 from .runtime import ControlledTaskView, DeployedContract, LocalDeployment, TaskResult
 from .verification import (
     EvmReadEvidence,
@@ -64,6 +65,7 @@ from .verification import (
 )
 
 __all__ = [
+    "EvidenceManifest", "ManifestDocument", "PublicationContext", "ReportView",
     "EvmReadEvidence", "RecordVerificationInput", "RecordVerificationResult", "RegistryWitness",
     "AccessGrantCreate", "GrantView", "ReasonRequest", "AcceptedEvaluation",
     "BindingChallengeView",

@@ -1417,6 +1417,41 @@
         "title": "EvaluationRun",
         "type": "object"
       },
+      "EvidenceManifest": {
+        "additionalProperties": false,
+        "properties": {
+          "documents": {
+            "items": {
+              "$ref": "#/components/schemas/ManifestDocument"
+            },
+            "title": "Documents",
+            "type": "array"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceRecord"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "publication": {
+            "$ref": "#/components/schemas/PublicationContext"
+          },
+          "schema_version": {
+            "const": "evidence-manifest-v1",
+            "default": "evidence-manifest-v1",
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "publication",
+          "documents",
+          "evidence"
+        ],
+        "title": "EvidenceManifest",
+        "type": "object"
+      },
       "EvidenceRecord": {
         "additionalProperties": false,
         "properties": {
@@ -1873,6 +1908,27 @@
         "title": "LocalDeployment",
         "type": "object"
       },
+      "ManifestDocument": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence_id": {
+            "format": "uuid4",
+            "title": "Evidence Id",
+            "type": "string"
+          },
+          "path": {
+            "pattern": "^(?:[a-z][a-z0-9_-]*\\.json|schemas/[A-Za-z][A-Za-z0-9]*\\.schema\\.json)$",
+            "title": "Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "evidence_id"
+        ],
+        "title": "ManifestDocument",
+        "type": "object"
+      },
       "Observation": {
         "additionalProperties": false,
         "properties": {
@@ -2020,6 +2076,73 @@
         ],
         "title": "Outcome",
         "type": "string"
+      },
+      "PublicationContext": {
+        "additionalProperties": false,
+        "properties": {
+          "chain": {
+            "$ref": "#/components/schemas/ChainIdentity"
+          },
+          "confirmation_depth": {
+            "maximum": 100,
+            "minimum": 1,
+            "title": "Confirmation Depth",
+            "type": "integer"
+          },
+          "contract": {
+            "title": "Contract",
+            "type": "string"
+          },
+          "head_block_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Head Block Hash",
+            "type": "string"
+          },
+          "head_block_number": {
+            "pattern": "^(0|[1-9][0-9]{0,77})$",
+            "title": "Head Block Number",
+            "type": "string"
+          },
+          "head_sequence": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Head Sequence",
+            "type": "integer"
+          },
+          "platform_instance_id": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Platform Instance Id",
+            "type": "string"
+          },
+          "previous_report_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Previous Report Hash",
+            "type": "string"
+          },
+          "publisher": {
+            "title": "Publisher",
+            "type": "string"
+          },
+          "trusted_chain_key": {
+            "const": "local-demo",
+            "default": "local-demo",
+            "title": "Trusted Chain Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chain",
+          "contract",
+          "publisher",
+          "confirmation_depth",
+          "previous_report_hash",
+          "head_sequence",
+          "head_block_number",
+          "head_block_hash",
+          "platform_instance_id"
+        ],
+        "title": "PublicationContext",
+        "type": "object"
       },
       "Purpose": {
         "enum": [
@@ -2421,6 +2544,35 @@
           "limitations"
         ],
         "title": "ReportCore",
+        "type": "object"
+      },
+      "ReportView": {
+        "additionalProperties": false,
+        "properties": {
+          "core": {
+            "$ref": "#/components/schemas/ReportCore"
+          },
+          "manifest": {
+            "$ref": "#/components/schemas/EvidenceManifest"
+          },
+          "report_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Report Hash",
+            "type": "string"
+          },
+          "report_id": {
+            "format": "uuid4",
+            "title": "Report Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "report_id",
+          "report_hash",
+          "core",
+          "manifest"
+        ],
+        "title": "ReportView",
         "type": "object"
       },
       "RunPlan": {
@@ -3657,6 +3809,89 @@
         "summary": "Get Plan"
       }
     },
+    "/api/v1/evaluations/{run_id}/report": {
+      "get": {
+        "operationId": "get_run_report_api_v1_evaluations__run_id__report_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Run Report"
+      },
+      "post": {
+        "operationId": "request_report_api_v1_evaluations__run_id__report_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcceptedJob"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Request Report"
+      }
+    },
     "/api/v1/evaluations/{run_id}/verification": {
       "get": {
         "operationId": "get_verification_api_v1_evaluations__run_id__verification_get",
@@ -3740,6 +3975,82 @@
           }
         ],
         "summary": "Get Job"
+      }
+    },
+    "/api/v1/reports/{report_id}": {
+      "get": {
+        "operationId": "get_report_api_v1_reports__report_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "report_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Report Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Report"
+      }
+    },
+    "/api/v1/reports/{report_id}/bundle": {
+      "get": {
+        "operationId": "export_report_api_v1_reports__report_id__bundle_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "report_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Report Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/zip": {}
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Export Report"
       }
     },
     "/api/v1/snapshots/{snapshot_id}": {

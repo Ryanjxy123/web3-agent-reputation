@@ -19,7 +19,7 @@ from reputation_core.record_verifier import verify_record
 from sqlalchemy import Engine, insert, select, update
 
 from reputation_platform.adapters.evm.collector import collect_task
-from reputation_platform.infrastructure.db.jobs import JobQueue, Lease
+from reputation_platform.infrastructure.db.jobs import JobQueue, Lease, enqueue
 from reputation_platform.infrastructure.db.tables import (
     access_grants,
     assertions,
@@ -185,6 +185,7 @@ class VerificationService:
             connection.execute(
                 update(runs).where(runs.c.id == lease.run_id).values(stage="SCORING")
             )
+            enqueue(connection, "report", f"report:{run_id}", {"run_id": str(run_id)}, run_id)
             self.identity.audit(
                 connection,
                 "local-worker",

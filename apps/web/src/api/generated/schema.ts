@@ -191,6 +191,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/evaluations/{run_id}/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Run Report */
+        get: operations["get_run_report_api_v1_evaluations__run_id__report_get"];
+        put?: never;
+        /** Request Report */
+        post: operations["request_report_api_v1_evaluations__run_id__report_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/evaluations/{run_id}/verification": {
         parameters: {
             query?: never;
@@ -217,6 +235,40 @@ export interface paths {
         };
         /** Get Job */
         get: operations["get_job_api_v1_jobs__job_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/{report_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Report */
+        get: operations["get_report_api_v1_reports__report_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/{report_id}/bundle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export Report */
+        get: operations["export_report_api_v1_reports__report_id__bundle_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -897,6 +949,20 @@ export interface components {
             /** Unknown */
             unknown: number;
         };
+        /** EvidenceManifest */
+        EvidenceManifest: {
+            /** Documents */
+            documents: components["schemas"]["ManifestDocument"][];
+            /** Evidence */
+            evidence: components["schemas"]["EvidenceRecord"][];
+            publication: components["schemas"]["PublicationContext"];
+            /**
+             * Schema Version
+             * @default evidence-manifest-v1
+             * @constant
+             */
+            schema_version: "evidence-manifest-v1";
+        };
         /** EvidenceRecord */
         EvidenceRecord: {
             /** Blob Hash */
@@ -1074,6 +1140,16 @@ export interface components {
              */
             schema_version: "local-deployment-v1";
         };
+        /** ManifestDocument */
+        ManifestDocument: {
+            /**
+             * Evidence Id
+             * Format: uuid4
+             */
+            evidence_id: string;
+            /** Path */
+            path: string;
+        };
         /** Observation */
         Observation: {
             /** Accepted */
@@ -1117,6 +1193,32 @@ export interface components {
          * @enum {string}
          */
         Outcome: "PASS" | "FAIL" | "UNKNOWN" | "NOT_APPLICABLE";
+        /** PublicationContext */
+        PublicationContext: {
+            chain: components["schemas"]["ChainIdentity"];
+            /** Confirmation Depth */
+            confirmation_depth: number;
+            /** Contract */
+            contract: string;
+            /** Head Block Hash */
+            head_block_hash: string;
+            /** Head Block Number */
+            head_block_number: string;
+            /** Head Sequence */
+            head_sequence: number;
+            /** Platform Instance Id */
+            platform_instance_id: string;
+            /** Previous Report Hash */
+            previous_report_hash: string;
+            /** Publisher */
+            publisher: string;
+            /**
+             * Trusted Chain Key
+             * @default local-demo
+             * @constant
+             */
+            trusted_chain_key: "local-demo";
+        };
         /**
          * Purpose
          * @enum {string}
@@ -1241,6 +1343,18 @@ export interface components {
             scores: components["schemas"]["ScoreResult"];
             /** Snapshot Hash */
             snapshot_hash: string;
+        };
+        /** ReportView */
+        ReportView: {
+            core: components["schemas"]["ReportCore"];
+            manifest: components["schemas"]["EvidenceManifest"];
+            /** Report Hash */
+            report_hash: string;
+            /**
+             * Report Id
+             * Format: uuid4
+             */
+            report_id: string;
         };
         /** RunPlan */
         RunPlan: {
@@ -1864,6 +1978,68 @@ export interface operations {
             };
         };
     };
+    get_run_report_api_v1_evaluations__run_id__report_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    request_report_api_v1_evaluations__run_id__report_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcceptedJob"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_verification_api_v1_evaluations__run_id__verification_get: {
         parameters: {
             query?: never;
@@ -1913,6 +2089,68 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JobView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_report_api_v1_reports__report_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                report_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_report_api_v1_reports__report_id__bundle_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                report_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/zip": unknown;
                 };
             };
             /** @description Validation Error */

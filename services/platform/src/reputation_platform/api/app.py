@@ -33,6 +33,7 @@ from reputation_core.models import (
     ReasonRequest,
     RecordVerificationResult,
     RefreshRequest,
+    ReportView,
     RunPlan,
 )
 from sqlalchemy import Engine, select, text
@@ -42,6 +43,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from reputation_platform.application.errors import ApplicationError as ApiProblem
 from reputation_platform.application.evaluations import EvaluationService
 from reputation_platform.application.identity import IdentityService
+from reputation_platform.application.reports import ReportService
 from reputation_platform.application.verification import VerificationService
 from reputation_platform.infrastructure.db.connection import engine
 from reputation_platform.infrastructure.db.tables import agents, audit_logs, jobs
@@ -61,6 +63,7 @@ def create_app(
     identity = IdentityService(database, deployment)
     evaluations = EvaluationService(database, identity)
     verification = VerificationService(database, identity)
+    reporting = ReportService(database, identity)
 
     @asynccontextmanager
     async def lifespan(app):
@@ -255,6 +258,30 @@ def create_app(
     @app.get("/api/v1/evaluations/{run_id}/verification", response_model=RecordVerificationResult)
     def get_verification(run_id: UUID):
         return verification.result(run_id)
+
+    @app.post("/api/v1/evaluations/{run_id}/report", response_model=AcceptedJob, status_code=202)
+    def request_report(run_id: UUID, actor: str = Depends(operator)):
+        return reporting.request(run_id, actor)
+
+    @app.get("/api/v1/evaluations/{run_id}/report", response_model=ReportView)
+    def get_run_report(run_id: UUID):
+        return reporting.for_run(run_id)
+
+    @app.get("/api/v1/reports/{report_id}", response_model=ReportView)
+    def get_report(report_id: UUID):
+        return reporting.view(report_id)
+
+    @app.get(
+        "/api/v1/reports/{report_id}/bundle",
+        response_class=Response,
+        responses={200: {"content": {"application/zip": {}}}},
+    )
+    def export_report(report_id: UUID):
+        return Response(
+            reporting.export(report_id),
+            media_type="application/zip",
+            headers={"Content-Disposition": f'attachment; filename="report-{report_id}.zip"'},
+        )
 
     @app.post("/api/v1/evaluations/{run_id}/cancel", response_model=EvaluationRun)
     def cancel_evaluation(run_id: UUID, body: ReasonRequest, actor: str = Depends(operator)):
