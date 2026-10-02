@@ -11,7 +11,8 @@
 | M0-05 | DONE | 认证 API、网络出口、worker 租约、原生运行及 Linux Compose 实测通过；Windows Docker 引擎仍受 WSL 导入问题影响 |
 | M0-06 | DONE | 本地完整检查和远端 foundation-quality / foundation-compose 均通过，无关键测试跳过 |
 | M0-07 | PARTIAL_EXTERNAL_BLOCKED | ERC-8004 真实 commit/ABI/许可与规范字节已锁；8004scan OpenAPI HTTP 403，不阻塞本地 M1 |
-| M1-01..08 | NOT_STARTED | 合约、Agent、worker、报告、存证和复核尚未实现 |
+| M1-01 | DONE | 三个自研合约、生成 ABI、14 项 Foundry 测试（含 256 次 fuzz）通过 |
+| M1-02..08 | NOT_STARTED | Agent、业务 worker、报告、存证和独立复核尚未实现 |
 
 ## 2026-10-02 / M0-01
 
@@ -116,3 +117,13 @@
 - 最后契约回归：AgentView 来源与数据库/SnapshotCore 共用 controlled/public_registry/replay，真实 API 测试覆盖受控来源；45 项 API+契约测试与前端 build 通过。
 - M0-07 外部 OpenAPI 403 不阻塞 M1，所有公网接入继续禁用。
 - Next task：M1-01：自研 Registry、RecordRegistry、EvaluationAnchor 及真实 Foundry 正反测试；不扩大 M2。
+
+## 2026-10-02 / M1-01
+
+- Implemented：owner/revision/instance 身份合约；executor+request 去重业务记录；明确 admin/evaluator 权限、前向 hash/序号、历史报告幂等发布；编译生成 ABI 和 CI 漂移校验；删除无业务引用的 ProtocolVersion 探针。
+- Files changed：contracts/src/test/abi、generate_abis.py、check.py、ADR 0004。
+- Commands executed：forge fmt/build/test -vv；针对构造失败测试执行 -vvvv 检查路径；generate_abis / --check；ruff。
+- Tests：14 Foundry passed、0 failed/0 skipped；记录不可覆写 fuzz 256 runs；真实编译 ABI 校验通过。构造 revert 会结束整个测试，已拆独立用例以确保后续零字段/超长 URI 路径实际执行。
+- Known limitations：尚未部署/seed；不能据此声称 A/D 或 M1 闭环已通过。测试中的 gas 是执行该测试的实测，不是生产调用基准。
+- Branch：feat/foundation-m0-m1；M0 最终提交 f7981d2 已推送；当前任务待提交。
+- Next task：M1-02 本地部署、幂等 seed 与持久任务 Agent。

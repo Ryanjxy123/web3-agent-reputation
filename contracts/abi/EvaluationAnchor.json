@@ -1,0 +1,246 @@
+[
+  {
+    "inputs": [],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "inputs": [],
+    "name": "admin",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "agentKey",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "reportHash",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "policyHash",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "previousReportHash",
+        "type": "bytes32"
+      }
+    ],
+    "name": "anchorReport",
+    "outputs": [
+      {
+        "internalType": "uint64",
+        "name": "sequence",
+        "type": "uint64"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "evaluator",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "agentKey",
+        "type": "bytes32"
+      }
+    ],
+    "name": "head",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "reportHash",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "uint64",
+        "name": "sequence",
+        "type": "uint64"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "isEvaluator",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "evaluator",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "agentKey",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "reportHash",
+        "type": "bytes32"
+      }
+    ],
+    "name": "lookup",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "exists",
+        "type": "bool"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "policyHash",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "previousReportHash",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "uint64",
+        "name": "sequence",
+        "type": "uint64"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "evaluator",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "allowed",
+        "type": "bool"
+      }
+    ],
+    "name": "setEvaluator",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "evaluator",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "bool",
+        "name": "allowed",
+        "type": "bool"
+      }
+    ],
+    "name": "EvaluatorPermissionChanged",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "evaluator",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "agentKey",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "reportHash",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "policyHash",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "previousReportHash",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint64",
+        "name": "sequence",
+        "type": "uint64"
+      }
+    ],
+    "name": "ReportAnchored",
+    "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "ConflictingReport",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "PreviousHashMismatch",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "Unauthorized",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ZeroField",
+    "type": "error"
+  }
+]

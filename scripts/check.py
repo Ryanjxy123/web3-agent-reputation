@@ -20,6 +20,7 @@ def main() -> int:
         ["pnpm", "--dir", "apps/web", "build"],
         ["pnpm", "--dir", "apps/web", "test"],
         ["forge", "test", "--root", "contracts"],
+        ["uv", "run", "--all-packages", "python", "scripts/generate_abis.py", "--check"],
     ]
     env = {**os.environ, "FAIL_ON_SKIP": "1"}
     for command in commands:
