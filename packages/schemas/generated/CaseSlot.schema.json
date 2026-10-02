@@ -153,6 +153,7 @@
       "title": "ExpectedFacts",
       "type": "object"
     },
+    "JsonValue": {},
     "Outcome": {
       "enum": [
         "PASS",
@@ -285,6 +286,21 @@
       "minLength": 1,
       "title": "Slot Key",
       "type": "string"
+    },
+    "synthetic_input": {
+      "anyOf": [
+        {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Synthetic Input"
     },
     "task": {
       "$ref": "#/$defs/TaskEnvelope"

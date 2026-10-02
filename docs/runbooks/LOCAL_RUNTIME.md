@@ -75,3 +75,17 @@ uv run --all-packages python scripts/smoke_identity.py
 平台默认读取 `runtime/local-chain/deployment.json`；使用新实例目录时，为 API 和 worker 设置 `LOCAL_CHAIN_CONFIG` 为相应公共配置的绝对路径。`EVIDENCE_ROOT` 可指定脱敏证据目录，默认 `runtime/evidence`。API 和 worker 必须使用相同配置与证据目录，均不读取 setup/publisher 私钥文件。操作者 smoke 当前使用默认本地目录；其他实例需显式按 API 流程签署。
 
 refresh 每次追加新快照，旧快照可读，但不用于新的声明确认或绑定；新版本需要重新确认和签名。双签仅支持本地 EOA，合约账户为 UNKNOWN。注册文件只接受受控结构；公网注册文件抓取尚未开启。
+
+## M1 授权与任务发送
+
+在新版 API、独立 worker、A/D 服务都启动后运行：
+
+```powershell
+uv run --all-packages python scripts/smoke_execution.py
+```
+
+脚本先重新执行 identity smoke 获得有效期内的绑定，然后为 A/D 各创建一次受限授权和一个功能槽位，等待独立 worker 保存候选交易，结果写入 `runtime/local-chain/execution-smoke.json`。`DISPATCH_SMOKE_PASS` 只证明调用和恢复管道跑通，不能当作 Agent 业务 PASS；独立断言与报告仍由后续阶段实现。
+
+新 API 支持 access-grants 创建/读取/撤销、带 Idempotency-Key 的 evaluations 创建、plan/observations/state 读取及 cancel。M1 grant 的方法、路径、能力、链和合约由服务器固定到最小受控范围；响应中返回完整授权。重复按钮沿用同一个 key；修改请求时使用新 key。一个 Agent 同时一个 active run，授权额度按已冻结槽位预留，不因取消退回。
+
+执行测试会启动独立 Agent 占用 127.0.0.1:9101，因此跑全量 pytest 前先停止 demo A，完成后按上面的 fixture-a 命令重启。测试不会自动杀掉端口占用者，也不会操作开发数据库；其 PostgreSQL/Anvil/Agent ledger 均隔离。其他终端可继续运行 API/worker/D。

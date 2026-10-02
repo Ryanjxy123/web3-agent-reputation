@@ -1,0 +1,151 @@
+{
+  "$defs": {
+    "AccessGrant": {
+      "additionalProperties": false,
+      "properties": {
+        "capabilities": {
+          "items": {
+            "enum": [
+              "get_tx_status",
+              "verify_record",
+              "anchor_record"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Capabilities",
+          "type": "array"
+        },
+        "chain_instances": {
+          "items": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Chain Instances",
+          "type": "array"
+        },
+        "concurrency": {
+          "const": 1,
+          "default": 1,
+          "title": "Concurrency",
+          "type": "integer"
+        },
+        "consent_ref": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Consent Ref",
+          "type": "string"
+        },
+        "contract_allowlist": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Contract Allowlist",
+          "type": "array"
+        },
+        "endpoint_ids": {
+          "items": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Endpoint Ids",
+          "type": "array"
+        },
+        "expires_at": {
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+          "title": "Expires At",
+          "type": "string"
+        },
+        "grant_id": {
+          "format": "uuid4",
+          "title": "Grant Id",
+          "type": "string"
+        },
+        "interval_ms": {
+          "minimum": 1000,
+          "title": "Interval Ms",
+          "type": "integer"
+        },
+        "max_tasks": {
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Max Tasks",
+          "type": "integer"
+        },
+        "methods": {
+          "items": {
+            "enum": [
+              "POST",
+              "GET"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Methods",
+          "type": "array"
+        },
+        "operator": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Operator",
+          "type": "string"
+        },
+        "paths": {
+          "items": {
+            "enum": [
+              "/tasks",
+              "/tasks/{request_id}",
+              "/health",
+              "/capabilities"
+            ],
+            "type": "string"
+          },
+          "title": "Paths",
+          "type": "array"
+        },
+        "snapshot_hash": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Snapshot Hash",
+          "type": "string"
+        }
+      },
+      "required": [
+        "grant_id",
+        "snapshot_hash",
+        "endpoint_ids",
+        "capabilities",
+        "methods",
+        "paths",
+        "chain_instances",
+        "contract_allowlist",
+        "max_tasks",
+        "interval_ms",
+        "expires_at",
+        "operator",
+        "consent_ref"
+      ],
+      "title": "AccessGrant",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "grant": {
+      "$ref": "#/$defs/AccessGrant"
+    },
+    "revoked": {
+      "title": "Revoked",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "grant",
+    "revoked"
+  ],
+  "title": "GrantView",
+  "type": "object"
+}

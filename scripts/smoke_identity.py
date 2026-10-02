@@ -11,22 +11,26 @@ from eth_account.messages import encode_typed_data
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def main() -> None:
-    runtime = ROOT / "runtime/local-chain"
-    samples = json.loads((runtime / "samples.json").read_bytes())
-    keys = json.loads((runtime / "setup-secrets.json").read_bytes())["keys"]
+def operator_client() -> httpx.Client:
     config = dict(
         line.split("=", 1)
         for line in (ROOT / ".env").read_text(encoding="utf-8").splitlines()
         if "=" in line and not line.startswith("#")
     )
-    output = {}
-    with httpx.Client(
+    return httpx.Client(
         base_url="http://127.0.0.1:8000",
         trust_env=False,
         timeout=20,
         headers={"Authorization": "Bearer " + config["OPERATOR_TOKEN"]},
-    ) as client:
+    )
+
+
+def main() -> None:
+    runtime = ROOT / "runtime/local-chain"
+    samples = json.loads((runtime / "samples.json").read_bytes())
+    keys = json.loads((runtime / "setup-secrets.json").read_bytes())["keys"]
+    output = {}
+    with operator_client() as client:
 
         def request(method, path, body=None):
             result = client.request(method, path, json=body)

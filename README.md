@@ -52,4 +52,4 @@ PostgreSQL 在项目 runtime 中运行，仅监听 127.0.0.1:55432；凭证自�
 
 完整基础检查：`uv run --all-packages python scripts/check.py`，包含真实数据库集成、Schema/TS 漂移、前端和 Foundry；缺少依赖或跳过测试会失败。`check_bootstrap.py` 只检启动参考，不能替代该命令。
 
-API、独立 worker、Vue 连接页以及本地部署/seed/A/D 服务的启动命令见 [本地运行](docs/runbooks/LOCAL_RUNTIME.md)。Docker 镜像已固定 digest；本机 WSL 导入故障和 Linux CI 实测结果分别记录在 STATUS，不能互相冒充。三个业务合约、持久 A/D 服务、真实快照与 owner/executor 双签绑定已通过测试；评价任务处理器、报告和复核仍待完成，各阶段 smoke 不是完整 M1 验收。
+API、独立 worker、Vue 连接页以及本地部署/seed/A/D 服务的启动命令见 [本地运行](docs/runbooks/LOCAL_RUNTIME.md)。Docker 镜像已固定 digest；本机 WSL 导入故障和 Linux CI 实测结果分别记录在 STATUS，不能互相冒充。已有合约、持久 A/D、快照双签、受限授权与任务发送恢复；独立业务断言、报告和复核仍待完成，各阶段 smoke 不是完整 M1 验收。全量 pytest 使用受控端口 9101，先停止 demo A，测试完成后再启动。

@@ -155,3 +155,17 @@
 - Known limitations：health readiness 当前仅检查 DB/migration；链配置/实例在身份操作时核验。M1 评价执行、报告、发布、独立复核及完整 Compose E2E 尚未完成。Windows Docker WSL 和外部 OpenAPI 403 仍单列。
 - Branch：feat/foundation-m0-m1；M1-03 实现提交 eea511a 已推送预期 origin；本验收状态单独更新。
 - Next task：M1-04 授权边界、预持久化任务计划、执行/重启 reconciliation；不降低评分门槛。
+
+## 2026-10-02 / M1-04
+
+- Implemented：最小受控 grant 与撤权；payload-bound Idempotency-Key；当前 snapshot/review/EOA binding 及授权窗口检查；一次 functional slot 的 CSPRNG 请求/合成数据/expected facts/初始 dispatch/job 原子保存；计划及发送前链见证；真实 HTTP 执行、固定路径查询、可信 RPC 记录恢复；仅明确未接受时原 id/payload 有限重投。
+- Recovery/security：append-only attempts/observations/dispatch events；每次请求前授权与 lease fencing；跨 run 间隔、每 Agent active run 1、全局 evaluate 有效租约 2；取消未发送任务、已发送继续核对；撤权后禁止 Agent HTTP，仅可信 RPC 恢复；平台 RPC 失败保留 UNKNOWN，未实现健康窗口证明前不扣 Agent 超时分。
+- Files changed：evaluation/execution service、RPC record reconciliation、API/worker/jobs、共享 DTO 及生成契约、smoke_execution、11 个新增用例、ADR 0007/运行说明。
+- Commands executed：pytest 全量（FAIL_ON_SKIP=1）；ruff/mypy；44 Schema generate/check 与 TS generate；Vue build/test；Foundry/ABI check；重启原生 API/worker/A，执行真实 smoke_execution（包含重新绑定）。
+- Tests：146 Python passed/0 skipped、14 Foundry passed、2 Vue passed、mypy 41 files、ruff、44 Schema、前端 build 与 ABI 校验通过。完整 pytest 282.45s。关键用例启动独立 worker，在真实 HTTP 返回后 os._exit(86)，新 worker 只 GET 原 request，链上仅一条记录；旧 lease 写回拒绝。另覆盖发送前退出、并发同 key、配额、取消/撤权、RPC 拒绝连接等。
+- Live evidence：runtime/local-chain/execution-smoke.json 保存 A/D 的实际 run/grant/plan/observations，含各自候选 txHash；输出 IDENTITY_SMOKE_PASS 与 DISPATCH_SMOKE_PASS。候选尚未独立验证，因此两个 run 均不声称业务通过。
+- Compatibility：无 DB migration；CaseSlot 新增可选 synthetic_input（有值则校验摘要），RunPlan 新增 planning_evidence_refs，EvaluationRun 增加 cancel_requested；Schema/OpenAPI/TS 已生成。全量 pytest 使用端口 9101，已在 runbook 明确停止/恢复 demo A。
+- CI：M1-03 最新 ef5fede 的 run 37024686970 已核实 success；eea511a 的旧 run 因后续提交取消，并非失败。本次新代码 CI 待推送核实。
+- Known limitations：独立业务断言/评分/报告/发布/复核和完整 M1 Compose E2E 尚未完成；当前 run 处于 VERIFYING，未有业务断言的 settled slot 仍记 unknown。Windows Docker WSL、外部 OpenAPI 403 继续单列。
+- Branch：feat/foundation-m0-m1；当前 M1-04 实现待提交/推送。
+- Next task：M1-05：保存可信 RPC 的 tx/receipt/block/log，并独立验证 request/hash/executor/target/instance/deadline/finality；必须得到 A PASS 与 D 无关成功交易 FAIL。

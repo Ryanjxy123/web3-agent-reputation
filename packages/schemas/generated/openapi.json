@@ -1,6 +1,30 @@
 {
   "components": {
     "schemas": {
+      "AcceptedEvaluation": {
+        "additionalProperties": false,
+        "properties": {
+          "run_id": {
+            "format": "uuid4",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RunStatus",
+            "default": "QUEUED"
+          },
+          "status_url": {
+            "title": "Status Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "status_url"
+        ],
+        "title": "AcceptedEvaluation",
+        "type": "object"
+      },
       "AcceptedJob": {
         "additionalProperties": false,
         "properties": {
@@ -157,6 +181,55 @@
           "consent_ref"
         ],
         "title": "AccessGrant",
+        "type": "object"
+      },
+      "AccessGrantCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "consent_ref": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Consent Ref",
+            "type": "string"
+          },
+          "endpoint_id": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Endpoint Id",
+            "type": "string"
+          },
+          "expires_at": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "interval_ms": {
+            "default": 1000,
+            "maximum": 60000,
+            "minimum": 1000,
+            "title": "Interval Ms",
+            "type": "integer"
+          },
+          "max_tasks": {
+            "maximum": 100,
+            "minimum": 1,
+            "title": "Max Tasks",
+            "type": "integer"
+          },
+          "snapshot_id": {
+            "format": "uuid4",
+            "title": "Snapshot Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "snapshot_id",
+          "endpoint_id",
+          "max_tasks",
+          "expires_at",
+          "consent_ref"
+        ],
+        "title": "AccessGrantCreate",
         "type": "object"
       },
       "AgentCreate": {
@@ -841,6 +914,21 @@
             "title": "Slot Key",
             "type": "string"
           },
+          "synthetic_input": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/JsonValue"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Synthetic Input"
+          },
           "task": {
             "$ref": "#/components/schemas/TaskEnvelope"
           }
@@ -1270,6 +1358,11 @@
       "EvaluationRun": {
         "additionalProperties": false,
         "properties": {
+          "cancel_requested": {
+            "default": false,
+            "title": "Cancel Requested",
+            "type": "boolean"
+          },
           "latest_report_id": {
             "anyOf": [
               {
@@ -1563,6 +1656,24 @@
           "confirmation_depth"
         ],
         "title": "ExpectedFacts",
+        "type": "object"
+      },
+      "GrantView": {
+        "additionalProperties": false,
+        "properties": {
+          "grant": {
+            "$ref": "#/components/schemas/AccessGrant"
+          },
+          "revoked": {
+            "title": "Revoked",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "grant",
+          "revoked"
+        ],
+        "title": "GrantView",
         "type": "object"
       },
       "HTTPValidationError": {
@@ -1896,6 +2007,22 @@
         "title": "Reason",
         "type": "string"
       },
+      "ReasonRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "ReasonRequest",
+        "type": "object"
+      },
       "RefreshRequest": {
         "additionalProperties": false,
         "properties": {
@@ -2054,6 +2181,15 @@
               "type": "string"
             },
             "title": "Confirmed Capabilities",
+            "type": "array"
+          },
+          "planning_evidence_refs": {
+            "default": [],
+            "items": {
+              "format": "uuid4",
+              "type": "string"
+            },
+            "title": "Planning Evidence Refs",
             "type": "array"
           },
           "planning_time": {
@@ -2731,6 +2867,149 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/access-grants": {
+      "post": {
+        "operationId": "create_grant_api_v1_access_grants_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessGrantCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GrantView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Grant"
+      }
+    },
+    "/api/v1/access-grants/{grant_id}": {
+      "get": {
+        "operationId": "get_grant_api_v1_access_grants__grant_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "grant_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Grant Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GrantView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Grant"
+      }
+    },
+    "/api/v1/access-grants/{grant_id}/revoke": {
+      "post": {
+        "operationId": "revoke_grant_api_v1_access_grants__grant_id__revoke_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "grant_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Grant Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReasonRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GrantView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Revoke Grant"
+      }
+    },
     "/api/v1/agents": {
       "post": {
         "operationId": "add_agent_api_v1_agents_post",
@@ -2887,6 +3166,240 @@
           }
         ],
         "summary": "Refresh"
+      }
+    },
+    "/api/v1/evaluations": {
+      "post": {
+        "operationId": "create_evaluation_api_v1_evaluations_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvaluationCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcceptedEvaluation"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Evaluation"
+      }
+    },
+    "/api/v1/evaluations/{run_id}": {
+      "get": {
+        "operationId": "get_evaluation_api_v1_evaluations__run_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationRun"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Evaluation"
+      }
+    },
+    "/api/v1/evaluations/{run_id}/cancel": {
+      "post": {
+        "operationId": "cancel_evaluation_api_v1_evaluations__run_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReasonRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationRun"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Cancel Evaluation"
+      }
+    },
+    "/api/v1/evaluations/{run_id}/observations": {
+      "get": {
+        "operationId": "get_observations_api_v1_evaluations__run_id__observations_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Observation"
+                  },
+                  "title": "Response Get Observations Api V1 Evaluations  Run Id  Observations Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Observations"
+      }
+    },
+    "/api/v1/evaluations/{run_id}/plan": {
+      "get": {
+        "operationId": "get_plan_api_v1_evaluations__run_id__plan_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunPlan"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Plan"
       }
     },
     "/api/v1/jobs/{job_id}": {
