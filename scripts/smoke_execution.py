@@ -1,8 +1,10 @@
 """Exercise real API -> independent worker -> A/D; candidates are not verdicts."""
 
 import json
+import os
 import time
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from uuid import uuid4
 
 from smoke_identity import ROOT, operator_client
@@ -11,7 +13,7 @@ from smoke_identity import main as identity_smoke
 
 def main() -> None:
     identity_smoke()  # Fresh snapshots and time-limited signatures; no fixture labels reach the API.
-    runtime = ROOT / "runtime/local-chain"
+    runtime = Path(os.environ.get("LOCAL_RUNTIME_DIR", ROOT / "runtime/local-chain"))
     identities = json.loads((runtime / "identity-smoke.json").read_bytes())
     output = {}
     with operator_client() as client:

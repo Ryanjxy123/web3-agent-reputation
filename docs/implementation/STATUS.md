@@ -17,7 +17,8 @@
 | M1-04 | DONE | 授权、冻结意图、HTTP 发送与租约/crash reconcile 恢复 |
 | M1-05 | DONE | 独立 RPC/纯断言，真实 A PASS、D 成功回执但 SEMANTIC_MISMATCH；CI b04a04a 通过 |
 | M1-06 | DONE | 报告冻结、确定性 ZIP、并发/恢复/缺失/篡改拒绝、原生 A/D 报告 smoke 及166项全量回归通过 |
-| M1-07..08 | NOT_STARTED | 发布 outbox、独立 ZIP verifier 和完整 M1 Compose/E2E 尚未完成 |
+| M1-07 | DONE | PostgreSQL publisher nonce/outbox、签名后广播恢复、真实 EvaluationAnchor 发布、独立安全 ZIP verifier |
+| M1-08 | DONE | 原生 API/worker/Anvil A/D 纵向演示；A/D bundle、A anchor、离线/在线 verifier、篡改拒绝 |
 | LOCAL-PG-JUNCTION | DONE | Windows PostgreSQL 改用 D:\web3-runtime 目录联接；R: 已移除，初始化、重启、数据完整性及13项定向测试通过 |
 
 ## 2026-10-02 / M0-01
@@ -208,3 +209,13 @@
 - Files changed：scripts/local_postgres.py、tests/unit/test_local_postgres.py、README、LOCAL_RUNTIME、ADR0002、PLAN、STATUS。临时检查脚本和对比摘要保存在本次聊天 work 目录；备份仅在忽略的 runtime，未暂存凭证或数据。
 - Git：从干净 2bcc6d6 创建本地短分支 `fix/postgres-runtime-junction`；本节与实现一起本地提交，实际 SHA 见 `git log -1`；NOT_PUSHED。用户此次授权为本地修复，未执行远程发布。
 - Limitations/next task：目录联接在数据库运行期间保留；同盘另一个项目占用同名入口时会明确拒绝。此次仅验收本地 PostgreSQL 入口及相关 DB/API 测试，未重新运行全量链/前端/Compose 验收。下一业务任务仍为 M1-07，不变更原里程碑结果。
+
+## 2026-10-03 / M1-07 + M1-08
+
+- Implemented：`AnchorService` 通过 `anchor_jobs`/`signer_nonces` 持久化 nonce、signed transaction 和状态；广播异常按既有哈希 reconcile，回执追加到 `anchor_receipts`；新增报告/评价 anchor API 和 worker handler。`packages/verifier` 提供独立 `reputation-verify` CLI，安全读取 ZIP、核对全部 manifest/CAS、重放 `RecordVerificationInput`、重算断言/统计/评分，并在操作者 RPC 下核对链实例、交易、合约记录和确认深度。
+- Tests：verifier path-traversal 单测通过；ruff、mypy、52 schema drift check 通过；冻结 `runtime/local-chain-v2` 上真实 PostgreSQL + Anvil + A/D 流程完成 identity、dispatch、verification、reports；`M1_ACCEPTANCE_PASS`：A/D 两个 bundle，A 真实 EvaluationAnchor CONFIRMED，离线 anchor `NOT_CHECKED`，可信 RPC online `CONFIRMED`，policy/blob tamper 拒绝。
+- Live evidence：`runtime/local-chain-v2/report-a.zip`、`report-d.zip`、`report-smoke.json` 为忽略的本地运行产物；A/D 均 PARTIAL、overall=null，A 已发布。旧 `runtime/local-chain` 报告保留，未覆盖；新鲜链实例因旧 Anvil 已不可恢复而使用隔离 `local-chain-v2`，不把旧 bundle 描述为干净发行复现。
+- Security：signed transaction、publisher secret、数据库凭据未进入 Git 或 bundle；verifier 不信任包内 RPC；无 RPC 不宣称链上成功；ZIP 拒绝路径穿越、重复/符号链接/高压缩比成员及未承诺文件。
+- Limitations：本轮继续保留 Windows Docker WSL import 和 8004scan HTTP 403 单列；本地 M1 使用 Anvil，不代表公网最终性。M2 三能力完整评分未展开。
+- Git：当前工作分支为 `feat/m1-07-m1-08`，包含之前保留的本地 PostgreSQL junction 提交；本节实现待提交、push、PR 和 required CI 核实。
+- Next task：M2（用户未授权扩展，本轮停止）。

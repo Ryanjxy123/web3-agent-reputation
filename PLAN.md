@@ -1,6 +1,6 @@
 # 从零构造执行计划（ExecPlan）
 
-版本：foundation-v1.1，2026-10-03。状态：M0 基础验收完成（原生 Windows + Linux Compose CI）；M0-07 公网 OpenAPI 403 单列；M1-01 至 M1-06 已完成，下一步 M1-07。
+版本：foundation-v1.1，2026-10-03。状态：M0 基础验收完成（原生 Windows + Linux Compose CI）；M0-07 公网 OpenAPI 403 单列；M1-01 至 M1-08 已完成，M0+M1 最终验收通过。
 
 ## 1. 最终要交付的系统
 对同类凭证业务 Agent 固定身份与声明快照，执行合规测试，将返回结果与独立链上观测关联，生成三维证据评价，并以报告摘要存证和独立复核支撑审计。
@@ -43,7 +43,7 @@
 
 ## 7. 进度（只根据真实运行更新）
 - [x] M0 仓库与契约基线通过；Windows 原生实测、Linux Compose CI 实测，本机 Docker WSL 问题单列。
-- [ ] M1 本地真实纵向闭环通过。
+- [x] M1 本地真实纵向闭环通过。
 - [ ] M2 三维规则与八类样本通过。
 - [ ] M3 产品与安全恢复通过。
 - [ ] M4 公网接入与最终验收通过。
@@ -52,7 +52,7 @@
 发现记录：私有仓库已认证并克隆，原 main 仅含 README，历史已保留。详见 ENVIRONMENT/STATUS；公网接口/部署/依赖仍需实测复核。
 关键决策记录：`docs/adr/0001-foundation.md`。
 会话交接：每轮把已完成 task_id、未解决风险、测试路径、Git状态、下一条命令写入 STATUS，不依赖聊天记忆。
-当前下一任务：M1-07 发布 outbox 与独立 ZIP verifier；M1-01 至 M1-06 合约、Agent、绑定、授权、恢复、A PASS / D 语义 FAIL、PARTIAL 报告和稳定 ZIP 导出已实测，M1 总体验收尚未完成。
+当前下一任务：M2（本次不展开）。M1-07 完成持久签名/nonce outbox、广播恢复、真实 EvaluationAnchor 发布和独立安全 ZIP verifier；M1-08 完成 A/D 真实 bundle、A 链上发布、离线/在线独立验证及篡改拒绝。
 
 2026-10-03 本地环境修复：PostgreSQL 中文路径兼容入口改为项目所在盘根目录的 `web3-runtime` 目录联接；本机已移除 R:，保持原目录与数据。验证和本地 Git 状态见 STATUS 的 LOCAL-PG-JUNCTION；下一业务任务仍为 M1-07。
 

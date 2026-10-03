@@ -26,6 +26,18 @@ docker compose up --build -d
 docker compose ps
 ```
 
+For the full local fixture path, deploy and seed the mounted runtime before starting Compose:
+
+```powershell
+$env:FIXTURE_HOST_A = "fixture-a"
+$env:FIXTURE_HOST_D = "fixture-d"
+uv run --all-packages reputation deploy-local
+uv run --all-packages reputation seed
+docker compose up --build -d
+```
+
+The Compose worker mounts the local deployment and publisher outbox secret read-only; `fixture-a` and `fixture-d` stay on the internal demo network. The runtime directory is ignored and must never be copied into a release bundle.
+
 API `http://127.0.0.1:8000`，前端 `http://127.0.0.1:5173`，Anvil `http://127.0.0.1:8545`。先停止占用同端口的原生进程。数据库不映射宿主端口；control/demo 两个内部网络；fixture 只进入 demo。需宿主入口的 API/web/Anvil 另接 ingress bridge（见 ADR 0003）。API 没有签名密钥，worker 不继承 operator token。公网业务出口没有启用。
 
 停止使用 `docker compose down`，默认保留数据卷；不要为排错使用 `down -v`。原生数据库使用 `uv run --all-packages python scripts/local_postgres.py stop`。

@@ -10,6 +10,7 @@ from uuid import uuid4
 
 from sqlalchemy import Connection, Engine, update
 
+from reputation_platform.application.anchor import AnchorService
 from reputation_platform.application.errors import ApplicationError
 from reputation_platform.application.execution import ExecutionService
 from reputation_platform.application.identity import IdentityService
@@ -96,6 +97,7 @@ async def serve(once: bool = False) -> None:
         "evaluate": ExecutionService(database).execute,
         "verify": VerificationService(database).verify,
         "report": ReportService(database).freeze,
+        "anchor": AnchorService(database).publish,
     }
     worker = Worker(database, handlers)
     try:

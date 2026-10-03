@@ -33,6 +33,8 @@ services:
       DATABASE_URL: postgresql+psycopg://reputation:${POSTGRES_PASSWORD}@postgres:5432/reputation
       OPERATOR_TOKEN: ${OPERATOR_TOKEN:?Run scripts/init_local.py first}
       PUBLIC_ACCESS_ENABLED: "false"
+      LOCAL_CHAIN_CONFIG: /app/runtime/local-chain/deployment.json
+    volumes: [./runtime/local-chain:/app/runtime/local-chain:ro]
     ports: ["127.0.0.1:8000:8000"]
     networks: [control, ingress]
     depends_on:
@@ -51,7 +53,11 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://reputation:${POSTGRES_PASSWORD}@postgres:5432/reputation
       PUBLIC_ACCESS_ENABLED: "false"
-    volumes: [evidence-data:/app/artifacts/evidence]
+      LOCAL_CHAIN_CONFIG: /app/runtime/local-chain/deployment.json
+      PUBLISHER_SECRET_PATH: /app/runtime/local-chain/publisher-secret.json
+    volumes:
+      - evidence-data:/app/artifacts/evidence
+      - ./runtime/local-chain:/app/runtime/local-chain:ro
     networks: [control, demo]
     depends_on:
       migrate:
@@ -76,6 +82,30 @@ services:
     depends_on:
       api:
         condition: service_healthy
+
+  fixture-a:
+    image: reputation-platform:local
+    pull_policy: never
+    command: ["uvicorn", "fixture_agents.service:create_app", "--factory", "--host", "0.0.0.0", "--port", "9101", "--no-access-log"]
+    environment:
+      FIXTURE_CONFIG: /app/runtime/local-chain/fixture-a.json
+    volumes: [./runtime/local-chain:/app/runtime/local-chain:ro]
+    networks: [demo]
+    depends_on:
+      anvil:
+        condition: service_started
+
+  fixture-d:
+    image: reputation-platform:local
+    pull_policy: never
+    command: ["uvicorn", "fixture_agents.service:create_app", "--factory", "--host", "0.0.0.0", "--port", "9102", "--no-access-log"]
+    environment:
+      FIXTURE_CONFIG: /app/runtime/local-chain/fixture-d.json
+    volumes: [./runtime/local-chain:/app/runtime/local-chain:ro]
+    networks: [demo]
+    depends_on:
+      anvil:
+        condition: service_started
 
 networks:
   ingress:

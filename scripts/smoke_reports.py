@@ -2,8 +2,10 @@
 
 import io
 import json
+import os
 import time
 import zipfile
+from pathlib import Path
 
 from reputation_core.evidence import hash_bytes, strict_json
 from smoke_identity import ROOT, operator_client
@@ -11,7 +13,7 @@ from smoke_verification import main as verification_smoke
 
 
 def main() -> None:
-    runtime = ROOT / "runtime/local-chain"
+    runtime = Path(os.environ.get("LOCAL_RUNTIME_DIR", ROOT / "runtime/local-chain"))
     if not (runtime / "verification-smoke.json").exists():
         verification_smoke()
     verified = json.loads((runtime / "verification-smoke.json").read_bytes())

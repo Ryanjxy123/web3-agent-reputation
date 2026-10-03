@@ -1,6 +1,7 @@
 """Local operator: sign demo challenges client-side; API and worker never receive keys."""
 
 import json
+import os
 import time
 from pathlib import Path
 
@@ -26,7 +27,7 @@ def operator_client() -> httpx.Client:
 
 
 def main() -> None:
-    runtime = ROOT / "runtime/local-chain"
+    runtime = Path(os.environ.get("LOCAL_RUNTIME_DIR", ROOT / "runtime/local-chain"))
     samples = json.loads((runtime / "samples.json").read_bytes())
     keys = json.loads((runtime / "setup-secrets.json").read_bytes())["keys"]
     output = {}

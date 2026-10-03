@@ -40,6 +40,7 @@ from sqlalchemy import Engine, select, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import SQLAlchemyError
 
+from reputation_platform.application.anchor import AnchorService
 from reputation_platform.application.errors import ApplicationError as ApiProblem
 from reputation_platform.application.evaluations import EvaluationService
 from reputation_platform.application.identity import IdentityService
@@ -64,6 +65,7 @@ def create_app(
     evaluations = EvaluationService(database, identity)
     verification = VerificationService(database, identity)
     reporting = ReportService(database, identity)
+    anchoring = AnchorService(database, identity)
 
     @asynccontextmanager
     async def lifespan(app):
@@ -270,6 +272,14 @@ def create_app(
     @app.get("/api/v1/reports/{report_id}", response_model=ReportView)
     def get_report(report_id: UUID):
         return reporting.view(report_id)
+
+    @app.post("/api/v1/reports/{report_id}/anchor", response_model=AcceptedJob, status_code=202)
+    def anchor_report(report_id: UUID, actor: str = Depends(operator)):
+        return anchoring.request(report_id, actor)
+
+    @app.post("/api/v1/evaluations/{run_id}/anchor", response_model=AcceptedJob, status_code=202)
+    def anchor_run(run_id: UUID, actor: str = Depends(operator)):
+        return anchoring.request(reporting.for_run(run_id).report_id, actor)
 
     @app.get(
         "/api/v1/reports/{report_id}/bundle",

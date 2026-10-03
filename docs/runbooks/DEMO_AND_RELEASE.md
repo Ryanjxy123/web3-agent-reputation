@@ -1,6 +1,6 @@
 # 开发运行、演示与发布目标
 
-当前包只提供规划和评分参考。下列运行契约由M0/M1/M2实现后才能使用；不应通过写假的“成功”输出满足命令存在。
+当前包已提供 M0+M1 的可运行契约；M2 评分扩展仍不在本轮范围。命令必须使用真实 API、worker、PostgreSQL 和 Anvil，失败退出码不能伪装成功。
 
 ## 1. 环境初始化与完整新成员路线
 M0生成.env.example（仅变量名、假值、明确本地chain限制），setup创建未提交的随机token/runtime配置，安装锁定依赖；doctor检测Docker/Compose/Foundry/Python/Node以及端口冲突。
@@ -17,6 +17,19 @@ seed不读取业务真实材料、不使用主网、不向公网发布Anvil默�
 ## 3. 最小演示
 A与D都声明可存证。展示相同业务类型、不同随机request/input→A真实业务事件吻合→D receipt成功但request/摘要不符→查看逐项断言→导出报告→真实anchor→独立验证→修改副本后拒绝。
 首轮样本少，显示“部分评价，不生成综合分”是正确结果，不是演示失败。完整20/10/10与三能力评分在M2 full suite展示。
+
+## 3.1 发布与独立复核
+
+在 `smoke_reports.py` 生成两份未发布 bundle 后运行 `smoke_m1.py`。脚本将 A 报告排入 `anchor_jobs`，worker 先持久化 nonce 和 signed transaction，再广播 `EvaluationAnchor.anchorReport`；随后用 `reputation-verify` 做离线重算、可信 RPC 在线复核，并验证修改 bundle 会失败。
+
+独立复核命令：
+
+```powershell
+uv run --all-packages reputation-verify runtime/local-chain/report-a.zip
+uv run --all-packages reputation-verify runtime/local-chain/report-a.zip --rpc-url http://127.0.0.1:8545
+```
+
+第一条命令只证明 bundle 内部一致性，anchor 为 `NOT_CHECKED`；第二条命令只使用操作者提供的 RPC，成功时报告 `CONFIRMED`。Verifier 不读取 ZIP 内的 RPC 地址。
 A/D是受控测试代理，不声称已有商业Agent；8004scan公开注册样本另页展示，回放单独标记。
 
 ## 4. 完整演示与实验

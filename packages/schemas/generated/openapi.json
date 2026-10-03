@@ -3670,6 +3670,51 @@
         "summary": "Get Evaluation"
       }
     },
+    "/api/v1/evaluations/{run_id}/anchor": {
+      "post": {
+        "operationId": "anchor_run_api_v1_evaluations__run_id__anchor_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcceptedJob"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Anchor Run"
+      }
+    },
     "/api/v1/evaluations/{run_id}/cancel": {
       "post": {
         "operationId": "cancel_evaluation_api_v1_evaluations__run_id__cancel_post",
@@ -4015,6 +4060,51 @@
           }
         },
         "summary": "Get Report"
+      }
+    },
+    "/api/v1/reports/{report_id}/anchor": {
+      "post": {
+        "operationId": "anchor_report_api_v1_reports__report_id__anchor_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "report_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Report Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcceptedJob"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Anchor Report"
       }
     },
     "/api/v1/reports/{report_id}/bundle": {

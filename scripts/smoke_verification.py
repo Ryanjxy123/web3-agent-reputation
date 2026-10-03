@@ -1,7 +1,9 @@
 """Real API/worker A PASS and D semantic FAIL, including independent RPC assertions."""
 
 import json
+import os
 import time
+from pathlib import Path
 
 from smoke_execution import main as execution_smoke
 from smoke_identity import ROOT, operator_client
@@ -9,7 +11,7 @@ from smoke_identity import ROOT, operator_client
 
 def main() -> None:
     execution_smoke()
-    runtime = ROOT / "runtime/local-chain"
+    runtime = Path(os.environ.get("LOCAL_RUNTIME_DIR", ROOT / "runtime/local-chain"))
     executions = json.loads((runtime / "execution-smoke.json").read_bytes())
     results = {}
     with operator_client() as client:
