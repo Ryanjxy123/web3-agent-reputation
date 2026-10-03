@@ -217,5 +217,5 @@
 - Live evidence：`runtime/local-chain-v2/report-a.zip`、`report-d.zip`、`report-smoke.json` 为忽略的本地运行产物；A/D 均 PARTIAL、overall=null，A 已发布。旧 `runtime/local-chain` 报告保留，未覆盖；新鲜链实例因旧 Anvil 已不可恢复而使用隔离 `local-chain-v2`，不把旧 bundle 描述为干净发行复现。
 - Security：signed transaction、publisher secret、数据库凭据未进入 Git 或 bundle；verifier 不信任包内 RPC；无 RPC 不宣称链上成功；ZIP 拒绝路径穿越、重复/符号链接/高压缩比成员及未承诺文件。
 - Limitations：本轮继续保留 Windows Docker WSL import 和 8004scan HTTP 403 单列；本地 M1 使用 Anvil，不代表公网最终性。M2 三能力完整评分未展开。
-- Git：当前工作分支为 `feat/m1-07-m1-08`，包含之前保留的本地 PostgreSQL junction 提交；本节实现待提交、push、PR 和 required CI 核实。
+- Git：当前工作分支为 `feat/m1-07-m1-08`，包含之前保留的本地 PostgreSQL junction 提交；M1-07/M1-08 实现提交 `6c340b5`，状态提交、push、PR 和 required CI 仍待完成。
 - Next task：M2（用户未授权扩展，本轮停止）。
