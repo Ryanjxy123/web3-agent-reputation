@@ -5,12 +5,14 @@ import os
 from contextlib import asynccontextmanager
 from uuid import UUID, uuid4
 
-from fastapi import Depends, FastAPI, Request, Response
+from fastapi import Depends, FastAPI, Header, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from reputation_core.models import (
+    AcceptedEvaluation,
     AcceptedJob,
+    AccessGrantCreate,
     AgentCreate,
     AgentSnapshot,
     AgentView,
@@ -21,17 +23,29 @@ from reputation_core.models import (
     ClaimReview,
     ClaimsConfirm,
     ErrorDetail,
+    EvaluationCreate,
+    EvaluationRun,
     ExecutorBinding,
+    GrantView,
     JobView,
     LocalDeployment,
+    Observation,
+    ReasonRequest,
+    RecordVerificationResult,
     RefreshRequest,
+    ReportView,
+    RunPlan,
 )
 from sqlalchemy import Engine, select, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import SQLAlchemyError
 
+from reputation_platform.application.anchor import AnchorService
 from reputation_platform.application.errors import ApplicationError as ApiProblem
+from reputation_platform.application.evaluations import EvaluationService
 from reputation_platform.application.identity import IdentityService
+from reputation_platform.application.reports import ReportService
+from reputation_platform.application.verification import VerificationService
 from reputation_platform.infrastructure.db.connection import engine
 from reputation_platform.infrastructure.db.tables import agents, audit_logs, jobs
 
@@ -48,6 +62,10 @@ def create_app(
         raise RuntimeError("OPERATOR_TOKEN must contain at least 32 characters")
     database = db or engine()
     identity = IdentityService(database, deployment)
+    evaluations = EvaluationService(database, identity)
+    verification = VerificationService(database, identity)
+    reporting = ReportService(database, identity)
+    anchoring = AnchorService(database, identity)
 
     @asynccontextmanager
     async def lifespan(app):
@@ -58,6 +76,7 @@ def create_app(
     app = FastAPI(title="Web3 Agent Reputation", version="1.0.0", lifespan=lifespan)
     app.state.db = database
     app.state.identity = identity
+    app.state.evaluations = evaluations
 
     @app.middleware("http")
     async def request_id(request: Request, call_next):
@@ -205,5 +224,77 @@ def create_app(
             "reason_code": row["last_error"],
             "snapshot_id": row["payload"].get("snapshot_id"),
         }
+
+    @app.post("/api/v1/access-grants", response_model=GrantView, status_code=201)
+    def create_grant(body: AccessGrantCreate, actor: str = Depends(operator)):
+        return evaluations.create_grant(body, actor)
+
+    @app.get("/api/v1/access-grants/{grant_id}", response_model=GrantView)
+    def get_grant(grant_id: UUID, actor: str = Depends(operator)):
+        return evaluations.grant(grant_id)
+
+    @app.post("/api/v1/access-grants/{grant_id}/revoke", response_model=GrantView)
+    def revoke_grant(grant_id: UUID, body: ReasonRequest, actor: str = Depends(operator)):
+        return evaluations.revoke(grant_id, body.reason, actor)
+
+    @app.post("/api/v1/evaluations", response_model=AcceptedEvaluation, status_code=202)
+    def create_evaluation(
+        body: EvaluationCreate,
+        idempotency_key: str = Header(default=""),
+        actor: str = Depends(operator),
+    ):
+        return evaluations.create(body, idempotency_key, actor)
+
+    @app.get("/api/v1/evaluations/{run_id}", response_model=EvaluationRun)
+    def get_evaluation(run_id: UUID):
+        return evaluations.view(run_id)
+
+    @app.get("/api/v1/evaluations/{run_id}/observations", response_model=list[Observation])
+    def get_observations(run_id: UUID):
+        return evaluations.observations(run_id)
+
+    @app.get("/api/v1/evaluations/{run_id}/plan", response_model=RunPlan)
+    def get_plan(run_id: UUID):
+        return evaluations.row(run_id)["plan"]
+
+    @app.get("/api/v1/evaluations/{run_id}/verification", response_model=RecordVerificationResult)
+    def get_verification(run_id: UUID):
+        return verification.result(run_id)
+
+    @app.post("/api/v1/evaluations/{run_id}/report", response_model=AcceptedJob, status_code=202)
+    def request_report(run_id: UUID, actor: str = Depends(operator)):
+        return reporting.request(run_id, actor)
+
+    @app.get("/api/v1/evaluations/{run_id}/report", response_model=ReportView)
+    def get_run_report(run_id: UUID):
+        return reporting.for_run(run_id)
+
+    @app.get("/api/v1/reports/{report_id}", response_model=ReportView)
+    def get_report(report_id: UUID):
+        return reporting.view(report_id)
+
+    @app.post("/api/v1/reports/{report_id}/anchor", response_model=AcceptedJob, status_code=202)
+    def anchor_report(report_id: UUID, actor: str = Depends(operator)):
+        return anchoring.request(report_id, actor)
+
+    @app.post("/api/v1/evaluations/{run_id}/anchor", response_model=AcceptedJob, status_code=202)
+    def anchor_run(run_id: UUID, actor: str = Depends(operator)):
+        return anchoring.request(reporting.for_run(run_id).report_id, actor)
+
+    @app.get(
+        "/api/v1/reports/{report_id}/bundle",
+        response_class=Response,
+        responses={200: {"content": {"application/zip": {}}}},
+    )
+    def export_report(report_id: UUID):
+        return Response(
+            reporting.export(report_id),
+            media_type="application/zip",
+            headers={"Content-Disposition": f'attachment; filename="report-{report_id}.zip"'},
+        )
+
+    @app.post("/api/v1/evaluations/{run_id}/cancel", response_model=EvaluationRun)
+    def cancel_evaluation(run_id: UUID, body: ReasonRequest, actor: str = Depends(operator)):
+        return evaluations.cancel(run_id, body.reason, actor)
 
     return app

@@ -3,6 +3,7 @@ from typing import Literal, Self
 
 from pydantic import UUID4, Field, JsonValue, model_validator
 
+from ..evidence import hash_json
 from .base import (
     Address,
     BasisPoints,
@@ -186,6 +187,7 @@ class ExpectedFacts(Model):
     execution_chain: ChainIdentity
     executor: NonzeroAddress
     target_contract: NonzeroAddress
+    target_code_hash: Hash32 | None = None
     request_id: Challenge
     record_hash: Challenge
     binding_id: UUID4
@@ -213,6 +215,7 @@ class CaseSlot(Model):
     task: TaskEnvelope
     expected: ExpectedFacts
     grant_id: UUID4
+    synthetic_input: dict[str, JsonValue] | None = None
 
     @model_validator(mode="after")
     def linked(self) -> Self:
@@ -231,6 +234,8 @@ class CaseSlot(Model):
         )
         if not all(checks):
             raise ValueError("task and independently expected facts differ")
+        if self.synthetic_input is not None and hash_json(self.synthetic_input) != task.record_hash:
+            raise ValueError("synthetic input hash differs from frozen task")
         return self
 
 
@@ -246,6 +251,7 @@ class RunPlan(Model):
     suite_id: Literal["m1-smoke-v1"]
     template_version: Literal["anchor_record@1"]
     planning_time: Timestamp
+    planning_evidence_refs: tuple[UUID4, ...] = ()
     slots: tuple[CaseSlot, ...] = Field(min_length=1, max_length=100)
 
     @model_validator(mode="after")
@@ -273,6 +279,7 @@ class EvaluationRun(Model):
     settled: Count
     unknown: Count
     latest_report_id: UUID4 | None
+    cancel_requested: bool = False
 
     @model_validator(mode="after")
     def counts(self) -> Self:

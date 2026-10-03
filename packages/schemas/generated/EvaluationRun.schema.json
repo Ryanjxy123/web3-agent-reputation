@@ -29,6 +29,11 @@
   },
   "additionalProperties": false,
   "properties": {
+    "cancel_requested": {
+      "default": false,
+      "title": "Cancel Requested",
+      "type": "boolean"
+    },
     "latest_report_id": {
       "anyOf": [
         {

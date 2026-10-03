@@ -1,6 +1,8 @@
 """Version 1 contracts are defined in domain and enums; generated artifacts are derived."""
 from .api import (
+    AcceptedEvaluation,
     AcceptedJob,
+    AccessGrantCreate,
     AgentCreate,
     AgentView,
     ApiError,
@@ -10,7 +12,9 @@ from .api import (
     ClaimsConfirm,
     ErrorDetail,
     EvaluationCreate,
+    GrantView,
     JobView,
+    ReasonRequest,
     RefreshRequest,
 )
 from .domain import (
@@ -51,9 +55,19 @@ from .enums import (
     RunStatus,
     VerificationStep,
 )
+from .reporting import EvidenceManifest, ManifestDocument, PublicationContext, ReportView
 from .runtime import ControlledTaskView, DeployedContract, LocalDeployment, TaskResult
+from .verification import (
+    EvmReadEvidence,
+    RecordVerificationInput,
+    RecordVerificationResult,
+    RegistryWitness,
+)
 
 __all__ = [
+    "EvidenceManifest", "ManifestDocument", "PublicationContext", "ReportView",
+    "EvmReadEvidence", "RecordVerificationInput", "RecordVerificationResult", "RegistryWitness",
+    "AccessGrantCreate", "GrantView", "ReasonRequest", "AcceptedEvaluation",
     "BindingChallengeView",
     "ControlledTaskView", "DeployedContract", "LocalDeployment", "TaskResult",
     "AcceptedJob", "AgentCreate", "AgentView", "JobView", "ApiError", "BindingChallengeRequest", "BindingVerifyRequest",

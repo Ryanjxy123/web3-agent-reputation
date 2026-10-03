@@ -2,6 +2,7 @@
 
 import base64
 import json
+import os
 import secrets
 from pathlib import Path
 
@@ -19,6 +20,10 @@ def seed(
     runtime: Path | None = None,
     hosts: tuple[str, str] = ("127.0.0.1", "127.0.0.1"),
 ) -> dict:
+    hosts = (
+        os.environ.get("FIXTURE_HOST_A", hosts[0]),
+        os.environ.get("FIXTURE_HOST_D", hosts[1]),
+    )
     runtime = runtime or root / "runtime/local-chain"
     web3 = local_web3(deployment.rpc_url)
     verify_deployment(web3, deployment, root)

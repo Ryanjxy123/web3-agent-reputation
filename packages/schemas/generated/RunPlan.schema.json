@@ -83,6 +83,21 @@
           "title": "Slot Key",
           "type": "string"
         },
+        "synthetic_input": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/JsonValue"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Synthetic Input"
+        },
         "task": {
           "$ref": "#/$defs/TaskEnvelope"
         }
@@ -195,6 +210,19 @@
           "title": "Snapshot Hash",
           "type": "string"
         },
+        "target_code_hash": {
+          "anyOf": [
+            {
+              "pattern": "^0x[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Code Hash"
+        },
         "target_contract": {
           "title": "Target Contract",
           "type": "string"
@@ -223,6 +251,7 @@
       "title": "ExpectedFacts",
       "type": "object"
     },
+    "JsonValue": {},
     "Outcome": {
       "enum": [
         "PASS",
@@ -318,6 +347,15 @@
         "type": "string"
       },
       "title": "Confirmed Capabilities",
+      "type": "array"
+    },
+    "planning_evidence_refs": {
+      "default": [],
+      "items": {
+        "format": "uuid4",
+        "type": "string"
+      },
+      "title": "Planning Evidence Refs",
       "type": "array"
     },
     "planning_time": {

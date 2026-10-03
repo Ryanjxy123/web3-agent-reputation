@@ -1,16 +1,18 @@
 """Short PostgreSQL leases with fencing; network work never runs inside these transactions."""
 
 from collections.abc import Callable
+from contextlib import nullcontext
 from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any, TypeVar
 from uuid import UUID, uuid4
 
+from reputation_core.evidence import hash_json
 from reputation_core.models import RunPlan
 from sqlalchemy import Connection, Engine, and_, func, or_, select, update
 from sqlalchemy.dialects.postgresql import insert
 
-from .tables import case_slots, jobs, runs
+from .tables import case_slots, dispatch_events, jobs, runs
 
 T = TypeVar("T")
 
@@ -21,6 +23,15 @@ class LostLease(RuntimeError):
 
 class IdempotencyConflict(ValueError):
     pass
+
+
+def mark_run_failed(connection: Connection, run_id: UUID | None) -> None:
+    if run_id is not None:
+        connection.execute(
+            update(runs)
+            .where(runs.c.id == run_id, runs.c.status.in_(["QUEUED", "RUNNING"]))
+            .values(status="FAILED", stage="VERIFYING")
+        )
 
 
 @dataclass(frozen=True)
@@ -58,14 +69,14 @@ def enqueue(
 
 
 def persist_plan(
-    db: Engine,
+    db: Engine | Connection,
     snapshot_id: UUID,
     actor: str,
     idempotency_key: str,
     payload_hash: str,
     plan: RunPlan,
 ) -> tuple[UUID, bool]:
-    with db.begin() as connection:
+    with db.begin() if isinstance(db, Engine) else nullcontext(db) as connection:
         inserted = connection.execute(
             insert(runs)
             .values(
@@ -103,6 +114,17 @@ def persist_plan(
                     body=slot.model_dump(mode="json"),
                 )
             )
+            connection.execute(
+                insert(dispatch_events).values(
+                    slot_fk=slot.slot_id,
+                    state="NOT_SENT",
+                    lease_token=0,
+                    body={
+                        "request_id": slot.task.request_id,
+                        "payload_hash": hash_json(slot.task.model_dump(mode="json")),
+                    },
+                )
+            )
         enqueue(
             connection,
             "evaluate",
@@ -126,12 +148,35 @@ class JobQueue:
             and_(jobs.c.state == "LEASED", jobs.c.lease_until <= now),
         )
         with self.db.begin() as connection:
-            connection.execute(
-                update(jobs)
-                .where(ready, jobs.c.attempts >= jobs.c.max_attempts)
-                .values(state="FAILED", lease_until=None, last_error="MAX_ATTEMPTS")
+            # Short claim-only mutex makes the initial global dispatch limit atomic across workers.
+            connection.execute(select(func.pg_advisory_xact_lock(0x574152000001)))
+            exhausted = (
+                connection.execute(
+                    update(jobs)
+                    .where(ready, jobs.c.attempts >= jobs.c.max_attempts)
+                    .values(state="FAILED", lease_until=None, last_error="MAX_ATTEMPTS")
+                    .returning(jobs.c.run_fk)
+                )
+                .scalars()
+                .all()
             )
+            for run_id in exhausted:
+                mark_run_failed(connection, run_id)
             query = select(jobs).where(ready, jobs.c.attempts < jobs.c.max_attempts)
+            active_dispatches = (
+                connection.scalar(
+                    select(func.count())
+                    .select_from(jobs)
+                    .where(
+                        jobs.c.kind == "evaluate",
+                        jobs.c.state == "LEASED",
+                        jobs.c.lease_until > now,
+                    )
+                )
+                or 0
+            )
+            if active_dispatches >= 2:
+                query = query.where(jobs.c.kind != "evaluate")
             if kind:
                 query = query.where(jobs.c.kind == kind)
             row = (

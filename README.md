@@ -3,7 +3,7 @@ Multi-source evidence based reputation evaluation platform for Web3 Agents.
 
 面向链上凭证查询、核验与存证 Agent 的任务级证据评价平台。
 
-当前正在实现 M0/M1，尚不是已部署应用。执行计划见 [PLAN.md](PLAN.md)，真实进度见 [STATUS.md](docs/implementation/STATUS.md)。
+当前 M0+M1 已通过本地真实纵向验收；A/D 报告 bundle、EvaluationAnchor 发布、离线/在线独立复核及篡改拒绝均有真实记录。执行计划见 [PLAN.md](PLAN.md)，真实进度见 [STATUS.md](docs/implementation/STATUS.md)。
 
 ## 已有检查
 
@@ -46,10 +46,12 @@ uv run --package reputation-platform reputation doctor
 
 doctor 会明确报告未就绪工具并返回非零；它不代表完整平台已启动。Python 使用 3.12（当前验证 3.12.4），Node 22.17.0，pnpm 10.12.4。运行环境与依赖版本见 configs/toolchain.json 和锁文件。
 
-PostgreSQL 在项目 runtime 中运行，仅监听 127.0.0.1:55432；凭证自动随机生成并被 Git 忽略。Windows 原生 PostgreSQL 对中文路径存在启动编码问题，脚本将同一 runtime 动态映射到空闲盘符，不复制项目。运行期间保留该映射；停止数据库使用 `uv run --all-packages python scripts/local_postgres.py stop`。测试只创建并删除自身的 reputation_test_* 临时数据库，不清空开发数据库。仅离线单元检查可运行 `uv run --all-packages pytest tests/unit tests/reference`，不能作为完整数据库验收。
+PostgreSQL 在项目 runtime 中运行，仅监听 127.0.0.1:55432；凭证自动随机生成并被 Git 忽略。Windows 原生 PostgreSQL 对中文路径存在启动编码问题，脚本在项目所在盘根目录创建 `web3-runtime` 目录联接（本机 `D:\web3-runtime`），指向同一 runtime，不复制或移动文件，也不创建额外盘符。已有同名路径指向其他目录时会拒绝启动，不覆盖它。停止数据库使用 `uv run --all-packages python scripts/local_postgres.py stop`。测试只创建并删除自身的 reputation_test_* 临时数据库，不清空开发数据库。仅离线单元检查可运行 `uv run --all-packages pytest tests/unit tests/reference`，不能作为完整数据库验收。
 
 领域类型生成：`uv run --all-packages python scripts/generate_schemas.py`、`pnpm --dir apps/web generate:types`。类型检查：`uv run --all-packages mypy -p reputation_core -p reputation_platform -p reputation_verifier -p fixture_agents`。
 
 完整基础检查：`uv run --all-packages python scripts/check.py`，包含真实数据库集成、Schema/TS 漂移、前端和 Foundry；缺少依赖或跳过测试会失败。`check_bootstrap.py` 只检启动参考，不能替代该命令。
 
-API、独立 worker、Vue 连接页以及本地部署/seed/A/D 服务的启动命令见 [本地运行](docs/runbooks/LOCAL_RUNTIME.md)。Docker 镜像已固定 digest；本机 WSL 导入故障和 Linux CI 实测结果分别记录在 STATUS，不能互相冒充。三个业务合约、持久 A/D 服务、真实快照与 owner/executor 双签绑定已通过测试；评价任务处理器、报告和复核仍待完成，各阶段 smoke 不是完整 M1 验收。
+API、独立 worker、Vue 连接页以及本地部署/seed/A/D 服务的启动命令见 [本地运行](docs/runbooks/LOCAL_RUNTIME.md)。Docker 镜像已固定 digest；本机 WSL 导入故障和 Linux CI 实测结果分别记录在 STATUS，不能互相冒充。已有合约、持久 A/D、快照双签、授权与发送恢复、独立业务断言、不可变 PARTIAL 报告 ZIP、真实 anchor 和独立复核。全量 pytest 使用受控端口 9101/9102，先停止 demo A/D，测试完成后再启动。
+
+完成本地核验后运行 `uv run --all-packages python scripts/smoke_reports.py`，再运行 `uv run --all-packages python scripts/smoke_m1.py` 完成发布和独立复核。独立 CLI 为 `uv run --all-packages reputation-verify <bundle.zip> [--rpc-url <trusted-rpc>]`；不提供 RPC 时链上状态为 `NOT_CHECKED`。两份报告的 overall_score_bp 均为 null。

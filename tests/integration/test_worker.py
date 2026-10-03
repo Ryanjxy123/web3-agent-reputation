@@ -1,12 +1,24 @@
 import asyncio
 
 import pytest
-from reputation_platform.infrastructure.db.jobs import enqueue
+from reputation_platform.infrastructure.db.jobs import JobQueue, enqueue
 from reputation_platform.infrastructure.db.tables import jobs
 from reputation_platform.worker.main import Worker
 from sqlalchemy import select, update
 
 pytestmark = pytest.mark.postgres
+
+
+def test_global_dispatch_limit_is_shared_by_independent_queues(db):
+    with db.begin() as connection:
+        for number in range(3):
+            enqueue(connection, "evaluate", f"limit:{number}", {})
+    queues = [JobQueue(db, f"worker-{number}") for number in range(3)]
+    first, second = queues[0].claim("evaluate"), queues[1].claim("evaluate")
+    assert first is not None and second is not None
+    assert queues[2].claim("evaluate") is None
+    queues[0].complete(first)
+    assert queues[2].claim("evaluate") is not None
 
 
 async def test_worker_keeps_lease_alive_during_slow_io(db):

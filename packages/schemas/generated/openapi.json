@@ -1,6 +1,30 @@
 {
   "components": {
     "schemas": {
+      "AcceptedEvaluation": {
+        "additionalProperties": false,
+        "properties": {
+          "run_id": {
+            "format": "uuid4",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RunStatus",
+            "default": "QUEUED"
+          },
+          "status_url": {
+            "title": "Status Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "status_url"
+        ],
+        "title": "AcceptedEvaluation",
+        "type": "object"
+      },
       "AcceptedJob": {
         "additionalProperties": false,
         "properties": {
@@ -157,6 +181,55 @@
           "consent_ref"
         ],
         "title": "AccessGrant",
+        "type": "object"
+      },
+      "AccessGrantCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "consent_ref": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Consent Ref",
+            "type": "string"
+          },
+          "endpoint_id": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Endpoint Id",
+            "type": "string"
+          },
+          "expires_at": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "interval_ms": {
+            "default": 1000,
+            "maximum": 60000,
+            "minimum": 1000,
+            "title": "Interval Ms",
+            "type": "integer"
+          },
+          "max_tasks": {
+            "maximum": 100,
+            "minimum": 1,
+            "title": "Max Tasks",
+            "type": "integer"
+          },
+          "snapshot_id": {
+            "format": "uuid4",
+            "title": "Snapshot Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "snapshot_id",
+          "endpoint_id",
+          "max_tasks",
+          "expires_at",
+          "consent_ref"
+        ],
+        "title": "AccessGrantCreate",
         "type": "object"
       },
       "AgentCreate": {
@@ -841,6 +914,21 @@
             "title": "Slot Key",
             "type": "string"
           },
+          "synthetic_input": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/JsonValue"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Synthetic Input"
+          },
           "task": {
             "$ref": "#/components/schemas/TaskEnvelope"
           }
@@ -1270,6 +1358,11 @@
       "EvaluationRun": {
         "additionalProperties": false,
         "properties": {
+          "cancel_requested": {
+            "default": false,
+            "title": "Cancel Requested",
+            "type": "boolean"
+          },
           "latest_report_id": {
             "anyOf": [
               {
@@ -1322,6 +1415,41 @@
           "latest_report_id"
         ],
         "title": "EvaluationRun",
+        "type": "object"
+      },
+      "EvidenceManifest": {
+        "additionalProperties": false,
+        "properties": {
+          "documents": {
+            "items": {
+              "$ref": "#/components/schemas/ManifestDocument"
+            },
+            "title": "Documents",
+            "type": "array"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceRecord"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "publication": {
+            "$ref": "#/components/schemas/PublicationContext"
+          },
+          "schema_version": {
+            "const": "evidence-manifest-v1",
+            "default": "evidence-manifest-v1",
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "publication",
+          "documents",
+          "evidence"
+        ],
+        "title": "EvidenceManifest",
         "type": "object"
       },
       "EvidenceRecord": {
@@ -1399,6 +1527,59 @@
           "trust_group"
         ],
         "title": "EvidenceRecord",
+        "type": "object"
+      },
+      "EvmReadEvidence": {
+        "additionalProperties": false,
+        "properties": {
+          "candidate_tx_hash": {
+            "anyOf": [
+              {
+                "pattern": "^0x[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Candidate Tx Hash"
+          },
+          "error_reason": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Reason"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "observed_at": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+            "title": "Observed At",
+            "type": "string"
+          },
+          "results": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "title": "Results",
+            "type": "object"
+          },
+          "schema_version": {
+            "const": "evm-task-evidence-v1",
+            "default": "evm-task-evidence-v1",
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "candidate_tx_hash",
+          "observed_at",
+          "results"
+        ],
+        "title": "EvmReadEvidence",
         "type": "object"
       },
       "ExecutorBinding": {
@@ -1537,6 +1718,19 @@
             "title": "Snapshot Hash",
             "type": "string"
           },
+          "target_code_hash": {
+            "anyOf": [
+              {
+                "pattern": "^0x[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Target Code Hash"
+          },
           "target_contract": {
             "title": "Target Contract",
             "type": "string"
@@ -1563,6 +1757,24 @@
           "confirmation_depth"
         ],
         "title": "ExpectedFacts",
+        "type": "object"
+      },
+      "GrantView": {
+        "additionalProperties": false,
+        "properties": {
+          "grant": {
+            "$ref": "#/components/schemas/AccessGrant"
+          },
+          "revoked": {
+            "title": "Revoked",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "grant",
+          "revoked"
+        ],
+        "title": "GrantView",
         "type": "object"
       },
       "HTTPValidationError": {
@@ -1694,6 +1906,27 @@
           "platform_instance_id"
         ],
         "title": "LocalDeployment",
+        "type": "object"
+      },
+      "ManifestDocument": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence_id": {
+            "format": "uuid4",
+            "title": "Evidence Id",
+            "type": "string"
+          },
+          "path": {
+            "pattern": "^(?:[a-z][a-z0-9_-]*\\.json|schemas/[A-Za-z][A-Za-z0-9]*\\.schema\\.json)$",
+            "title": "Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "evidence_id"
+        ],
+        "title": "ManifestDocument",
         "type": "object"
       },
       "Observation": {
@@ -1844,6 +2077,73 @@
         "title": "Outcome",
         "type": "string"
       },
+      "PublicationContext": {
+        "additionalProperties": false,
+        "properties": {
+          "chain": {
+            "$ref": "#/components/schemas/ChainIdentity"
+          },
+          "confirmation_depth": {
+            "maximum": 100,
+            "minimum": 1,
+            "title": "Confirmation Depth",
+            "type": "integer"
+          },
+          "contract": {
+            "title": "Contract",
+            "type": "string"
+          },
+          "head_block_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Head Block Hash",
+            "type": "string"
+          },
+          "head_block_number": {
+            "pattern": "^(0|[1-9][0-9]{0,77})$",
+            "title": "Head Block Number",
+            "type": "string"
+          },
+          "head_sequence": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Head Sequence",
+            "type": "integer"
+          },
+          "platform_instance_id": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Platform Instance Id",
+            "type": "string"
+          },
+          "previous_report_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Previous Report Hash",
+            "type": "string"
+          },
+          "publisher": {
+            "title": "Publisher",
+            "type": "string"
+          },
+          "trusted_chain_key": {
+            "const": "local-demo",
+            "default": "local-demo",
+            "title": "Trusted Chain Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chain",
+          "contract",
+          "publisher",
+          "confirmation_depth",
+          "previous_report_hash",
+          "head_sequence",
+          "head_block_number",
+          "head_block_hash",
+          "platform_instance_id"
+        ],
+        "title": "PublicationContext",
+        "type": "object"
+      },
       "Purpose": {
         "enum": [
           "availability",
@@ -1896,6 +2196,182 @@
         "title": "Reason",
         "type": "string"
       },
+      "ReasonRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "ReasonRequest",
+        "type": "object"
+      },
+      "RecordVerificationInput": {
+        "additionalProperties": false,
+        "properties": {
+          "binding": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExecutorBinding"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "dispatch_payload_hash": {
+            "anyOf": [
+              {
+                "pattern": "^0x[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dispatch Payload Hash"
+          },
+          "dispatch_started_at": {
+            "anyOf": [
+              {
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dispatch Started At"
+          },
+          "evm": {
+            "$ref": "#/components/schemas/EvmReadEvidence"
+          },
+          "execution_reason": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Reason"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "grant": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccessGrant"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "intent_persisted_at": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+            "title": "Intent Persisted At",
+            "type": "string"
+          },
+          "platform_instance_id": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Platform Instance Id",
+            "type": "string"
+          },
+          "registry_witness": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RegistryWitness"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "review": {
+            "$ref": "#/components/schemas/ClaimReview"
+          },
+          "review_version": {
+            "minimum": 1,
+            "title": "Review Version",
+            "type": "integer"
+          },
+          "schema_version": {
+            "const": "record-verification-input-v1",
+            "default": "record-verification-input-v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "slot": {
+            "$ref": "#/components/schemas/CaseSlot"
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/AgentSnapshot"
+          }
+        },
+        "required": [
+          "slot",
+          "snapshot",
+          "review",
+          "review_version",
+          "platform_instance_id",
+          "binding",
+          "grant",
+          "intent_persisted_at",
+          "dispatch_started_at",
+          "dispatch_payload_hash",
+          "registry_witness",
+          "execution_reason",
+          "evm"
+        ],
+        "title": "RecordVerificationInput",
+        "type": "object"
+      },
+      "RecordVerificationResult": {
+        "additionalProperties": false,
+        "properties": {
+          "assertions": {
+            "items": {
+              "$ref": "#/components/schemas/AssertionResult"
+            },
+            "title": "Assertions",
+            "type": "array"
+          },
+          "critical_conflict": {
+            "title": "Critical Conflict",
+            "type": "boolean"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/Outcome"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Reason"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "task_link": {
+            "$ref": "#/components/schemas/TaskLink"
+          }
+        },
+        "required": [
+          "assertions",
+          "task_link",
+          "outcome",
+          "reason_code",
+          "critical_conflict"
+        ],
+        "title": "RecordVerificationResult",
+        "type": "object"
+      },
       "RefreshRequest": {
         "additionalProperties": false,
         "properties": {
@@ -1914,6 +2390,35 @@
           }
         },
         "title": "RefreshRequest",
+        "type": "object"
+      },
+      "RegistryWitness": {
+        "additionalProperties": false,
+        "properties": {
+          "executor_code": {
+            "title": "Executor Code",
+            "type": "string"
+          },
+          "owner_code": {
+            "title": "Owner Code",
+            "type": "string"
+          },
+          "read_method": {
+            "const": "eth_call_at_block_number",
+            "title": "Read Method",
+            "type": "string"
+          },
+          "snapshot_core": {
+            "$ref": "#/components/schemas/SnapshotCore"
+          }
+        },
+        "required": [
+          "snapshot_core",
+          "owner_code",
+          "executor_code",
+          "read_method"
+        ],
+        "title": "RegistryWitness",
         "type": "object"
       },
       "ReportCore": {
@@ -2041,6 +2546,35 @@
         "title": "ReportCore",
         "type": "object"
       },
+      "ReportView": {
+        "additionalProperties": false,
+        "properties": {
+          "core": {
+            "$ref": "#/components/schemas/ReportCore"
+          },
+          "manifest": {
+            "$ref": "#/components/schemas/EvidenceManifest"
+          },
+          "report_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Report Hash",
+            "type": "string"
+          },
+          "report_id": {
+            "format": "uuid4",
+            "title": "Report Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "report_id",
+          "report_hash",
+          "core",
+          "manifest"
+        ],
+        "title": "ReportView",
+        "type": "object"
+      },
       "RunPlan": {
         "additionalProperties": false,
         "properties": {
@@ -2054,6 +2588,15 @@
               "type": "string"
             },
             "title": "Confirmed Capabilities",
+            "type": "array"
+          },
+          "planning_evidence_refs": {
+            "default": [],
+            "items": {
+              "format": "uuid4",
+              "type": "string"
+            },
+            "title": "Planning Evidence Refs",
             "type": "array"
           },
           "planning_time": {
@@ -2731,6 +3274,149 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/access-grants": {
+      "post": {
+        "operationId": "create_grant_api_v1_access_grants_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessGrantCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GrantView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Grant"
+      }
+    },
+    "/api/v1/access-grants/{grant_id}": {
+      "get": {
+        "operationId": "get_grant_api_v1_access_grants__grant_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "grant_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Grant Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GrantView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Grant"
+      }
+    },
+    "/api/v1/access-grants/{grant_id}/revoke": {
+      "post": {
+        "operationId": "revoke_grant_api_v1_access_grants__grant_id__revoke_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "grant_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Grant Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReasonRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GrantView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Revoke Grant"
+      }
+    },
     "/api/v1/agents": {
       "post": {
         "operationId": "add_agent_api_v1_agents_post",
@@ -2889,6 +3575,408 @@
         "summary": "Refresh"
       }
     },
+    "/api/v1/evaluations": {
+      "post": {
+        "operationId": "create_evaluation_api_v1_evaluations_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvaluationCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcceptedEvaluation"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Evaluation"
+      }
+    },
+    "/api/v1/evaluations/{run_id}": {
+      "get": {
+        "operationId": "get_evaluation_api_v1_evaluations__run_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationRun"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Evaluation"
+      }
+    },
+    "/api/v1/evaluations/{run_id}/anchor": {
+      "post": {
+        "operationId": "anchor_run_api_v1_evaluations__run_id__anchor_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcceptedJob"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Anchor Run"
+      }
+    },
+    "/api/v1/evaluations/{run_id}/cancel": {
+      "post": {
+        "operationId": "cancel_evaluation_api_v1_evaluations__run_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReasonRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationRun"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Cancel Evaluation"
+      }
+    },
+    "/api/v1/evaluations/{run_id}/observations": {
+      "get": {
+        "operationId": "get_observations_api_v1_evaluations__run_id__observations_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Observation"
+                  },
+                  "title": "Response Get Observations Api V1 Evaluations  Run Id  Observations Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Observations"
+      }
+    },
+    "/api/v1/evaluations/{run_id}/plan": {
+      "get": {
+        "operationId": "get_plan_api_v1_evaluations__run_id__plan_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunPlan"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Plan"
+      }
+    },
+    "/api/v1/evaluations/{run_id}/report": {
+      "get": {
+        "operationId": "get_run_report_api_v1_evaluations__run_id__report_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Run Report"
+      },
+      "post": {
+        "operationId": "request_report_api_v1_evaluations__run_id__report_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcceptedJob"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Request Report"
+      }
+    },
+    "/api/v1/evaluations/{run_id}/verification": {
+      "get": {
+        "operationId": "get_verification_api_v1_evaluations__run_id__verification_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecordVerificationResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Verification"
+      }
+    },
     "/api/v1/jobs/{job_id}": {
       "get": {
         "operationId": "get_job_api_v1_jobs__job_id__get",
@@ -2932,6 +4020,127 @@
           }
         ],
         "summary": "Get Job"
+      }
+    },
+    "/api/v1/reports/{report_id}": {
+      "get": {
+        "operationId": "get_report_api_v1_reports__report_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "report_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Report Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Report"
+      }
+    },
+    "/api/v1/reports/{report_id}/anchor": {
+      "post": {
+        "operationId": "anchor_report_api_v1_reports__report_id__anchor_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "report_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Report Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcceptedJob"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Anchor Report"
+      }
+    },
+    "/api/v1/reports/{report_id}/bundle": {
+      "get": {
+        "operationId": "export_report_api_v1_reports__report_id__bundle_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "report_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Report Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/zip": {}
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Export Report"
       }
     },
     "/api/v1/snapshots/{snapshot_id}": {

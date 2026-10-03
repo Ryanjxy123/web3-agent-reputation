@@ -125,6 +125,19 @@
       "title": "Snapshot Hash",
       "type": "string"
     },
+    "target_code_hash": {
+      "anyOf": [
+        {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Target Code Hash"
+    },
     "target_contract": {
       "title": "Target Contract",
       "type": "string"

@@ -1,7 +1,6 @@
 """Run a project-local PostgreSQL instance without services or global configuration."""
 
 import argparse
-import ctypes
 import json
 import os
 import secrets
@@ -10,7 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 RUNTIME = ROOT / "runtime"
-BIN = RUNTIME / "tools/postgresql-17.11/pgsql/bin"
+WINDOWS_RUNTIME = Path(ROOT.anchor) / "web3-runtime"
 DATA = RUNTIME / "postgres"
 CONFIG = RUNTIME / "local-db.json"
 
@@ -18,29 +17,23 @@ CONFIG = RUNTIME / "local-db.json"
 def runtime_alias() -> Path:
     """Postgres' Windows native startup embeds ANSI paths in UTF-8 SQL.
 
-    Map only this repo's ignored runtime directory; no checkout is copied/moved.
-    The mapping must stay alive while postgres is running.
+    Use an ASCII directory junction for runtime; no checkout is copied/moved.
     """
     if os.name != "nt":
         return RUNTIME
-    mapping = RUNTIME / "postgres-drive.json"
-    if mapping.exists():
-        drive = json.loads(mapping.read_text(encoding="utf-8"))["drive"]
-        alias = Path(drive + "/")
-        if alias.exists():
-            if not alias.samefile(RUNTIME):
-                raise RuntimeError("Saved PostgreSQL drive now belongs to another directory")
-            return alias
-    else:
-        occupied = ctypes.windll.kernel32.GetLogicalDrives()
-        drive = next(
-            (f"{chr(index + 65)}:" for index in range(17, 26) if not occupied & (1 << index)), None
+    alias = WINDOWS_RUNTIME
+    if not str(alias).isascii():
+        raise RuntimeError("PostgreSQL runtime junction must have an ASCII path")
+    if not os.path.lexists(alias):
+        RUNTIME.mkdir(exist_ok=True)
+        subprocess.run(
+            ["cmd", "/c", "mklink", "/J", str(alias), str(RUNTIME)],
+            check=True,
+            capture_output=True,
         )
-        if drive is None:
-            raise RuntimeError("No unused drive letter for Unicode-safe PostgreSQL startup")
-    subprocess.run(["subst", drive, str(RUNTIME)], check=True)
-    mapping.write_text(json.dumps({"drive": drive}), encoding="utf-8")
-    return Path(drive + "/")
+    if not alias.exists() or not alias.samefile(RUNTIME):
+        raise RuntimeError("PostgreSQL runtime junction belongs to another directory")
+    return alias
 
 
 def main() -> int:

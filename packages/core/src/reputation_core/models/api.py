@@ -1,11 +1,12 @@
 """API input/output contracts; callers cannot supply scores, RPC URLs or clocks."""
+
 from typing import Literal
 
 from pydantic import UUID4, Field, JsonValue
 
-from .base import Hash32, Model, NonzeroAddress, SafeText
-from .domain import AgentRef, BindingMessage, Capability, Profile, SourceType
-from .enums import JobStatus
+from .base import Hash32, Model, NonzeroAddress, SafeText, Timestamp
+from .domain import AccessGrant, AgentRef, BindingMessage, Capability, Profile, SourceType
+from .enums import JobStatus, RunStatus
 
 
 class AgentCreate(Model):
@@ -61,6 +62,30 @@ class EvaluationCreate(Model):
     policy_version: Literal["policy-v1"]
     grant_ids: tuple[UUID4, ...] = Field(min_length=1, max_length=10)
     suite_id: Literal["m1-smoke-v1"]
+
+
+class AccessGrantCreate(Model):
+    snapshot_id: UUID4
+    endpoint_id: str = Field(min_length=1, max_length=100)
+    max_tasks: int = Field(strict=True, ge=1, le=100)
+    interval_ms: int = Field(strict=True, ge=1000, le=60000, default=1000)
+    expires_at: Timestamp
+    consent_ref: SafeText
+
+
+class GrantView(Model):
+    grant: AccessGrant
+    revoked: bool
+
+
+class ReasonRequest(Model):
+    reason: SafeText
+
+
+class AcceptedEvaluation(Model):
+    run_id: UUID4
+    status: RunStatus = RunStatus.QUEUED
+    status_url: str
 
 
 class RefreshRequest(Model):

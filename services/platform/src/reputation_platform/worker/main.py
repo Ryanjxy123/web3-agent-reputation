@@ -10,10 +10,14 @@ from uuid import uuid4
 
 from sqlalchemy import Connection, Engine, update
 
+from reputation_platform.application.anchor import AnchorService
 from reputation_platform.application.errors import ApplicationError
+from reputation_platform.application.execution import ExecutionService
 from reputation_platform.application.identity import IdentityService
+from reputation_platform.application.reports import ReportService
+from reputation_platform.application.verification import VerificationService
 from reputation_platform.infrastructure.db.connection import engine
-from reputation_platform.infrastructure.db.jobs import JobQueue, Lease, LostLease
+from reputation_platform.infrastructure.db.jobs import JobQueue, Lease, LostLease, mark_run_failed
 from reputation_platform.infrastructure.db.tables import jobs
 
 Handler = Callable[[Lease, JobQueue], Coroutine[Any, Any, None]]
@@ -33,6 +37,7 @@ class Worker:
 
     def _fail(self, lease: Lease, reason: str) -> None:
         def fail(connection: Connection):
+            mark_run_failed(connection, lease.run_id)
             connection.execute(
                 update(jobs)
                 .where(jobs.c.id == lease.job_id)
@@ -62,14 +67,21 @@ class Worker:
         except ApplicationError as exc:
             with suppress(LostLease):
                 if exc.retryable:
-                    await asyncio.to_thread(self.queue.retry, lease, exc.code)
+                    await asyncio.to_thread(
+                        self.queue.retry, lease, exc.code, min(5 * 2 ** (lease.attempt - 1), 60)
+                    )
                 else:
                     await asyncio.to_thread(self._fail, lease, exc.code)
         except Exception:
             # Do not log response bodies, secrets, or arbitrary exception text.
             LOG.error("Handler failed for job %s; scheduling bounded reconciliation.", lease.job_id)
             with suppress(LostLease):
-                await asyncio.to_thread(self.queue.retry, lease, "WORKER_HANDLER_ERROR")
+                await asyncio.to_thread(
+                    self.queue.retry,
+                    lease,
+                    "WORKER_HANDLER_ERROR",
+                    min(5 * 2 ** (lease.attempt - 1), 60),
+                )
         finally:
             for task in (work, heartbeat):
                 task.cancel()
@@ -80,7 +92,13 @@ class Worker:
 async def serve(once: bool = False) -> None:
     database = engine()
     # Only reviewed in-process adapters may register here. No metadata-driven import.
-    handlers: dict[str, Handler] = {"ingest": IdentityService(database).ingest}
+    handlers: dict[str, Handler] = {
+        "ingest": IdentityService(database).ingest,
+        "evaluate": ExecutionService(database).execute,
+        "verify": VerificationService(database).verify,
+        "report": ReportService(database).freeze,
+        "anchor": AnchorService(database).publish,
+    }
     worker = Worker(database, handlers)
     try:
         while True:

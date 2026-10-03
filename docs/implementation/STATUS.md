@@ -1,6 +1,6 @@
 # 真实进度与会话交接
 
-更新时间：2026-10-02；环境：用户 Windows 正式项目工作目录。
+更新时间：2026-10-03；环境：用户 Windows 正式项目工作目录。
 
 | Task ID | Status | 实施结果 |
 |---|---|---|
@@ -13,7 +13,13 @@
 | M0-07 | PARTIAL_EXTERNAL_BLOCKED | ERC-8004 真实 commit/ABI/许可与规范字节已锁；8004scan OpenAPI HTTP 403，不阻塞本地 M1 |
 | M1-01 | DONE | 三个自研合约、生成 ABI、14 项 Foundry 测试（含 256 次 fuzz）通过 |
 | M1-02 | DONE | 三合约真实部署、双 seed、持久 A/D、9 项真实 Anvil 测试及原生服务重启后的 HTTP 幂等复查通过 |
-| M1-03..08 | NOT_STARTED | 身份绑定、业务 worker、报告、存证和独立复核尚未实现 |
+| M1-03 | DONE | 真实快照、声明 review、owner/executor 双 EIP-712 签名与单次 nonce |
+| M1-04 | DONE | 授权、冻结意图、HTTP 发送与租约/crash reconcile 恢复 |
+| M1-05 | DONE | 独立 RPC/纯断言，真实 A PASS、D 成功回执但 SEMANTIC_MISMATCH；CI b04a04a 通过 |
+| M1-06 | DONE | 报告冻结、确定性 ZIP、并发/恢复/缺失/篡改拒绝、原生 A/D 报告 smoke 及166项全量回归通过 |
+| M1-07 | DONE | PostgreSQL publisher nonce/outbox、签名后广播恢复、真实 EvaluationAnchor 发布、独立安全 ZIP verifier |
+| M1-08 | DONE | 原生 API/worker/Anvil A/D 纵向演示；A/D bundle、A anchor、离线/在线 verifier、篡改拒绝 |
+| LOCAL-PG-JUNCTION | DONE | Windows PostgreSQL 改用 D:\web3-runtime 目录联接；R: 已移除，初始化、重启、数据完整性及13项定向测试通过 |
 
 ## 2026-10-02 / M0-01
 
@@ -155,3 +161,61 @@
 - Known limitations：health readiness 当前仅检查 DB/migration；链配置/实例在身份操作时核验。M1 评价执行、报告、发布、独立复核及完整 Compose E2E 尚未完成。Windows Docker WSL 和外部 OpenAPI 403 仍单列。
 - Branch：feat/foundation-m0-m1；M1-03 实现提交 eea511a 已推送预期 origin；本验收状态单独更新。
 - Next task：M1-04 授权边界、预持久化任务计划、执行/重启 reconciliation；不降低评分门槛。
+
+## 2026-10-02 / M1-04
+
+- Implemented：最小受控 grant 与撤权；payload-bound Idempotency-Key；当前 snapshot/review/EOA binding 及授权窗口检查；一次 functional slot 的 CSPRNG 请求/合成数据/expected facts/初始 dispatch/job 原子保存；计划及发送前链见证；真实 HTTP 执行、固定路径查询、可信 RPC 记录恢复；仅明确未接受时原 id/payload 有限重投。
+- Recovery/security：append-only attempts/observations/dispatch events；每次请求前授权与 lease fencing；跨 run 间隔、每 Agent active run 1、全局 evaluate 有效租约 2；取消未发送任务、已发送继续核对；撤权后禁止 Agent HTTP，仅可信 RPC 恢复；平台 RPC 失败保留 UNKNOWN，未实现健康窗口证明前不扣 Agent 超时分。
+- Files changed：evaluation/execution service、RPC record reconciliation、API/worker/jobs、共享 DTO 及生成契约、smoke_execution、11 个新增用例、ADR 0007/运行说明。
+- Commands executed：pytest 全量（FAIL_ON_SKIP=1）；ruff/mypy；44 Schema generate/check 与 TS generate；Vue build/test；Foundry/ABI check；重启原生 API/worker/A，执行真实 smoke_execution（包含重新绑定）。
+- Tests：146 Python passed/0 skipped、14 Foundry passed、2 Vue passed、mypy 41 files、ruff、44 Schema、前端 build 与 ABI 校验通过。完整 pytest 282.45s。关键用例启动独立 worker，在真实 HTTP 返回后 os._exit(86)，新 worker 只 GET 原 request，链上仅一条记录；旧 lease 写回拒绝。另覆盖发送前退出、并发同 key、配额、取消/撤权、RPC 拒绝连接等。
+- Live evidence：runtime/local-chain/execution-smoke.json 保存 A/D 的实际 run/grant/plan/observations，含各自候选 txHash；输出 IDENTITY_SMOKE_PASS 与 DISPATCH_SMOKE_PASS。候选尚未独立验证，因此两个 run 均不声称业务通过。
+- Compatibility：无 DB migration；CaseSlot 新增可选 synthetic_input（有值则校验摘要），RunPlan 新增 planning_evidence_refs，EvaluationRun 增加 cancel_requested；Schema/OpenAPI/TS 已生成。全量 pytest 使用端口 9101，已在 runbook 明确停止/恢复 demo A。
+- CI：M1-03 最新 ef5fede 的 run 37024686970 已核实 success；eea511a 的旧 run 因后续提交取消，并非失败。本次新代码 CI 待推送核实。
+- Known limitations：独立业务断言/评分/报告/发布/复核和完整 M1 Compose E2E 尚未完成；当前 run 处于 VERIFYING，未有业务断言的 settled slot 仍记 unknown。Windows Docker WSL、外部 OpenAPI 403 继续单列。
+- Branch：feat/foundation-m0-m1；M1-04 实现 8729af9 已推送预期 origin；CI run 37027935606 已启动、结果待核实。本验收状态单独更新。
+- Next task：M1-05：保存可信 RPC 的 tx/receipt/block/log，并独立验证 request/hash/executor/target/instance/deadline/finality；必须得到 A PASS 与 D 无关成功交易 FAIL。
+
+## 2026-10-03 / M1-05
+
+- Implemented：受信 RPC 原始结果采集、共享回放输入、纯任务关联断言、追加式 TaskLink/断言和 verify worker 作业；目标字节码摘要及紧邻发送前链头校验；GET verification API；独立进程 smoke 脚本。
+- Files changed：core/models/verification、record_verifier、adapters/evm/collector、application/verification、API/worker/execution/planner、48 份生成 Schema/TS、test_verification、smoke_verification、ADR 0008/运行说明。
+- Commands executed：pytest -q -x（FAIL_ON_SKIP=1）；pytest -q -x tests/integration/test_verification.py；ruff/mypy；generate_schemas/generate:types；前端 build/test；forge test/ABI check；独立原生 API/worker/A/D 的 smoke_verification。
+- Tests：定向首轮 6 passed / 1 failed，修正测试对正常 Agent 重复请求返回真实 revert 的错误预期后，预写成功交易另行独立采集并验证窗口。全量首轮 152 passed / 1 setup error（Agent 启动超过 30s）；只把进程启动等待调为 90s，业务窗口保持 60s，重跑 153 passed/0 skipped（414.60s）。补充独立回放校验平台实例 domain salt 后，相关 7 项测试再通过（156.72s），含真实 RPC 拒绝连接、另一 Anvil、不存在交易、错误执行者/目标的真实成功交易。ruff/mypy 45 files、48 Schema、前端 build/2 tests、Foundry 14 tests/ABI 校验通过。
+- CI：已核实上次提交 3019352 的 run 37028009864 为 success；8729af9 的旧 run 37027935606 被后续提交取消。本次 391d2c9 已推送，新 CI 结果待核实。
+- Live evidence：原生 API/worker 已加载新实现，A/D 已恢复；smoke_verification 退出 0，IDENTITY_SMOKE_PASS、DISPATCH_SMOKE_PASS、VERIFICATION_SMOKE_PASS。runtime/local-chain/verification-smoke.json 保存实际 run 和断言；A PASS，D receipt.success PASS 但 request/hash 不符，最终 FAIL/SEMANTIC_MISMATCH。未从 fixture 标签生成结论。
+- Compatibility：无 DB migration；旧计划缺 target_code_hash 时 UNKNOWN，不追填旧计划；新增 4 个共享核验模型及平台实例 domain salt 校验。新增断言与 TaskLink 继续 append-only/fencing。
+- Known limitations：M1-06/07/08 报告、存证、独立 bundle verifier、完整 E2E 尚未完成。未降低 policy 门槛。Windows Docker WSL 与外部 OpenAPI 403 仍单列；本次未声称本机容器通过。
+- Branch：feat/foundation-m0-m1；PR 授权规则 794c681、M1-05 实现 391d2c9 均已推送预期 origin；本验收状态另行提交。整项 M0+M1 尚未完成，尚未创建最终 PR。
+- Next task：M1-06：从槽位/观测/独立断言派生统计，冻结 PARTIAL/overall=null 报告及无循环承诺的证据包。
+
+## 2026-10-03 / M1-06
+
+- Implemented：纯规则重新执行任务断言并派生互斥目的统计；复用原 policy-v1/scoring_reference，保持20/10/10与80%/60%门槛，mapping不因人工确认默认正确；PARTIAL/overall=null，D保留关键冲突建议。report worker 在冻结前再查链上证据与实际 Anchor head；短事务 fencing/advisory lock、同run幂等、前一报告未发布时拒绝竞争previous；CAS/manifest/ReportCore无循环承诺、稳定ZIP导出、真实源码版本。
+- Files changed：core/reporting 与4个共享报告类型、application/reports、API/worker/verify入队、52份生成Schema/TS、smoke_reports、报告集成/manifest边界测试、ADR0009及运行文档。没有DB migration。
+- Commands executed：ruff/mypy；Schema generate/check、TS generate；pytest报告定向及全量（FAIL_ON_SKIP=1）；前端build/test；forge test/ABI check；原生新版API/worker的smoke_reports。
+- Tests：5项真实PG+Anvil报告集成通过（121.72s）；全量166 passed/0 skipped（591.52s）；mypy48 files、ruff、52 Schema、Vue2 tests/build、Foundry14 tests及ABI检查通过。覆盖A/D部分报告、完整文件承诺、固定JSON顺序与ZIP字节、真实密钥不出包、双作业仅一份revision且均成功、报告提交后作业ACK前中断恢复、旧lease拒绝、CAS修改/丢失拒绝。manifest另有8项循环和非可移植路径拒绝测试。
+- Live evidence：smoke_reports退出0，runtime/local-chain/report-a.zip（131066 bytes）及report-d.zip（131661 bytes），各132成员；report-smoke.json记录真实report_id/hash。A为PARTIAL/INSUFFICIENT_EVIDENCE，D为PARTIAL/NOT_RECOMMENDED，两者overall=null、回执NOT_REQUESTED。源码存在未提交实现时正确标记-dirty，没有声称来自干净release。
+- Runtime：原生API/worker已加载报告实现；全量测试期间A/D停止，完成后恢复。报告smoke复用已核验任务，不重新执行Agent写入。已冻结的本地A/D报告应在M1-07继续发布；不要新建竞争previous的未发布报告。
+- Known limitations：发布outbox、真实锚定和独立ZIP verifier尚未实现；导出成功不等于独立复核通过。无Git部署需配置实际CODE_VERSION，完整Compose/E2E收尾归M1-08。本机Docker WSL与外部OpenAPI403仍单列。
+- CI/Git：上一阶段b04a04a的run37033866824核实success；391d2c9旧run被后续提交取消。本次实现3f052d3已推送feat/foundation-m0-m1至预期origin，暂存diff/实际密钥/大小检查通过，新CI待核实。本验收状态另行提交；M1整体仍未完成。
+- Next task：M1-07：持久签名/nonce后广播、unknown broadcast reconcile、独立安全ZIP与规则复算、可信配置下真实Anchor核验、篡改/换链测试。
+
+## 2026-10-03 / LOCAL-PG-JUNCTION
+
+- Implemented：按用户要求创建 `D:\web3-runtime` NTFS 目录联接，指向原中文项目的 runtime；local_postgres.py 自动创建/复用并验证同一目录，拒绝同名冲突和非 ASCII 入口。删除动态 subst 逻辑及未使用的 BIN 常量；原中文路径、文件、数据库凭证保持不变。
+- Migration：切换前记录数据库 cluster system_identifier、26 张 public 表的行数和逐行内容 SHA-256；通过 pg_dump -Fc 保存 `runtime/backups/before-runtime-junction.dump`（135228 bytes，Git 忽略），pg_restore --list 验证可读。正常停库后通过目录联接重启；核对 R: 仍指向原 runtime 后移除该映射及 postgres-drive.json。移除 R: 后再次 stop/start/status 均退出 0，实际 postgres.exe/data_directory 均为 D:/web3-runtime 路径，未重新生成盘符。
+- Commands/tests：用目录联接的 initdb 初始化唯一临时 cluster 成功并仅清理该临时目录；真实 psycopg SQL 连接/SELECT 1 通过；两次重启后的 cluster 标识及26张表全部行内容摘要均与切换前一致。`FAIL_ON_SKIP=1 .venv/Scripts/python.exe -m pytest -q tests/unit/test_local_postgres.py tests/integration/test_database.py tests/integration/test_api.py` 退出 0，13 passed/0 skipped（54.80s）。ruff check、ruff format --check 和 git diff --check 均退出 0。原有 Starlette/httpx、websockets 弃用提示仍存在。
+- Files changed：scripts/local_postgres.py、tests/unit/test_local_postgres.py、README、LOCAL_RUNTIME、ADR0002、PLAN、STATUS。临时检查脚本和对比摘要保存在本次聊天 work 目录；备份仅在忽略的 runtime，未暂存凭证或数据。
+- Git：从干净 2bcc6d6 创建本地短分支 `fix/postgres-runtime-junction`；本节与实现一起本地提交，实际 SHA 见 `git log -1`；NOT_PUSHED。用户此次授权为本地修复，未执行远程发布。
+- Limitations/next task：目录联接在数据库运行期间保留；同盘另一个项目占用同名入口时会明确拒绝。此次仅验收本地 PostgreSQL 入口及相关 DB/API 测试，未重新运行全量链/前端/Compose 验收。下一业务任务仍为 M1-07，不变更原里程碑结果。
+
+## 2026-10-03 / M1-07 + M1-08
+
+- Implemented：`AnchorService` 通过 `anchor_jobs`/`signer_nonces` 持久化 nonce、signed transaction 和状态；广播异常按既有哈希 reconcile，回执追加到 `anchor_receipts`；新增报告/评价 anchor API 和 worker handler。`packages/verifier` 提供独立 `reputation-verify` CLI，安全读取 ZIP、核对全部 manifest/CAS、重放 `RecordVerificationInput`、重算断言/统计/评分，并在操作者 RPC 下核对链实例、交易、合约记录和确认深度。
+- Tests：verifier path-traversal 单测通过；ruff、mypy、52 schema drift check 通过；冻结 `runtime/local-chain-v2` 上真实 PostgreSQL + Anvil + A/D 流程完成 identity、dispatch、verification、reports；`M1_ACCEPTANCE_PASS`：A/D 两个 bundle，A 真实 EvaluationAnchor CONFIRMED，离线 anchor `NOT_CHECKED`，可信 RPC online `CONFIRMED`，policy/blob tamper 拒绝。
+- Live evidence：`runtime/local-chain-v2/report-a.zip`、`report-d.zip`、`report-smoke.json` 为忽略的本地运行产物；A/D 均 PARTIAL、overall=null，A 已发布。旧 `runtime/local-chain` 报告保留，未覆盖；新鲜链实例因旧 Anvil 已不可恢复而使用隔离 `local-chain-v2`，不把旧 bundle 描述为干净发行复现。
+- Security：signed transaction、publisher secret、数据库凭据未进入 Git 或 bundle；verifier 不信任包内 RPC；无 RPC 不宣称链上成功；ZIP 拒绝路径穿越、重复/符号链接/高压缩比成员及未承诺文件。
+- Limitations：本轮继续保留 Windows Docker WSL import 和 8004scan HTTP 403 单列；本地 M1 使用 Anvil，不代表公网最终性。M2 三能力完整评分未展开。
+- Git：当前工作分支为 `feat/m1-07-m1-08`，包含之前保留的本地 PostgreSQL junction 提交；M1-07/M1-08 实现提交 `6c340b5`，状态提交、push、PR 和 required CI 仍待完成。
+- Next task：M2（用户未授权扩展，本轮停止）。
