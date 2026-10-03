@@ -4,6 +4,8 @@
 
 Windows 原生基础环境（含中文路径验证）：
 
+`scripts/local_postgres.py` 自动使用项目所在盘根目录的 `web3-runtime` 目录联接（本机 `D:\web3-runtime`）访问原 runtime；中文项目目录和文件保持原位，不再创建 R: 等虚拟盘符。目录联接需在数据库运行期间保留；同名路径指向其他目录时脚本拒绝使用，不覆盖已有文件。
+
 ```powershell
 . ./scripts/tools.ps1 -Install
 uv sync --locked --all-packages

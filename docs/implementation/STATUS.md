@@ -18,6 +18,7 @@
 | M1-05 | DONE | 独立 RPC/纯断言，真实 A PASS、D 成功回执但 SEMANTIC_MISMATCH；CI b04a04a 通过 |
 | M1-06 | DONE | 报告冻结、确定性 ZIP、并发/恢复/缺失/篡改拒绝、原生 A/D 报告 smoke 及166项全量回归通过 |
 | M1-07..08 | NOT_STARTED | 发布 outbox、独立 ZIP verifier 和完整 M1 Compose/E2E 尚未完成 |
+| LOCAL-PG-JUNCTION | DONE | Windows PostgreSQL 改用 D:\web3-runtime 目录联接；R: 已移除，初始化、重启、数据完整性及13项定向测试通过 |
 
 ## 2026-10-02 / M0-01
 
@@ -198,3 +199,12 @@
 - Known limitations：发布outbox、真实锚定和独立ZIP verifier尚未实现；导出成功不等于独立复核通过。无Git部署需配置实际CODE_VERSION，完整Compose/E2E收尾归M1-08。本机Docker WSL与外部OpenAPI403仍单列。
 - CI/Git：上一阶段b04a04a的run37033866824核实success；391d2c9旧run被后续提交取消。本次实现3f052d3已推送feat/foundation-m0-m1至预期origin，暂存diff/实际密钥/大小检查通过，新CI待核实。本验收状态另行提交；M1整体仍未完成。
 - Next task：M1-07：持久签名/nonce后广播、unknown broadcast reconcile、独立安全ZIP与规则复算、可信配置下真实Anchor核验、篡改/换链测试。
+
+## 2026-10-03 / LOCAL-PG-JUNCTION
+
+- Implemented：按用户要求创建 `D:\web3-runtime` NTFS 目录联接，指向原中文项目的 runtime；local_postgres.py 自动创建/复用并验证同一目录，拒绝同名冲突和非 ASCII 入口。删除动态 subst 逻辑及未使用的 BIN 常量；原中文路径、文件、数据库凭证保持不变。
+- Migration：切换前记录数据库 cluster system_identifier、26 张 public 表的行数和逐行内容 SHA-256；通过 pg_dump -Fc 保存 `runtime/backups/before-runtime-junction.dump`（135228 bytes，Git 忽略），pg_restore --list 验证可读。正常停库后通过目录联接重启；核对 R: 仍指向原 runtime 后移除该映射及 postgres-drive.json。移除 R: 后再次 stop/start/status 均退出 0，实际 postgres.exe/data_directory 均为 D:/web3-runtime 路径，未重新生成盘符。
+- Commands/tests：用目录联接的 initdb 初始化唯一临时 cluster 成功并仅清理该临时目录；真实 psycopg SQL 连接/SELECT 1 通过；两次重启后的 cluster 标识及26张表全部行内容摘要均与切换前一致。`FAIL_ON_SKIP=1 .venv/Scripts/python.exe -m pytest -q tests/unit/test_local_postgres.py tests/integration/test_database.py tests/integration/test_api.py` 退出 0，13 passed/0 skipped（54.80s）。ruff check、ruff format --check 和 git diff --check 均退出 0。原有 Starlette/httpx、websockets 弃用提示仍存在。
+- Files changed：scripts/local_postgres.py、tests/unit/test_local_postgres.py、README、LOCAL_RUNTIME、ADR0002、PLAN、STATUS。临时检查脚本和对比摘要保存在本次聊天 work 目录；备份仅在忽略的 runtime，未暂存凭证或数据。
+- Git：从干净 2bcc6d6 创建本地短分支 `fix/postgres-runtime-junction`；本节与实现一起本地提交，实际 SHA 见 `git log -1`；NOT_PUSHED。用户此次授权为本地修复，未执行远程发布。
+- Limitations/next task：目录联接在数据库运行期间保留；同盘另一个项目占用同名入口时会明确拒绝。此次仅验收本地 PostgreSQL 入口及相关 DB/API 测试，未重新运行全量链/前端/Compose 验收。下一业务任务仍为 M1-07，不变更原里程碑结果。

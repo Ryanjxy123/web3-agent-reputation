@@ -11,3 +11,5 @@ Windows 缺失工具优先安装到被忽略的 runtime/tools，不修改系统 
 回归：原 policy-v1 与 36 条 golden/reference 测试保持不变。仅将参考模块中歧义变量 l 重命名为 timely，评分公式不变。架构测试禁止 core 网络/DB依赖，禁止 verifier 导入平台。
 
 M0-04 实测：EDB Windows initdb 在当前中文安装路径将 ANSI 路径嵌入 UTF-8 初始化 SQL 后失败。使用动态空闲 subst 盘符仅映射项目 runtime；二进制和数据仍位于唯一正式项目中，Git/代码/文档操作仍在原中文路径。PostgreSQL 17.11 的 initdb、迁移、事务和并发测试通过。Compose/Linux 不需要此 Windows 兼容层。
+
+2026-10-03 本地运行修复：用项目所在盘根目录的 `web3-runtime` NTFS 目录联接替代上述 subst 盘符。本机 `D:\web3-runtime` 指向原 runtime；脚本自动创建、核对目标，拒绝同名冲突，不再读写 postgres-drive.json 或创建 R:。保留中文目录、数据库和凭证；真实 initdb 及移除 R: 后的重启与 SQL 连接已验证。旧 subst 方案仅为历史记录。
