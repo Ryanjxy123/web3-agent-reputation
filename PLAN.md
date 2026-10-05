@@ -45,6 +45,7 @@
 - [x] M0 仓库与契约基线通过；Windows 原生实测、Linux Compose CI 实测，本机 Docker WSL 问题单列。
 - [x] M1 本地真实纵向闭环通过。
 - [ ] M2 三维规则与八类样本通过。
+  - [x] M2-01A：三能力版本化模板与声明候选提取完成；候选仍须人工确认，不产生分数或任务。
 - [ ] M3 产品与安全恢复通过。
 - [ ] M4 公网接入与最终验收通过。
 
@@ -52,7 +53,7 @@
 发现记录：私有仓库已认证并克隆，原 main 仅含 README，历史已保留。详见 ENVIRONMENT/STATUS；公网接口/部署/依赖仍需实测复核。
 关键决策记录：`docs/adr/0001-foundation.md`。
 会话交接：每轮把已完成 task_id、未解决风险、测试路径、Git状态、下一条命令写入 STATUS，不依赖聊天记忆。
-当前下一任务：M2（本次不展开）。M1-07 完成持久签名/nonce outbox、广播恢复、真实 EvaluationAnchor 发布和独立安全 ZIP verifier；M1-08 完成 A/D 真实 bundle、A 链上发布、离线/在线独立验证及篡改拒绝。
+当前下一任务：M2-01B，为三种能力补充可执行测试任务契约、受控样本与确定性真值；之后才接入三维统计与评分。M1-07 完成持久签名/nonce outbox、广播恢复、真实 EvaluationAnchor 发布和独立安全 ZIP verifier；M1-08 完成 A/D 真实 bundle、A 链上发布、离线/在线独立验证及篡改拒绝。
 
 2026-10-03 本地环境修复：PostgreSQL 中文路径兼容入口改为项目所在盘根目录的 `web3-runtime` 目录联接；本机已移除 R:，保持原目录与数据。验证和本地 Git 状态见 STATUS 的 LOCAL-PG-JUNCTION；下一业务任务仍为 M1-07。
 

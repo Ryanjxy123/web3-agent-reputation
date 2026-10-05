@@ -219,3 +219,13 @@
 - Limitations：本轮继续保留 Windows Docker WSL import 和 8004scan HTTP 403 单列；本地 M1 使用 Anvil，不代表公网最终性。M2 三能力完整评分未展开。
 - Git：当前工作分支为 `feat/m1-07-m1-08`，包含之前保留的本地 PostgreSQL junction 提交；M1-07/M1-08 实现提交 `6c340b5`，状态提交、push、PR 和 required CI 仍待完成。
 - Next task：M2（用户未授权扩展，本轮停止）。
+
+## 2026-10-05 / M2-01A
+
+- Implemented：新增 `get_tx_status`、`verify_record` 与 `anchor_record` 的版本化能力模板；每个模板固定 10 个功能测试槽位类别。新增纯规则声明候选提取器，能保留 Unicode 原文位置，区分明确支持、明确不支持、计划/模糊与泛化未映射声明。
+- Boundary：候选提取不联网、不调用大模型、不确认能力、不创建任务、不改变分数。M1 的 `anchor_record` 任务 DTO 仍未扩展；三能力执行、受控样本、三维统计和评分仍属于后续 M2 工作。
+- Tests：`.venv\\Scripts\\python.exe -m pytest -p no:cacheprovider --basetemp .\\runtime\\pytest-tmp-m2-escalated tests/reference tests/unit -q` → 110 passed, 1 external dependency deprecation warning；`.venv\\Scripts\\mypy.exe -p reputation_core` → Success；新增候选提取定向测试 5 passed；Ruff 通过。
+- Environment：使用仓库锁定的 Python 3.12.4 和依赖。Windows sandbox 阻止 pytest 创建临时目录，测试以仓库 `runtime` 临时目录在受控的非 sandbox 执行后通过；未把该环境限制误记为测试失败。
+- Branch：`feat/m2-capability-suites`。
+- Commit / Push：PENDING，待检查 staged diff、提交并推送。
+- Next task：M2-01B：为三种能力定义可执行任务 DTO/适配器边界与受控 fixture 真值，保持评分器和 M1 报告兼容。
