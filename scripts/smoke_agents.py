@@ -3,11 +3,14 @@
 import argparse
 import asyncio
 import json
+import os
 import secrets
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 from reputation_core.models import ControlledTaskView, LocalDeployment, TaskEnvelope
 from reputation_platform.application.local_deploy import contract_abi, local_web3, write_json
+from reputation_platform.configuration import controlled_fixture_ports
 from reputation_platform.infrastructure.db.connection import repo_root
 from reputation_platform.infrastructure.network.safe_http import SafeHttpClient
 from web3 import Web3
@@ -15,7 +18,7 @@ from web3 import Web3
 
 async def main(recheck: bool = False) -> None:
     root = repo_root()
-    runtime = root / "runtime/local-chain"
+    runtime = Path(os.environ.get("LOCAL_RUNTIME_DIR", root / "runtime/local-chain"))
     deployment = LocalDeployment.model_validate_json((runtime / "deployment.json").read_bytes())
     samples = json.loads((runtime / "samples.json").read_bytes())
     web3 = local_web3(deployment.rpc_url)
@@ -23,13 +26,16 @@ async def main(recheck: bool = False) -> None:
         address=Web3.to_checksum_address(deployment.record.address),
         abi=contract_abi(root, "DemoRecordRegistry"),
     )
-    http = SafeHttpClient(frozenset({"http://127.0.0.1:9101", "http://127.0.0.1:9102"}))
+    ports = controlled_fixture_ports()
+    http = SafeHttpClient(
+        frozenset(f"http://127.0.0.1:{port}" for port in ports)
+    )
     results = []
     previous = (
         json.loads((runtime / "protocol-smoke.json").read_bytes())["results"] if recheck else []
     )
     try:
-        for sample, port in (("a", 9101), ("d", 9102)):
+        for sample, port in (("a", ports[0]), ("d", ports[1])):
             task = TaskEnvelope(
                 request_id="0x" + secrets.token_hex(32),
                 record_hash="0x" + secrets.token_hex(32),
@@ -52,7 +58,11 @@ async def main(recheck: bool = False) -> None:
                 json=task.model_dump(mode="json"),
                 request_id=task.request_id,
             )
-            assert response.status == 202
+            assert response.status == 202, (
+                response.status,
+                response.body,
+                task.model_dump(mode="json"),
+            )
             async with asyncio.timeout(65):
                 while True:
                     response = await http.request("GET", origin, "/tasks/" + task.request_id)

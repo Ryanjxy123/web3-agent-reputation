@@ -1,6 +1,7 @@
 """Verify live API, web proxy and Anvil without disclosing credentials."""
 
 import json
+import os
 import time
 import urllib.error
 import urllib.request
@@ -23,7 +24,7 @@ def main() -> None:
                     raise RuntimeError(f"Runtime health did not become ready: {url}") from None
                 time.sleep(2)
     request = urllib.request.Request(
-        "http://127.0.0.1:8545",
+        os.environ.get("LOCAL_RPC_URL", "http://127.0.0.1:8545"),
         json.dumps({"jsonrpc": "2.0", "method": "eth_chainId", "params": [], "id": 1}).encode(),
         {"Content-Type": "application/json"},
     )

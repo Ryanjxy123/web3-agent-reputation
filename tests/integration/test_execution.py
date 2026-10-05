@@ -17,6 +17,7 @@ from reputation_core.evidence import hash_json
 from reputation_core.models import RunPlan
 from reputation_platform.application.execution import ExecutionService
 from reputation_platform.application.local_deploy import contract_abi
+from reputation_platform.configuration import controlled_fixture_ports
 from reputation_platform.infrastructure.db.jobs import JobQueue, Lease, LostLease
 from reputation_platform.infrastructure.db.tables import (
     attempts,
@@ -48,7 +49,8 @@ __all__ = ["flow", "identity_chain"]
 def prepared(flow, request):
     client, identity, samples, keys, web3, deployment, runtime = flow
     sample = getattr(request, "param", "a")
-    port = 9101 if sample == "a" else 9102
+    ports = controlled_fixture_ports()
+    port = ports[0] if sample == "a" else ports[1]
     replay = None
     if sample == "d":
         contract = web3.eth.contract(

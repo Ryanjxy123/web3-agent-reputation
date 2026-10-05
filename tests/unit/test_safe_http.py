@@ -3,22 +3,45 @@ import json
 
 import httpx
 import pytest
+from reputation_platform.configuration import controlled_fixture_ports
 from reputation_platform.infrastructure.network.safe_http import NetworkPolicyError, SafeHttpClient
 
-ORIGIN = "http://127.0.0.1:9101"
+A_PORT, _ = controlled_fixture_ports()
+ORIGIN = f"http://127.0.0.1:{A_PORT}"
+
+
+@pytest.mark.parametrize(
+    "name,value,error",
+    [
+        ("FIXTURE_PORT_A", "not-a-port", "must be an integer"),
+        ("FIXTURE_PORT_A", "1023", "between 1024 and 65535"),
+        ("FIXTURE_PORT_D", "65536", "between 1024 and 65535"),
+    ],
+)
+def test_controlled_fixture_ports_reject_invalid_values(monkeypatch, name, value, error):
+    monkeypatch.setenv(name, value)
+    with pytest.raises(ValueError, match=error):
+        controlled_fixture_ports()
+
+
+def test_controlled_fixture_ports_must_be_distinct(monkeypatch):
+    monkeypatch.setenv("FIXTURE_PORT_A", "19101")
+    monkeypatch.setenv("FIXTURE_PORT_D", "19101")
+    with pytest.raises(ValueError, match="must be distinct"):
+        controlled_fixture_ports()
 
 
 @pytest.mark.parametrize(
     "origin",
     [
-        "http://169.254.169.254:9101",
+        f"http://169.254.169.254:{A_PORT}",
         "http://127.0.0.1:5432",
-        "http://localhost:9101",
-        "http://[::1]:9101",
+        f"http://localhost:{A_PORT}",
+        f"http://[::1]:{A_PORT}",
         "https://example.com",
-        "http://user:password@127.0.0.1:9101",
-        "http://fixture-a:9101/redirect",
-        "http://127.0.0.1:9101?url=http://secret",
+        f"http://user:password@127.0.0.1:{A_PORT}",
+        f"http://fixture-a:{A_PORT}/redirect",
+        f"http://127.0.0.1:{A_PORT}?url=http://secret",
     ],
 )
 def test_configuration_has_no_global_private_ip_bypass(origin):

@@ -11,6 +11,8 @@ from reputation_core.evidence import canonical_bytes
 from reputation_core.models import LocalDeployment
 from web3 import Web3
 
+from reputation_platform.configuration import controlled_fixture_ports
+
 from .local_deploy import SetupJournal, contract_abi, local_web3, verify_deployment, write_json
 
 
@@ -24,6 +26,7 @@ def seed(
         os.environ.get("FIXTURE_HOST_A", hosts[0]),
         os.environ.get("FIXTURE_HOST_D", hosts[1]),
     )
+    ports = controlled_fixture_ports()
     runtime = runtime or root / "runtime/local-chain"
     web3 = local_web3(deployment.rpc_url)
     verify_deployment(web3, deployment, root)
@@ -40,20 +43,23 @@ def seed(
     state_path = runtime / "seed-intent.json"
     if state_path.exists():
         intent = json.loads(state_path.read_bytes())
-        if intent["chain_instance"] != deployment.chain.instance_hash or intent["hosts"] != list(
-            hosts
+        if (
+            intent["chain_instance"] != deployment.chain.instance_hash
+            or intent["hosts"] != list(hosts)
+            or intent.get("ports", [9101, 9102]) != list(ports)
         ):
             raise ValueError("SEED_INTENT_CONFLICT")
     else:
         intent = {
             "chain_instance": deployment.chain.instance_hash,
             "hosts": list(hosts),
+            "ports": list(ports),
             "replay_request": "0x" + secrets.token_hex(32),
             "replay_record": "0x" + secrets.token_hex(32),
         }
         write_json(state_path, intent)
     result = {}
-    for sample, host, port in (("a", hosts[0], 9101), ("d", hosts[1], 9102)):
+    for sample, host, port in (("a", hosts[0], ports[0]), ("d", hosts[1], ports[1])):
         if host not in {"127.0.0.1", f"fixture-{sample}"}:
             raise ValueError("CONTROLLED_HOST_REQUIRED")
         owner_key, executor_key = (

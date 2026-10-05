@@ -15,6 +15,7 @@ from web3.exceptions import ContractLogicError, Web3Exception
 
 from reputation_platform.application.errors import ApplicationError
 from reputation_platform.application.local_deploy import contract_abi, local_web3, verify_deployment
+from reputation_platform.configuration import controlled_fixture_ports
 
 
 class DemoMetadata(Model):
@@ -94,11 +95,12 @@ class DemoRegistryReader:
             ids = [endpoint.endpoint_id for endpoint in metadata.endpoints]
             if len(set(ids)) != len(ids):
                 raise ValueError("duplicate endpoint")
+            allowed_ports = set(controlled_fixture_ports())
             for endpoint in metadata.endpoints:
                 if (
                     endpoint.scheme != "http"
                     or endpoint.host not in {"127.0.0.1", "fixture-a", "fixture-d"}
-                    or endpoint.port not in {9101, 9102}
+                    or endpoint.port not in allowed_ports
                     or endpoint.path != "/tasks"
                 ):
                     raise ValueError("uncontrolled endpoint")
