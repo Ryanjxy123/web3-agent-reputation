@@ -227,5 +227,5 @@
 - Tests：`.venv\\Scripts\\python.exe -m pytest -p no:cacheprovider --basetemp .\\runtime\\pytest-tmp-m2-escalated tests/reference tests/unit -q` → 110 passed, 1 external dependency deprecation warning；`.venv\\Scripts\\mypy.exe -p reputation_core` → Success；新增候选提取定向测试 5 passed；Ruff 通过。
 - Environment：使用仓库锁定的 Python 3.12.4 和依赖。Windows sandbox 阻止 pytest 创建临时目录，测试以仓库 `runtime` 临时目录在受控的非 sandbox 执行后通过；未把该环境限制误记为测试失败。
 - Branch：`feat/m2-capability-suites`。
-- Commit / Push：PENDING，待检查 staged diff、提交并推送。
+- Commit / Push：`2404c80`（`feat(core): add capability templates and claim candidates`）已推送至 `origin/feat/m2-capability-suites`。当前环境未安装 GitHub CLI，尚未创建 PR；主分支未改动。
 - Next task：M2-01B：为三种能力定义可执行任务 DTO/适配器边界与受控 fixture 真值，保持评分器和 M1 报告兼容。
