@@ -3,22 +3,24 @@ import json
 
 import httpx
 import pytest
+from reputation_platform.configuration import controlled_fixture_ports
 from reputation_platform.infrastructure.network.safe_http import NetworkPolicyError, SafeHttpClient
 
-ORIGIN = "http://127.0.0.1:9101"
+A_PORT, _ = controlled_fixture_ports()
+ORIGIN = f"http://127.0.0.1:{A_PORT}"
 
 
 @pytest.mark.parametrize(
     "origin",
     [
-        "http://169.254.169.254:9101",
+        f"http://169.254.169.254:{A_PORT}",
         "http://127.0.0.1:5432",
-        "http://localhost:9101",
-        "http://[::1]:9101",
+        f"http://localhost:{A_PORT}",
+        f"http://[::1]:{A_PORT}",
         "https://example.com",
-        "http://user:password@127.0.0.1:9101",
-        "http://fixture-a:9101/redirect",
-        "http://127.0.0.1:9101?url=http://secret",
+        f"http://user:password@127.0.0.1:{A_PORT}",
+        f"http://fixture-a:{A_PORT}/redirect",
+        f"http://127.0.0.1:{A_PORT}?url=http://secret",
     ],
 )
 def test_configuration_has_no_global_private_ip_bypass(origin):

@@ -7,6 +7,8 @@ from urllib.parse import urlsplit
 import httpx
 from reputation_core.evidence import strict_json
 
+from reputation_platform.configuration import controlled_fixture_ports
+
 MAX_BODY = 1024 * 1024
 
 
@@ -26,13 +28,14 @@ class SafeHttpClient:
     ):
         if not allowed_origins:
             raise NetworkPolicyError("No controlled targets configured")
+        controlled_ports = set(controlled_fixture_ports())
         for origin in allowed_origins:
             parsed = urlsplit(origin)
             if parsed.scheme != "http" or parsed.username or parsed.password or parsed.path:
                 raise NetworkPolicyError("Invalid controlled target")
             if parsed.hostname not in {"127.0.0.1", "fixture-a", "fixture-d"}:
                 raise NetworkPolicyError("Only exact controlled demo hosts are supported")
-            if parsed.port not in {9101, 9102} or parsed.query or parsed.fragment:
+            if parsed.port not in controlled_ports or parsed.query or parsed.fragment:
                 raise NetworkPolicyError("Invalid controlled port")
         self.origins = allowed_origins
         self.client = httpx.AsyncClient(

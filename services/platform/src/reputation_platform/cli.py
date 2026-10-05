@@ -4,6 +4,7 @@ import argparse
 import asyncio
 import importlib.metadata
 import json
+import os
 import shutil
 import sys
 from pathlib import Path
@@ -16,7 +17,9 @@ def main() -> int:
     )
     parser.add_argument("command", choices=["doctor", "migrate", "worker", "deploy-local", "seed"])
     parser.add_argument("--once", action="store_true")
-    parser.add_argument("--rpc-url", default="http://127.0.0.1:8545")
+    parser.add_argument(
+        "--rpc-url", default=os.environ.get("LOCAL_RPC_URL", "http://127.0.0.1:8545")
+    )
     parser.add_argument(
         "--runtime-dir", help="Local setup directory inside this repository's runtime folder"
     )

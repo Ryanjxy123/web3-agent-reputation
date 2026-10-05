@@ -1,6 +1,6 @@
 # 真实进度与会话交接
 
-更新时间：2026-10-03；环境：用户 Windows 正式项目工作目录。
+更新时间：2026-10-06；环境：用户 Windows 正式项目工作目录。
 
 | Task ID | Status | 实施结果 |
 |---|---|---|
@@ -219,3 +219,13 @@
 - Limitations：本轮继续保留 Windows Docker WSL import 和 8004scan HTTP 403 单列；本地 M1 使用 Anvil，不代表公网最终性。M2 三能力完整评分未展开。
 - Git：当前工作分支为 `feat/m1-07-m1-08`，包含之前保留的本地 PostgreSQL junction 提交；M1-07/M1-08 实现提交 `6c340b5`，状态提交、push、PR 和 required CI 仍待完成。
 - Next task：M2（用户未授权扩展，本轮停止）。
+
+## 2026-10-06 / WINDOWS-LOCAL-RUNTIME-SETUP
+
+- Implemented：从私有 GitHub 仓库克隆 `main`；全部 Python、Node、pnpm、Foundry、PostgreSQL 与 solc 工具安装在 Git 忽略的项目目录。`tools.ps1` 在新 PowerShell 中恢复项目本地 Python 3.12.4、Node 22.17.0、pnpm 10.12.4、uv 缓存和 solc 0.8.30，不写系统 PATH、Python 注册表或全局包目录。
+- Windows compatibility：本机 Hyper-V 排除 8534–9156 中的多个端口段，默认 8545/9101/9102 无法绑定。新增严格校验的 `LOCAL_RPC_URL`、`FIXTURE_PORT_A`、`FIXTURE_PORT_D` 覆盖；本机 `.env` 使用 18545/19101/19102，默认值和 Compose 内部端口不变。seed、注册元数据、受控 HTTP、测试和 smoke 共用相同配置；`smoke_agents.py` 同时尊重 `LOCAL_RUNTIME_DIR`。
+- Runtime：PostgreSQL 17.11 运行于 127.0.0.1:55432；Anvil 运行于 127.0.0.1:18545，并每秒持久化到忽略的 `runtime/local-chain-v2/anvil-state.json`；API、worker、Vue、fixture A/D 已后台启动，PID 与日志位于 `runtime`。API/前端分别为 127.0.0.1:8000/5173。
+- Tests：`uv run --env-file .env --all-packages python scripts/check.py` 退出 0；168 Python passed/0 failed、Ruff、mypy 52 files、52 Schema、生成 TS 无漂移、Vue build + 2 tests、Foundry 14 tests（含 256 fuzz）、3 ABI 全通过。仅保留既有 Starlette/httpx、websockets 弃用提示及受限 `.pytest_cache` 警告。
+- Live acceptance：`LIVE_RUNTIME_PASS` 与 `PROTOCOL_SMOKE_PASS --recheck` 通过；此前同轮完成 `M1_ACCEPTANCE_PASS`，覆盖 A/D 真实调用、A PASS、D 成功回执但 SEMANTIC_MISMATCH、PARTIAL bundle、A anchor、离线/在线 verifier 和篡改拒绝。旧链运行产物保留在忽略的 runtime，未删除或伪装为当前链。
+- Git：本地分支 `fix/windows-local-runtime-ports`；尚未提交或推送。用户要求为本地拉取和环境配置，未执行远程发布。
+- Next task：业务里程碑仍为 M2；本地环境任务完成，不扩大到公网或主网。

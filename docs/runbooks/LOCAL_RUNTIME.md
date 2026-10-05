@@ -6,6 +6,8 @@ Windows 原生基础环境（含中文路径验证）：
 
 `scripts/local_postgres.py` 自动使用项目所在盘根目录的 `web3-runtime` 目录联接（本机 `D:\web3-runtime`）访问原 runtime；中文项目目录和文件保持原位，不再创建 R: 等虚拟盘符。目录联接需在数据库运行期间保留；同名路径指向其他目录时脚本拒绝使用，不覆盖已有文件。
 
+若 Windows/Hyper-V 将默认端口列入排除范围，可在 `.env` 和启动服务的终端设置 `LOCAL_RPC_URL`、`FIXTURE_PORT_A`、`FIXTURE_PORT_D`（例如 `http://127.0.0.1:18545`、19101、19102）。deploy、seed、受控出口、smoke 与测试会共同读取这些值；Compose 内部网络仍使用默认端口。
+
 ```powershell
 . ./scripts/tools.ps1 -Install
 uv sync --locked --all-packages
@@ -15,6 +17,8 @@ uv run --all-packages python scripts/local_postgres.py start
 uv run --all-packages reputation migrate
 uv run --env-file .env --all-packages uvicorn reputation_platform.api.app:create_app --factory --host 127.0.0.1 --port 8000 --no-access-log
 ```
+
+首次安装后，新终端执行 `. ./scripts/tools.ps1` 会恢复项目本地 Node、Python、pnpm/Corepack、uv 缓存和 solc 路径；这些设置只影响当前 PowerShell 进程。
 
 另开终端运行 `uv run --all-packages reputation worker`。worker 已接入 ingest/evaluate/verify/report handler；领取、心跳和 fencing 使用 PostgreSQL。`/health/ready` 当前检查 PostgreSQL 迁移版本；本地链配置与实例在执行身份操作时核验，不能把基础 readiness 当完整链路就绪。注册仅创建未核验候选，不代表测试通过。
 
