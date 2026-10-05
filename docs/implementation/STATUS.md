@@ -227,5 +227,5 @@
 - Runtime：PostgreSQL 17.11 运行于 127.0.0.1:55432；Anvil 运行于 127.0.0.1:18545，并每秒持久化到忽略的 `runtime/local-chain-v2/anvil-state.json`；API、worker、Vue、fixture A/D 已后台启动，PID 与日志位于 `runtime`。API/前端分别为 127.0.0.1:8000/5173。
 - Tests：`uv run --env-file .env --all-packages python scripts/check.py` 退出 0；172 Python passed/0 failed、Ruff、mypy 52 files、52 Schema、生成 TS 无漂移、Vue build + 2 tests、Foundry 14 tests（含 256 fuzz）、3 ABI 全通过。仅保留既有 Starlette/httpx、websockets 弃用提示及受限 `.pytest_cache` 警告。
 - Live acceptance：`LIVE_RUNTIME_PASS` 与 `PROTOCOL_SMOKE_PASS --recheck` 通过；此前同轮完成 `M1_ACCEPTANCE_PASS`，覆盖 A/D 真实调用、A PASS、D 成功回执但 SEMANTIC_MISMATCH、PARTIAL bundle、A anchor、离线/在线 verifier 和篡改拒绝。旧链运行产物保留在忽略的 runtime，未删除或伪装为当前链。
-- Git：本地分支 `fix/windows-local-runtime-ports`，基础提交 `0855e03`；PR 清理与远端状态以本节后续记录为准。
+- Git：分支 `fix/windows-local-runtime-ports` 已推送；实现提交 `0855e03`、清理提交 `13db4fd`；PR #3：`https://github.com/Ryanjxy123/web3-agent-reputation/pull/3`。required checks 已触发，最终结果以 PR 页面为准。
 - Next task：业务里程碑仍为 M2；本地环境任务完成，不扩大到公网或主网。
