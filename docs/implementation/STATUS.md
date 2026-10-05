@@ -222,10 +222,10 @@
 
 ## 2026-10-06 / WINDOWS-LOCAL-RUNTIME-SETUP
 
-- Implemented：从私有 GitHub 仓库克隆 `main`；全部 Python、Node、pnpm、Foundry、PostgreSQL 与 solc 工具安装在 Git 忽略的项目目录。`tools.ps1` 在新 PowerShell 中恢复项目本地 Python 3.12.4、Node 22.17.0、pnpm 10.12.4、uv 缓存和 solc 0.8.30，不写系统 PATH、Python 注册表或全局包目录。
+- Implemented：从私有 GitHub 仓库克隆 `main`；本机 Python、Node、pnpm、Foundry、PostgreSQL 与 solc 工具均安装在 Git 忽略的项目目录，不写系统 PATH、Python 注册表或全局包目录。
 - Windows compatibility：本机 Hyper-V 排除 8534–9156 中的多个端口段，默认 8545/9101/9102 无法绑定。新增严格校验的 `LOCAL_RPC_URL`、`FIXTURE_PORT_A`、`FIXTURE_PORT_D` 覆盖；本机 `.env` 使用 18545/19101/19102，默认值和 Compose 内部端口不变。seed、注册元数据、受控 HTTP、测试和 smoke 共用相同配置；`smoke_agents.py` 同时尊重 `LOCAL_RUNTIME_DIR`。
 - Runtime：PostgreSQL 17.11 运行于 127.0.0.1:55432；Anvil 运行于 127.0.0.1:18545，并每秒持久化到忽略的 `runtime/local-chain-v2/anvil-state.json`；API、worker、Vue、fixture A/D 已后台启动，PID 与日志位于 `runtime`。API/前端分别为 127.0.0.1:8000/5173。
-- Tests：`uv run --env-file .env --all-packages python scripts/check.py` 退出 0；168 Python passed/0 failed、Ruff、mypy 52 files、52 Schema、生成 TS 无漂移、Vue build + 2 tests、Foundry 14 tests（含 256 fuzz）、3 ABI 全通过。仅保留既有 Starlette/httpx、websockets 弃用提示及受限 `.pytest_cache` 警告。
+- Tests：`uv run --env-file .env --all-packages python scripts/check.py` 退出 0；172 Python passed/0 failed、Ruff、mypy 52 files、52 Schema、生成 TS 无漂移、Vue build + 2 tests、Foundry 14 tests（含 256 fuzz）、3 ABI 全通过。仅保留既有 Starlette/httpx、websockets 弃用提示及受限 `.pytest_cache` 警告。
 - Live acceptance：`LIVE_RUNTIME_PASS` 与 `PROTOCOL_SMOKE_PASS --recheck` 通过；此前同轮完成 `M1_ACCEPTANCE_PASS`，覆盖 A/D 真实调用、A PASS、D 成功回执但 SEMANTIC_MISMATCH、PARTIAL bundle、A anchor、离线/在线 verifier 和篡改拒绝。旧链运行产物保留在忽略的 runtime，未删除或伪装为当前链。
-- Git：本地分支 `fix/windows-local-runtime-ports`；尚未提交或推送。用户要求为本地拉取和环境配置，未执行远程发布。
+- Git：本地分支 `fix/windows-local-runtime-ports`，基础提交 `0855e03`；PR 清理与远端状态以本节后续记录为准。
 - Next task：业务里程碑仍为 M2；本地环境任务完成，不扩大到公网或主网。

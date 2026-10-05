@@ -7,10 +7,6 @@ $UvBin = Join-Path $UvEnvironment 'Scripts'
 $FoundryBin = Join-Path $ToolRoot 'foundry-v1.8.4'
 $PostgresRoot = Join-Path $ToolRoot 'postgresql-17.11'
 $PostgresBin = Join-Path $PostgresRoot 'pgsql/bin'
-$NodeBin = Join-Path $ToolRoot 'node-v22.17.0-win-x64'
-$CorepackHome = Join-Path $ToolRoot 'corepack'
-$ProjectPython = Join-Path $ToolRoot 'python/cpython-3.12.4-windows-x86_64-none/python.exe'
-$SolcBin = Join-Path $ToolRoot 'solc-0.8.30/solc.exe'
 $DockerBin = Join-Path $env:LOCALAPPDATA 'Programs/DockerDesktop/resources/bin'
 if ($Install) {
     if (-not (Test-Path -LiteralPath (Join-Path $UvBin 'uv.exe'))) {
@@ -43,16 +39,6 @@ if ($Install) {
     }
 }
 $env:PATH = "$UvBin;$FoundryBin;$PostgresBin;$env:PATH"
-if (Test-Path -LiteralPath $NodeBin) {
-    $env:PATH = "$NodeBin;$env:PATH"
-    $env:COREPACK_HOME = $CorepackHome
-}
-if (Test-Path -LiteralPath $ProjectPython) {
-    $env:UV_PYTHON = $ProjectPython
-    $env:UV_PYTHON_DOWNLOADS = 'never'
-}
-if (Test-Path -LiteralPath $SolcBin) { $env:FOUNDRY_SOLC = $SolcBin }
 if (Test-Path -LiteralPath $DockerBin) { $env:PATH = "$DockerBin;$env:PATH" }
 $env:UV_LINK_MODE = 'copy'
-$env:UV_CACHE_DIR = Join-Path $RepoRoot 'runtime/uv-cache'
 Write-Output 'Project tools added to this PowerShell process only.'

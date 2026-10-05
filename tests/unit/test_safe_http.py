@@ -11,6 +11,27 @@ ORIGIN = f"http://127.0.0.1:{A_PORT}"
 
 
 @pytest.mark.parametrize(
+    "name,value,error",
+    [
+        ("FIXTURE_PORT_A", "not-a-port", "must be an integer"),
+        ("FIXTURE_PORT_A", "1023", "between 1024 and 65535"),
+        ("FIXTURE_PORT_D", "65536", "between 1024 and 65535"),
+    ],
+)
+def test_controlled_fixture_ports_reject_invalid_values(monkeypatch, name, value, error):
+    monkeypatch.setenv(name, value)
+    with pytest.raises(ValueError, match=error):
+        controlled_fixture_ports()
+
+
+def test_controlled_fixture_ports_must_be_distinct(monkeypatch):
+    monkeypatch.setenv("FIXTURE_PORT_A", "19101")
+    monkeypatch.setenv("FIXTURE_PORT_D", "19101")
+    with pytest.raises(ValueError, match="must be distinct"):
+        controlled_fixture_ports()
+
+
+@pytest.mark.parametrize(
     "origin",
     [
         f"http://169.254.169.254:{A_PORT}",
