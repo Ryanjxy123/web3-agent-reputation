@@ -1,10 +1,10 @@
 """API input/output contracts; callers cannot supply scores, RPC URLs or clocks."""
 
-from typing import Literal
+from typing import Literal, Self
 
-from pydantic import UUID4, Field, JsonValue
+from pydantic import UUID4, Field, JsonValue, model_serializer, model_validator
 
-from .base import Hash32, Model, NonzeroAddress, SafeText, Timestamp
+from .base import Challenge, Hash32, Model, NonzeroAddress, SafeText, Timestamp
 from .domain import AccessGrant, AgentRef, BindingMessage, Capability, Profile, SourceType
 from .enums import JobStatus, RunStatus
 
@@ -34,6 +34,12 @@ class ClaimsConfirm(Model):
     reason: SafeText
     expected_review_version: int = Field(strict=True, ge=0)
 
+    @model_validator(mode="after")
+    def unique_claims(self) -> Self:
+        if len(set(self.confirmed_claims)) != len(self.confirmed_claims):
+            raise ValueError("duplicate confirmed capability")
+        return self
+
 
 class BindingChallengeRequest(Model):
     executor: NonzeroAddress
@@ -61,7 +67,69 @@ class EvaluationCreate(Model):
     profile: Profile
     policy_version: Literal["policy-v1"]
     grant_ids: tuple[UUID4, ...] = Field(min_length=1, max_length=10)
-    suite_id: Literal["m1-smoke-v1"]
+    suite_id: Literal["m1-smoke-v1", "capabilities-v1"]
+    capability_id: Capability = "anchor_record"
+    query_tx_hash: Hash32 | None = None
+    target_contract: NonzeroAddress | None = None
+    record_executor: NonzeroAddress | None = None
+    record_request_id: Challenge | None = None
+    record_hash: Challenge | None = None
+
+    @model_serializer(mode="wrap")
+    def wire(self, handler):
+        value = handler(self)
+        if self.suite_id == "m1-smoke-v1" and self.capability_id == "anchor_record":
+            value.pop("capability_id", None)
+            for name in (
+                "query_tx_hash",
+                "target_contract",
+                "record_executor",
+                "record_request_id",
+                "record_hash",
+            ):
+                if value.get(name) is None:
+                    value.pop(name, None)
+        return value
+
+    @model_validator(mode="after")
+    def capability_inputs(self) -> Self:
+        if (self.capability_id == "anchor_record") != (self.profile == "record-write-v1"):
+            raise ValueError(
+                "single-capability runs require the corresponding read or write profile"
+            )
+        if self.capability_id == "get_tx_status":
+            if self.query_tx_hash is None or any(
+                value is not None
+                for value in (
+                    self.target_contract,
+                    self.record_executor,
+                    self.record_request_id,
+                    self.record_hash,
+                )
+            ):
+                raise ValueError("get_tx_status requires only query_tx_hash")
+        elif self.capability_id == "verify_record":
+            if (
+                any(
+                    value is None
+                    for value in (self.record_executor, self.record_request_id, self.record_hash)
+                )
+                or self.query_tx_hash is not None
+            ):
+                raise ValueError("verify_record requires executor, request and expected hash")
+        elif any(
+            value is not None
+            for value in (
+                self.query_tx_hash,
+                self.record_executor,
+                self.record_request_id,
+                self.record_hash,
+            )
+        ):
+            raise ValueError("anchor_record uses a fresh synthetic record")
+        if self.suite_id == "m1-smoke-v1" and self.capability_id != "anchor_record":
+            raise ValueError("m1-smoke-v1 only supports anchor_record")
+        return self
 
 
 class AccessGrantCreate(Model):
@@ -71,6 +139,21 @@ class AccessGrantCreate(Model):
     interval_ms: int = Field(strict=True, ge=1000, le=60000, default=1000)
     expires_at: Timestamp
     consent_ref: SafeText
+    capabilities: tuple[Capability, ...] = Field(default=("anchor_record",), min_length=1)
+    contract_allowlist: tuple[NonzeroAddress, ...] | None = None
+
+    @model_validator(mode="after")
+    def unique_scope(self) -> Self:
+        if len(set(self.capabilities)) != len(self.capabilities):
+            raise ValueError("duplicate granted capability")
+        if self.contract_allowlist is not None and (
+            len(set(self.contract_allowlist)) != len(self.contract_allowlist)
+            or (
+                not self.contract_allowlist and any(c != "get_tx_status" for c in self.capabilities)
+            )
+        ):
+            raise ValueError("record capabilities require a unique nonempty contract allowlist")
+        return self
 
 
 class GrantView(Model):

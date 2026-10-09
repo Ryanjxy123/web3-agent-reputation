@@ -93,7 +93,6 @@
             "items": {
               "type": "string"
             },
-            "minItems": 1,
             "title": "Contract Allowlist",
             "type": "array"
           },
@@ -186,11 +185,42 @@
       "AccessGrantCreate": {
         "additionalProperties": false,
         "properties": {
+          "capabilities": {
+            "default": [
+              "anchor_record"
+            ],
+            "items": {
+              "enum": [
+                "get_tx_status",
+                "verify_record",
+                "anchor_record"
+              ],
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Capabilities",
+            "type": "array"
+          },
           "consent_ref": {
             "maxLength": 2000,
             "minLength": 1,
             "title": "Consent Ref",
             "type": "string"
+          },
+          "contract_allowlist": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Contract Allowlist"
           },
           "endpoint_id": {
             "maxLength": 100,
@@ -1305,6 +1335,16 @@
       "EvaluationCreate": {
         "additionalProperties": false,
         "properties": {
+          "capability_id": {
+            "default": "anchor_record",
+            "enum": [
+              "get_tx_status",
+              "verify_record",
+              "anchor_record"
+            ],
+            "title": "Capability Id",
+            "type": "string"
+          },
           "grant_ids": {
             "items": {
               "format": "uuid4",
@@ -1328,6 +1368,57 @@
             "title": "Profile",
             "type": "string"
           },
+          "query_tx_hash": {
+            "anyOf": [
+              {
+                "pattern": "^0x[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Query Tx Hash"
+          },
+          "record_executor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Record Executor"
+          },
+          "record_hash": {
+            "anyOf": [
+              {
+                "pattern": "^0x[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Record Hash"
+          },
+          "record_request_id": {
+            "anyOf": [
+              {
+                "pattern": "^0x[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Record Request Id"
+          },
           "review_version": {
             "minimum": 1,
             "title": "Review Version",
@@ -1339,9 +1430,24 @@
             "type": "string"
           },
           "suite_id": {
-            "const": "m1-smoke-v1",
+            "enum": [
+              "m1-smoke-v1",
+              "capabilities-v1"
+            ],
             "title": "Suite Id",
             "type": "string"
+          },
+          "target_contract": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Target Contract"
           }
         },
         "required": [
@@ -1671,9 +1777,16 @@
             "$ref": "#/components/schemas/AgentRef"
           },
           "binding_id": {
-            "format": "uuid4",
-            "title": "Binding Id",
-            "type": "string"
+            "anyOf": [
+              {
+                "format": "uuid4",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Binding Id"
           },
           "confirmation_depth": {
             "maximum": 100,
@@ -1704,9 +1817,16 @@
             "type": "string"
           },
           "record_hash": {
-            "pattern": "^0x[0-9a-f]{64}$",
-            "title": "Record Hash",
-            "type": "string"
+            "anyOf": [
+              {
+                "pattern": "^0x[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Record Hash"
           },
           "request_id": {
             "pattern": "^0x[0-9a-f]{64}$",
@@ -1732,8 +1852,15 @@
             "title": "Target Code Hash"
           },
           "target_contract": {
-            "title": "Target Contract",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Contract"
           },
           "window_start": {
             "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
@@ -2215,6 +2342,50 @@
       "RecordVerificationInput": {
         "additionalProperties": false,
         "properties": {
+          "agent_response": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/JsonValue"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Agent Response"
+          },
+          "agent_result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TaskResult"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "agent_task_status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "accepted",
+                  "running",
+                  "succeeded",
+                  "failed"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Agent Task Status"
+          },
           "binding": {
             "anyOf": [
               {
@@ -2653,12 +2824,18 @@
             "type": "string"
           },
           "suite_id": {
-            "const": "m1-smoke-v1",
+            "enum": [
+              "m1-smoke-v1",
+              "capabilities-v1"
+            ],
             "title": "Suite Id",
             "type": "string"
           },
           "template_version": {
-            "const": "anchor_record@1",
+            "enum": [
+              "anchor_record@1",
+              "capabilities@1"
+            ],
             "title": "Template Version",
             "type": "string"
           }
@@ -3040,8 +3217,12 @@
         "additionalProperties": false,
         "properties": {
           "capability_id": {
-            "const": "anchor_record",
             "default": "anchor_record",
+            "enum": [
+              "get_tx_status",
+              "verify_record",
+              "anchor_record"
+            ],
             "title": "Capability Id",
             "type": "string"
           },
@@ -3066,10 +3247,82 @@
             "title": "Protocol",
             "type": "string"
           },
+          "query_tx_hash": {
+            "anyOf": [
+              {
+                "pattern": "^0x[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Query Tx Hash"
+          },
+          "read_block_hash": {
+            "anyOf": [
+              {
+                "pattern": "^0x[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Read Block Hash"
+          },
+          "read_block_number": {
+            "anyOf": [
+              {
+                "pattern": "^(0|[1-9][0-9]{0,77})$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Read Block Number"
+          },
+          "record_executor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Record Executor"
+          },
           "record_hash": {
-            "pattern": "^0x[0-9a-f]{64}$",
-            "title": "Record Hash",
-            "type": "string"
+            "anyOf": [
+              {
+                "pattern": "^0x[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Record Hash"
+          },
+          "record_request_id": {
+            "anyOf": [
+              {
+                "pattern": "^0x[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Record Request Id"
           },
           "request_id": {
             "pattern": "^0x[0-9a-f]{64}$",
@@ -3082,8 +3335,16 @@
             "type": "string"
           },
           "target_contract": {
-            "title": "Target Contract",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Target Contract"
           }
         },
         "required": [
@@ -3091,8 +3352,6 @@
           "snapshot_hash",
           "chain_id",
           "chain_instance_id",
-          "target_contract",
-          "record_hash",
           "deadline"
         ],
         "title": "TaskEnvelope",
@@ -3136,6 +3395,16 @@
               }
             ],
             "title": "Candidate Tx Hash"
+          },
+          "capability_id": {
+            "default": "anchor_record",
+            "enum": [
+              "get_tx_status",
+              "verify_record",
+              "anchor_record"
+            ],
+            "title": "Capability Id",
+            "type": "string"
           },
           "executor": {
             "title": "Executor",
@@ -3191,31 +3460,155 @@
       "TaskResult": {
         "additionalProperties": false,
         "properties": {
+          "capability_id": {
+            "default": "anchor_record",
+            "enum": [
+              "get_tx_status",
+              "verify_record",
+              "anchor_record"
+            ],
+            "title": "Capability Id",
+            "type": "string"
+          },
           "chain_id": {
             "pattern": "^(0|[1-9][0-9]{0,77})$",
             "title": "Chain Id",
             "type": "string"
           },
           "executor": {
-            "title": "Executor",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Executor"
+          },
+          "read_block_hash": {
+            "anyOf": [
+              {
+                "pattern": "^0x[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Read Block Hash"
+          },
+          "read_block_number": {
+            "anyOf": [
+              {
+                "pattern": "^(0|[1-9][0-9]{0,77})$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Read Block Number"
+          },
+          "record_executor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Record Executor"
+          },
+          "record_exists": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Record Exists"
           },
           "record_hash": {
-            "pattern": "^0x[0-9a-f]{64}$",
-            "title": "Record Hash",
-            "type": "string"
+            "anyOf": [
+              {
+                "pattern": "^0x[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Record Hash"
+          },
+          "record_matches": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Record Matches"
+          },
+          "record_request_id": {
+            "anyOf": [
+              {
+                "pattern": "^0x[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Record Request Id"
           },
           "tx_hash": {
-            "pattern": "^0x[0-9a-f]{64}$",
-            "title": "Tx Hash",
-            "type": "string"
+            "anyOf": [
+              {
+                "pattern": "^0x[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Tx Hash"
+          },
+          "tx_status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "SUCCESS",
+                  "REVERTED",
+                  "PENDING",
+                  "NOT_FOUND"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Tx Status"
           }
         },
         "required": [
-          "chain_id",
-          "tx_hash",
-          "executor",
-          "record_hash"
+          "chain_id"
         ],
         "title": "TaskResult",
         "type": "object"

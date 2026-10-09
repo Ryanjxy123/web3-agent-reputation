@@ -163,6 +163,16 @@
           ],
           "title": "Candidate Tx Hash"
         },
+        "capability_id": {
+          "default": "anchor_record",
+          "enum": [
+            "get_tx_status",
+            "verify_record",
+            "anchor_record"
+          ],
+          "title": "Capability Id",
+          "type": "string"
+        },
         "executor": {
           "title": "Executor",
           "type": "string"

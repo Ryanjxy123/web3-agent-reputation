@@ -18,10 +18,7 @@ def collect_task(
 ) -> EvmReadEvidence:
     results = {}
     error = None
-    if (
-        config.chain != slot.expected.execution_chain
-        or config.record.address != slot.task.target_contract
-    ):
+    if config.chain != slot.expected.execution_chain:
         return EvmReadEvidence(
             candidate_tx_hash=candidate,
             observed_at=timestamp(),
@@ -43,7 +40,8 @@ def collect_task(
         head = read("head", "eth_getBlockByNumber", ["latest", False])
         block_tag = head["number"]
         read("registry_code", "eth_getCode", [config.registry.address, block_tag])
-        read("record_code", "eth_getCode", [config.record.address, block_tag])
+        if slot.task.target_contract is not None:
+            read("record_code", "eth_getCode", [slot.task.target_contract, block_tag])
         read(
             "deployment_instance",
             "eth_call",
@@ -59,6 +57,38 @@ def collect_task(
         )
         if dispatch_block is not None:
             read("dispatch_block", "eth_getBlockByNumber", [hex(int(dispatch_block)), False])
+        if slot.task.capability_id != "anchor_record":
+            assert slot.task.read_block_number is not None
+            read("read_block", "eth_getBlockByHash", [slot.task.read_block_hash, False])
+            read(
+                "read_canonical",
+                "eth_getBlockByNumber",
+                [hex(int(slot.task.read_block_number)), False],
+            )
+        if slot.task.capability_id == "verify_record":
+            assert slot.task.read_block_number is not None
+            assert slot.task.record_executor is not None and slot.task.record_request_id is not None
+            read(
+                "record_call",
+                "eth_call",
+                [
+                    {
+                        "to": slot.task.target_contract,
+                        "data": hash_bytes(b"getRecord(address,bytes32)")[:10]
+                        + slot.task.record_executor[2:].rjust(64, "0")
+                        + slot.task.record_request_id[2:],
+                    },
+                    hex(int(slot.task.read_block_number)),
+                ],
+            )
+            # A numbered eth_call must still refer to the same canonical block afterwards.
+            read(
+                "read_canonical",
+                "eth_getBlockByNumber",
+                [hex(int(slot.task.read_block_number)), False],
+            )
+        if slot.task.capability_id == "get_tx_status":
+            candidate = slot.task.query_tx_hash
         if candidate is not None:
             read("transaction", "eth_getTransactionByHash", [candidate])
             receipt = read("receipt", "eth_getTransactionReceipt", [candidate])

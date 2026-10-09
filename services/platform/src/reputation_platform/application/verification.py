@@ -3,10 +3,12 @@
 import asyncio
 from uuid import UUID
 
+from reputation_core.evidence import strict_json
 from reputation_core.models import (
     AccessGrant,
     AgentSnapshot,
     ClaimReview,
+    ControlledTaskView,
     EvidenceRecord,
     ExecutorBinding,
     Observation,
@@ -62,11 +64,14 @@ class VerificationService:
                     )
                 ).scalar_one()
             )
-            binding = ExecutorBinding.model_validate(
+            binding_body = (
                 connection.execute(
                     select(bindings.c.body).where(bindings.c.id == slot.expected.binding_id)
-                ).scalar_one()
+                ).scalar_one_or_none()
+                if slot.expected.binding_id
+                else None
             )
+            binding = ExecutorBinding.model_validate(binding_body) if binding_body else None
             grant = AccessGrant.model_validate(
                 connection.execute(
                     select(access_grants.c.body).where(access_grants.c.id == slot.grant_id)
@@ -110,6 +115,13 @@ class VerificationService:
                     )
                 ).scalar_one_or_none()
                 witness_record = EvidenceRecord.model_validate(body) if body else None
+            response_records = [
+                EvidenceRecord.model_validate(body)
+                for body in connection.execute(
+                    select(evidence_blobs.c.body).where(evidence_blobs.c.id.in_(last.evidence_refs))
+                ).scalars()
+                if body["source"] == "agent-task-response"
+            ]
         witness = None
         if witness_record is not None:
             try:
@@ -119,6 +131,32 @@ class VerificationService:
             except (OSError, ValueError):
                 pass  # Missing/corrupt witness is an explicit UNKNOWN attribution gap.
         deployment = self.identity.deployment()
+        agent_view = None
+        agent_response = None
+        for record in response_records:
+            try:
+                raw = strict_json(self.identity.evidence.read(record))
+                response_body = raw["response"]
+                candidate_view = ControlledTaskView.model_validate(response_body)
+                endpoint = next(
+                    item
+                    for item in snapshot.core.endpoints
+                    if item.endpoint_id == grant.endpoint_ids[0]
+                )
+                if (
+                    candidate_view.request_id == slot.task.request_id
+                    and candidate_view.status_path == "/tasks/" + slot.task.request_id
+                    and raw["request_id"] == slot.task.request_id
+                    and raw["origin"] == endpoint.origin
+                    and raw["path"]
+                    == ("/tasks" if raw["method"] == "POST" else "/tasks/" + slot.task.request_id)
+                    and raw["method"] in {"POST", "GET"}
+                    and 200 <= raw["http_status"] < 300
+                ):
+                    agent_view = candidate_view
+                    agent_response = response_body
+            except (OSError, ValueError, KeyError, TypeError):
+                pass
         evm = collect_task(
             deployment,
             slot,
@@ -138,6 +176,9 @@ class VerificationService:
             dispatch_payload_hash=dispatch["payload_hash"] if dispatch else None,
             registry_witness=witness,
             execution_reason=last.reason_code,
+            agent_response=agent_response,
+            agent_result=agent_view.result if agent_view else None,
+            agent_task_status=agent_view.task_status if agent_view else None,
             evm=evm,
         )
 

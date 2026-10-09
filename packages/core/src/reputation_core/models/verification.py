@@ -2,7 +2,7 @@
 
 from typing import Literal
 
-from pydantic import Field, JsonValue
+from pydantic import Field, JsonValue, model_serializer
 
 from .base import Hash32, Model, Timestamp
 from .domain import (
@@ -16,6 +16,7 @@ from .domain import (
     TaskLink,
 )
 from .enums import Outcome, Reason
+from .runtime import TaskResult
 
 
 class RegistryWitness(Model):
@@ -47,7 +48,18 @@ class RecordVerificationInput(Model):
     dispatch_payload_hash: Hash32 | None
     registry_witness: RegistryWitness | None
     execution_reason: Reason | None
+    agent_response: dict[str, JsonValue] | None = None
+    agent_result: TaskResult | None = None
+    agent_task_status: Literal["accepted", "running", "succeeded", "failed"] | None = None
     evm: EvmReadEvidence
+
+    @model_serializer(mode="wrap")
+    def wire(self, handler):
+        value = handler(self)
+        for name in ("agent_response", "agent_result", "agent_task_status"):
+            if value.get(name) is None:
+                value.pop(name, None)
+        return value
 
 
 class RecordVerificationResult(Model):

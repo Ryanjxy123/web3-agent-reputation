@@ -34,13 +34,21 @@ def build_report(
     if (
         len(plan.slots) != 1
         or plan.slots[0] != inputs.slot
-        or plan.profile != "record-write-v1"
+        or (plan.profile == "record-read-v1" and inputs.slot.capability_id == "anchor_record")
         or inputs.slot.purpose != "functional"
         or inputs.slot.case_kind != "positive"
         or inputs.slot.required_class != "normal"
         or inputs.slot.expected_outcome != "PASS"
-        or plan.confirmed_capabilities != ("anchor_record",)
-        or plan.confirmed_capabilities != inputs.review.confirmed_claims
+        or inputs.slot.capability_id not in plan.confirmed_capabilities
+        or not set(plan.confirmed_capabilities).issubset(inputs.review.confirmed_claims)
+        or (
+            plan.suite_id == "m1-smoke-v1"
+            and (
+                plan.profile != "record-write-v1"
+                or plan.confirmed_capabilities != ("anchor_record",)
+                or plan.template_version != "anchor_record@1"
+            )
+        )
         or plan.review_version != inputs.review_version
         or plan.review_version != inputs.review.review_version
         or plan.snapshot_hash != inputs.snapshot.snapshot_hash
@@ -52,7 +60,17 @@ def build_report(
     ):
         raise ValueError("REPORT_OBSERVATIONS_MISMATCH")
     settled = [item for item in observations if item.dispatch_state == "SETTLED"]
-    if len(settled) != 1 or settled[0].candidate_tx_hash != inputs.evm.candidate_tx_hash:
+    expected_candidate = (
+        inputs.evm.candidate_tx_hash if inputs.slot.capability_id == "anchor_record" else None
+    )
+    if (
+        len(settled) != 1
+        or settled[0].candidate_tx_hash != expected_candidate
+        or (
+            inputs.slot.capability_id != "anchor_record"
+            and inputs.evm.candidate_tx_hash != inputs.slot.task.query_tx_hash
+        )
+    ):
         raise ValueError("REPORT_SETTLEMENT_MISMATCH")
     times = [
         plan.planning_time,
@@ -78,7 +96,7 @@ def build_report(
         },
         "capabilities": [
             {
-                "capability_id": "anchor_record",
+                "capability_id": inputs.slot.capability_id,
                 "planned": 1,
                 "decided": decided,
                 "passed": int(result.outcome == "PASS"),
@@ -87,7 +105,7 @@ def build_report(
                 "oldest_age_seconds": age_seconds if decided else None,
             }
         ],
-        "behavior": {
+        "behavior": None if plan.profile == "record-read-v1" else {
             "planned": 0,
             "accepted": 0,
             "decided": 0,
@@ -120,5 +138,10 @@ def build_report(
         assertions=tuple(sorted(result.assertions, key=lambda item: str(item.assertion_id))),
         evidence_manifest_hash=manifest_hash,
         previous_report_hash=previous_report_hash,
-        limitations=LIMITATIONS,
+        limitations=LIMITATIONS
+        if plan.suite_id == "m1-smoke-v1"
+        else (
+            "Local Anvil demonstration with one functional capability slot; not a production trust rating.",
+            *LIMITATIONS[1:],
+        ),
     )

@@ -224,13 +224,13 @@ class IdentityService:
     def confirm(self, snapshot_id: UUID, request: ClaimsConfirm, actor: str) -> ClaimReview:
         snapshot = self.snapshot(snapshot_id)
         claims = snapshot.core.normalized_metadata["capabilities"]
-        if (
-            request.confirmed_claims != ("anchor_record",)
-            or not isinstance(claims, list)
-            or "anchor_record" not in claims
+        if not isinstance(claims, list) or any(
+            capability not in claims for capability in request.confirmed_claims
         ):
             raise ApplicationError(
-                422, "UNSUPPORTED_CLAIM", "M1 confirms only a declared anchor_record capability."
+                422,
+                "UNSUPPORTED_CLAIM",
+                "Only capabilities declared by this snapshot can be confirmed.",
             )
         with self.db.begin() as connection:
             self.require_current(connection, snapshot_id)

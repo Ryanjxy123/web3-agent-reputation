@@ -8,7 +8,7 @@ from uuid import uuid4
 import httpx
 from pydantic import ValidationError
 from reputation_core.binding import endpoint_hash, signatures_match
-from reputation_core.evidence import hash_json, strict_json
+from reputation_core.evidence import hash_bytes, hash_json, strict_json
 from reputation_core.models import (
     ControlledTaskView,
     DispatchState,
@@ -17,7 +17,10 @@ from reputation_core.models import (
     Reason,
     RunPlan,
 )
+from requests.exceptions import RequestException
 from sqlalchemy import Engine, func, insert, select, update
+from web3 import Web3
+from web3.exceptions import Web3Exception
 
 from reputation_platform.adapters.evm.record import reconcile_record
 from reputation_platform.adapters.registries.demo import timestamp
@@ -36,6 +39,7 @@ from reputation_platform.infrastructure.network.safe_http import NetworkPolicyEr
 from .errors import ApplicationError
 from .evaluations import EvaluationService
 from .identity import IdentityService
+from .local_deploy import local_web3
 
 
 class ExecutionService:
@@ -50,6 +54,7 @@ class ExecutionService:
         row = self.evaluations.row(lease.run_id)
         plan = RunPlan.model_validate(row["plan"])
         slot = plan.slots[0]
+        writing = slot.capability_id == "anchor_record"
         if len(plan.slots) != 1:
             raise ApplicationError(
                 422, "UNSUPPORTED_SUITE", "M1 execution requires one frozen slot."
@@ -169,7 +174,13 @@ class ExecutionService:
                         "candidate_tx_hash": candidate,
                     },
                 )
-                enqueue(connection, "verify", f"verify:{plan.run_id}", {"run_id": str(plan.run_id)}, plan.run_id)
+                enqueue(
+                    connection,
+                    "verify",
+                    f"verify:{plan.run_id}",
+                    {"run_id": str(plan.run_id)},
+                    plan.run_id,
+                )
                 connection.execute(
                     update(runs)
                     .where(runs.c.id == plan.run_id)
@@ -187,21 +198,43 @@ class ExecutionService:
 
         async def preflight():
             observed, config = await asyncio.to_thread(self.identity.current_identity, snapshot)
-            with self.db.connect() as connection:
-                body = connection.execute(
-                    select(bindings.c.body).where(bindings.c.id == slot.expected.binding_id)
-                ).scalar_one()
-            proof = ExecutorBinding.model_validate(body)
-            if (
-                proof.status != "VERIFIED"
-                or proof.message.deadline < int(datetime.now(UTC).timestamp())
-                or proof.message.executor != slot.expected.executor
-                or proof.message.endpoint_hash != endpoint_hash(endpoint)
-                or config.chain != slot.expected.execution_chain
-                or proof.domain_salt != config.platform_instance_id
-                or observed["owner_code"] != "0x"
-                or observed["executor_code"] != "0x"
-                or not signatures_match(proof)
+            if writing:
+                assert slot.task.target_contract is not None
+                try:
+                    web3 = await asyncio.to_thread(local_web3, config.rpc_url)
+                    code = await asyncio.to_thread(
+                        web3.eth.get_code, Web3.to_checksum_address(slot.task.target_contract)
+                    )
+                    if hash_bytes(bytes(code)) != slot.expected.target_code_hash:
+                        raise ApplicationError(
+                            409,
+                            "CHAIN_INSTANCE_CHANGED",
+                            "Task target code changed before dispatch.",
+                        )
+                except (RequestException, Web3Exception, OSError, ValueError):
+                    raise ApplicationError(
+                        503, "PLATFORM_RPC_ERROR", "Task target code is unavailable.", True
+                    ) from None
+            proof = None
+            if writing:
+                with self.db.connect() as connection:
+                    body = connection.execute(
+                        select(bindings.c.body).where(bindings.c.id == slot.expected.binding_id)
+                    ).scalar_one()
+                proof = ExecutorBinding.model_validate(body)
+            if config.chain != slot.expected.execution_chain or (
+                writing
+                and (
+                    proof is None
+                    or proof.status != "VERIFIED"
+                    or proof.message.deadline < int(datetime.now(UTC).timestamp())
+                    or proof.message.executor != slot.expected.executor
+                    or proof.message.endpoint_hash != endpoint_hash(endpoint)
+                    or proof.domain_salt != config.platform_instance_id
+                    or observed["owner_code"] != "0x"
+                    or observed["executor_code"] != "0x"
+                    or not signatures_match(proof)
+                )
             ):
                 raise ApplicationError(
                     409, "BINDING_UNVERIFIED", "Execution binding is no longer valid."
@@ -256,7 +289,10 @@ class ExecutionService:
                     or endpoint.endpoint_id not in permitted.endpoint_ids
                     or slot.capability_id not in permitted.capabilities
                     or slot.task.chain_instance_id not in permitted.chain_instances
-                    or slot.task.target_contract not in permitted.contract_allowlist
+                    or (
+                        slot.task.target_contract is not None
+                        and slot.task.target_contract not in permitted.contract_allowlist
+                    )
                 ):
                     raise ApplicationError(
                         409, "ACCESS_NOT_GRANTED", "Request exceeds the frozen grant scope."
@@ -319,6 +355,9 @@ class ExecutionService:
                 )
             while True:
                 if datetime.now(UTC) >= deadline:
+                    if not writing:
+                        settle(Reason.DISPATCH_UNCERTAIN)
+                        return
                     value, record = await reconcile()
                     settle(
                         None if value["candidate_tx_hash"] else Reason.DISPATCH_UNCERTAIN,
@@ -352,6 +391,10 @@ class ExecutionService:
                         if (
                             view.request_id != slot.task.request_id
                             or view.status_path != "/tasks/" + slot.task.request_id
+                            or (
+                                view.result is not None
+                                and view.result.capability_id != slot.capability_id
+                            )
                         ):
                             raise ValueError("TASK_HANDLE_MISMATCH")
                     elif not (
@@ -368,7 +411,7 @@ class ExecutionService:
                 ended = timestamp()
                 latency_ms = int((time.monotonic() - timer) * 1000)
                 accepted = accepted or view is not None
-                candidate = view.result.tx_hash if view and view.result else None
+                candidate = view.result.tx_hash if view and view.result and writing else None
                 record = await persist_record(
                     {
                         "method": method,
@@ -423,10 +466,16 @@ class ExecutionService:
                     )
 
                 queue.fenced(lease, save)
+                if not writing and view is not None and view.task_status in {"succeeded", "failed"}:
+                    settle(reason=reason, evidence_refs=(record.evidence_id,))
+                    return
+                if not writing and view is None and reason == Reason.SCHEMA_ERROR:
+                    settle(reason, evidence_refs=(record.evidence_id,))
+                    return
                 if candidate:
                     settle(candidate=candidate, evidence_refs=(record.evidence_id,))
                     return
-                if view is None or view.task_status == "failed":
+                if writing and (view is None or view.task_status == "failed"):
                     value, chain_record = await reconcile()
                     if value["candidate_tx_hash"]:
                         settle(
@@ -488,7 +537,7 @@ class ExecutionService:
                         attempts.c.body["method"].astext == "POST",
                     )
                 )
-            if sent:
+            if sent and writing:
                 try:
                     value, record = await reconcile()
                     if value["candidate_tx_hash"]:

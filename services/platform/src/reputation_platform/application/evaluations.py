@@ -6,7 +6,7 @@ from uuid import UUID, uuid4
 
 from pydantic import JsonValue
 from reputation_core.binding import endpoint_hash, signatures_match
-from reputation_core.evidence import hash_json, strict_json
+from reputation_core.evidence import hash_bytes, hash_json, strict_json
 from reputation_core.models import (
     AcceptedEvaluation,
     AccessGrant,
@@ -24,8 +24,11 @@ from reputation_core.models import (
     RunPlan,
     TaskEnvelope,
 )
+from requests.exceptions import RequestException
 from sqlalchemy import Connection, Engine, func, insert, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from web3 import Web3
+from web3.exceptions import Web3Exception
 
 from reputation_platform.infrastructure.db.jobs import IdempotencyConflict, persist_plan
 from reputation_platform.infrastructure.db.tables import (
@@ -43,6 +46,7 @@ from reputation_platform.infrastructure.db.tables import (
 
 from .errors import ApplicationError
 from .identity import IdentityService
+from .local_deploy import local_web3
 
 
 def utc_text(value: datetime) -> str:
@@ -76,11 +80,15 @@ class EvaluationService:
             grant_id=uuid4(),
             snapshot_hash=snapshot.snapshot_hash,
             endpoint_ids=(request.endpoint_id,),
-            capabilities=("anchor_record",),
+            capabilities=request.capabilities,
             methods=("POST", "GET"),
             paths=("/tasks", "/tasks/{request_id}"),
             chain_instances=(config.chain.instance_hash,),
-            contract_allowlist=(config.record.address,),
+            contract_allowlist=request.contract_allowlist
+            if request.contract_allowlist is not None
+            else ()
+            if request.capabilities == ("get_tx_status",)
+            else (config.record.address,),
             max_tasks=request.max_tasks,
             interval_ms=request.interval_ms,
             expires_at=request.expires_at,
@@ -196,14 +204,44 @@ class EvaluationService:
             existing = self.existing(connection, actor, key, payload_hash)
         if existing is not None:
             return self.accepted(existing)
-        if request.profile != "record-write-v1" or len(request.grant_ids) != 1:
+        writing = request.capability_id == "anchor_record"
+        if (
+            len(request.grant_ids) != 1
+            or (writing and request.profile != "record-write-v1")
+            or (request.suite_id == "m1-smoke-v1" and not writing)
+        ):
             raise ApplicationError(
                 422,
                 "UNSUPPORTED_PROFILE",
-                "M1 runs require record-write-v1 and one explicit local grant.",
+                "Runs require one explicit local grant; writes require a write profile.",
             )
         snapshot = self.identity.snapshot(request.snapshot_id)
         observation, config = self.identity.current_identity(snapshot)
+        target = (
+            (request.target_contract or config.record.address)
+            if request.capability_id != "get_tx_status"
+            else None
+        )
+        target_code = None
+        if target is not None:
+            try:
+                web3 = local_web3(config.rpc_url)
+                code = web3.eth.get_code(
+                    Web3.to_checksum_address(target),
+                    int(observation["snapshot_core"]["read_block_number"]),
+                )
+            except (RequestException, Web3Exception, OSError, ValueError):
+                raise ApplicationError(
+                    503,
+                    "PLATFORM_RPC_ERROR",
+                    "Task target code could not be independently read.",
+                    True,
+                ) from None
+            if not code:
+                raise ApplicationError(
+                    422, "TARGET_NOT_ALLOWED", "A task target must be a deployed contract."
+                )
+            target_code = hash_bytes(bytes(code))
         planning_evidence = self.identity.evidence.prepare_json(
             observation,
             "planning-registry-read",
@@ -239,8 +277,9 @@ class EvaluationService:
                     409, "MAPPING_UNCONFIRMED", "Capability mapping is not confirmed."
                 )
             review = ClaimReview.model_validate(review_body)
-            if review.review_version != request.review_version or review.confirmed_claims != (
-                "anchor_record",
+            if (
+                review.review_version != request.review_version
+                or request.capability_id not in review.confirmed_claims
             ):
                 raise ApplicationError(
                     409, "REVIEW_CONFLICT", "The current confirmed mapping differs."
@@ -248,6 +287,14 @@ class EvaluationService:
             grant = self.require_grant(
                 connection, request.grant_ids[0], snapshot.snapshot_hash, now
             )
+            if request.capability_id not in grant.capabilities or (
+                target is not None and target not in grant.contract_allowlist
+            ):
+                raise ApplicationError(
+                    409,
+                    "ACCESS_NOT_GRANTED",
+                    "Task exceeds the explicit capability or contract grant.",
+                )
             if datetime.fromisoformat(grant.expires_at) < deadline:
                 raise ApplicationError(
                     409, "ACCESS_NOT_GRANTED", "Grant must cover the 60-second task window."
@@ -285,7 +332,7 @@ class EvaluationService:
                 ),
                 None,
             )
-            if (
+            if writing and (
                 proof is None
                 or observation["owner_code"] != "0x"
                 or observation["executor_code"] != "0x"
@@ -295,29 +342,45 @@ class EvaluationService:
                     "BINDING_UNVERIFIED",
                     "A current dual-signed EOA binding must cover this task window.",
                 )
-            synthetic: dict[str, JsonValue] = {
-                "kind": "synthetic-credential-v1",
-                "challenge": "0x" + secrets.token_hex(32),
-            }
+            synthetic: dict[str, JsonValue] | None = (
+                {
+                    "kind": "synthetic-credential-v1",
+                    "challenge": "0x" + secrets.token_hex(32),
+                }
+                if writing
+                else None
+            )
             task = TaskEnvelope(
+                capability_id=request.capability_id,
                 request_id="0x" + secrets.token_hex(32),
                 snapshot_hash=snapshot.snapshot_hash,
                 chain_id=config.chain.chain_id,
                 chain_instance_id=config.chain.instance_hash,
-                target_contract=config.record.address,
-                record_hash=hash_json(synthetic),
+                target_contract=target,
+                record_hash=hash_json(synthetic) if writing else request.record_hash,
+                query_tx_hash=request.query_tx_hash,
+                record_executor=request.record_executor,
+                record_request_id=request.record_request_id,
+                read_block_number=None
+                if writing
+                else observation["snapshot_core"]["read_block_number"],
+                read_block_hash=None
+                if writing
+                else observation["snapshot_core"]["read_block_hash"],
                 deadline=utc_text(deadline),
             )
             facts = ExpectedFacts(
                 agent_ref=snapshot.core.agent_ref,
                 snapshot_hash=snapshot.snapshot_hash,
                 execution_chain=config.chain,
-                executor=proof.message.executor,
+                executor=proof.message.executor
+                if writing and proof
+                else request.record_executor or snapshot.core.owner,
                 target_contract=task.target_contract,
-                target_code_hash=config.record.code_hash,
+                target_code_hash=target_code,
                 request_id=task.request_id,
                 record_hash=task.record_hash,
-                binding_id=proof.binding_id,
+                binding_id=proof.binding_id if writing and proof else None,
                 window_start=utc_text(now),
                 deadline=task.deadline,
                 pre_dispatch_block=observation["snapshot_core"]["read_block_number"],
@@ -326,8 +389,8 @@ class EvaluationService:
             )
             slot = CaseSlot(
                 slot_id=uuid4(),
-                slot_key="anchor-1",
-                capability_id="anchor_record",
+                slot_key=f"{request.capability_id}-1",
+                capability_id=request.capability_id,
                 purpose=Purpose.FUNCTIONAL,
                 case_kind="positive",
                 required_class="normal",
@@ -347,10 +410,12 @@ class EvaluationService:
                 review_version=review.review_version,
                 policy_version="policy-v1",
                 policy_hash=hash_json(policy),
-                profile="record-write-v1",
-                confirmed_capabilities=review.confirmed_claims,
-                suite_id="m1-smoke-v1",
-                template_version="anchor_record@1",
+                profile=request.profile,
+                confirmed_capabilities=(request.capability_id,),
+                suite_id=request.suite_id,
+                template_version="anchor_record@1"
+                if request.suite_id == "m1-smoke-v1"
+                else "capabilities@1",
                 planning_time=utc_text(now),
                 planning_evidence_refs=(evidence.evidence_id,),
                 slots=(slot,),

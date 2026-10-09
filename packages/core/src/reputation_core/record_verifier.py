@@ -1,4 +1,4 @@
-"""Deterministic anchor_record rules. No database, RPC client, environment or live clock."""
+"""Deterministic task rules over frozen Agent responses and independent RPC reads."""
 
 import re
 from datetime import datetime
@@ -9,6 +9,7 @@ from .binding import agent_key_hash, endpoint_hash, signatures_match
 from .evidence import hash_bytes, hash_json
 from .models import (
     AssertionResult,
+    ControlledTaskView,
     Outcome,
     Reason,
     RecordVerificationInput,
@@ -62,6 +63,21 @@ def verify_record(
     # Raw JSON-RPC is deliberately decoded at each rule boundary below.
     rpc = cast(dict[str, Any], data.evm.results)
     facts, task = slot.expected, slot.task
+    read_only = slot.capability_id != "anchor_record"
+    business_rules = (
+        (
+            "query.response",
+            "query.block",
+            "query.parameters",
+            "query.transaction",
+            "query.status",
+            "query.canonical",
+        )
+        if slot.capability_id == "get_tx_status"
+        else ("query.response", "query.block", "query.record", "query.parameters")
+        if read_only
+        else BUSINESS_RULES
+    )
     assertions = []
     event: dict[str, Any] | None = None
     receipt: dict[str, Any] | None = None
@@ -96,17 +112,25 @@ def verify_record(
         )
         matched = outcome == Outcome.PASS
         block_number, block_hash, log_index = None, None, None
-        if matched:
+        if matched and not read_only:
             assert receipt is not None and event is not None
             block_number, block_hash = (
                 str(quantity(receipt["blockNumber"])),
                 hex_data(receipt["blockHash"], 32),
             )
             log_index = event["index"]
+        elif matched and receipt is not None:
+            block_number = str(quantity(receipt["blockNumber"]))
+            block_hash = hex_data(receipt["blockHash"], 32)
+        elif matched and slot.capability_id == "verify_record":
+            block_number, block_hash = task.read_block_number, task.read_block_hash
         link = TaskLink(
+            capability_id=slot.capability_id,
             request_id=task.request_id,
             candidate_tx_hash=data.evm.candidate_tx_hash,
-            verified_tx_hash=data.evm.candidate_tx_hash if matched else None,
+            verified_tx_hash=data.evm.candidate_tx_hash
+            if matched and (not read_only or receipt is not None)
+            else None,
             executor=facts.executor,
             block_number=block_number,
             block_hash=block_hash,
@@ -123,7 +147,7 @@ def verify_record(
 
     def unavailable(reason):
         existing = {item.rule_id for item in assertions}
-        for rule in BUSINESS_RULES:
+        for rule in business_rules:
             if rule not in existing:
                 emit(rule, False, reason, None, None, unknown=True)
         return finish()
@@ -166,7 +190,7 @@ def verify_record(
         <= dispatched
         <= task.deadline
         and data.dispatch_payload_hash == hash_json(task.model_dump(mode="json"))
-        and slot.synthetic_input is not None
+        and (read_only or slot.synthetic_input is not None)
     )
     context_ok &= emit(
         "task.intent",
@@ -184,8 +208,7 @@ def verify_record(
         and witness.snapshot_core.captured_at <= dispatched
         and witness.snapshot_core.model_dump(exclude=ignored)
         == snapshot.core.model_dump(exclude=ignored)
-        and witness.owner_code == "0x"
-        and witness.executor_code == "0x"
+        and (read_only or (witness.owner_code == "0x" and witness.executor_code == "0x"))
     )
     context_ok &= emit(
         "binding.identity",
@@ -217,28 +240,31 @@ def verify_record(
         and datetime.fromisoformat(task.deadline).timestamp() <= proof.message.deadline
         and signatures_match(proof)
     )
-    context_ok &= emit(
-        "binding.signatures",
-        binding_ok,
-        Reason.BINDING_UNVERIFIED,
-        facts.executor,
-        proof.message.executor if proof else None,
-        unknown=True,
-    )
+    if not read_only:
+        context_ok &= emit(
+            "binding.signatures",
+            binding_ok,
+            Reason.BINDING_UNVERIFIED,
+            facts.executor,
+            proof.message.executor if proof else None,
+            unknown=True,
+        )
     grant = data.grant
     grant_ok = (
         grant is not None
         and grant.grant_id == slot.grant_id
         and grant.snapshot_hash == snapshot.snapshot_hash
         and slot.capability_id in grant.capabilities
-        and task.target_contract in grant.contract_allowlist
+        and (task.target_contract is None or task.target_contract in grant.contract_allowlist)
         and task.chain_instance_id in grant.chain_instances
         and "POST" in grant.methods
         and "/tasks" in grant.paths
-        and proof is not None
         and any(
             endpoint.endpoint_id in grant.endpoint_ids
-            and endpoint_hash(endpoint) == proof.message.endpoint_hash
+            and (
+                read_only
+                or (proof is not None and endpoint_hash(endpoint) == proof.message.endpoint_hash)
+            )
             for endpoint in snapshot.core.endpoints
         )
         and dispatched is not None
@@ -268,15 +294,18 @@ def verify_record(
             observed_instance,
             unknown=True,
         )
-        code_hash = hash_bytes(bytes.fromhex(hex_data(rpc["record_code"])[2:]))
-        context_ok &= emit(
-            "chain.record_code",
-            facts.target_code_hash is not None and code_hash == facts.target_code_hash,
-            Reason.CHAIN_INSTANCE_CHANGED if facts.target_code_hash else Reason.MISSING_EVIDENCE,
-            facts.target_code_hash,
-            code_hash,
-            unknown=True,
-        )
+        if task.target_contract is not None:
+            code_hash = hash_bytes(bytes.fromhex(hex_data(rpc["record_code"])[2:]))
+            context_ok &= emit(
+                "chain.record_code",
+                facts.target_code_hash is not None and code_hash == facts.target_code_hash,
+                Reason.CHAIN_INSTANCE_CHANGED
+                if facts.target_code_hash
+                else Reason.MISSING_EVIDENCE,
+                facts.target_code_hash,
+                code_hash,
+                unknown=True,
+            )
         pre_hash = hex_data(rpc["pre_dispatch_block"]["hash"], 32)
         context_ok &= emit(
             "chain.pre_dispatch",
@@ -308,6 +337,167 @@ def verify_record(
     if not context_ok:
         reason = next(item.reason_code for item in assertions if item.outcome == Outcome.UNKNOWN)
         return unavailable(reason)
+    if read_only:
+        response = data.agent_result
+        try:
+            raw_view = ControlledTaskView.model_validate(data.agent_response)
+            raw_matches = (
+                raw_view.request_id == task.request_id
+                and raw_view.status_path == "/tasks/" + task.request_id
+                and raw_view.result == response
+                and raw_view.task_status == data.agent_task_status
+            )
+        except (ValueError, TypeError):
+            raw_matches = False
+        if not emit(
+            "query.raw_response",
+            raw_matches,
+            Reason.MISSING_EVIDENCE,
+            "matching frozen Agent response",
+            data.agent_response,
+            unknown=True,
+        ):
+            return unavailable(Reason.MISSING_EVIDENCE)
+        if not emit(
+            "query.response",
+            response is not None
+            and response.capability_id == task.capability_id
+            and response.chain_id == task.chain_id
+            and data.agent_task_status == "succeeded",
+            Reason.SCHEMA_ERROR,
+            task.capability_id,
+            response.model_dump(mode="json") if response else None,
+            unknown=response is None,
+        ):
+            return unavailable(data.execution_reason or Reason.MISSING_EVIDENCE)
+        assert response is not None
+        if data.evm.error_reason:
+            return unavailable(data.evm.error_reason)
+        try:
+            block, canonical = rpc["read_block"], rpc["read_canonical"]
+            if not emit(
+                "query.block",
+                hex_data(block["hash"], 32)
+                == hex_data(canonical["hash"], 32)
+                == task.read_block_hash
+                and str(quantity(block["number"]))
+                == str(quantity(canonical["number"]))
+                == task.read_block_number,
+                Reason.STALE_EVIDENCE,
+                task.read_block_hash,
+                block["hash"],
+                unknown=True,
+            ):
+                return unavailable(Reason.STALE_EVIDENCE)
+            emit(
+                "query.parameters",
+                response.read_block_number == task.read_block_number
+                and response.read_block_hash == task.read_block_hash
+                and (
+                    task.capability_id != "get_tx_status" or response.tx_hash == task.query_tx_hash
+                )
+                and (
+                    task.capability_id != "verify_record"
+                    or (
+                        response.record_executor == task.record_executor
+                        and response.record_request_id == task.record_request_id
+                    )
+                ),
+                Reason.SEMANTIC_MISMATCH,
+                task.model_dump(mode="json"),
+                response.model_dump(mode="json"),
+            )
+            if task.capability_id == "verify_record":
+                raw = hex_data(rpc["record_call"], 64)
+                flag = int(raw[2:66], 16)
+                actual_hash = "0x" + raw[66:]
+                if flag not in (0, 1) or (flag == 0) != (actual_hash == "0x" + "00" * 32):
+                    raise ValueError("invalid record lookup")
+                emit(
+                    "query.record",
+                    response.record_exists == bool(flag)
+                    and response.record_hash == actual_hash
+                    and response.record_matches == (bool(flag) and actual_hash == task.record_hash),
+                    Reason.RECORD_HASH_MISMATCH,
+                    {"exists": bool(flag), "record_hash": actual_hash},
+                    response.model_dump(mode="json"),
+                )
+            else:
+                if data.evm.error_reason or "transaction" not in rpc or "receipt" not in rpc:
+                    return unavailable(data.evm.error_reason or Reason.MISSING_EVIDENCE)
+                tx, receipt = rpc["transaction"], rpc["receipt"]
+                if tx is None and receipt is None:
+                    return unavailable(Reason.RPC_RECEIPT_NOT_FOUND)
+                if (
+                    tx is None
+                    or not isinstance(tx, dict)
+                    or receipt is not None
+                    and not isinstance(receipt, dict)
+                ):
+                    raise ValueError("receipt without transaction")
+                if not emit(
+                    "query.transaction",
+                    hex_data(tx["hash"], 32) == task.query_tx_hash
+                    and str(quantity(tx["chainId"])) == facts.execution_chain.chain_id,
+                    Reason.SEMANTIC_MISMATCH,
+                    task.query_tx_hash,
+                    tx["hash"],
+                    unknown=True,
+                ):
+                    return unavailable(Reason.SEMANTIC_MISMATCH)
+                observed_status = "PENDING"
+                if receipt is None:
+                    if "blockHash" not in tx or "blockNumber" not in tx:
+                        return unavailable(Reason.SCHEMA_ERROR)
+                    if tx["blockHash"] is not None or tx["blockNumber"] is not None:
+                        return unavailable(Reason.RPC_RECEIPT_NOT_FOUND)
+                if receipt is not None:
+                    if quantity(receipt["blockNumber"]) > int(task.read_block_number or "0"):
+                        return unavailable(Reason.STALE_EVIDENCE)
+                    block, canonical = rpc["receipt_block"], rpc["receipt_canonical"]
+                    status = quantity(receipt["status"])
+                    if status not in (0, 1):
+                        raise ValueError("invalid receipt status")
+                    canonical_ok = (
+                        hex_data(receipt["transactionHash"], 32) == task.query_tx_hash
+                        and hex_data(tx["blockHash"], 32) == hex_data(receipt["blockHash"], 32)
+                        and hex_data(block["hash"], 32)
+                        == hex_data(canonical["hash"], 32)
+                        == hex_data(receipt["blockHash"], 32)
+                        and quantity(block["number"]) == quantity(receipt["blockNumber"])
+                        and quantity(tx["blockNumber"]) == quantity(receipt["blockNumber"])
+                        and quantity(canonical["number"]) == quantity(receipt["blockNumber"])
+                        and min(
+                            quantity(rpc["head"]["number"]),
+                            int(task.read_block_number or "0"),
+                        )
+                        - quantity(receipt["blockNumber"])
+                        + 1
+                        >= facts.confirmation_depth
+                    )
+                    emit(
+                        "query.canonical",
+                        canonical_ok,
+                        Reason.PENDING_FINALITY,
+                        receipt["blockHash"],
+                        canonical["hash"],
+                        unknown=True,
+                    )
+                    if not canonical_ok:
+                        return unavailable(Reason.PENDING_FINALITY)
+                    observed_status = "SUCCESS" if status == 1 else "REVERTED"
+                emit(
+                    "query.status",
+                    response.tx_hash == task.query_tx_hash
+                    and response.tx_status == observed_status,
+                    Reason.SEMANTIC_MISMATCH,
+                    {"tx_hash": task.query_tx_hash, "status": observed_status},
+                    {"tx_hash": response.tx_hash, "status": response.tx_status},
+                    unknown=observed_status == "PENDING",
+                )
+        except (KeyError, TypeError, ValueError, AttributeError, IndexError):
+            return unavailable(data.evm.error_reason or Reason.PLATFORM_RPC_ERROR)
+        return finish()
     tx = rpc.get("transaction")
     if not isinstance(tx, dict):
         return unavailable(
@@ -346,6 +536,7 @@ def verify_record(
             tx["to"],
             critical=True,
         )
+        assert task.record_hash is not None
         expected_call = CALL_SELECTOR + task.request_id[2:] + task.record_hash[2:]
         emit(
             "tx.calldata",

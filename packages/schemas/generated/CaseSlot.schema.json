@@ -78,9 +78,16 @@
           "$ref": "#/$defs/AgentRef"
         },
         "binding_id": {
-          "format": "uuid4",
-          "title": "Binding Id",
-          "type": "string"
+          "anyOf": [
+            {
+              "format": "uuid4",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Binding Id"
         },
         "confirmation_depth": {
           "maximum": 100,
@@ -111,9 +118,16 @@
           "type": "string"
         },
         "record_hash": {
-          "pattern": "^0x[0-9a-f]{64}$",
-          "title": "Record Hash",
-          "type": "string"
+          "anyOf": [
+            {
+              "pattern": "^0x[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Record Hash"
         },
         "request_id": {
           "pattern": "^0x[0-9a-f]{64}$",
@@ -139,8 +153,15 @@
           "title": "Target Code Hash"
         },
         "target_contract": {
-          "title": "Target Contract",
-          "type": "string"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Target Contract"
         },
         "window_start": {
           "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
@@ -191,8 +212,12 @@
       "additionalProperties": false,
       "properties": {
         "capability_id": {
-          "const": "anchor_record",
           "default": "anchor_record",
+          "enum": [
+            "get_tx_status",
+            "verify_record",
+            "anchor_record"
+          ],
           "title": "Capability Id",
           "type": "string"
         },
@@ -217,10 +242,82 @@
           "title": "Protocol",
           "type": "string"
         },
+        "query_tx_hash": {
+          "anyOf": [
+            {
+              "pattern": "^0x[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Query Tx Hash"
+        },
+        "read_block_hash": {
+          "anyOf": [
+            {
+              "pattern": "^0x[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Read Block Hash"
+        },
+        "read_block_number": {
+          "anyOf": [
+            {
+              "pattern": "^(0|[1-9][0-9]{0,77})$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Read Block Number"
+        },
+        "record_executor": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Record Executor"
+        },
         "record_hash": {
-          "pattern": "^0x[0-9a-f]{64}$",
-          "title": "Record Hash",
-          "type": "string"
+          "anyOf": [
+            {
+              "pattern": "^0x[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Record Hash"
+        },
+        "record_request_id": {
+          "anyOf": [
+            {
+              "pattern": "^0x[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Record Request Id"
         },
         "request_id": {
           "pattern": "^0x[0-9a-f]{64}$",
@@ -233,8 +330,16 @@
           "type": "string"
         },
         "target_contract": {
-          "title": "Target Contract",
-          "type": "string"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Contract"
         }
       },
       "required": [
@@ -242,8 +347,6 @@
         "snapshot_hash",
         "chain_id",
         "chain_instance_id",
-        "target_contract",
-        "record_hash",
         "deadline"
       ],
       "title": "TaskEnvelope",

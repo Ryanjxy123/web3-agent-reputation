@@ -3,31 +3,155 @@
     "TaskResult": {
       "additionalProperties": false,
       "properties": {
+        "capability_id": {
+          "default": "anchor_record",
+          "enum": [
+            "get_tx_status",
+            "verify_record",
+            "anchor_record"
+          ],
+          "title": "Capability Id",
+          "type": "string"
+        },
         "chain_id": {
           "pattern": "^(0|[1-9][0-9]{0,77})$",
           "title": "Chain Id",
           "type": "string"
         },
         "executor": {
-          "title": "Executor",
-          "type": "string"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Executor"
+        },
+        "read_block_hash": {
+          "anyOf": [
+            {
+              "pattern": "^0x[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Read Block Hash"
+        },
+        "read_block_number": {
+          "anyOf": [
+            {
+              "pattern": "^(0|[1-9][0-9]{0,77})$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Read Block Number"
+        },
+        "record_executor": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Record Executor"
+        },
+        "record_exists": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Record Exists"
         },
         "record_hash": {
-          "pattern": "^0x[0-9a-f]{64}$",
-          "title": "Record Hash",
-          "type": "string"
+          "anyOf": [
+            {
+              "pattern": "^0x[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Record Hash"
+        },
+        "record_matches": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Record Matches"
+        },
+        "record_request_id": {
+          "anyOf": [
+            {
+              "pattern": "^0x[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Record Request Id"
         },
         "tx_hash": {
-          "pattern": "^0x[0-9a-f]{64}$",
-          "title": "Tx Hash",
-          "type": "string"
+          "anyOf": [
+            {
+              "pattern": "^0x[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tx Hash"
+        },
+        "tx_status": {
+          "anyOf": [
+            {
+              "enum": [
+                "SUCCESS",
+                "REVERTED",
+                "PENDING",
+                "NOT_FOUND"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tx Status"
         }
       },
       "required": [
-        "chain_id",
-        "tx_hash",
-        "executor",
-        "record_hash"
+        "chain_id"
       ],
       "title": "TaskResult",
       "type": "object"
