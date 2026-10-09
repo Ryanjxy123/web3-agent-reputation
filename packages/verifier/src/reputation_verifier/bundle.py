@@ -234,11 +234,11 @@ def _bundle_tasks(
         or (rule_version == "2" and schema_version == "1.0.0" and not new_index)
         or (rule_version == "2" and schema_version == "1.1.0" and new_index)
         or (
-            rule_version == "3" and schema_version == "1.2.0" and new_index
+            rule_version == "3" and schema_version in {"1.2.0", "1.3.0"} and new_index
             and plan.suite_id == "formal-evaluation-v1"
         )
     )
-    if schema_version != "1.2.0" and (
+    if schema_version not in {"1.2.0", "1.3.0"} and (
         plan.suite_id == "formal-evaluation-v1" or any(row[4] for row in resolved)
     ):
         valid_format = False
@@ -704,21 +704,21 @@ def verify_bundle(
             _fail("REPLAY_MISMATCH", "Run plan must be an object.")
         expected_version = _expected_rule_version(plan_data.get("template_version"))
         core_schema = core_data.get("schema_version", "1.0.0")
-        if core_schema not in {"1.0.0", "1.1.0", "1.2.0"}:
+        if core_schema not in {"1.0.0", "1.1.0", "1.2.0", "1.3.0"}:
             _fail("RULE_VERSION_MISMATCH", "Report uses an unsupported schema version.")
         if core_schema == "1.0.0" and ("task_results" in core_data or "task_counts" in core_data):
             _fail(
                 "RULE_VERSION_MISMATCH", "Legacy report schema cannot carry task replay summaries."
             )
         reported_tasks = core_data.get("task_results", [])
-        if core_schema in {"1.1.0", "1.2.0"} and (
+        if core_schema in {"1.1.0", "1.2.0", "1.3.0"} and (
             not isinstance(reported_tasks, list)
             or not reported_tasks
             or not isinstance(core_data.get("task_counts"), dict)
         ):
-            _fail("RULE_VERSION_MISMATCH", "Version 1.1 reports require task replay summaries.")
+            _fail("RULE_VERSION_MISMATCH", "Task replay reports require results and counts.")
         if (
-            core_schema in {"1.1.0", "1.2.0"}
+            core_schema in {"1.1.0", "1.2.0", "1.3.0"}
             and isinstance(reported_tasks, list)
             and any(
                 not isinstance(item, dict) or item.get("rule_version") != expected_version
@@ -727,8 +727,8 @@ def verify_bundle(
         ):
             _fail("RULE_VERSION_MISMATCH", "Report task results use a different assertion version.")
         plan = RunPlan.model_validate(plan_data)
-        if len(plan.slots) != 1 and core_schema != "1.2.0":
-            _fail("REPLAY_MISMATCH", "Current reports support one task per run.")
+        if len(plan.slots) != 1 and core_schema not in {"1.2.0", "1.3.0"}:
+            _fail("REPLAY_MISMATCH", "Historical reports support one task per run.")
         verification = _json(aliases, "verification.json")
         records = _record_by_id(manifest)
         tasks = _bundle_tasks(verification, plan, core_data, records, files)
@@ -802,7 +802,7 @@ def verify_bundle(
                     input_evidence_id=input_id,
                 )
             )
-        if core.schema_version in {"1.1.0", "1.2.0"}:
+        if core.schema_version in {"1.1.0", "1.2.0", "1.3.0"}:
             if (
                 tuple(expected_tasks) != core.task_results
                 or core.task_counts is None
@@ -820,14 +820,16 @@ def verify_bundle(
 
         rebuilt = build_report(
             plan,
-            tuple(inputs) if core.schema_version == "1.2.0" else inputs[0],
-            tuple(input_ids) if core.schema_version == "1.2.0" else input_ids[0],
+            tuple(inputs) if core.schema_version in {"1.2.0", "1.3.0"} else inputs[0],
+            tuple(input_ids) if core.schema_version in {"1.2.0", "1.3.0"} else input_ids[0],
             tuple(observations),
             policy,
             evaluated_at=core.evaluated_at,
             code_version=core.code_version,
             manifest_hash=manifest_hash,
             previous_report_hash=core.previous_report_hash,
+            report_schema_version="1.3.0" if core.schema_version == "1.3.0"
+            else "1.2.0" if core.schema_version == "1.2.0" else None,
         )
         if core.schema_version == "1.0.0" and rebuilt.schema_version == "1.1.0":
             rebuilt = rebuilt.model_copy(
@@ -870,7 +872,13 @@ def verify_bundle(
         "task_results": replayed_tasks,
         "task_counts": {outcome.value: computed_counts[outcome] for outcome in Outcome},
         "task_count_comparison": "MATCH"
-        if core.schema_version in {"1.1.0", "1.2.0"}
+        if core.schema_version in {"1.1.0", "1.2.0", "1.3.0"}
         else "NOT_AVAILABLE_LEGACY_REPORT",
+        "assessment_comparison": "MATCH"
+        if core.schema_version == "1.3.0" else "NOT_AVAILABLE_LEGACY_REPORT",
+        **({
+            "evidence_sufficiency": core.evidence_sufficiency.model_dump(mode="json"),
+            "risk_assessment": core.risk_assessment.model_dump(mode="json"),
+        } if core.evidence_sufficiency is not None and core.risk_assessment is not None else {}),
         "anchor": anchor,
     }

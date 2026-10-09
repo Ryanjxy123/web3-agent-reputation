@@ -1,7 +1,8 @@
 """M1 statistics from replayed task evidence; no clock, database or platform imports."""
 
 from datetime import datetime
-from typing import Any
+from fractions import Fraction
+from typing import Any, Literal, cast
 from uuid import UUID
 
 from .binding import agent_key_hash
@@ -9,18 +10,22 @@ from .case_templates import CASE_CLASSES
 from .evidence import hash_json
 from .models import (
     ControlledTaskView,
+    CriticalRisk,
+    EvidenceSufficiency,
     Observation,
     Outcome,
+    Reason,
     RecordVerificationInput,
     RecordVerificationResult,
     ReportCore,
     ReportTaskResult,
+    RiskAssessment,
     RunPlan,
     ScoreResult,
     TaskOutcomeCounts,
 )
 from .record_verifier import verify_record
-from .scoring_reference import evaluate_from_stats
+from .scoring_reference import _bp, _quality, _ratio, evaluate_from_stats
 
 LIMITATIONS = (
     "Local Anvil demonstration with one anchor_record functional slot; not a production trust rating.",
@@ -45,6 +50,7 @@ def build_report(
     code_version: str,
     manifest_hash: str,
     previous_report_hash: str,
+    report_schema_version: Literal["1.2.0", "1.3.0"] | None = None,
 ) -> ReportCore:
     if plan.suite_id == "formal-evaluation-v1":
         return _build_formal_report(
@@ -57,7 +63,10 @@ def build_report(
             code_version=code_version,
             manifest_hash=manifest_hash,
             previous_report_hash=previous_report_hash,
+            report_schema_version=report_schema_version or "1.3.0",
         )
+    if report_schema_version is not None:
+        raise ValueError("legacy reports cannot be upgraded by schema selection")
     if isinstance(inputs, tuple) or isinstance(evidence_id, tuple):
         raise ValueError("REPORT_CONTEXT_MISMATCH")
     expected_rule_version = "2" if plan.template_version.endswith("@2") else "1"
@@ -334,6 +343,220 @@ def _verified_class(
     return None
 
 
+def _assess_evidence(
+    stats: dict[str, Any], scores: ScoreResult, inputs: tuple[RecordVerificationInput, ...],
+    results: list[RecordVerificationResult], policy: dict[str, Any],
+) -> tuple[EvidenceSufficiency, RiskAssessment]:
+    """Explain existing exact policy gates and preserve only confirmed critical failures."""
+    gates = policy["gates"]
+    minimum_coverage = Fraction(gates["min_coverage_bp"], 10_000)
+    minimum_quality = Fraction(gates["min_sufficiency_bp"], 10_000)
+    maximum_unresolved = 1 - minimum_coverage
+    ttl = gates["freshness_ttl_seconds"]
+    dimensions: dict[str, Any] = {}
+    capability_details: list[dict[str, Any]] = []
+    missing: list[str] = []
+    qualities: list[Fraction] = []
+    unresolved_ratios: list[Fraction] = []
+
+    def sample_detail(name: str, sample: dict[str, Any], required: int) -> dict[str, Any]:
+        planned, decided = sample["planned"], sample["decided"]
+        unresolved = planned - decided
+        coverage, quantity, freshness = _quality(
+            decided, planned, required, sample.get("oldest_age_seconds"), ttl
+        )
+        ratio = _ratio(unresolved, planned)
+        checks = {
+            "samples": decided >= required,
+            "coverage": coverage >= minimum_coverage,
+            "unresolved": bool(planned) and ratio <= maximum_unresolved,
+            "freshness": freshness >= minimum_quality,
+        }
+        for check, passed in checks.items():
+            if not passed:
+                missing.append(f"{name}:{check}")
+        return {
+            "planned": planned, "decided": decided, "unresolved": unresolved,
+            "required_samples": required, "oldest_age_seconds": sample.get("oldest_age_seconds"),
+            "coverage_bp": _bp(coverage), "sample_bp": _bp(quantity),
+            "freshness_bp": _bp(freshness), "sufficiency_bp": _bp(min(coverage, quantity, freshness)),
+            "unknown_or_unresolved_bp": _bp(ratio), "exact_gates": checks,
+        }
+
+    availability = sample_detail("availability", stats["availability"], policy["availability"]["min_samples"])
+    dimensions["availability"] = availability
+    quantities = _quality(
+        availability["decided"], availability["planned"], availability["required_samples"],
+        availability["oldest_age_seconds"], ttl,
+    )
+    qualities.append(min(quantities))
+    unresolved_ratios.append(_ratio(availability["unresolved"], availability["planned"]))
+
+    capabilities = stats["capabilities"]
+    uncovered = stats["uncovered_claim_count"]
+    total_claims = len(capabilities) + uncovered
+    known_mapping = sum(capability["mapping"] is not None for capability in capabilities)
+    tested_claims = sum(bool(capability["decided"]) for capability in capabilities)
+    total_planned = total_decided = 0
+    capability_quantities = []
+    for capability in capabilities:
+        cid = capability["capability_id"]
+        detail = sample_detail(cid, capability, policy["consistency"]["min_cases_per_capability"])
+        detail.update({
+            "capability_id": cid, "mapping": capability["mapping"],
+            "required_classes": capability["required_classes"],
+            "covered_classes": capability["covered_classes"],
+            "missing_classes": capability["missing_classes"],
+            "not_applicable": sum(
+                result.outcome == Outcome.NOT_APPLICABLE
+                and item.slot.purpose == "functional" and item.slot.capability_id == cid
+                for item, result in zip(inputs, results, strict=True)
+            ),
+        })
+        detail["exact_gates"].update({
+            "mapping": capability["mapping"] is not None,
+            "mandatory_classes": capability["required_classes_decided"],
+        })
+        if capability["mapping"] is None:
+            missing.append(f"{cid}:mapping")
+        missing.extend(f"{cid}:case:{case}" for case in capability["missing_classes"])
+        capability_details.append(detail)
+        total_planned += capability["planned"]
+        total_decided += capability["decided"]
+        quality = _quality(
+            capability["decided"], capability["planned"], detail["required_samples"],
+            capability.get("oldest_age_seconds"), ttl,
+        )
+        capability_quantities.append(quality)
+        unresolved_ratios.append(_ratio(detail["unresolved"], detail["planned"]))
+    consistency_coverage = min(
+        _ratio(total_decided, total_planned), _ratio(known_mapping, total_claims)
+    )
+    consistency_sample = min((item[1] for item in capability_quantities), default=Fraction(0))
+    if uncovered:
+        consistency_sample = Fraction(0)
+        missing.append("consistency:uncovered_claims")
+    consistency_freshness = min((item[2] for item in capability_quantities), default=Fraction(0))
+    consistency_quality = min(consistency_coverage, consistency_sample, consistency_freshness)
+    qualities.append(consistency_quality)
+    consistency_checks = {
+        "samples": bool(capabilities) and not uncovered and all(
+            detail["exact_gates"]["samples"] for detail in capability_details
+        ),
+        "coverage": consistency_coverage >= minimum_coverage and all(
+            detail["exact_gates"]["coverage"] for detail in capability_details
+        ),
+        "unresolved": bool(total_planned) and all(
+            detail["exact_gates"]["unresolved"] for detail in capability_details
+        ),
+        "mapping": bool(capabilities) and not uncovered and known_mapping == total_claims,
+        "mandatory_classes": bool(capabilities) and all(
+            detail["exact_gates"]["mandatory_classes"] for detail in capability_details
+        ),
+        "freshness": consistency_freshness >= minimum_quality,
+    }
+    dimensions["consistency"] = {
+        "planned": total_planned, "decided": total_decided, "unresolved": total_planned - total_decided,
+        "oldest_age_seconds": max(
+            (capability["oldest_age_seconds"] for capability in capabilities
+             if capability["oldest_age_seconds"] is not None), default=None,
+        ),
+        "claim_count": total_claims, "mapped_claim_count": known_mapping, "tested_claim_count": tested_claims,
+        "claim_coverage_bp": _bp(_ratio(tested_claims, total_claims)),
+        "mapping_coverage_bp": _bp(_ratio(known_mapping, total_claims)),
+        "coverage_bp": _bp(consistency_coverage), "sample_bp": _bp(consistency_sample),
+        "freshness_bp": _bp(consistency_freshness), "sufficiency_bp": _bp(consistency_quality),
+        "unknown_or_unresolved_bp": _bp(_ratio(total_planned - total_decided, total_planned)),
+        "exact_gates": consistency_checks,
+    }
+    for check, passed in consistency_checks.items():
+        if not passed:
+            missing.append(f"consistency:{check}")
+    if stats["behavior"] is not None:
+        behavior = sample_detail("behavior", stats["behavior"], policy["behavior"]["min_accepted_decided_tasks"])
+        behavior["accepted"] = stats["behavior"]["accepted"]
+        behavior["exact_gates"]["binding"] = stats["attribution_verified"]
+        dimensions["behavior"] = behavior
+        quality = _quality(
+            behavior["decided"], behavior["planned"], behavior["required_samples"],
+            behavior["oldest_age_seconds"], ttl,
+        )
+        qualities.append(min(quality) if stats["attribution_verified"] else Fraction(0))
+        unresolved_ratios.append(_ratio(behavior["unresolved"], behavior["planned"]))
+        if not stats["attribution_verified"]:
+            missing.append("behavior:binding")
+    else:
+        dimensions["behavior"] = {"state": "NOT_APPLICABLE", "exact_gates": {}}
+    for dimension, detail in dimensions.items():
+        detail["state"] = scores.dimensions[cast(Literal["availability", "consistency", "behavior"], dimension)].state
+        detail["not_applicable"] = sum(
+            result.outcome == Outcome.NOT_APPLICABLE
+            and item.slot.purpose == {"availability": "availability", "consistency": "functional", "behavior": "behavioral"}[dimension]
+            for item, result in zip(inputs, results, strict=True)
+        )
+    exact_quality = min(qualities, default=Fraction(0))
+    if exact_quality < minimum_quality:
+        missing.append("overall:sufficiency")
+    allowed = not missing and all(
+        value.state in {"COMPLETE", "NOT_APPLICABLE"} for value in scores.dimensions.values()
+    )
+    if allowed != (scores.overall_score_bp is not None):
+        raise ValueError("EVIDENCE_GATE_MISMATCH")
+    applicable_results = [result for result in results if result.outcome != Outcome.NOT_APPLICABLE]
+    sufficiency = EvidenceSufficiency(
+        thresholds={
+            "min_coverage_bp": gates["min_coverage_bp"], "min_sufficiency_bp": gates["min_sufficiency_bp"],
+            "max_unknown_or_unresolved_bp": 10_000 - gates["min_coverage_bp"],
+            "freshness_ttl_seconds": ttl,
+            "availability_min_samples": policy["availability"]["min_samples"],
+            "consistency_min_samples_per_capability": policy["consistency"]["min_cases_per_capability"],
+            "behavior_min_accepted_decided_samples": policy["behavior"]["min_accepted_decided_tasks"],
+            "unresolved_threshold_basis": "1 - policy min_coverage; includes unaccepted or undecided planned slots",
+        },
+        dimensions=dimensions, capabilities=tuple(capability_details),
+        unknown_or_unresolved_bp=cast(int, _bp(max(unresolved_ratios, default=Fraction(0)))),
+        task_unknown_bp=cast(int, _bp(_ratio(
+            sum(result.outcome == Outcome.UNKNOWN for result in applicable_results), len(applicable_results)
+        ))),
+        sufficiency_bp=scores.sufficiency_bp,
+        exact_gates={
+            "dimensions_complete": all(
+                value.state in {"COMPLETE", "NOT_APPLICABLE"} for value in scores.dimensions.values()
+            ),
+            "sufficiency": exact_quality >= minimum_quality,
+            "unresolved": all(ratio <= maximum_unresolved for ratio in unresolved_ratios),
+            "binding": stats["profile"] == "record-read-v1" or stats["attribution_verified"],
+        },
+        uncovered_claims=tuple(stats["uncovered_claims"]), missing_evidence=tuple(sorted(set(missing))),
+        gate_status="PASS" if allowed else "PARTIAL", overall_allowed=allowed,
+    )
+    findings = tuple(
+        CriticalRisk(
+            slot_id=assertion.slot_id, assertion_id=assertion.assertion_id,
+            rule_id=assertion.rule_id, reason_code=cast(Reason, assertion.reason_code),
+            evidence_refs=assertion.evidence_refs,
+        )
+        for assertion in sorted(
+            (assertion for result in results for assertion in result.assertions
+             if assertion.critical and assertion.outcome == Outcome.FAIL),
+            key=lambda assertion: str(assertion.assertion_id),
+        )
+    )
+    risks = RiskAssessment(
+        conclusion="CONFIRMED_CRITICAL_CONFLICT" if findings else "NO_CONFIRMED_CRITICAL_CONFLICT",
+        critical_findings=findings,
+        ordinary_failure_slots=tuple(
+            item.slot.slot_id for item, result in zip(inputs, results, strict=True)
+            if result.outcome == Outcome.FAIL and not result.critical_conflict
+        ),
+        evidence_gap_slots=tuple(
+            item.slot.slot_id for item, result in zip(inputs, results, strict=True)
+            if any(assertion.outcome == Outcome.UNKNOWN for assertion in result.assertions)
+        ),
+    )
+    return sufficiency, risks
+
+
 def _build_formal_report(
     plan: RunPlan,
     inputs: tuple[RecordVerificationInput, ...],
@@ -345,6 +568,7 @@ def _build_formal_report(
     code_version: str,
     manifest_hash: str,
     previous_report_hash: str,
+    report_schema_version: Literal["1.2.0", "1.3.0"],
 ) -> ReportCore:
     if (
         plan.template_version != "capabilities@3"
@@ -532,8 +756,14 @@ def _build_formal_report(
     scores = ScoreResult.model_validate(evaluate_from_stats(stats, policy))
     counts = {outcome.value: sum(result.outcome == outcome for result in results) for outcome in Outcome}
     decided_count = counts["PASS"] + counts["FAIL"]
+    sufficiency, risks = (
+        _assess_evidence(stats, scores, inputs, results, policy)
+        if report_schema_version == "1.3.0" else (None, None)
+    )
     return ReportCore(
-        schema_version="1.2.0", scoring_rule_version="three-dimensional-v1",
+        schema_version=report_schema_version, scoring_rule_version="three-dimensional-v1",
+        assessment_rule_version="evidence-assessment-v1" if sufficiency is not None else None,
+        evidence_sufficiency=sufficiency, risk_assessment=risks,
         task_success_rate_bp=(2 * counts["PASS"] * 10_000 + decided_count) // (2 * decided_count)
         if decided_count else None,
         agent_ref=first.slot.expected.agent_ref, agent_key_hash=agent_key_hash(first.slot.expected.agent_ref),

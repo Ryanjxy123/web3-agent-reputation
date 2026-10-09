@@ -49,7 +49,7 @@ def test_formal_report_replays_scores_and_distinct_task_success_rate(tmp_path):
     assert result["task_counts"]["PASS"] == 1
     with ZipFile(path) as archive:
         core = strict_json(archive.read("report_core.json"))
-    assert core["schema_version"] == "1.2.0"
+    assert core["schema_version"] == "1.3.0"
     assert core["task_success_rate_bp"] == 10000
     assert core["scores"]["overall_score_bp"] is None
 
@@ -116,13 +116,68 @@ def test_formal_negative_replays_correct_rejection_and_actual_payload_hash(tmp_p
     assert failure.value.code == "REPLAY_MISMATCH"
 
 
+def test_formal_v12_report_remains_recognized_without_assessment_upgrade(tmp_path):
+    path, _, _, _ = make_bundle(tmp_path, formal=True, report_schema_version="1.2.0")
+    with ZipFile(path) as archive:
+        core = strict_json(archive.read("report_core.json"))
+    assert core["schema_version"] == "1.2.0"
+    assert "assessment_rule_version" not in core
+    assert "evidence_sufficiency" not in core and "risk_assessment" not in core
+    result = verify_bundle(str(path))
+    assert result["offline"] == "PASS" and result["task_count_comparison"] == "MATCH"
+    assert result["assessment_comparison"] == "NOT_AVAILABLE_LEGACY_REPORT"
+    assert "evidence_sufficiency" not in result and "risk_assessment" not in result
+
+
+@pytest.mark.parametrize("field", [
+    "sufficiency", "sufficiency_gate", "risk_conclusion", "risk_evidence", "rule_version",
+])
+def test_verifier_rejects_assessment_tampering_even_after_rehash(tmp_path, field):
+    path, _, _, _ = make_bundle(tmp_path, formal=True, case="critical")
+    original = verify_bundle(str(path))
+    assert original["assessment_comparison"] == "MATCH"
+    assert original["risk_assessment"]["critical_findings"]
+    changed = tmp_path / f"assessment-{field}.zip"
+
+    def alter(core):
+        if field == "sufficiency":
+            core["evidence_sufficiency"]["task_unknown_bp"] = 10000
+        elif field == "sufficiency_gate":
+            core["evidence_sufficiency"]["overall_allowed"] = True
+            core["evidence_sufficiency"]["gate_status"] = "PASS"
+        elif field == "risk_conclusion":
+            core["risk_assessment"]["critical_findings"] = []
+            core["risk_assessment"]["conclusion"] = "NO_CONFIRMED_CRITICAL_CONFLICT"
+        elif field == "risk_evidence":
+            core["risk_assessment"]["critical_findings"][0]["evidence_refs"] = [str(uuid4())]
+        else:
+            core["assessment_rule_version"] = "evidence-assessment-v2"
+
+    rewrite_bundle(path, changed, core_change=alter)
+    with pytest.raises(VerificationError) as failure:
+        verify_bundle(str(changed))
+    assert failure.value.code == "REPLAY_MISMATCH"
+
+
+def test_formal_v13_cannot_be_relabeled_as_legacy_with_assessment_fields(tmp_path):
+    path, _, _, _ = make_bundle(tmp_path, formal=True)
+    changed = tmp_path / "relabeled-assessment.zip"
+    rewrite_bundle(path, changed, core_change=lambda core: core.update(schema_version="1.2.0"))
+    with pytest.raises(VerificationError) as failure:
+        verify_bundle(str(changed))
+    assert failure.value.code == "REPLAY_MISMATCH"
+
+
 def make_bundle(
     tmp_path, *, rule_version="2", legacy_index=False, case="pass", identical_freeze=False,
-    formal=False,
+    formal=False, report_schema_version=None,
 ):
     if formal:
         rule_version = "3"
     raw_input = (
+        reverted_anchor_input().model_dump(mode="json")
+        if case == "critical"
+        else
         excluded_input()
         if case == "not_applicable"
         else v2_task_input(status="NOT_FOUND")
@@ -134,7 +189,7 @@ def make_bundle(
     if formal:
         raw_input["rule_version"] = "3"
         if case != "not_applicable":
-            raw_input["slot"]["required_class"] = "success"
+            raw_input["slot"]["required_class"] = "normal" if case == "critical" else "success"
         if raw_input.get("agent_http") is not None:
             raw_input["initial_agent_http"] = {
                 **deepcopy(raw_input["agent_http"]), "method": "POST", "path": "/tasks",
@@ -156,6 +211,9 @@ def make_bundle(
         raw_input["evm"]["candidate_tx_hash"] = None
     if case == "fail":
         claim_result(raw_input, tx_status="REVERTED")
+    if case == "critical":
+        raw_input["evm"]["results"]["transaction"]["to"] = "0x" + "22" * 20
+        raw_input["binding"]["verification_evidence"] = []
     if case == "not_applicable":
         raw_input["execution_reason"] = raw_input["slot"]["applicability_reason"]
     if case in {"service_error", "schema_error", "failed_query"}:
@@ -216,7 +274,7 @@ def make_bundle(
         review_version=inputs.review_version,
         policy_version="policy-v1",
         policy_hash=hash_json(policy),
-        profile="record-read-v1",
+        profile="record-write-v1" if case == "critical" else "record-read-v1",
         confirmed_capabilities=inputs.review.confirmed_claims,
         suite_id="formal-evaluation-v1" if formal else "capabilities-v1",
         template_version=f"capabilities@{rule_version}",
@@ -353,6 +411,7 @@ def make_bundle(
         code_version="0" * 40,
         manifest_hash=manifest_hash,
         previous_report_hash=ZERO,
+        report_schema_version=report_schema_version,
     )
     if legacy_index and rule_version == "2":
         report = report.model_copy(

@@ -105,7 +105,7 @@ def formal_arguments(*, availability=20, functional=10, behavior=0, mode="normal
 
 def test_independent_denominators_and_mapping_are_evidence_based():
     report = build_report(**formal_arguments(mode="business_failure"))
-    assert report.schema_version == "1.2.0"
+    assert report.schema_version == "1.3.0"
     assert report.task_success_rate_bp == 6667
     assert report.raw_statistics["availability"]["decided"] == 20
     assert report.raw_statistics["capabilities"][0]["decided"] == 10
@@ -429,3 +429,142 @@ def test_complete_golden_scores_are_derived_from_frozen_raw_evidence():
     assert report.task_counts.pass_count == 29 and report.task_counts.fail_count == 1
     assert not report.scores.critical_conflict
     assert build_report(**arguments) == report
+
+
+def test_assessment_explains_exact_policy_gates_and_ordinary_failure():
+    report = build_report(**complete_read_arguments())
+    evidence = report.evidence_sufficiency
+    risk = report.risk_assessment
+    assert evidence is not None and risk is not None
+    assert evidence.overall_allowed and evidence.gate_status == "PASS"
+    assert evidence.missing_evidence == () and all(evidence.exact_gates.values())
+    assert evidence.thresholds["max_unknown_or_unresolved_bp"] == 2000
+    assert evidence.thresholds["availability_min_samples"] == 20
+    assert evidence.thresholds["consistency_min_samples_per_capability"] == 10
+    assert evidence.unknown_or_unresolved_bp == 0
+    assert evidence.dimensions["consistency"]["claim_coverage_bp"] == 10000
+    assert evidence.dimensions["consistency"]["oldest_age_seconds"] == 8640
+    assert evidence.capabilities[0]["not_applicable"] == 0
+    assert evidence.capabilities[0]["missing_classes"] == []
+    assert risk.conclusion == "NO_CONFIRMED_CRITICAL_CONFLICT" and risk.critical_findings == ()
+    assert len(risk.ordinary_failure_slots) == 1
+
+
+def test_rpc_unknown_retains_initial_http_availability_and_never_becomes_risk():
+    report = build_report(**formal_arguments(mode="rpc_unknown"))
+    evidence = report.evidence_sufficiency
+    risk = report.risk_assessment
+    assert evidence is not None and risk is not None
+    assert evidence.dimensions["availability"]["unresolved"] == 0
+    assert evidence.dimensions["availability"]["unknown_or_unresolved_bp"] == 0
+    assert evidence.dimensions["consistency"]["unknown_or_unresolved_bp"] == 10000
+    assert evidence.task_unknown_bp == 10000
+    assert not evidence.overall_allowed and report.scores.overall_score_bp is None
+    assert risk.critical_findings == () and risk.ordinary_failure_slots == ()
+    assert len(risk.evidence_gap_slots) == 30
+
+
+@pytest.mark.parametrize("missing", ["samples", "coverage", "long_claim", "unbounded_claim", "blank_claim"])
+def test_sufficiency_names_missing_samples_and_capability_coverage(missing):
+    arguments = complete_read_arguments()
+    if missing == "samples":
+        arguments["plan"] = arguments["plan"].model_copy(update={"slots": arguments["plan"].slots[1:]})
+        arguments["inputs"] = arguments["inputs"][1:]
+        arguments["evidence_id"] = arguments["evidence_id"][1:]
+        arguments["observations"] = arguments["observations"][2:]
+    else:
+        claim = {"coverage": "unadapted-public-claim", "long_claim": "x" * 2000,
+                 "unbounded_claim": "x" * 2001, "blank_claim": ""}[missing]
+        bodies = []
+        for item in arguments["inputs"]:
+            body = item.model_dump(mode="json")
+            core = body["snapshot"]["core"]
+            core["normalized_metadata"]["capabilities"].append(claim)
+            core["metadata_hash"] = hash_json(core["normalized_metadata"])
+            snapshot_hash = hash_json(core)
+            body["snapshot"]["snapshot_hash"] = snapshot_hash
+            body["review"]["snapshot_hash"] = snapshot_hash
+            body["slot"]["task"]["snapshot_hash"] = snapshot_hash
+            body["slot"]["expected"]["snapshot_hash"] = snapshot_hash
+            body["grant"]["snapshot_hash"] = snapshot_hash
+            body["registry_witness"]["snapshot_core"] = deepcopy(core)
+            body["dispatch_payload_hash"] = hash_json(mutated_payload(RecordVerificationInput.model_validate(body).slot))
+            bodies.append(RecordVerificationInput.model_validate(body))
+        arguments["inputs"] = tuple(bodies)
+        arguments["plan"] = arguments["plan"].model_copy(update={
+            "snapshot_hash": bodies[0].snapshot.snapshot_hash, "slots": tuple(item.slot for item in bodies),
+        })
+    report = build_report(**arguments)
+    evidence = report.evidence_sufficiency
+    assert evidence is not None and not evidence.overall_allowed
+    assert report.scores.overall_score_bp is None
+    if missing == "samples":
+        assert "availability:samples" in evidence.missing_evidence
+    else:
+        assert evidence.uncovered_claims == (claim,)
+        assert evidence.dimensions["consistency"]["claim_count"] == 2
+        assert evidence.dimensions["consistency"]["claim_coverage_bp"] == (0 if missing in {"blank_claim", "unbounded_claim"} else 5000)
+        assert "consistency:uncovered_claims" in evidence.missing_evidence
+
+
+@pytest.mark.parametrize("unknown_number,allowed", [(4, True), (5, True), (6, False)])
+def test_unresolved_limit_is_exact_complement_of_coverage_and_applied_per_dimension(unknown_number, allowed):
+    arguments = complete_read_arguments()
+    original_inputs, original_observations = arguments["inputs"], arguments["observations"]
+    additional = []
+    additional_observations = []
+    for index in range(unknown_number):
+        body = original_inputs[0].model_dump(mode="json")
+        slot_id = uuid4()
+        request_id = "0x" + (100 + index).to_bytes(32, "big").hex()
+        body["slot"].update(slot_id=str(slot_id), slot_key=f"extra-unknown-{index}")
+        body["slot"]["task"]["request_id"] = body["slot"]["expected"]["request_id"] = request_id
+        body["dispatch_payload_hash"] = hash_json(body["slot"]["task"])
+        body.update(initial_agent_http=None, agent_http=None, agent_response=None,
+                    agent_result=None, agent_task_status=None, execution_reason="PLATFORM_NETWORK_ERROR")
+        additional.append(RecordVerificationInput.model_validate(body))
+        additional_observations.append(original_observations[1].model_copy(update={
+            "observation_id": uuid4(), "slot_id": slot_id, "accepted": False,
+            "reason_code": "PLATFORM_NETWORK_ERROR",
+        }))
+    arguments["inputs"] = (*original_inputs, *additional)
+    arguments["observations"] = (*original_observations, *additional_observations)
+    arguments["evidence_id"] = tuple(uuid4() for _ in arguments["inputs"])
+    arguments["plan"] = arguments["plan"].model_copy(update={"slots": tuple(item.slot for item in arguments["inputs"])})
+    report = build_report(**arguments)
+    evidence = report.evidence_sufficiency
+    assert evidence is not None
+    assert evidence.dimensions["availability"]["unresolved"] == unknown_number
+    assert evidence.dimensions["availability"]["exact_gates"]["unresolved"] == allowed
+    assert evidence.overall_allowed == allowed  # Exactly 20/25 satisfies coverage >=80%; 20/26 does not.
+    assert (report.scores.overall_score_bp is not None) == allowed
+
+
+@pytest.mark.parametrize("age,allowed", [(34560, True), (34561, False)])
+def test_sufficiency_gate_uses_exact_freshness_not_displayed_basis_points(age, allowed):
+    from datetime import datetime, timedelta
+
+    arguments = complete_read_arguments()
+    arguments["evaluated_at"] = (datetime.fromisoformat(NOW) + timedelta(seconds=age)).isoformat(timespec="milliseconds").replace("+00:00", "Z")
+    report = build_report(**arguments)
+    evidence = report.evidence_sufficiency
+    assert evidence is not None
+    assert evidence.sufficiency_bp == 6000 and evidence.overall_allowed == allowed
+    assert evidence.exact_gates["sufficiency"] == allowed
+
+
+def test_v12_replay_omits_assessments_and_retains_original_scoring_fields():
+    arguments = complete_read_arguments()
+    old = build_report(**arguments, report_schema_version="1.2.0")
+    new = build_report(**arguments)
+    old_wire, new_wire = old.model_dump(mode="json"), new.model_dump(mode="json")
+    assert old.schema_version == "1.2.0" and old.evidence_sufficiency is None
+    assert old.raw_statistics == new.raw_statistics and old.scores == new.scores
+    for field in ("evidence_sufficiency", "risk_assessment", "assessment_rule_version"):
+        assert field not in old_wire
+        new_wire.pop(field)
+    new_wire["schema_version"] = "1.2.0"
+    assert new_wire == old_wire
+    old_wire["risk_assessment"] = new.risk_assessment.model_dump(mode="json")
+    with pytest.raises(ValidationError, match="assessment fields"):
+        ReportCore.model_validate(old_wire)

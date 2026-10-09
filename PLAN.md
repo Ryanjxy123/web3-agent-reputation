@@ -70,5 +70,6 @@
 ## 2026-10-10 本轮范围与阶段结果
 
 仅完成后续任务4（三维评价）和5（充分度/关键风险）；任务4阶段实现、测试、Review修复已通过：292单元/reference、12真实正式评价/报告、3真实Review回归，均无skip；规则与版本见ADR0014/STATUS。
-继续任务5，复用policy-v1既有门槛；完成后再跨模块Review、全量Python/Web/Foundry/Schema/PostgreSQL/Anvil、提交/PR/CI。
+任务4提交de8fe94。任务5已实现充分度解释/精确gate/证据引用风险/ReportCore1.3，阶段Review及314单元reference、3真实正常/风险/RPC测试通过；复用policy-v1门槛。
+接着执行跨模块Review、全量Python/Web/Foundry/Schema/PostgreSQL/Anvil、提交/PR/CI。
 本轮最终验收仍待完成；不把阶段通过当全量通过，不开始任务6。

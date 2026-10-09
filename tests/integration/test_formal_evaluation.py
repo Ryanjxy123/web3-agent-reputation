@@ -3,6 +3,7 @@
 import asyncio
 import base64
 import secrets
+import socket
 from collections import Counter
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
@@ -89,14 +90,16 @@ def scoped_snapshot(flow, previous_snapshot_id, capabilities):
     return snapshot["snapshot_id"]
 
 
-def formal_request(flow, snapshot_id, review_version, capabilities, target, *, max_tasks=100):
+def formal_request(
+    flow, snapshot_id, review_version, capabilities, target, *, max_tasks=100, endpoint_id="fixture-a"
+):
     client, identity, _, _, web3, deployment, _ = flow
     response = client.post(
         "/api/v1/access-grants",
         headers=AUTH,
         json={
             "snapshot_id": snapshot_id,
-            "endpoint_id": "fixture-a",
+            "endpoint_id": endpoint_id,
             "max_tasks": max_tasks,
             "capabilities": list(capabilities),
             "contract_allowlist": [target],
@@ -154,7 +157,7 @@ def create_formal(flow, body):
     return run_id, plan
 
 
-def run_formal(flow, run_id, tmp_path):
+def run_formal(flow, run_id, tmp_path, *, rpc_fault=False):
     identity = flow[1]
     verifier = VerificationService(identity.db, identity)
     reports = ReportService(identity.db, identity)
@@ -167,7 +170,19 @@ def run_formal(flow, run_id, tmp_path):
         },
     )
     for kind in ("evaluate", "verify", "report"):
-        assert asyncio.run(worker.run_once())
+        if kind == "verify" and rpc_fault:
+            with socket.socket() as refused:
+                refused.bind(("127.0.0.1", 0))
+                deployment = identity.deployment()
+                identity._deployment = deployment.model_copy(update={
+                    "rpc_url": f"http://127.0.0.1:{refused.getsockname()[1]}"
+                })
+                try:
+                    assert asyncio.run(worker.run_once())
+                finally:
+                    identity._deployment = deployment
+        else:
+            assert asyncio.run(worker.run_once())
         with identity.db.connect() as connection:
             row = connection.execute(
                 select(jobs.c.state, jobs.c.last_error).where(
@@ -179,7 +194,7 @@ def run_formal(flow, run_id, tmp_path):
     response = flow[0].get(f"/api/v1/evaluations/{run_id}/verification")
     assert response.status_code == 200 and len(response.json()) == len(results)
     report = reports.for_run(run_id)
-    assert report.core.schema_version == "1.2.0"
+    assert report.core.schema_version == "1.3.0"
     assert len(report.core.task_results) == len(results)
     destination = tmp_path / "formal-bundle.zip"
     destination.write_bytes(reports.export(report.report_id))
@@ -187,6 +202,9 @@ def run_formal(flow, run_id, tmp_path):
     assert independent["offline"] == "PASS"
     assert independent["task_count_comparison"] == "MATCH"
     assert independent["task_counts"] == report.core.task_counts.model_dump(mode="json")
+    assert independent["assessment_comparison"] == "MATCH"
+    assert independent["evidence_sufficiency"] == report.core.evidence_sufficiency.model_dump(mode="json")
+    assert independent["risk_assessment"] == report.core.risk_assessment.model_dump(mode="json")
     return report, results
 
 
@@ -211,6 +229,9 @@ def test_formal_write_evaluation_freezes_independent_dimensions_and_all_case_cla
     assert report.core.scores.evaluation_state == "COMPLETE"
     assert report.core.scores.overall_score_bp == 10000
     assert not report.core.scores.critical_conflict
+    assert report.core.evidence_sufficiency.overall_allowed
+    assert report.core.evidence_sufficiency.gate_status == "PASS"
+    assert not report.core.risk_assessment.critical_findings
     assert report.core.raw_statistics["behavior"]["decided"] == 10
     assert report.core.raw_statistics["availability"]["decided"] == 20
     assert len({item.input_evidence_id for item in report.core.task_results}) == 50
@@ -294,6 +315,57 @@ def test_formal_only_write_stays_partial_without_safe_availability_samples(prepa
     assert report.core.scores.evaluation_state == "PARTIAL"
     assert report.core.scores.overall_score_bp is None
     assert report.core.raw_statistics["availability"]["planned"] == 0
+    assert not report.core.evidence_sufficiency.overall_allowed
+    assert report.core.evidence_sufficiency.missing_evidence
+
+
+def test_formal_rpc_fault_preserves_http_score_and_unknown_without_risk(prepared, tmp_path):
+    flow, original, _ = prepared
+    capabilities = ("verify_record",)
+    snapshot_id = scoped_snapshot(flow, original["snapshot_id"], capabilities)
+    body = formal_request(flow, snapshot_id, 1, capabilities, flow[5].record.address)
+    run_id, _ = create_formal(flow, body)
+    report, results = run_formal(flow, run_id, tmp_path, rpc_fault=True)
+    assert all(result.outcome == "UNKNOWN" for result in results)
+    assert report.core.task_counts.fail_count == 0
+    assert report.core.scores.dimensions["availability"].score_bp == 10000
+    assert report.core.scores.dimensions["consistency"].observed_score_bp is None
+    assert report.core.scores.overall_score_bp is None
+    assert report.core.evidence_sufficiency.task_unknown_bp == 10000
+    assert report.core.evidence_sufficiency.dimensions["availability"]["unresolved"] == 0
+    assert not report.core.risk_assessment.critical_findings
+    assert not report.core.risk_assessment.ordinary_failure_slots
+    assert len(report.core.risk_assessment.evidence_gap_slots) == len(results)
+
+
+@pytest.mark.parametrize("prepared", ["d"], indirect=True)
+def test_formal_unrelated_successful_transactions_retain_risk_when_partial(prepared, tmp_path):
+    flow, original, _ = prepared
+    body = formal_request(
+        flow, original["snapshot_id"], 1, ("anchor_record",), flow[5].record.address,
+        endpoint_id="fixture-d",
+    )
+    run_id, plan = create_formal(flow, body)
+    report, results = run_formal(flow, run_id, tmp_path)
+    assert report.core.scores.evaluation_state == "PARTIAL"
+    assert report.core.scores.overall_score_bp is None
+    assert report.core.scores.critical_conflict
+    assert report.core.scores.advice == "NOT_RECOMMENDED"
+    assessment = report.core.risk_assessment
+    assert assessment.conclusion == "CONFIRMED_CRITICAL_CONFLICT"
+    assert assessment.critical_findings
+    assert not assessment.evidence_gap_slots
+    critical_slots = {finding.slot_id for finding in assessment.critical_findings}
+    by_slot = dict(zip((slot.slot_id for slot in plan.slots), results, strict=True))
+    for slot_id in critical_slots:
+        result = by_slot[slot_id]
+        assert result.outcome == "FAIL" and result.critical_conflict
+        tx_hash = result.task_link.candidate_tx_hash
+        assert tx_hash is not None
+        assert flow[4].eth.get_transaction_receipt(tx_hash)["status"] == 1
+    assert {finding.rule_id for finding in assessment.critical_findings} & {
+        "record.request", "tx.calldata", "record.hash",
+    }
 
 
 def test_formal_reserves_all_slots_against_the_grant_before_dispatch(prepared):

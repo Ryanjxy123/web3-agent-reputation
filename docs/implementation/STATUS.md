@@ -23,7 +23,7 @@
 | FOLLOWUP-02 | DONE | 四态归因、标准 reason_code、原始响应证据及异常归因；具体状态及测试见 2026-10-09 任务记录 |
 | FOLLOWUP-03 | DONE | 冻结 Evidence Bundle 逐任务重判、四态计数比较、历史格式兼容及独立 RPC 复查；最终 Review 修复已通过定向回归 |
 | FOLLOWUP-04 | DONE | 正式多槽位三维评分、固定类别与安全负例、ReportCore 1.2 及独立重算；阶段 Review/真实集成通过 |
-| FOLLOWUP-05 | IN_PROGRESS | 下一阶段完善充分度解释及关键风险，不新增评分阈值 |
+| FOLLOWUP-05 | DONE_PHASE_CHECKS | 充分度缺口、精确gate、关键风险证据、1.3独立重算；阶段测试/Review修复通过，最终全量与CI待验证 |
 | LOCAL-PG-JUNCTION | DONE | Windows PostgreSQL 改用 D:\web3-runtime 目录联接；R: 已移除，初始化、重启、数据完整性及13项定向测试通过 |
 
 ## 2026-10-10 / 本轮任务 4：正式三维评价
@@ -32,9 +32,20 @@
 - Evidence/version：capabilities@3/rule3/three-dimensional-v1/ReportCore1.2；原始HTTP、首次HTTP、实际负例payloadhash、逐槽统计依据进入CAS与ZIP。Verifier逐任务重判并重算三维分数；旧1.0/1.1不升级，旧双null仍UNKNOWN。policy-v1内容hash固定，不允许同名改规则。
 - Tests：单元/reference **292 passed**；真实 PostgreSQL/HTTP/Anvil正式评价与报告组合 **12 passed / 0 skipped**（766.20s）；Review修复真实回归 **3 passed / 0 skipped**（117.93s）。Ruff、mypy53files、54生成Schema通过。尚未执行本轮最终全量检查/CI，留待任务5完成后统一验收。
 - Review fixes：首响应不被重试覆盖；同ID冻结材料冲突拒绝；真实来源类别缺失保持UNKNOWN；未确认/非canonical证据不能创建关键冲突；接受负例必须FAIL；ACK丢失保持UNKNOWN且不重发；连续过期槽位同步操作导致heartbeat饥饿，改工作线程并复用HTTP客户端；报告评分在最终fenced写入前组装。两项短租约真实测试验证执行/慢评分不会阻塞heartbeat。成功率及rule3增加模型不变量。
-- Git：feat/formal-evaluation；阶段4待逻辑提交；未push，未创建PR。
+- Git：feat/formal-evaluation；阶段4提交de8fe94；未push，未创建PR。
 - Limitations：纯写声明缺安全只读可用性来源则PARTIAL；只覆盖既有受控协议及EVM ABI；离线复算不证明采集者诚实。任务5、最终全量及CI仍未验收。
 - Next：严格进入FOLLOWUP-05；本轮不开发任务6、Agent扩展、第三方接入或前端。
+
+## 2026-10-10 / 本轮任务 5：充分度与关键风险
+
+- Implemented：ReportCore1.3/evidence-assessment-v1记录每维度及每声明能力有效样本、适用计划/UNKNOWN或unresolved/N/A、声明映射/覆盖、必要类别、新鲜度及缺口；全部gate以精确Fraction判定。最大unresolved20%是原coverage80%的补数；保留20/10/10、Q60%、TTL86400及整秒计龄，不新增阈值。首次HTTP可判定时平台RPC故障不扣A。
+- Risks：仅独立重判critical FAIL断言形成关键风险并携带slot/assertion/rule/reason/证据引用；普通履约FAIL与UNKNOWN缺口分列。风险独立于数值和充分度，高分或PARTIAL均保留confirmed critical并否决接入建议，不推断恶意。优先级与版本兼容见ADR0015。
+- Verifier/compatibility：显式按1.0/1.1/1.2/1.3重建，历史字段/wire/hash不升级；1.3比较完整充分度及风险，旧报告assessment_comparison明确NOT_AVAILABLE。重新计算全部hash后篡改充分度、风险结论/引用/版本也会拒绝。
+- Tests：稳定单元/reference **314 passed / 0 skipped**（53.03s）；正式正常写入和真实无关成功交易风险 **2 passed**（331.41s）；真实拒绝RPC导致全任务UNKNOWN但A10000/无风险/原UNKNOWN冻结 **1 passed**（212.56s）。高分9480且critical、PARTIAL且critical、缺样本/覆盖、20%UNKNOWN边界、显示6000bp但exact Q不足、1.2不升级、重hash篡改均通过。Ruff、mypy53files、57Schema/TS生成通过。
+- Review fixes：新增充分度与原scoring_reference门槛一致性guard；N/A按维度与能力排除但未测声明不消失；超长/空原始声明不因报告解释文本拼接而崩溃，保持原上下文UNKNOWN；risk必须与重判critical断言引用一致。两轮跨模块Review继续检查最终稳定树。
+- Git：阶段5待逻辑提交；最终完整scripts/check.py及远程PR/CI尚未运行，不声明最终验收通过。
+- Limitations：工程指标不等于校准信任概率；关键风险沿用已接受写任务关联冲突，读取答案错误作普通功能失败；纯写无安全availability来源仍PARTIAL；离线复核不证明采集者诚实。
+- Next：跨模块最终Review → 全量检查 → PR/CI；本轮到任务5验收后停止。
 
 ## 2026-10-09 / 本轮任务 1：三能力模板
 

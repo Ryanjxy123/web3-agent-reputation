@@ -23,6 +23,8 @@ v3 的 NOT_FOUND 明确限定为已核验受信链及冻结观测的 RPC 视图�
 操作者可以提供 transaction_cases（success/revert/pending）及既有记录的 executor/request/hash，仅用于定位；平台独立 RPC 核验实际类别，缺少或错误来源是证据缺口，不默认扣 Agent 分。
 负例仅对明确授权的受控 Agent 发送固定无效 payload，比较明确拒绝 status/code；平台不直接向禁止目标广播。
 初次 POST 与最终轮询分别冻结，重试不能替换可用性初次样本。完整评分、分母与版本见 ADR 0014。
+新正式报告使用 ReportCore 1.3 / evidence-assessment-v1，逐维度记录充分度缺口与带证据引用的关键风险。
+1.0/1.1/1.2 按原版本复算，旧版不补造新结论；充分度与风险优先级见 ADR 0015。
 
 Evidence 保留原始 HTTP、解析结果、冻结任务/快照/授权/绑定及独立 RPC 值；解析值与原始响应不一致必须显式暴露证据缺口。离线重放仅证明材料内部一致，不能证明采集者诚实或历史 HTTP 的真实性。
 

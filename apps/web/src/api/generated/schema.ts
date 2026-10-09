@@ -909,6 +909,24 @@ export interface components {
              */
             task_status: "accepted" | "running" | "succeeded" | "failed";
         };
+        /** CriticalRisk */
+        CriticalRisk: {
+            /**
+             * Assertion Id
+             * Format: uuid4
+             */
+            assertion_id: string;
+            /** Evidence Refs */
+            evidence_refs: string[];
+            reason_code: components["schemas"]["Reason"];
+            /** Rule Id */
+            rule_id: string;
+            /**
+             * Slot Id
+             * Format: uuid4
+             */
+            slot_id: string;
+        };
         /** DeployedContract */
         DeployedContract: {
             /** Address */
@@ -1100,6 +1118,48 @@ export interface components {
             source: string;
             /** Trust Group */
             trust_group: string;
+        };
+        /** EvidenceSufficiency */
+        EvidenceSufficiency: {
+            /** Capabilities */
+            capabilities: {
+                [key: string]: components["schemas"]["JsonValue"];
+            }[];
+            /** Dimensions */
+            dimensions: {
+                [key: string]: components["schemas"]["JsonValue"];
+            };
+            /** Exact Gates */
+            exact_gates: {
+                [key: string]: boolean;
+            };
+            /**
+             * Gate Status
+             * @enum {string}
+             */
+            gate_status: "PASS" | "PARTIAL";
+            /**
+             * Missing Evidence
+             * @default []
+             */
+            missing_evidence: string[];
+            /** Overall Allowed */
+            overall_allowed: boolean;
+            /** Sufficiency Bp */
+            sufficiency_bp: number;
+            /** Task Unknown Bp */
+            task_unknown_bp: number;
+            /** Thresholds */
+            thresholds: {
+                [key: string]: components["schemas"]["JsonValue"];
+            };
+            /**
+             * Uncovered Claims
+             * @default []
+             */
+            uncovered_claims: string[];
+            /** Unknown Or Unresolved Bp */
+            unknown_or_unresolved_bp: number;
         };
         /** EvmReadEvidence */
         EvmReadEvidence: {
@@ -1431,12 +1491,19 @@ export interface components {
             agent_ref: components["schemas"]["AgentRef"];
             /** Assertions */
             assertions: components["schemas"]["AssertionResult"][];
+            /**
+             * Assessment Rule Version
+             * @default null
+             */
+            assessment_rule_version: "evidence-assessment-v1" | null;
             /** Code Version */
             code_version: string;
             /** Evaluated At */
             evaluated_at: string;
             /** Evidence Manifest Hash */
             evidence_manifest_hash: string;
+            /** @default null */
+            evidence_sufficiency: components["schemas"]["EvidenceSufficiency"] | null;
             /** Limitations */
             limitations: string[];
             /** Observation End */
@@ -1461,6 +1528,8 @@ export interface components {
             raw_statistics: {
                 [key: string]: components["schemas"]["JsonValue"];
             };
+            /** @default null */
+            risk_assessment: components["schemas"]["RiskAssessment"] | null;
             /**
              * Run Id
              * Format: uuid4
@@ -1471,7 +1540,7 @@ export interface components {
              * @default 1.0.0
              * @enum {string}
              */
-            schema_version: "1.0.0" | "1.1.0" | "1.2.0";
+            schema_version: "1.0.0" | "1.1.0" | "1.2.0" | "1.3.0";
             scores: components["schemas"]["ScoreResult"];
             /**
              * Scoring Rule Version
@@ -1529,6 +1598,29 @@ export interface components {
              * Format: uuid4
              */
             report_id: string;
+        };
+        /** RiskAssessment */
+        RiskAssessment: {
+            /**
+             * Conclusion
+             * @enum {string}
+             */
+            conclusion: "CONFIRMED_CRITICAL_CONFLICT" | "NO_CONFIRMED_CRITICAL_CONFLICT";
+            /**
+             * Critical Findings
+             * @default []
+             */
+            critical_findings: components["schemas"]["CriticalRisk"][];
+            /**
+             * Evidence Gap Slots
+             * @default []
+             */
+            evidence_gap_slots: string[];
+            /**
+             * Ordinary Failure Slots
+             * @default []
+             */
+            ordinary_failure_slots: string[];
         };
         /** RunPlan */
         RunPlan: {

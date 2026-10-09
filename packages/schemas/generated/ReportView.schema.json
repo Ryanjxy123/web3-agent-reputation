@@ -146,6 +146,48 @@
       "title": "ChainIdentity",
       "type": "object"
     },
+    "CriticalRisk": {
+      "additionalProperties": false,
+      "properties": {
+        "assertion_id": {
+          "format": "uuid4",
+          "title": "Assertion Id",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "format": "uuid4",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "reason_code": {
+          "$ref": "#/$defs/Reason"
+        },
+        "rule_id": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Rule Id",
+          "type": "string"
+        },
+        "slot_id": {
+          "format": "uuid4",
+          "title": "Slot Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "slot_id",
+        "assertion_id",
+        "rule_id",
+        "reason_code",
+        "evidence_refs"
+      ],
+      "title": "CriticalRisk",
+      "type": "object"
+    },
     "EvidenceManifest": {
       "additionalProperties": false,
       "properties": {
@@ -256,6 +298,103 @@
         "trust_group"
       ],
       "title": "EvidenceRecord",
+      "type": "object"
+    },
+    "EvidenceSufficiency": {
+      "additionalProperties": false,
+      "properties": {
+        "capabilities": {
+          "items": {
+            "additionalProperties": {
+              "$ref": "#/$defs/JsonValue"
+            },
+            "type": "object"
+          },
+          "title": "Capabilities",
+          "type": "array"
+        },
+        "dimensions": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Dimensions",
+          "type": "object"
+        },
+        "exact_gates": {
+          "additionalProperties": {
+            "type": "boolean"
+          },
+          "title": "Exact Gates",
+          "type": "object"
+        },
+        "gate_status": {
+          "enum": [
+            "PASS",
+            "PARTIAL"
+          ],
+          "title": "Gate Status",
+          "type": "string"
+        },
+        "missing_evidence": {
+          "default": [],
+          "items": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Missing Evidence",
+          "type": "array"
+        },
+        "overall_allowed": {
+          "title": "Overall Allowed",
+          "type": "boolean"
+        },
+        "sufficiency_bp": {
+          "maximum": 10000,
+          "minimum": 0,
+          "title": "Sufficiency Bp",
+          "type": "integer"
+        },
+        "task_unknown_bp": {
+          "maximum": 10000,
+          "minimum": 0,
+          "title": "Task Unknown Bp",
+          "type": "integer"
+        },
+        "thresholds": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Thresholds",
+          "type": "object"
+        },
+        "uncovered_claims": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Uncovered Claims",
+          "type": "array"
+        },
+        "unknown_or_unresolved_bp": {
+          "maximum": 10000,
+          "minimum": 0,
+          "title": "Unknown Or Unresolved Bp",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "thresholds",
+        "dimensions",
+        "capabilities",
+        "unknown_or_unresolved_bp",
+        "task_unknown_bp",
+        "sufficiency_bp",
+        "exact_gates",
+        "gate_status",
+        "overall_allowed"
+      ],
+      "title": "EvidenceSufficiency",
       "type": "object"
     },
     "JsonValue": {},
@@ -422,6 +561,19 @@
           "title": "Assertions",
           "type": "array"
         },
+        "assessment_rule_version": {
+          "anyOf": [
+            {
+              "const": "evidence-assessment-v1",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Assessment Rule Version"
+        },
         "code_version": {
           "pattern": "^[0-9a-f]{40}(?:-dirty)?$",
           "title": "Code Version",
@@ -436,6 +588,17 @@
           "pattern": "^0x[0-9a-f]{64}$",
           "title": "Evidence Manifest Hash",
           "type": "string"
+        },
+        "evidence_sufficiency": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvidenceSufficiency"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "limitations": {
           "items": {
@@ -487,6 +650,17 @@
           "title": "Raw Statistics",
           "type": "object"
         },
+        "risk_assessment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RiskAssessment"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "run_id": {
           "format": "uuid4",
           "title": "Run Id",
@@ -497,7 +671,8 @@
           "enum": [
             "1.0.0",
             "1.1.0",
-            "1.2.0"
+            "1.2.0",
+            "1.3.0"
           ],
           "title": "Schema Version",
           "type": "string"
@@ -633,6 +808,50 @@
         "input_evidence_id"
       ],
       "title": "ReportTaskResult",
+      "type": "object"
+    },
+    "RiskAssessment": {
+      "additionalProperties": false,
+      "properties": {
+        "conclusion": {
+          "enum": [
+            "CONFIRMED_CRITICAL_CONFLICT",
+            "NO_CONFIRMED_CRITICAL_CONFLICT"
+          ],
+          "title": "Conclusion",
+          "type": "string"
+        },
+        "critical_findings": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/CriticalRisk"
+          },
+          "title": "Critical Findings",
+          "type": "array"
+        },
+        "evidence_gap_slots": {
+          "default": [],
+          "items": {
+            "format": "uuid4",
+            "type": "string"
+          },
+          "title": "Evidence Gap Slots",
+          "type": "array"
+        },
+        "ordinary_failure_slots": {
+          "default": [],
+          "items": {
+            "format": "uuid4",
+            "type": "string"
+          },
+          "title": "Ordinary Failure Slots",
+          "type": "array"
+        }
+      },
+      "required": [
+        "conclusion"
+      ],
+      "title": "RiskAssessment",
       "type": "object"
     },
     "ScoreDimension": {

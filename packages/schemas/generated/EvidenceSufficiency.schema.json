@@ -1,0 +1,100 @@
+{
+  "$defs": {
+    "JsonValue": {}
+  },
+  "additionalProperties": false,
+  "properties": {
+    "capabilities": {
+      "items": {
+        "additionalProperties": {
+          "$ref": "#/$defs/JsonValue"
+        },
+        "type": "object"
+      },
+      "title": "Capabilities",
+      "type": "array"
+    },
+    "dimensions": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      },
+      "title": "Dimensions",
+      "type": "object"
+    },
+    "exact_gates": {
+      "additionalProperties": {
+        "type": "boolean"
+      },
+      "title": "Exact Gates",
+      "type": "object"
+    },
+    "gate_status": {
+      "enum": [
+        "PASS",
+        "PARTIAL"
+      ],
+      "title": "Gate Status",
+      "type": "string"
+    },
+    "missing_evidence": {
+      "default": [],
+      "items": {
+        "maxLength": 2000,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Missing Evidence",
+      "type": "array"
+    },
+    "overall_allowed": {
+      "title": "Overall Allowed",
+      "type": "boolean"
+    },
+    "sufficiency_bp": {
+      "maximum": 10000,
+      "minimum": 0,
+      "title": "Sufficiency Bp",
+      "type": "integer"
+    },
+    "task_unknown_bp": {
+      "maximum": 10000,
+      "minimum": 0,
+      "title": "Task Unknown Bp",
+      "type": "integer"
+    },
+    "thresholds": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      },
+      "title": "Thresholds",
+      "type": "object"
+    },
+    "uncovered_claims": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Uncovered Claims",
+      "type": "array"
+    },
+    "unknown_or_unresolved_bp": {
+      "maximum": 10000,
+      "minimum": 0,
+      "title": "Unknown Or Unresolved Bp",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "thresholds",
+    "dimensions",
+    "capabilities",
+    "unknown_or_unresolved_bp",
+    "task_unknown_bp",
+    "sufficiency_bp",
+    "exact_gates",
+    "gate_status",
+    "overall_allowed"
+  ],
+  "title": "EvidenceSufficiency",
+  "type": "object"
+}
