@@ -81,11 +81,14 @@ def seed(
         }
         metadata = {
             "name": f"Controlled Agent {sample.upper()}",
-            "description": "Provides anchor_record for synthetic local credentials.",
-            "capabilities": ["anchor_record"],
+            "description": "Provides transaction status, record verification and synthetic anchoring.",
+            "capabilities": ["get_tx_status", "verify_record", "anchor_record"],
             "declared_executor": executor.lower(),
             "endpoints": [endpoint],
         }
+        prior_fixture = runtime / f"fixture-{sample}.json"
+        if prior_fixture.exists():
+            metadata = json.loads(prior_fixture.read_bytes())["metadata"]
         uri = "data:application/json;base64," + base64.b64encode(canonical_bytes(metadata)).decode(
             "ascii"
         )

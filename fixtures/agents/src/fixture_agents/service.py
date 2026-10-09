@@ -16,6 +16,8 @@ from eth_account import Account
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from hexbytes import HexBytes
+from pydantic import JsonValue
 from reputation_core.evidence import canonical_bytes, hash_bytes, hash_json
 from reputation_core.models import ControlledTaskView, LocalDeployment, TaskEnvelope, TaskResult
 from web3 import Web3
@@ -45,6 +47,10 @@ class Agent:
             raise ValueError("UNSUPPORTED_FIXTURE_MODE")
         self.account = Account.from_key(value["private_key"])
         self.replay_tx_hash = value["replay_tx_hash"]
+        self.contract_allowlist = {
+            Web3.to_checksum_address(address).lower()
+            for address in value.get("record_contract_allowlist", [self.deployment.record.address])
+        }
         if self.metadata["declared_executor"] != self.account.address.lower():
             raise ValueError("EXECUTOR_CONFIG_MISMATCH")
         if self.mode == "replay" and not self.replay_tx_hash:
@@ -133,7 +139,11 @@ class Agent:
                 if (
                     task.chain_id != self.deployment.chain.chain_id
                     or task.chain_instance_id != self.deployment.chain.instance_hash
-                    or task.target_contract != self.deployment.record.address
+                    or (
+                        task.capability_id != "get_tx_status"
+                        and task.target_contract not in self.contract_allowlist
+                    )
+                    or task.capability_id not in self.metadata["capabilities"]
                 ):
                     raise TaskRejected("TARGET_NOT_ALLOWED", 403)
                 remaining = (
@@ -185,6 +195,69 @@ class Agent:
             if row is None or row["status"] not in {"accepted", "running"}:
                 return
             task = TaskEnvelope.model_validate_json(row["payload"])
+            if task.capability_id != "anchor_record":
+                assert task.read_block_number is not None and task.read_block_hash is not None
+                block = self.web3.eth.get_block(int(task.read_block_number))
+                if block["hash"].to_0x_hex() != task.read_block_hash:
+                    raise TaskRejected("CHAIN_INSTANCE_MISMATCH", 503)
+                values: dict[str, JsonValue] = {
+                    "chain_id": task.chain_id,
+                    "capability_id": task.capability_id,
+                    "read_block_number": task.read_block_number,
+                    "read_block_hash": task.read_block_hash,
+                }
+                if task.capability_id == "get_tx_status":
+                    assert task.query_tx_hash is not None
+                    try:
+                        query_transaction = self.web3.eth.get_transaction(
+                            HexBytes(task.query_tx_hash)
+                        )
+                    except TransactionNotFound:
+                        query_transaction = None
+                    try:
+                        query_receipt = self.web3.eth.get_transaction_receipt(
+                            HexBytes(task.query_tx_hash)
+                        )
+                    except TransactionNotFound:
+                        query_receipt = None
+                    status = (
+                        "NOT_FOUND"
+                        if query_transaction is None and query_receipt is None
+                        else "PENDING"
+                    )
+                    if query_receipt is not None and query_receipt["blockNumber"] <= int(
+                        task.read_block_number
+                    ):
+                        status = "SUCCESS" if query_receipt["status"] == 1 else "REVERTED"
+                    values.update(tx_hash=task.query_tx_hash, tx_status=status)
+                else:
+                    assert task.target_contract is not None and task.record_executor is not None
+                    contract = self.web3.eth.contract(
+                        address=Web3.to_checksum_address(task.target_contract), abi=self.record.abi
+                    )
+                    exists, digest = contract.functions.getRecord(
+                        Web3.to_checksum_address(task.record_executor), task.record_request_id
+                    ).call(block_identifier=int(task.read_block_number))
+                    record_hash = "0x" + bytes(digest).hex()
+                    values.update(
+                        record_exists=exists,
+                        record_hash=record_hash,
+                        record_matches=bool(exists and record_hash == task.record_hash),
+                        record_executor=task.record_executor,
+                        record_request_id=task.record_request_id,
+                    )
+                if (
+                    self.web3.eth.get_block(int(task.read_block_number))["hash"].to_0x_hex()
+                    != task.read_block_hash
+                ):
+                    raise TaskRejected("CHAIN_INSTANCE_MISMATCH", 503)
+                result = TaskResult.model_validate(values)
+                db.execute(
+                    "UPDATE tasks SET status='succeeded',result=? WHERE request_id=?",
+                    (result.model_dump_json(), request_id),
+                )
+                return
+            assert task.target_contract is not None and task.record_hash is not None
             if self.mode == "replay":
                 receipt = self.web3.eth.get_transaction_receipt(self.replay_tx_hash)
                 if receipt["status"] != 1:
@@ -212,7 +285,10 @@ class Agent:
                     "gas": 150_000,
                     "gasPrice": self.web3.eth.gas_price,
                 }
-                transaction = self.record.functions.anchorRecord(
+                contract = self.web3.eth.contract(
+                    address=Web3.to_checksum_address(task.target_contract), abi=self.record.abi
+                )
+                transaction = contract.functions.anchorRecord(
                     task.request_id, task.record_hash
                 ).build_transaction(parameters)
                 signed = self.account.sign_transaction(transaction)

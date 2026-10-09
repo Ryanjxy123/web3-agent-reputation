@@ -1,0 +1,37 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "FAIL": {
+      "maximum": 9007199254740991,
+      "minimum": 0,
+      "title": "Fail",
+      "type": "integer"
+    },
+    "NOT_APPLICABLE": {
+      "maximum": 9007199254740991,
+      "minimum": 0,
+      "title": "Not Applicable",
+      "type": "integer"
+    },
+    "PASS": {
+      "maximum": 9007199254740991,
+      "minimum": 0,
+      "title": "Pass",
+      "type": "integer"
+    },
+    "UNKNOWN": {
+      "maximum": 9007199254740991,
+      "minimum": 0,
+      "title": "Unknown",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "PASS",
+    "FAIL",
+    "UNKNOWN",
+    "NOT_APPLICABLE"
+  ],
+  "title": "TaskOutcomeCounts",
+  "type": "object"
+}

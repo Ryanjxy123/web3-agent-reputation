@@ -1,13 +1,17 @@
 """Collect immutable verification inputs, invoke pure rules, append fenced results."""
 
 import asyncio
+from datetime import UTC, datetime
 from uuid import UUID
 
+from reputation_core.evidence import strict_json
 from reputation_core.models import (
     AccessGrant,
     AgentSnapshot,
     ClaimReview,
+    ControlledTaskView,
     EvidenceRecord,
+    EvmReadEvidence,
     ExecutorBinding,
     Observation,
     RecordVerificationInput,
@@ -62,11 +66,14 @@ class VerificationService:
                     )
                 ).scalar_one()
             )
-            binding = ExecutorBinding.model_validate(
+            binding_body = (
                 connection.execute(
                     select(bindings.c.body).where(bindings.c.id == slot.expected.binding_id)
-                ).scalar_one()
+                ).scalar_one_or_none()
+                if slot.expected.binding_id
+                else None
             )
+            binding = ExecutorBinding.model_validate(binding_body) if binding_body else None
             grant = AccessGrant.model_validate(
                 connection.execute(
                     select(access_grants.c.body).where(access_grants.c.id == slot.grant_id)
@@ -110,6 +117,13 @@ class VerificationService:
                     )
                 ).scalar_one_or_none()
                 witness_record = EvidenceRecord.model_validate(body) if body else None
+            response_records = [
+                EvidenceRecord.model_validate(body)
+                for body in connection.execute(
+                    select(evidence_blobs.c.body).where(evidence_blobs.c.id.in_(last.evidence_refs))
+                ).scalars()
+                if body["source"] == "agent-task-response"
+            ]
         witness = None
         if witness_record is not None:
             try:
@@ -119,13 +133,58 @@ class VerificationService:
             except (OSError, ValueError):
                 pass  # Missing/corrupt witness is an explicit UNKNOWN attribution gap.
         deployment = self.identity.deployment()
-        evm = collect_task(
-            deployment,
-            slot,
-            last.candidate_tx_hash,
-            witness.snapshot_core.read_block_number if witness else None,
+        agent_view = None
+        agent_response = None
+        agent_http = None
+        for record in sorted(
+            response_records, key=lambda item: (item.observed_at, str(item.evidence_id))
+        ):
+            try:
+                raw = strict_json(self.identity.evidence.read(record))
+                response_body = raw["response"]
+                endpoint = next(
+                    item
+                    for item in snapshot.core.endpoints
+                    if item.endpoint_id == grant.endpoint_ids[0]
+                )
+                if (
+                    raw["request_id"] == slot.task.request_id
+                    and raw["origin"] == endpoint.origin
+                    and raw["path"]
+                    == ("/tasks" if raw["method"] == "POST" else "/tasks/" + slot.task.request_id)
+                    and raw["method"] in {"POST", "GET"}
+                ):
+                    agent_http = raw
+                    agent_response = response_body
+                    agent_view = None
+                    if raw["http_status"] is not None and 200 <= raw["http_status"] < 300:
+                        try:
+                            candidate_view = ControlledTaskView.model_validate(response_body)
+                            if (
+                                candidate_view.request_id == slot.task.request_id
+                                and candidate_view.status_path == "/tasks/" + slot.task.request_id
+                            ):
+                                agent_view = candidate_view
+                        except (ValueError, TypeError):
+                            pass
+            except (OSError, ValueError, KeyError, TypeError):
+                pass
+        evm = (
+            EvmReadEvidence(
+                candidate_tx_hash=None,
+                observed_at=utc_text(datetime.now(UTC)),
+                results={},
+            )
+            if slot.applicability_reason is not None
+            else collect_task(
+                deployment,
+                slot,
+                last.candidate_tx_hash,
+                witness.snapshot_core.read_block_number if witness else None,
+            )
         )
         return RecordVerificationInput(
+            rule_version="2" if plan.template_version.endswith("@2") else "1",
             slot=slot,
             snapshot=snapshot,
             review=review,
@@ -138,6 +197,10 @@ class VerificationService:
             dispatch_payload_hash=dispatch["payload_hash"] if dispatch else None,
             registry_witness=witness,
             execution_reason=last.reason_code,
+            agent_http=agent_http,
+            agent_response=agent_response,
+            agent_result=agent_view.result if agent_view else None,
+            agent_task_status=agent_view.task_status if agent_view else None,
             evm=evm,
         )
 

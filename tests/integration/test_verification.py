@@ -64,7 +64,7 @@ def test_real_a_passes_only_after_independent_rpc_and_binding_checks(prepared):
 def test_real_d_receipt_success_does_not_complete_current_task(prepared):
     result, inputs, _ = complete(prepared)
     assert inputs.evm.results["receipt"]["status"] == "0x1"
-    assert result.outcome == "FAIL" and result.reason_code == "SEMANTIC_MISMATCH"
+    assert result.outcome == "FAIL" and result.reason_code == "TASK_ID_MISMATCH"
     assert result.critical_conflict and result.task_link.verified_tx_hash is None
     failures = {item.reason_code for item in result.assertions if item.outcome == "FAIL"}
     assert "TASK_ID_MISMATCH" in failures and "RECORD_HASH_MISMATCH" in failures

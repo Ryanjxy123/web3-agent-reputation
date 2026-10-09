@@ -502,8 +502,20 @@ export interface components {
         };
         /** AccessGrantCreate */
         AccessGrantCreate: {
+            /**
+             * Capabilities
+             * @default [
+             *       "anchor_record"
+             *     ]
+             */
+            capabilities: ("get_tx_status" | "verify_record" | "anchor_record")[];
             /** Consent Ref */
             consent_ref: string;
+            /**
+             * Contract Allowlist
+             * @default null
+             */
+            contract_allowlist: string[] | null;
             /** Endpoint Id */
             endpoint_id: string;
             /** Expires At */
@@ -663,9 +675,9 @@ export interface components {
             rule_id: string;
             /**
              * Rule Version
-             * @constant
+             * @enum {string}
              */
-            rule_version: "1";
+            rule_version: "1" | "2";
             /**
              * Slot Id
              * Format: uuid4
@@ -768,6 +780,11 @@ export interface components {
         /** CaseSlot */
         CaseSlot: {
             /**
+             * Applicability Reason
+             * @default null
+             */
+            applicability_reason: "CAPABILITY_NOT_DECLARED" | null;
+            /**
              * Capability Id
              * @enum {string}
              */
@@ -822,6 +839,11 @@ export interface components {
             actor: string;
             /** Confirmed Claims */
             confirmed_claims: ("get_tx_status" | "verify_record" | "anchor_record")[];
+            /**
+             * Excluded Capabilities
+             * @default []
+             */
+            excluded_capabilities: ("get_tx_status" | "verify_record" | "anchor_record")[];
             /** Mapping Evidence Ids */
             mapping_evidence_ids: string[];
             /** Reason */
@@ -840,6 +862,11 @@ export interface components {
         ClaimsConfirm: {
             /** Confirmed Claims */
             confirmed_claims: ("get_tx_status" | "verify_record" | "anchor_record")[];
+            /**
+             * Excluded Capabilities
+             * @default []
+             */
+            excluded_capabilities: ("get_tx_status" | "verify_record" | "anchor_record")[];
             /** Expected Review Version */
             expected_review_version: number;
             /** Reason */
@@ -935,6 +962,12 @@ export interface components {
         };
         /** EvaluationCreate */
         EvaluationCreate: {
+            /**
+             * Capability Id
+             * @default anchor_record
+             * @enum {string}
+             */
+            capability_id: "get_tx_status" | "verify_record" | "anchor_record";
             /** Grant Ids */
             grant_ids: string[];
             /**
@@ -947,6 +980,26 @@ export interface components {
              * @enum {string}
              */
             profile: "record-read-v1" | "record-write-v1";
+            /**
+             * Query Tx Hash
+             * @default null
+             */
+            query_tx_hash: string | null;
+            /**
+             * Record Executor
+             * @default null
+             */
+            record_executor: string | null;
+            /**
+             * Record Hash
+             * @default null
+             */
+            record_hash: string | null;
+            /**
+             * Record Request Id
+             * @default null
+             */
+            record_request_id: string | null;
             /** Review Version */
             review_version: number;
             /**
@@ -956,9 +1009,14 @@ export interface components {
             snapshot_id: string;
             /**
              * Suite Id
-             * @constant
+             * @enum {string}
              */
-            suite_id: "m1-smoke-v1";
+            suite_id: "m1-smoke-v1" | "capabilities-v1";
+            /**
+             * Target Contract
+             * @default null
+             */
+            target_contract: string | null;
         };
         /** EvaluationRun */
         EvaluationRun: {
@@ -1080,11 +1138,8 @@ export interface components {
         /** ExpectedFacts */
         ExpectedFacts: {
             agent_ref: components["schemas"]["AgentRef"];
-            /**
-             * Binding Id
-             * Format: uuid4
-             */
-            binding_id: string;
+            /** Binding Id */
+            binding_id: string | null;
             /** Confirmation Depth */
             confirmation_depth: number;
             /** Deadline */
@@ -1097,7 +1152,7 @@ export interface components {
             /** Pre Dispatch Block Hash */
             pre_dispatch_block_hash: string;
             /** Record Hash */
-            record_hash: string;
+            record_hash: string | null;
             /** Request Id */
             request_id: string;
             /** Snapshot Hash */
@@ -1108,7 +1163,7 @@ export interface components {
              */
             target_code_hash: string | null;
             /** Target Contract */
-            target_contract: string;
+            target_contract: string | null;
             /** Window Start */
             window_start: string;
         };
@@ -1262,7 +1317,7 @@ export interface components {
          * Reason
          * @enum {string}
          */
-        Reason: "AUTH_REQUIRED" | "ACCESS_NOT_GRANTED" | "UNSUPPORTED_PROTOCOL" | "MAPPING_UNCONFIRMED" | "CAPABILITY_EXPLICITLY_UNSUPPORTED" | "BINDING_UNVERIFIED" | "BINDING_EXPIRED" | "PLATFORM_RPC_ERROR" | "PLATFORM_NETWORK_ERROR" | "INSUFFICIENT_SAMPLES" | "INSUFFICIENT_COVERAGE" | "PENDING_FINALITY" | "RPC_RECEIPT_NOT_FOUND" | "TIMEOUT" | "SERVICE_TIMEOUT" | "SCHEMA_ERROR" | "SEMANTIC_MISMATCH" | "IDENTITY_CHANGED" | "CHAIN_INSTANCE_CHANGED" | "TX_WRONG_CHAIN" | "TX_WRONG_EXECUTOR" | "TX_WRONG_TARGET" | "TASK_ID_MISMATCH" | "RECORD_HASH_MISMATCH" | "LOG_EMITTER_MISMATCH" | "TX_REVERTED" | "ACCEPTED_TASK_DEADLINE_EXCEEDED" | "DISPATCH_UNCERTAIN" | "STALE_EVIDENCE" | "NOT_DECLARED_READ_ONLY" | "CANCELLED_BY_OPERATOR" | "CONTENT_HASH_MISMATCH" | "MISSING_EVIDENCE" | "ANCHOR_NOT_CONFIRMED" | "RATE_LIMIT_PLATFORM_EXCEEDED" | "RATE_LIMIT_UNATTRIBUTED";
+        Reason: "AUTH_REQUIRED" | "ACCESS_NOT_GRANTED" | "UNSUPPORTED_PROTOCOL" | "MAPPING_UNCONFIRMED" | "CAPABILITY_EXPLICITLY_UNSUPPORTED" | "CAPABILITY_NOT_DECLARED" | "AGENT_SERVICE_ERROR" | "AGENT_TASK_FAILED" | "EVIDENCE_INCONSISTENT" | "RULE_VERSION_MISMATCH" | "BINDING_UNVERIFIED" | "BINDING_EXPIRED" | "PLATFORM_RPC_ERROR" | "PLATFORM_NETWORK_ERROR" | "INSUFFICIENT_SAMPLES" | "INSUFFICIENT_COVERAGE" | "PENDING_FINALITY" | "RPC_RECEIPT_NOT_FOUND" | "TIMEOUT" | "SERVICE_TIMEOUT" | "SCHEMA_ERROR" | "SEMANTIC_MISMATCH" | "IDENTITY_CHANGED" | "CHAIN_INSTANCE_CHANGED" | "TX_WRONG_CHAIN" | "TX_WRONG_EXECUTOR" | "TX_WRONG_TARGET" | "TASK_ID_MISMATCH" | "RECORD_HASH_MISMATCH" | "LOG_EMITTER_MISMATCH" | "TX_REVERTED" | "ACCEPTED_TASK_DEADLINE_EXCEEDED" | "DISPATCH_UNCERTAIN" | "STALE_EVIDENCE" | "NOT_DECLARED_READ_ONLY" | "CANCELLED_BY_OPERATOR" | "CONTENT_HASH_MISMATCH" | "MISSING_EVIDENCE" | "ANCHOR_NOT_CONFIRMED" | "RATE_LIMIT_PLATFORM_EXCEEDED" | "RATE_LIMIT_UNATTRIBUTED";
         /** ReasonRequest */
         ReasonRequest: {
             /** Reason */
@@ -1270,6 +1325,22 @@ export interface components {
         };
         /** RecordVerificationInput */
         RecordVerificationInput: {
+            /**
+             * Agent Http
+             * @default null
+             */
+            agent_http: {
+                [key: string]: components["schemas"]["JsonValue"];
+            } | null;
+            /** @default null */
+            agent_response: components["schemas"]["JsonValue"];
+            /** @default null */
+            agent_result: components["schemas"]["TaskResult"] | null;
+            /**
+             * Agent Task Status
+             * @default null
+             */
+            agent_task_status: ("accepted" | "running" | "succeeded" | "failed") | null;
             binding: components["schemas"]["ExecutorBinding"] | null;
             /** Dispatch Payload Hash */
             dispatch_payload_hash: string | null;
@@ -1286,6 +1357,12 @@ export interface components {
             review: components["schemas"]["ClaimReview"];
             /** Review Version */
             review_version: number;
+            /**
+             * Rule Version
+             * @default 1
+             * @enum {string}
+             */
+            rule_version: "1" | "2";
             /**
              * Schema Version
              * @default record-verification-input-v1
@@ -1371,12 +1448,44 @@ export interface components {
             /**
              * Schema Version
              * @default 1.0.0
-             * @constant
+             * @enum {string}
              */
-            schema_version: "1.0.0";
+            schema_version: "1.0.0" | "1.1.0";
             scores: components["schemas"]["ScoreResult"];
             /** Snapshot Hash */
             snapshot_hash: string;
+            /** @default null */
+            task_counts: components["schemas"]["TaskOutcomeCounts"] | null;
+            /**
+             * Task Results
+             * @default []
+             */
+            task_results: components["schemas"]["ReportTaskResult"][];
+        };
+        /** ReportTaskResult */
+        ReportTaskResult: {
+            /**
+             * Capability Id
+             * @enum {string}
+             */
+            capability_id: "get_tx_status" | "verify_record" | "anchor_record";
+            /**
+             * Input Evidence Id
+             * Format: uuid4
+             */
+            input_evidence_id: string;
+            outcome: components["schemas"]["Outcome"];
+            reason_code: components["schemas"]["Reason"] | null;
+            /**
+             * Rule Version
+             * @enum {string}
+             */
+            rule_version: "1" | "2";
+            /**
+             * Slot Id
+             * Format: uuid4
+             */
+            slot_id: string;
         };
         /** ReportView */
         ReportView: {
@@ -1432,14 +1541,14 @@ export interface components {
             snapshot_hash: string;
             /**
              * Suite Id
-             * @constant
+             * @enum {string}
              */
-            suite_id: "m1-smoke-v1";
+            suite_id: "m1-smoke-v1" | "capabilities-v1";
             /**
              * Template Version
-             * @constant
+             * @enum {string}
              */
-            template_version: "anchor_record@1";
+            template_version: "anchor_record@1" | "capabilities@1" | "anchor_record@2" | "capabilities@2";
         };
         /**
          * RunStage
@@ -1558,9 +1667,9 @@ export interface components {
             /**
              * Capability Id
              * @default anchor_record
-             * @constant
+             * @enum {string}
              */
-            capability_id: "anchor_record";
+            capability_id: "get_tx_status" | "verify_record" | "anchor_record";
             /** Chain Id */
             chain_id: string;
             /** Chain Instance Id */
@@ -1573,14 +1682,45 @@ export interface components {
              * @constant
              */
             protocol: "controlled-http-v1";
-            /** Record Hash */
-            record_hash: string;
+            /**
+             * Query Tx Hash
+             * @default null
+             */
+            query_tx_hash: string | null;
+            /**
+             * Read Block Hash
+             * @default null
+             */
+            read_block_hash: string | null;
+            /**
+             * Read Block Number
+             * @default null
+             */
+            read_block_number: string | null;
+            /**
+             * Record Executor
+             * @default null
+             */
+            record_executor: string | null;
+            /**
+             * Record Hash
+             * @default null
+             */
+            record_hash: string | null;
+            /**
+             * Record Request Id
+             * @default null
+             */
+            record_request_id: string | null;
             /** Request Id */
             request_id: string;
             /** Snapshot Hash */
             snapshot_hash: string;
-            /** Target Contract */
-            target_contract: string;
+            /**
+             * Target Contract
+             * @default null
+             */
+            target_contract: string | null;
         };
         /** TaskLink */
         TaskLink: {
@@ -1590,6 +1730,12 @@ export interface components {
             block_number: string | null;
             /** Candidate Tx Hash */
             candidate_tx_hash: string | null;
+            /**
+             * Capability Id
+             * @default anchor_record
+             * @enum {string}
+             */
+            capability_id: "get_tx_status" | "verify_record" | "anchor_record";
             /** Executor */
             executor: string;
             /** Log Index */
@@ -1600,16 +1746,77 @@ export interface components {
             /** Verified Tx Hash */
             verified_tx_hash: string | null;
         };
+        /** TaskOutcomeCounts */
+        TaskOutcomeCounts: {
+            /** Fail */
+            FAIL: number;
+            /** Not Applicable */
+            NOT_APPLICABLE: number;
+            /** Pass */
+            PASS: number;
+            /** Unknown */
+            UNKNOWN: number;
+        };
         /** TaskResult */
         TaskResult: {
+            /**
+             * Capability Id
+             * @default anchor_record
+             * @enum {string}
+             */
+            capability_id: "get_tx_status" | "verify_record" | "anchor_record";
             /** Chain Id */
             chain_id: string;
-            /** Executor */
-            executor: string;
-            /** Record Hash */
-            record_hash: string;
-            /** Tx Hash */
-            tx_hash: string;
+            /**
+             * Executor
+             * @default null
+             */
+            executor: string | null;
+            /**
+             * Read Block Hash
+             * @default null
+             */
+            read_block_hash: string | null;
+            /**
+             * Read Block Number
+             * @default null
+             */
+            read_block_number: string | null;
+            /**
+             * Record Executor
+             * @default null
+             */
+            record_executor: string | null;
+            /**
+             * Record Exists
+             * @default null
+             */
+            record_exists: boolean | null;
+            /**
+             * Record Hash
+             * @default null
+             */
+            record_hash: string | null;
+            /**
+             * Record Matches
+             * @default null
+             */
+            record_matches: boolean | null;
+            /**
+             * Record Request Id
+             * @default null
+             */
+            record_request_id: string | null;
+            /**
+             * Tx Hash
+             * @default null
+             */
+            tx_hash: string | null;
+            /**
+             * Tx Status
+             * @default null
+             */
+            tx_status: ("SUCCESS" | "REVERTED" | "PENDING" | "NOT_FOUND") | null;
         };
         /** ValidationError */
         ValidationError: {

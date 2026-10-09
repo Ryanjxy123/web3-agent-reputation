@@ -1,6 +1,16 @@
 {
   "additionalProperties": false,
   "properties": {
+    "capability_id": {
+      "default": "anchor_record",
+      "enum": [
+        "get_tx_status",
+        "verify_record",
+        "anchor_record"
+      ],
+      "title": "Capability Id",
+      "type": "string"
+    },
     "grant_ids": {
       "items": {
         "format": "uuid4",
@@ -24,6 +34,57 @@
       "title": "Profile",
       "type": "string"
     },
+    "query_tx_hash": {
+      "anyOf": [
+        {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Query Tx Hash"
+    },
+    "record_executor": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Record Executor"
+    },
+    "record_hash": {
+      "anyOf": [
+        {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Record Hash"
+    },
+    "record_request_id": {
+      "anyOf": [
+        {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Record Request Id"
+    },
     "review_version": {
       "minimum": 1,
       "title": "Review Version",
@@ -35,9 +96,24 @@
       "type": "string"
     },
     "suite_id": {
-      "const": "m1-smoke-v1",
+      "enum": [
+        "m1-smoke-v1",
+        "capabilities-v1"
+      ],
       "title": "Suite Id",
       "type": "string"
+    },
+    "target_contract": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Target Contract"
     }
   },
   "required": [

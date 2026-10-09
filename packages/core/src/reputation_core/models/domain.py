@@ -1,7 +1,8 @@
 """Frozen, versioned wire contracts. No implicit clock, random state, or I/O."""
+
 from typing import Literal, Self
 
-from pydantic import UUID4, Field, JsonValue, model_validator
+from pydantic import UUID4, Field, JsonValue, model_serializer, model_validator
 
 from ..evidence import hash_json
 from .base import (
@@ -106,11 +107,25 @@ class ClaimReview(Model):
     mapping_evidence_ids: tuple[UUID4, ...]
     actor: SafeText
     reason: SafeText
+    excluded_capabilities: tuple[Capability, ...] = ()
+
+    @model_serializer(mode="wrap")
+    def wire(self, handler):
+        value = handler(self)
+        if not self.excluded_capabilities:
+            value.pop("excluded_capabilities", None)
+        return value
 
     @model_validator(mode="after")
     def unique_claims(self) -> Self:
         if len(set(self.confirmed_claims)) != len(self.confirmed_claims):
             raise ValueError("duplicate confirmed capability")
+        if len(set(self.excluded_capabilities)) != len(self.excluded_capabilities) or (
+            set(self.confirmed_claims) & set(self.excluded_capabilities)
+        ):
+            raise ValueError(
+                "excluded capabilities must be unique and disjoint from confirmed claims"
+            )
         return self
 
 
@@ -160,7 +175,7 @@ class AccessGrant(Model):
     methods: tuple[Literal["POST", "GET"], ...] = Field(min_length=1)
     paths: tuple[Literal["/tasks", "/tasks/{request_id}", "/health", "/capabilities"], ...]
     chain_instances: tuple[Hash32, ...] = Field(min_length=1)
-    contract_allowlist: tuple[NonzeroAddress, ...] = Field(min_length=1)
+    contract_allowlist: tuple[NonzeroAddress, ...]
     max_tasks: int = Field(strict=True, ge=1, le=100)
     concurrency: Literal[1] = 1
     interval_ms: int = Field(strict=True, ge=1000)
@@ -172,13 +187,74 @@ class AccessGrant(Model):
 class TaskEnvelope(Model):
     protocol: Literal["controlled-http-v1"] = "controlled-http-v1"
     request_id: Challenge
-    capability_id: Literal["anchor_record"] = "anchor_record"
+    capability_id: Capability = "anchor_record"
     snapshot_hash: Hash32
     chain_id: UInt256
     chain_instance_id: Hash32
-    target_contract: NonzeroAddress
-    record_hash: Challenge
+    target_contract: NonzeroAddress | None = None
+    record_hash: Challenge | None = None
+    query_tx_hash: Hash32 | None = None
+    record_executor: NonzeroAddress | None = None
+    record_request_id: Challenge | None = None
+    read_block_number: UInt256 | None = None
+    read_block_hash: Hash32 | None = None
     deadline: Timestamp
+
+    @model_serializer(mode="wrap")
+    def wire(self, handler):
+        value = handler(self)
+        if self.capability_id == "anchor_record":
+            for name in (
+                "query_tx_hash",
+                "record_executor",
+                "record_request_id",
+                "read_block_number",
+                "read_block_hash",
+            ):
+                value.pop(name, None)
+        return value
+
+    @model_validator(mode="after")
+    def capability_inputs(self) -> Self:
+        if self.capability_id == "anchor_record":
+            if self.target_contract is None or self.record_hash is None:
+                raise ValueError("anchor_record requires target_contract and record_hash")
+            if any(
+                value is not None
+                for value in (
+                    self.query_tx_hash,
+                    self.record_executor,
+                    self.record_request_id,
+                    self.read_block_number,
+                    self.read_block_hash,
+                )
+            ):
+                raise ValueError("anchor_record cannot contain query inputs")
+        else:
+            if self.read_block_number is None or self.read_block_hash is None:
+                raise ValueError("read capabilities require a frozen block")
+            if self.capability_id == "get_tx_status":
+                if self.query_tx_hash is None or any(
+                    value is not None
+                    for value in (
+                        self.target_contract,
+                        self.record_hash,
+                        self.record_executor,
+                        self.record_request_id,
+                    )
+                ):
+                    raise ValueError("get_tx_status requires only a transaction query")
+            elif (
+                self.target_contract is None
+                or self.record_executor is None
+                or self.record_request_id is None
+                or self.record_hash is None
+                or self.query_tx_hash is not None
+            ):
+                raise ValueError(
+                    "verify_record requires target, executor, request and expected hash"
+                )
+        return self
 
 
 class ExpectedFacts(Model):
@@ -186,11 +262,11 @@ class ExpectedFacts(Model):
     snapshot_hash: Hash32
     execution_chain: ChainIdentity
     executor: NonzeroAddress
-    target_contract: NonzeroAddress
+    target_contract: NonzeroAddress | None
     target_code_hash: Hash32 | None = None
     request_id: Challenge
-    record_hash: Challenge
-    binding_id: UUID4
+    record_hash: Challenge | None
+    binding_id: UUID4 | None
     window_start: Timestamp
     deadline: Timestamp
     pre_dispatch_block: UInt256
@@ -216,6 +292,14 @@ class CaseSlot(Model):
     expected: ExpectedFacts
     grant_id: UUID4
     synthetic_input: dict[str, JsonValue] | None = None
+    applicability_reason: Literal[Reason.CAPABILITY_NOT_DECLARED] | None = None
+
+    @model_serializer(mode="wrap")
+    def wire(self, handler):
+        value = handler(self)
+        if self.applicability_reason is None:
+            value.pop("applicability_reason", None)
+        return value
 
     @model_validator(mode="after")
     def linked(self) -> Self:
@@ -234,6 +318,19 @@ class CaseSlot(Model):
         )
         if not all(checks):
             raise ValueError("task and independently expected facts differ")
+        if (
+            task.capability_id == "anchor_record"
+            and expected.binding_id is None
+            and self.applicability_reason is None
+        ):
+            raise ValueError("write tasks require an executor binding")
+        if task.capability_id == "verify_record" and task.record_executor != expected.executor:
+            raise ValueError("record query executor differs from independently expected executor")
+        if task.capability_id != "anchor_record" and (
+            task.read_block_number != expected.pre_dispatch_block
+            or task.read_block_hash != expected.pre_dispatch_block_hash
+        ):
+            raise ValueError("query block differs from independently expected block")
         if self.synthetic_input is not None and hash_json(self.synthetic_input) != task.record_hash:
             raise ValueError("synthetic input hash differs from frozen task")
         return self
@@ -248,8 +345,10 @@ class RunPlan(Model):
     policy_hash: Hash32
     profile: Profile
     confirmed_capabilities: tuple[Capability, ...]
-    suite_id: Literal["m1-smoke-v1"]
-    template_version: Literal["anchor_record@1"]
+    suite_id: Literal["m1-smoke-v1", "capabilities-v1"]
+    template_version: Literal[
+        "anchor_record@1", "capabilities@1", "anchor_record@2", "capabilities@2"
+    ]
     planning_time: Timestamp
     planning_evidence_refs: tuple[UUID4, ...] = ()
     slots: tuple[CaseSlot, ...] = Field(min_length=1, max_length=100)
@@ -258,7 +357,10 @@ class RunPlan(Model):
     def frozen_identity(self) -> Self:
         if self.profile == "record-read-v1" and (
             "anchor_record" in self.confirmed_capabilities
-            or any(s.capability_id == "anchor_record" or s.purpose == Purpose.BEHAVIORAL for s in self.slots)
+            or any(
+                s.capability_id == "anchor_record" or s.purpose == Purpose.BEHAVIORAL
+                for s in self.slots
+            )
         ):
             raise ValueError("read-only profile cannot contain writes or behavior slots")
         if any(s.task.snapshot_hash != self.snapshot_hash for s in self.slots):
@@ -309,7 +411,7 @@ class AssertionResult(Model):
     assertion_id: UUID4
     slot_id: UUID4
     rule_id: Version
-    rule_version: Literal["1"]
+    rule_version: Literal["1", "2"]
     outcome: Outcome
     reason_code: Reason | None
     expected: JsonValue
@@ -319,14 +421,17 @@ class AssertionResult(Model):
 
     @model_validator(mode="after")
     def attributed(self) -> Self:
-        if self.outcome in (Outcome.UNKNOWN, Outcome.FAIL) and self.reason_code is None:
-            raise ValueError("FAIL and UNKNOWN require a reason code")
+        if self.outcome != Outcome.PASS and self.reason_code is None:
+            raise ValueError("non-PASS outcomes require a reason code")
+        if self.outcome == Outcome.PASS and self.reason_code is not None:
+            raise ValueError("PASS cannot contain a failure reason")
         if self.outcome in (Outcome.PASS, Outcome.FAIL) and not self.evidence_refs:
             raise ValueError("decided assertion requires evidence")
         return self
 
 
 class TaskLink(Model):
+    capability_id: Capability = "anchor_record"
     request_id: Challenge
     candidate_tx_hash: Hash32 | None
     verified_tx_hash: Hash32 | None
@@ -338,14 +443,42 @@ class TaskLink(Model):
 
     @model_validator(mode="after")
     def verified(self) -> Self:
-        if self.match_status == Outcome.PASS and (
-            self.verified_tx_hash is None or self.verified_tx_hash != self.candidate_tx_hash
-            or self.block_number is None or self.block_hash is None or self.log_index is None
+        if self.verified_tx_hash is not None and (
+            self.verified_tx_hash != self.candidate_tx_hash
+            or self.block_number is None
+            or self.block_hash is None
+        ):
+            raise ValueError("verified transaction must identify its candidate and real block")
+        if self.capability_id == "verify_record" and self.verified_tx_hash is not None:
+            raise ValueError("record lookup cannot claim a verified transaction")
+        if (
+            self.capability_id == "verify_record"
+            and self.match_status == Outcome.PASS
+            and (self.block_number is None or self.block_hash is None)
+        ):
+            raise ValueError("record lookup PASS requires the frozen query block")
+        if (
+            self.match_status == Outcome.PASS
+            and self.capability_id == "anchor_record"
+            and (
+                self.verified_tx_hash is None
+                or self.verified_tx_hash != self.candidate_tx_hash
+                or self.block_number is None
+                or self.block_hash is None
+                or self.log_index is None
+            )
         ):
             raise ValueError("PASS link requires a fully located candidate transaction")
         if self.match_status != Outcome.PASS and self.verified_tx_hash is not None:
             raise ValueError("unverified link cannot claim a verified transaction")
         return self
+
+    @model_serializer(mode="wrap")
+    def wire(self, handler):
+        value = handler(self)
+        if self.capability_id == "anchor_record":
+            value.pop("capability_id", None)
+        return value
 
 
 class EvidenceRecord(Model):
@@ -394,7 +527,12 @@ class ScoreResult(Model):
     dimensions: dict[Literal["availability", "consistency", "behavior"], ScoreDimension]
     overall_score_bp: BasisPoints | None
     sufficiency_bp: BasisPoints
-    advice: Literal["NOT_RECOMMENDED", "INSUFFICIENT_EVIDENCE", "RECOMMENDED_WITHIN_SCOPE", "LIMITED_OR_MANUAL_REVIEW"]
+    advice: Literal[
+        "NOT_RECOMMENDED",
+        "INSUFFICIENT_EVIDENCE",
+        "RECOMMENDED_WITHIN_SCOPE",
+        "LIMITED_OR_MANUAL_REVIEW",
+    ]
     critical_conflict: bool = Field(strict=True)
     limitations: tuple[SafeText, ...]
 
@@ -409,8 +547,42 @@ class ScoreResult(Model):
         return self
 
 
+class ReportTaskResult(Model):
+    slot_id: UUID4
+    capability_id: Capability
+    outcome: Outcome
+    reason_code: Reason | None
+    rule_version: Literal["1", "2"]
+    input_evidence_id: UUID4
+
+    @model_validator(mode="after")
+    def attributed(self) -> Self:
+        if (self.outcome == Outcome.PASS) != (self.reason_code is None):
+            raise ValueError("only PASS has no task reason")
+        return self
+
+
+class TaskOutcomeCounts(Model):
+    pass_count: Count = Field(validation_alias="PASS", serialization_alias="PASS")
+    fail_count: Count = Field(validation_alias="FAIL", serialization_alias="FAIL")
+    unknown_count: Count = Field(validation_alias="UNKNOWN", serialization_alias="UNKNOWN")
+    not_applicable_count: Count = Field(
+        validation_alias="NOT_APPLICABLE", serialization_alias="NOT_APPLICABLE"
+    )
+
+    @model_serializer(mode="wrap")
+    def outcome_keys(self, handler):
+        value = handler(self)
+        return {
+            "PASS": value["pass_count"],
+            "FAIL": value["fail_count"],
+            "UNKNOWN": value["unknown_count"],
+            "NOT_APPLICABLE": value["not_applicable_count"],
+        }
+
+
 class ReportCore(Model):
-    schema_version: Literal["1.0.0"] = "1.0.0"
+    schema_version: Literal["1.0.0", "1.1.0"] = "1.0.0"
     agent_ref: AgentRef
     agent_key_hash: Hash32
     snapshot_hash: Hash32
@@ -425,9 +597,19 @@ class ReportCore(Model):
     raw_statistics: dict[str, JsonValue]
     scores: ScoreResult
     assertions: tuple[AssertionResult, ...]
+    task_results: tuple[ReportTaskResult, ...] = ()
+    task_counts: TaskOutcomeCounts | None = None
     evidence_manifest_hash: Hash32
     previous_report_hash: Hash32
     limitations: tuple[SafeText, ...] = Field(min_length=1)
+
+    @model_serializer(mode="wrap")
+    def compatible_wire(self, handler):
+        value = handler(self)
+        if self.schema_version == "1.0.0":
+            value.pop("task_results", None)
+            value.pop("task_counts", None)
+        return value
 
     @model_validator(mode="after")
     def consistent(self) -> Self:
@@ -435,6 +617,28 @@ class ReportCore(Model):
             raise ValueError("invalid report observation window")
         if self.profile != self.scores.profile or self.policy_version != self.scores.policy_version:
             raise ValueError("report and scores disagree")
+        if self.schema_version == "1.0.0":
+            if self.task_results or self.task_counts is not None:
+                raise ValueError("legacy report cannot carry task replay summaries")
+            return self
+        if not self.task_results or self.task_counts is None:
+            raise ValueError("task replay report requires results and counts")
+        if len({item.slot_id for item in self.task_results}) != len(self.task_results):
+            raise ValueError("duplicate task result slot")
+        expected = {outcome: 0 for outcome in Outcome}
+        for result in self.task_results:
+            expected[result.outcome] += 1
+        if self.task_counts.model_dump(mode="json") != {
+            outcome.value: count for outcome, count in expected.items()
+        }:
+            raise ValueError("task result counts disagree")
+        versions = {item.slot_id: item.rule_version for item in self.task_results}
+        if any(
+            assertion.slot_id not in versions
+            or assertion.rule_version != versions[assertion.slot_id]
+            for assertion in self.assertions
+        ):
+            raise ValueError("task assertion rules do not match reported slots")
         return self
 
 
@@ -454,10 +658,16 @@ class AnchorReceipt(Model):
     @model_validator(mode="after")
     def confirmed(self) -> Self:
         if self.status == AnchorStatus.CONFIRMED and (
-            self.tx_hash is None or self.sequence is None or self.sequence == 0
-            or self.block_number is None or self.block_hash is None or self.confirmations < 1
+            self.tx_hash is None
+            or self.sequence is None
+            or self.sequence == 0
+            or self.block_number is None
+            or self.block_hash is None
+            or self.confirmations < 1
         ):
-            raise ValueError("confirmed anchor requires real transaction location and confirmations")
+            raise ValueError(
+                "confirmed anchor requires real transaction location and confirmations"
+            )
         return self
 
 

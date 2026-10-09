@@ -20,6 +20,19 @@
       "title": "Confirmed Claims",
       "type": "array"
     },
+    "excluded_capabilities": {
+      "default": [],
+      "items": {
+        "enum": [
+          "get_tx_status",
+          "verify_record",
+          "anchor_record"
+        ],
+        "type": "string"
+      },
+      "title": "Excluded Capabilities",
+      "type": "array"
+    },
     "mapping_evidence_ids": {
       "items": {
         "format": "uuid4",

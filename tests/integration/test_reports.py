@@ -15,6 +15,7 @@ from reputation_platform.application.reports import ReportService
 from reputation_platform.infrastructure.db.jobs import JobQueue, LostLease, enqueue
 from reputation_platform.infrastructure.db.tables import jobs, reports, runs
 from reputation_platform.worker.main import Worker
+from reputation_verifier import verify_bundle
 from sqlalchemy import func, select, text, update
 
 from tests.integration.test_verification import complete, flow, identity_chain, prepared
@@ -35,7 +36,7 @@ def freeze(prepared):
 
 
 @pytest.mark.parametrize("prepared", ["a", "d"], indirect=True)
-def test_real_report_recomputes_partial_and_exports_identical_bytes(prepared):
+def test_real_report_recomputes_partial_and_exports_identical_bytes(prepared, tmp_path):
     service, report = freeze(prepared)
     core = report.core
     assert core.scores.evaluation_state == "PARTIAL" and core.scores.overall_score_bp is None
@@ -51,6 +52,16 @@ def test_real_report_recomputes_partial_and_exports_identical_bytes(prepared):
     )
     bundle = service.export(report.report_id)
     assert service.export(report.report_id) == bundle
+    bundle_path = tmp_path / "report.zip"
+    bundle_path.write_bytes(bundle)
+    replayed = verify_bundle(str(bundle_path))
+    assert replayed["offline"] == "PASS"
+    assert replayed["task_count_comparison"] == "MATCH"
+    assert replayed["task_counts"] == core.task_counts.model_dump(mode="json")
+    assert replayed["task_results"][0]["outcome"] == core.task_results[0].outcome
+    live_replay = verify_bundle(str(bundle_path), task_rpc_url=prepared[0][5].rpc_url)
+    assert live_replay["offline"] == "PASS"
+    assert live_replay["task_results"][0]["live_chain"]["status"] == "CONFIRMED"
     response = prepared[0][0].get(f"/api/v1/reports/{report.report_id}/bundle")
     assert response.status_code == 200 and response.content == bundle
     with zipfile.ZipFile(io.BytesIO(bundle)) as archive:
@@ -82,8 +93,13 @@ def test_real_report_recomputes_partial_and_exports_identical_bytes(prepared):
         policy["behavior"]["min_accepted_decided_tasks"],
     ] == [20, 10, 10]
     refs = strict_json(files["verification.json"])
-    evidence = by_id[refs["input_evidence_id"]]
+    task_ref = refs["tasks"][0]
+    evidence = by_id[task_ref["input_evidence_id"]]
     inputs = RecordVerificationInput.model_validate_json(files[evidence.path])
+    assert refs["schema_version"] == "task-replay-v1"
+    assert task_ref["slot_id"] == str(inputs.slot.slot_id)
+    assert core.task_results[0].input_evidence_id == evidence.evidence_id
+    assert core.task_counts.model_dump(mode="json")[core.task_results[0].outcome] == 1
     rebuilt = build_report(
         RunPlan.model_validate_json(files["run_plan.json"]),
         inputs,

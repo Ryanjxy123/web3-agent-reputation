@@ -13,10 +13,7 @@ from reputation_platform.application.local_deploy import contract_abi, local_web
 
 
 def reconcile_record(root: Path, config: LocalDeployment, slot: CaseSlot) -> dict:
-    if (
-        config.chain != slot.expected.execution_chain
-        or config.record.address != slot.task.target_contract
-    ):
+    if config.chain != slot.expected.execution_chain or slot.task.target_contract is None:
         raise ApplicationError(
             409, "CHAIN_INSTANCE_CHANGED", "Execution chain configuration changed."
         )
@@ -25,7 +22,7 @@ def reconcile_record(root: Path, config: LocalDeployment, slot: CaseSlot) -> dic
         verify_deployment(web3, config, root)
         block = web3.eth.get_block("latest")
         registry = web3.eth.contract(
-            address=Web3.to_checksum_address(config.record.address),
+            address=Web3.to_checksum_address(slot.task.target_contract),
             abi=contract_abi(root, "DemoRecordRegistry"),
         )
         exists, digest = registry.functions.getRecord(
@@ -47,7 +44,7 @@ def reconcile_record(root: Path, config: LocalDeployment, slot: CaseSlot) -> dic
             raise ApplicationError(503, "PLATFORM_RPC_ERROR", "Reconciliation block changed.", True)
         return {
             "chain_instance": config.chain.instance_hash,
-            "contract": config.record.address,
+            "contract": slot.task.target_contract,
             "executor": slot.expected.executor,
             "request_id": slot.task.request_id,
             "exists": exists,

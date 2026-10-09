@@ -1,6 +1,6 @@
 # 真实进度与会话交接
 
-更新时间：2026-10-06；环境：用户 Windows 正式项目工作目录。
+更新时间：2026-10-09；环境：用户 Windows 正式项目工作目录。
 
 | Task ID | Status | 实施结果 |
 |---|---|---|
@@ -19,7 +19,48 @@
 | M1-06 | DONE | 报告冻结、确定性 ZIP、并发/恢复/缺失/篡改拒绝、原生 A/D 报告 smoke 及166项全量回归通过 |
 | M1-07 | DONE | PostgreSQL publisher nonce/outbox、签名后广播恢复、真实 EvaluationAnchor 发布、独立安全 ZIP verifier |
 | M1-08 | DONE | 原生 API/worker/Anvil A/D 纵向演示；A/D bundle、A anchor、离线/在线 verifier、篡改拒绝 |
+| FOLLOWUP-01 | DONE | 三能力模板与独立只读查询；具体状态及测试见 2026-10-09 任务记录 |
+| FOLLOWUP-02 | DONE | 四态归因、标准 reason_code、原始响应证据及异常归因；具体状态及测试见 2026-10-09 任务记录 |
+| FOLLOWUP-03 | DONE | 冻结 Evidence Bundle 逐任务重判、四态计数比较、历史格式兼容及独立 RPC 复查；最终 Review 修复已通过定向回归 |
 | LOCAL-PG-JUNCTION | DONE | Windows PostgreSQL 改用 D:\web3-runtime 目录联接；R: 已移除，初始化、重启、数据完整性及13项定向测试通过 |
+
+## 2026-10-09 / 本轮任务 1：三能力模板
+
+- Implemented：共享 Task/Worker/Verifier 支持 get_tx_status、verify_record、anchor_record；查询固定块、指定参数及独立 RPC 对照；只读无执行绑定或业务广播；授权目标合约可独立选择，冻结代码 hash。
+- Files changed：core models/record_verifier/reporting、platform application 与 EVM collector/record、受控 fixture、共享 Schema/OpenAPI/生成 TS、CAPABILITY_TASKS 与 ADR 0011。
+- Tests：单元/reference 127 passed；真实 capabilities/reports/verification/execution 组合 35 passed / 0 skipped（339.59s）；固定块后写入不改变历史查询补测 1 passed（16.87s）。Ruff、mypy 52 files、52 Schema 与 diff check 通过；历史 M1 A/D bundle 离线复核 PASS。
+- Review fixes：只读 report settlement、read profile 的 behavior=None、RPC null/null 不误作不存在、非 canonical/错误定位/确认不足不扣 Agent、历史块查询边界。
+- Git：分支 feat/capabilities-task-replay，任务 1 提交 6f741c9；尚未 push。本轮完整稳定树检查与 CI 待全部 1–3 完成后执行。
+- Limitations：每 run 一个能力槽位；当前复用既有 EVM ABI，未加第三方协议适配器。保留 M1 PARTIAL，未开发完整三维评分、前端或 ERC-8004。
+- Next task：任务 2 四态结果与失败归因。
+
+## 2026-10-09 / 本轮任务 2：四态与原因
+
+- Implemented：复用 Outcome/Reason，新增证据驱动服务失败、业务失败、证据不一致和规则版本原因；新模板/断言规则为 v2，旧 v1 序列化兼容；预评审排除能力可 NOT_APPLICABLE，已声明支持不得排除。
+- Tests：172 单元/reference passed / 0 skipped；任务归因纯单元 45 passed；真实 PostgreSQL/Anvil 归因、能力、核验、报告、执行组合 54 passed / 0 skipped（818.07s）；Ruff、mypy 52 files、52 Schema 通过。保留两条 Starlette/websockets 弃用警告。
+- Review fixes：授权/派发/endpoint 不一致不能将 HTTP 500 算 Agent FAIL；畸形 HTTP status 和声明数组不能崩溃；Agent 服务错误不被后续 RPC 故障遮盖；链上可证实回滚使用 TX_REVERTED；派生响应与冻结原始 HTTP 不一致为 UNKNOWN；损坏 RPC 证据降为 UNKNOWN。补全 NOT_APPLICABLE 不派发、不读任务 RPC且可冻结/导出；早期 RPC UNKNOWN 可以按原判定冻结，后续链恢复不会重写原任务结果；M1 专属 suite 不接受排除的 anchor 能力。
+- Compatibility：旧 v1 reason 与默认 wire serialization 保留；新增状态、原因、原始 HTTP envelope 和 rule_version 进入已有 Evidence Bundle/CAS；Schema/OpenAPI/TS 由共享类型生成。
+- Limitations：非法 JSON 被安全出口拒绝，因无法保留可靠脱敏原文，保持 UNKNOWN。报告发布仍需可信链上下文；全任务独立复核在下一项实现。
+- Git：阶段 2 Review 后提交 854610d，JSON null 边界补测提交 1d88cc7；尚未 push。
+
+## 2026-10-09 / 本轮任务 3：证据驱动逐任务复核
+
+- Implemented：ReportCore v1.1 冻结逐任务 outcome/reason/rule version 和四态计数；`task-replay-v1` 索引绑定计划槽位、原始输入、冻结输入及 Agent HTTP CAS。独立 Verifier 从这些输入调用现有纯规则逐项重判，重算断言、任务结果和四态计数，并重建报告统计/评分字段；不访问平台数据库/API、不重调 Agent。操作者可用 `--task-rpc-url` 另查任务链状态，失败只报告为平台 RPC UNKNOWN，不覆盖离线重判。
+- Compatibility：`@2` + ReportCore 1.0 + 旧单任务索引仅作为本轮前已冻结报告的兼容格式；继续重判并返回计算计数，但明确输出 `task_count_comparison=NOT_AVAILABLE_LEGACY_REPORT`。新报告必须 `@2` + ReportCore 1.1 + `task-replay-v1`，否则以规则版本错配拒绝。当前 report builder 只支持每 run 单槽位；Verifier 拒绝多槽位 bundle，避免在未重建全报告统计时误报 PASS。
+- Tests：阶段 Verifier/四态/报告契约单元组合 **74 passed / 0 skipped**；真实 PostgreSQL/Anvil A/D 报告导出、离线逐项复核及独立任务 RPC 复查 **2 passed / 0 skipped**（3 个其他报告用例 deselected）；旧 `runtime/local-chain` 与 `local-chain-v2` 的 A/D 四个真实 ZIP 也均离线复核通过，A 为 PASS，D 为 FAIL/SEMANTIC_MISMATCH。最终稳定树完整检查及 CI 已通过，实测结果见下节。
+- Review fixes：补齐模板、ReportCore schema 与索引格式双向配对，拒绝移除 v1.1 任务摘要或降级索引；拒绝当前模型不支持的多槽位报告；NOT_APPLICABLE 跳过非必要链 RPC；损坏的原始 HTTP CAS 不再导致报告冻结异常崩溃，缺少匹配内容时明确拒绝冻结。修复一次 Ruff 导入排序。
+- Final review：真实 NA 导出后复核首先复现 **1 failed**（CAS 去重复用原输入 ID）；已修复同 ID 来源兼容，并增加冻结 RPC 重判/未恢复错误/时间顺序、v2 结算原因及在线链身份一致性校验。相关单元组合 **101 passed / 0 skipped**（10.22s）；真实归因报告导出复核 **4 passed / 0 skipped**（14 个其他用例 deselected，119.61s），覆盖 FAIL、UNKNOWN、NOT_APPLICABLE 及 RPC 恢复后的原 UNKNOWN 保留。全量检查早期在 pytest 阶段因该 Review 问题主动中断，不记通过；修复稳定提交后重新运行。
+- Limitations：旧格式报告没有冻结任务计数，无法声称与原报告计数比较；无可信 RPC 时结果证明冻结证据与版本化规则内部一致，不单独证明原始采集者诚实或当前链状态。在线复查是可选的，RPC 来源只接受操作者配置。本轮未实现三维评分、前端、ERC-8004 或第三方协议适配器。
+- Git：分支 `feat/capabilities-task-replay`；任务 3 提交 b724f04，最终 Review 修复提交 dc6d974；已 push 并建立 upstream，PR #4 的 base 为 main，CI 通过。合并与最终分支状态以 PR/Git 历史为准，遵守最新 head 检查通过后合并的仓库规则。
+- Next task：FOLLOWUP-04/三维评分保持未开始；按用户要求本轮到任务 3 后停止，等待下一轮指令。
+
+## 2026-10-09 / 本轮 1–3 最终验收
+
+- Scope：三能力输入/输出/断言、四态与标准原因、证据驱动逐任务重判及计数比较全部完成；继续复用 M0/M1 架构，无新依赖、协议适配器或完整评分模块。主要修改为 core 模型/规则/reporting、platform 执行/采集/报告、fixture Agent、verifier/CLI，契约同步生成，设计见 ADR 0011–0013。
+- Local command：在 dc6d974 干净稳定树运行 `. ./scripts/tools.ps1; uv run --env-file .env --all-packages python scripts/check.py`，**退出码 0**。Ruff 通过；Mypy 52 个源文件通过；54 份 Schema 与生成 TS 漂移检查通过；完整 Python **314 passed / 0 skipped / 2 warnings**（1198.25s）；Web build 通过、**2 tests passed**；Foundry **14 passed / 0 failed / 0 skipped**，含 256 次 fuzz；三份编译 ABI 检查通过。两条警告来自既有 Starlette/httpx 与 websockets 弃用提示，未为本轮升级依赖。
+- CI：PR #4，head dc6d974bc1f3efc57e7434e6425c7e7776854159，Foundation CI run **37934736082** completed/success；`foundation-quality` 与 `foundation-compose` 均 SUCCESS。质量日志实际 Python **314 passed / 0 skipped**（187.34s）、Web **2 passed**、Foundry **14 passed / 0 skipped**；Compose 的 Docker build、runtime smoke 与 Worker once 均通过。PR 为 MERGEABLE/CLEAN，reviewDecision 为空；未修改保护或权限配置。
+- Review：每项完成后定向回归及自审，最终交叉 Review 又修复 CAS 去重误拒 NA、冻结链观测未重判、冻结时间缺约束、v2 结算原因未绑定与错误链在线误确认。修复后组合单元 **101 passed**、真实归因导出复核 **4 passed**；最终完整回归通过。稳定修复后的四个历史 A/D ZIP 再次离线通过，旧报告计数比较明确标为 NOT_AVAILABLE_LEGACY_REPORT。
+- Acceptance：本轮任务 1–3 满足验收，无已知阻塞。保留每 run 单槽位、既有 EVM ABI 和旧报告没有冻结 task counts 的明确限制；离线结果证明材料内部一致，链状态需操作者可信 RPC。FOLLOWUP-04、三维评分、前端、ERC-8004 与其他后续功能未开始，停止等待下一轮指令。
 
 ## 2026-10-02 / M0-01
 

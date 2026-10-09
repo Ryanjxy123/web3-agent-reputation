@@ -6,7 +6,16 @@ from uuid import UUID
 
 from .binding import agent_key_hash
 from .evidence import hash_json
-from .models import Observation, RecordVerificationInput, ReportCore, RunPlan, ScoreResult
+from .models import (
+    Observation,
+    Outcome,
+    RecordVerificationInput,
+    ReportCore,
+    ReportTaskResult,
+    RunPlan,
+    ScoreResult,
+    TaskOutcomeCounts,
+)
 from .record_verifier import verify_record
 from .scoring_reference import evaluate_from_stats
 
@@ -31,18 +40,31 @@ def build_report(
     manifest_hash: str,
     previous_report_hash: str,
 ) -> ReportCore:
+    expected_rule_version = "2" if plan.template_version.endswith("@2") else "1"
     if (
         len(plan.slots) != 1
         or plan.slots[0] != inputs.slot
-        or plan.profile != "record-write-v1"
+        or (plan.profile == "record-read-v1" and inputs.slot.capability_id == "anchor_record")
         or inputs.slot.purpose != "functional"
         or inputs.slot.case_kind != "positive"
         or inputs.slot.required_class != "normal"
-        or inputs.slot.expected_outcome != "PASS"
-        or plan.confirmed_capabilities != ("anchor_record",)
-        or plan.confirmed_capabilities != inputs.review.confirmed_claims
+        or inputs.slot.expected_outcome not in {"PASS", "NOT_APPLICABLE"}
+        or (
+            inputs.slot.applicability_reason is None
+            and inputs.slot.capability_id not in plan.confirmed_capabilities
+        )
+        or not set(plan.confirmed_capabilities).issubset(inputs.review.confirmed_claims)
+        or (
+            plan.suite_id == "m1-smoke-v1"
+            and (
+                plan.profile != "record-write-v1"
+                or plan.confirmed_capabilities != ("anchor_record",)
+                or plan.template_version not in {"anchor_record@1", "anchor_record@2"}
+            )
+        )
         or plan.review_version != inputs.review_version
         or plan.review_version != inputs.review.review_version
+        or inputs.rule_version != expected_rule_version
         or plan.snapshot_hash != inputs.snapshot.snapshot_hash
         or plan.policy_hash != hash_json(policy)
     ):
@@ -52,7 +74,31 @@ def build_report(
     ):
         raise ValueError("REPORT_OBSERVATIONS_MISMATCH")
     settled = [item for item in observations if item.dispatch_state == "SETTLED"]
-    if len(settled) != 1 or settled[0].candidate_tx_hash != inputs.evm.candidate_tx_hash:
+    expected_candidate = (
+        inputs.evm.candidate_tx_hash if inputs.slot.capability_id == "anchor_record" else None
+    )
+    query_candidate_missing = (
+        inputs.slot.capability_id == "get_tx_status"
+        and inputs.rule_version == "2"
+        and inputs.evm.candidate_tx_hash is None
+        and inputs.evm.error_reason is not None
+    )
+    if (
+        len(settled) != 1
+        or settled[0].candidate_tx_hash != expected_candidate
+        or (inputs.rule_version == "2" and settled[0].reason_code != inputs.execution_reason)
+        or (
+            inputs.slot.capability_id == "get_tx_status"
+            and inputs.slot.applicability_reason is not None
+            and inputs.evm.candidate_tx_hash is not None
+        )
+        or (
+            inputs.slot.capability_id == "get_tx_status"
+            and inputs.slot.applicability_reason is None
+            and not query_candidate_missing
+            and inputs.evm.candidate_tx_hash != inputs.slot.task.query_tx_hash
+        )
+    ):
         raise ValueError("REPORT_SETTLEMENT_MISMATCH")
     times = [
         plan.planning_time,
@@ -78,7 +124,7 @@ def build_report(
         },
         "capabilities": [
             {
-                "capability_id": "anchor_record",
+                "capability_id": inputs.slot.capability_id,
                 "planned": 1,
                 "decided": decided,
                 "passed": int(result.outcome == "PASS"),
@@ -87,7 +133,9 @@ def build_report(
                 "oldest_age_seconds": age_seconds if decided else None,
             }
         ],
-        "behavior": {
+        "behavior": None
+        if plan.profile == "record-read-v1"
+        else {
             "planned": 0,
             "accepted": 0,
             "decided": 0,
@@ -103,7 +151,16 @@ def build_report(
         "critical_conflict": result.critical_conflict,
     }
     scores = ScoreResult.model_validate(evaluate_from_stats(stats, policy))
+    task_result = ReportTaskResult(
+        slot_id=inputs.slot.slot_id,
+        capability_id=inputs.slot.capability_id,
+        outcome=result.outcome,
+        reason_code=result.reason_code,
+        rule_version=inputs.rule_version,
+        input_evidence_id=evidence_id,
+    )
     return ReportCore(
+        schema_version="1.1.0" if expected_rule_version == "2" else "1.0.0",
         agent_ref=inputs.slot.expected.agent_ref,
         agent_key_hash=agent_key_hash(inputs.slot.expected.agent_ref),
         snapshot_hash=plan.snapshot_hash,
@@ -118,7 +175,18 @@ def build_report(
         raw_statistics=stats,
         scores=scores,
         assertions=tuple(sorted(result.assertions, key=lambda item: str(item.assertion_id))),
+        task_results=(task_result,) if expected_rule_version == "2" else (),
+        task_counts=TaskOutcomeCounts.model_validate(
+            {outcome.value: int(outcome == result.outcome) for outcome in Outcome}
+        )
+        if expected_rule_version == "2"
+        else None,
         evidence_manifest_hash=manifest_hash,
         previous_report_hash=previous_report_hash,
-        limitations=LIMITATIONS,
+        limitations=LIMITATIONS
+        if plan.suite_id == "m1-smoke-v1"
+        else (
+            "Local Anvil demonstration with one functional capability slot; not a production trust rating.",
+            *LIMITATIONS[1:],
+        ),
     )

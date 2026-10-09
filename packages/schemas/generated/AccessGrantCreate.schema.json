@@ -1,11 +1,42 @@
 {
   "additionalProperties": false,
   "properties": {
+    "capabilities": {
+      "default": [
+        "anchor_record"
+      ],
+      "items": {
+        "enum": [
+          "get_tx_status",
+          "verify_record",
+          "anchor_record"
+        ],
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Capabilities",
+      "type": "array"
+    },
     "consent_ref": {
       "maxLength": 2000,
       "minLength": 1,
       "title": "Consent Ref",
       "type": "string"
+    },
+    "contract_allowlist": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Contract Allowlist"
     },
     "endpoint_id": {
       "maxLength": 100,
