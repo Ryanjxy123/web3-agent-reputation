@@ -74,17 +74,20 @@ class EvaluationCreate(Model):
     profile: Profile
     policy_version: Literal["policy-v1"]
     grant_ids: tuple[UUID4, ...] = Field(min_length=1, max_length=10)
-    suite_id: Literal["m1-smoke-v1", "capabilities-v1"]
+    suite_id: Literal["m1-smoke-v1", "capabilities-v1", "formal-evaluation-v1"]
     capability_id: Capability = "anchor_record"
     query_tx_hash: Hash32 | None = None
     target_contract: NonzeroAddress | None = None
     record_executor: NonzeroAddress | None = None
     record_request_id: Challenge | None = None
     record_hash: Challenge | None = None
+    transaction_cases: dict[Literal["success", "revert", "pending"], Hash32] | None = None
 
     @model_serializer(mode="wrap")
     def wire(self, handler):
         value = handler(self)
+        if self.transaction_cases is None:
+            value.pop("transaction_cases", None)
         if self.suite_id == "m1-smoke-v1" and self.capability_id == "anchor_record":
             value.pop("capability_id", None)
             for name in (
@@ -100,6 +103,27 @@ class EvaluationCreate(Model):
 
     @model_validator(mode="after")
     def capability_inputs(self) -> Self:
+        if self.suite_id == "formal-evaluation-v1":
+            if (
+                self.query_tx_hash is not None
+                or len(
+                    {
+                        value is None
+                        for value in (
+                            self.record_executor,
+                            self.record_request_id,
+                            self.record_hash,
+                        )
+                    }
+                )
+                != 1
+            ):
+                raise ValueError(
+                    "formal evaluation requires complete record source parameters and transaction_cases"
+                )
+            return self
+        if self.transaction_cases is not None:
+            raise ValueError("transaction_cases are only accepted by formal evaluation")
         if (self.capability_id == "anchor_record") != (self.profile == "record-write-v1"):
             raise ValueError(
                 "single-capability runs require the corresponding read or write profile"

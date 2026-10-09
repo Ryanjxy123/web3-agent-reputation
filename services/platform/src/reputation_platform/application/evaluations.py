@@ -1,7 +1,8 @@
-"""Operator grants and frozen single-slot M1 plans; no Agent network calls here."""
+"""Operator grants and frozen task plans; no Agent network calls here."""
 
 import secrets
 from datetime import UTC, datetime, timedelta
+from typing import Literal, cast
 from uuid import UUID, uuid4
 
 from pydantic import JsonValue
@@ -205,7 +206,12 @@ class EvaluationService:
             existing = self.existing(connection, actor, key, payload_hash)
         if existing is not None:
             return self.accepted(existing)
-        writing = request.capability_id == "anchor_record"
+        formal = request.suite_id == "formal-evaluation-v1"
+        writing = (
+            request.profile == "record-write-v1"
+            if formal
+            else request.capability_id == "anchor_record"
+        )
         if (
             len(request.grant_ids) != 1
             or (writing and request.profile != "record-write-v1")
@@ -220,7 +226,7 @@ class EvaluationService:
         observation, config = self.identity.current_identity(snapshot)
         target = (
             (request.target_contract or config.record.address)
-            if request.capability_id != "get_tx_status"
+            if formal or request.capability_id != "get_tx_status"
             else None
         )
         target_code = None
@@ -278,7 +284,7 @@ class EvaluationService:
                     409, "MAPPING_UNCONFIRMED", "Capability mapping is not confirmed."
                 )
             review = ClaimReview.model_validate(review_body)
-            excluded = request.capability_id in review.excluded_capabilities
+            excluded = not formal and request.capability_id in review.excluded_capabilities
             if excluded and request.suite_id == "m1-smoke-v1":
                 raise ApplicationError(
                     422,
@@ -286,7 +292,7 @@ class EvaluationService:
                     "The M1 smoke suite requires a declared anchor_record capability.",
                 )
             if review.review_version != request.review_version or (
-                request.capability_id not in review.confirmed_claims and not excluded
+                not formal and request.capability_id not in review.confirmed_claims and not excluded
             ):
                 raise ApplicationError(
                     409, "REVIEW_CONFLICT", "The current confirmed mapping differs."
@@ -294,8 +300,53 @@ class EvaluationService:
             grant = self.require_grant(
                 connection, request.grant_ids[0], snapshot.snapshot_hash, now
             )
-            if request.capability_id not in grant.capabilities or (
-                target is not None and target not in grant.contract_allowlist
+            policy = strict_json(
+                (self.identity.root / "configs/policies/policy-v1.json").read_bytes()
+            )
+            capabilities = review.confirmed_claims if formal else (request.capability_id,)
+            if formal and ("anchor_record" in capabilities) != writing:
+                raise ApplicationError(
+                    422, "UNSUPPORTED_PROFILE", "The profile must cover all confirmed capabilities."
+                )
+            specifications = [(request.capability_id, Purpose.FUNCTIONAL, "normal")]
+            if formal:
+                specifications = []
+                readonly = next(
+                    (cap for cap in ("verify_record", "get_tx_status") if cap in capabilities), None
+                )
+                if readonly:
+                    specifications.extend(
+                        (readonly, Purpose.AVAILABILITY, "normal")
+                        for _ in range(policy["availability"]["min_samples"])
+                    )
+                for capability in capabilities:
+                    classes = {
+                        "get_tx_status": ("success",) * 3
+                        + ("revert",) * 2
+                        + ("pending",) * 2
+                        + ("not_found", "invalid_format", "unsupported_chain"),
+                        "verify_record": ("match",) * 4
+                        + ("not_found",) * 2
+                        + ("hash_mismatch",) * 2
+                        + ("invalid_format", "forbidden_contract"),
+                        "anchor_record": ("normal",) * 7
+                        + ("expired_deadline", "forbidden_contract", "unsupported_chain"),
+                    }[capability]
+                    specifications.extend(
+                        (capability, Purpose.FUNCTIONAL, case) for case in classes
+                    )
+                if writing:
+                    specifications.extend(
+                        ("anchor_record", Purpose.BEHAVIORAL, "normal")
+                        for _ in range(policy["behavior"]["min_accepted_decided_tasks"])
+                    )
+                # Each slot reserves an initial send and two status/recovery requests.
+                deadline += timedelta(
+                    milliseconds=(len(specifications) - 1) * 3 * grant.interval_ms
+                )
+            if not set(capabilities).issubset(grant.capabilities) or (
+                any(cap != "get_tx_status" for cap in capabilities)
+                and target not in grant.contract_allowlist
             ):
                 raise ApplicationError(
                     409,
@@ -304,14 +355,14 @@ class EvaluationService:
                 )
             if datetime.fromisoformat(grant.expires_at) < deadline:
                 raise ApplicationError(
-                    409, "ACCESS_NOT_GRANTED", "Grant must cover the 60-second task window."
+                    409, "ACCESS_NOT_GRANTED", "Grant must cover the complete frozen task window."
                 )
             reserved = connection.scalar(
                 select(func.count())
                 .select_from(case_slots)
                 .where(case_slots.c.body["grant_id"].astext == str(grant.grant_id))
             )
-            if (reserved or 0) >= grant.max_tasks:
+            if (reserved or 0) + len(specifications) > grant.max_tasks:
                 raise ApplicationError(
                     409, "GRANT_QUOTA_EXHAUSTED", "Grant task quota has already been reserved."
                 )
@@ -353,68 +404,131 @@ class EvaluationService:
                     "BINDING_UNVERIFIED",
                     "A current dual-signed EOA binding must cover this task window.",
                 )
-            synthetic: dict[str, JsonValue] | None = (
-                {
-                    "kind": "synthetic-credential-v1",
-                    "challenge": "0x" + secrets.token_hex(32),
-                }
-                if writing
-                else None
-            )
-            task = TaskEnvelope(
-                capability_id=request.capability_id,
-                request_id="0x" + secrets.token_hex(32),
-                snapshot_hash=snapshot.snapshot_hash,
-                chain_id=config.chain.chain_id,
-                chain_instance_id=config.chain.instance_hash,
-                target_contract=target,
-                record_hash=hash_json(synthetic) if writing else request.record_hash,
-                query_tx_hash=request.query_tx_hash,
-                record_executor=request.record_executor,
-                record_request_id=request.record_request_id,
-                read_block_number=None
-                if writing
-                else observation["snapshot_core"]["read_block_number"],
-                read_block_hash=None
-                if writing
-                else observation["snapshot_core"]["read_block_hash"],
-                deadline=utc_text(deadline),
-            )
-            facts = ExpectedFacts(
-                agent_ref=snapshot.core.agent_ref,
-                snapshot_hash=snapshot.snapshot_hash,
-                execution_chain=config.chain,
-                executor=proof.message.executor
-                if writing and proof
-                else request.record_executor or snapshot.core.owner,
-                target_contract=task.target_contract,
-                target_code_hash=target_code,
-                request_id=task.request_id,
-                record_hash=task.record_hash,
-                binding_id=proof.binding_id if writing and proof and not excluded else None,
-                window_start=utc_text(now),
-                deadline=task.deadline,
-                pre_dispatch_block=observation["snapshot_core"]["read_block_number"],
-                pre_dispatch_block_hash=observation["snapshot_core"]["read_block_hash"],
-                confirmation_depth=config.confirmation_depth,
-            )
-            slot = CaseSlot(
-                slot_id=uuid4(),
-                slot_key=f"{request.capability_id}-1",
-                capability_id=request.capability_id,
-                purpose=Purpose.FUNCTIONAL,
-                case_kind="positive",
-                required_class="normal",
-                expected_outcome=Outcome.NOT_APPLICABLE if excluded else Outcome.PASS,
-                task=task,
-                expected=facts,
-                grant_id=grant.grant_id,
-                synthetic_input=synthetic,
-                applicability_reason=Reason.CAPABILITY_NOT_DECLARED if excluded else None,
-            )
-            policy = strict_json(
-                (self.identity.root / "configs/policies/policy-v1.json").read_bytes()
-            )
+            slots = []
+            for index, (capability, purpose, required_class) in enumerate(specifications, start=1):
+                slot_writes = capability == "anchor_record"
+                slot_deadline = (
+                    now + timedelta(seconds=60, milliseconds=(index - 1) * 3 * grant.interval_ms)
+                    if formal
+                    else deadline
+                )
+                query_hash = (
+                    (request.transaction_cases or {}).get(
+                        cast(Literal["success", "revert", "pending"], required_class)
+                    )
+                    if formal
+                    else request.query_tx_hash
+                )
+                record_source = (
+                    formal
+                    and required_class in {"match", "hash_mismatch"}
+                    and request.record_request_id is not None
+                )
+                record_hash = (
+                    request.record_hash
+                    if record_source
+                    else "0x" + secrets.token_hex(32)
+                    if formal and capability == "verify_record"
+                    else request.record_hash
+                )
+                if required_class == "hash_mismatch" and record_source:
+                    record_hash = "0x" + secrets.token_hex(32)
+                synthetic: dict[str, JsonValue] | None = (
+                    {"kind": "synthetic-credential-v1", "challenge": "0x" + secrets.token_hex(32)}
+                    if slot_writes
+                    else None
+                )
+                task = TaskEnvelope(
+                    capability_id=capability,
+                    request_id="0x" + secrets.token_hex(32),
+                    snapshot_hash=snapshot.snapshot_hash,
+                    chain_id=config.chain.chain_id,
+                    chain_instance_id=config.chain.instance_hash,
+                    target_contract=None if capability == "get_tx_status" else target,
+                    record_hash=hash_json(synthetic)
+                    if slot_writes
+                    else record_hash
+                    if capability == "verify_record"
+                    else None,
+                    query_tx_hash=query_hash or "0x" + secrets.token_hex(32)
+                    if capability == "get_tx_status"
+                    else None,
+                    record_executor=request.record_executor
+                    if record_source
+                    else snapshot.core.owner
+                    if formal and capability == "verify_record"
+                    else request.record_executor
+                    if capability == "verify_record"
+                    else None,
+                    record_request_id=request.record_request_id
+                    if record_source
+                    else "0x" + secrets.token_hex(32)
+                    if formal and capability == "verify_record"
+                    else request.record_request_id
+                    if capability == "verify_record"
+                    else None,
+                    read_block_number=None
+                    if slot_writes
+                    else observation["snapshot_core"]["read_block_number"],
+                    read_block_hash=None
+                    if slot_writes
+                    else observation["snapshot_core"]["read_block_hash"],
+                    deadline=utc_text(slot_deadline),
+                )
+                facts = ExpectedFacts(
+                    agent_ref=snapshot.core.agent_ref,
+                    snapshot_hash=snapshot.snapshot_hash,
+                    execution_chain=config.chain,
+                    executor=proof.message.executor
+                    if slot_writes and proof
+                    else task.record_executor or snapshot.core.owner,
+                    target_contract=task.target_contract,
+                    target_code_hash=target_code if task.target_contract else None,
+                    request_id=task.request_id,
+                    record_hash=task.record_hash,
+                    binding_id=proof.binding_id if slot_writes and proof and not excluded else None,
+                    window_start=utc_text(now),
+                    deadline=task.deadline,
+                    pre_dispatch_block=observation["snapshot_core"]["read_block_number"],
+                    pre_dispatch_block_hash=observation["snapshot_core"]["read_block_hash"],
+                    confirmation_depth=config.confirmation_depth,
+                )
+                slot = CaseSlot(
+                    slot_id=uuid4(),
+                    slot_key=f"{capability}-{index}",
+                    capability_id=capability,
+                    purpose=purpose,
+                    case_kind="negative"
+                    if formal
+                    and required_class
+                    in {
+                        "invalid_format",
+                        "forbidden_contract",
+                        "unsupported_chain",
+                        "expired_deadline",
+                    }
+                    else "positive",
+                    required_class=required_class,
+                    expected_outcome=Outcome.NOT_APPLICABLE if excluded else Outcome.PASS,
+                    task=task,
+                    expected=facts,
+                    grant_id=grant.grant_id,
+                    synthetic_input=synthetic,
+                    applicability_reason=Reason.CAPABILITY_NOT_DECLARED if excluded else None,
+                    request_overrides={
+                        "target_contract": next(
+                            (
+                                address
+                                for address in (config.anchor.address, config.registry.address)
+                                if address not in grant.contract_allowlist
+                            ),
+                            "0x" + secrets.token_hex(20),
+                        )
+                    }
+                    if formal and required_class == "forbidden_contract"
+                    else None,
+                )
+                slots.append(slot)
             evidence = self.identity.evidence.register(connection, planning_evidence)
             plan = RunPlan(
                 run_id=uuid4(),
@@ -423,16 +537,16 @@ class EvaluationService:
                 policy_version="policy-v1",
                 policy_hash=hash_json(policy),
                 profile=request.profile,
-                confirmed_capabilities=review.confirmed_claims
-                if excluded
-                else (request.capability_id,),
+                confirmed_capabilities=review.confirmed_claims if excluded else capabilities,
                 suite_id=request.suite_id,
-                template_version="anchor_record@2"
+                template_version="capabilities@3"
+                if formal
+                else "anchor_record@2"
                 if request.suite_id == "m1-smoke-v1"
                 else "capabilities@2",
                 planning_time=utc_text(now),
                 planning_evidence_refs=(evidence.evidence_id,),
-                slots=(slot,),
+                slots=tuple(slots),
             )
             try:
                 persist_plan(connection, request.snapshot_id, actor, key, payload_hash, plan)

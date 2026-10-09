@@ -8,8 +8,10 @@ from uuid import uuid4
 import httpx
 from pydantic import ValidationError
 from reputation_core.binding import endpoint_hash, signatures_match
+from reputation_core.case_templates import REJECTION_CASES, mutated_payload
 from reputation_core.evidence import hash_bytes, hash_json, strict_json
 from reputation_core.models import (
+    CaseSlot,
     ControlledTaskView,
     DispatchState,
     ExecutorBinding,
@@ -51,16 +53,36 @@ class ExecutionService:
     async def execute(self, lease: Lease, queue: JobQueue) -> None:
         if lease.run_id is None:
             raise ApplicationError(422, "RUN_REQUIRED", "Execution requires a frozen run.")
-        row = self.evaluations.row(lease.run_id)
+        row = await asyncio.to_thread(self.evaluations.row, lease.run_id)
         plan = RunPlan.model_validate(row["plan"])
-        slot = plan.slots[0]
-        writing = slot.capability_id == "anchor_record"
-        if len(plan.slots) != 1:
+        if len(plan.slots) != 1 and plan.suite_id != "formal-evaluation-v1":
             raise ApplicationError(
-                422, "UNSUPPORTED_SUITE", "M1 execution requires one frozen slot."
+                422, "UNSUPPORTED_SUITE", "Only the formal suite supports multiple frozen slots."
             )
-        snapshot = self.identity.snapshot(row["snapshot_fk"])
-        grant = self.evaluations.grant(slot.grant_id).grant
+        snapshot = await asyncio.to_thread(self.identity.snapshot, row["snapshot_fk"])
+        grant = (await asyncio.to_thread(self.evaluations.grant, plan.slots[0].grant_id)).grant
+        endpoint = next(
+            item for item in snapshot.core.endpoints if item.endpoint_id == grant.endpoint_ids[0]
+        )
+        client = await asyncio.to_thread(SafeHttpClient, frozenset({endpoint.origin}))
+        try:
+            for slot in plan.slots:
+                await self.execute_slot(lease, queue, row, plan, slot, client=client)
+        finally:
+            await client.close()
+
+    async def execute_slot(
+        self, lease: Lease, queue: JobQueue, row, plan: RunPlan, slot: CaseSlot,
+        *, client: SafeHttpClient | None = None,
+    ) -> None:
+        writing = slot.capability_id == "anchor_record"
+        payload = (
+            mutated_payload(slot)
+            if plan.template_version == "capabilities@3"
+            else slot.task.model_dump(mode="json")
+        )
+        snapshot = await asyncio.to_thread(self.identity.snapshot, row["snapshot_fk"])
+        grant = (await asyncio.to_thread(self.evaluations.grant, slot.grant_id)).grant
         endpoint = next(
             item for item in snapshot.core.endpoints if item.endpoint_id == grant.endpoint_ids[0]
         )
@@ -74,27 +96,40 @@ class ExecutionService:
                 .limit(1)
             ).scalar_one()
 
-        with self.db.connect() as connection:
-            state = latest(connection)
-            previous = (
-                connection.execute(
-                    select(observations.c.body)
-                    .where(observations.c.slot_fk == slot.slot_id)
-                    .order_by(observations.c.created_at)
+        def history():
+            with self.db.connect() as connection:
+                return latest(connection), (
+                    connection.execute(
+                        select(observations.c.body)
+                        .where(observations.c.slot_fk == slot.slot_id)
+                        .order_by(observations.c.created_at)
+                    )
+                    .scalars()
+                    .all()
                 )
-                .scalars()
-                .all()
-            )
+        state, previous = await asyncio.to_thread(history)
         if state == "SETTLED":
             return
+
+        def post_attempts():
+            with self.db.connect() as connection:
+                return connection.scalar(
+                    select(func.count())
+                    .select_from(attempts)
+                    .where(
+                        attempts.c.slot_fk == slot.slot_id,
+                        attempts.c.body["method"].astext == "POST",
+                    )
+                ) or 0
+
         accepted = any(item["accepted"] for item in previous)
         retained_refs = tuple(
             dict.fromkeys(ref for item in previous for ref in item["evidence_refs"])
         )
         execution_failure = None
         witness = None
-        queue.fenced(
-            lease,
+        await asyncio.to_thread(
+            queue.fenced, lease,
             lambda connection: connection.execute(
                 update(runs)
                 .where(runs.c.id == plan.run_id)
@@ -123,7 +158,7 @@ class ExecutionService:
                 lambda connection: self.identity.evidence.register(connection, prepared),
             )
 
-        def settle(reason=None, candidate=None, evidence_refs=(), cancelled=False):
+        async def settle(reason=None, candidate=None, evidence_refs=(), cancelled=False):
             evidence_refs = tuple(dict.fromkeys((*retained_refs, *evidence_refs)))
 
             def commit(connection):
@@ -186,20 +221,31 @@ class ExecutionService:
                         "candidate_tx_hash": candidate,
                     },
                 )
-                enqueue(
-                    connection,
-                    "verify",
-                    f"verify:{plan.run_id}",
-                    {"run_id": str(plan.run_id)},
-                    plan.run_id,
+                settled = set(
+                    connection.execute(
+                        select(observations.c.slot_fk)
+                        .join(case_slots, observations.c.slot_fk == case_slots.c.id)
+                        .where(
+                            case_slots.c.run_fk == plan.run_id,
+                            observations.c.body["dispatch_state"].astext == "SETTLED",
+                        )
+                    ).scalars()
                 )
-                connection.execute(
-                    update(runs)
-                    .where(runs.c.id == plan.run_id)
-                    .values(status="CANCELLED" if cancelled else "PARTIAL", stage="VERIFYING")
-                )
+                if settled == {item.slot_id for item in plan.slots}:
+                    enqueue(
+                        connection,
+                        "verify",
+                        f"verify:{plan.run_id}",
+                        {"run_id": str(plan.run_id)},
+                        plan.run_id,
+                    )
+                    connection.execute(
+                        update(runs)
+                        .where(runs.c.id == plan.run_id)
+                        .values(status="CANCELLED" if cancelled else "PARTIAL", stage="VERIFYING")
+                    )
 
-            queue.fenced(lease, commit)
+            await asyncio.to_thread(queue.fenced, lease, commit)
 
         async def reconcile():
             value = await asyncio.to_thread(
@@ -229,11 +275,14 @@ class ExecutionService:
                     ) from None
             proof = None
             if writing:
-                with self.db.connect() as connection:
-                    body = connection.execute(
-                        select(bindings.c.body).where(bindings.c.id == slot.expected.binding_id)
-                    ).scalar_one()
+                def binding_body():
+                    with self.db.connect() as connection:
+                        return connection.execute(
+                            select(bindings.c.body).where(bindings.c.id == slot.expected.binding_id)
+                        ).scalar_one()
+                body = await asyncio.to_thread(binding_body)
                 proof = ExecutorBinding.model_validate(body)
+            signatures_valid = await asyncio.to_thread(signatures_match, proof) if proof else False
             if config.chain != slot.expected.execution_chain or (
                 writing
                 and (
@@ -245,7 +294,7 @@ class ExecutionService:
                     or proof.domain_salt != config.platform_instance_id
                     or observed["owner_code"] != "0x"
                     or observed["executor_code"] != "0x"
-                    or not signatures_match(proof)
+                    or not signatures_valid
                 )
             ):
                 raise ApplicationError(
@@ -266,17 +315,19 @@ class ExecutionService:
 
         async def reserve(method):
             # Run admission serializes Agents. A durable request timestamp enforces pacing across runs/restarts.
-            with self.db.connect() as connection:
-                agent_id = connection.execute(
-                    select(snapshots.c.agent_fk).where(snapshots.c.id == row["snapshot_fk"])
-                ).scalar_one()
-                last = connection.scalar(
-                    select(func.max(attempts.c.created_at))
-                    .join(case_slots, attempts.c.slot_fk == case_slots.c.id)
-                    .join(runs, case_slots.c.run_fk == runs.c.id)
-                    .join(snapshots, runs.c.snapshot_fk == snapshots.c.id)
-                    .where(snapshots.c.agent_fk == agent_id)
-                )
+            def latest_request():
+                with self.db.connect() as connection:
+                    agent_id = connection.execute(
+                        select(snapshots.c.agent_fk).where(snapshots.c.id == row["snapshot_fk"])
+                    ).scalar_one()
+                    return connection.scalar(
+                        select(func.max(attempts.c.created_at))
+                        .join(case_slots, attempts.c.slot_fk == case_slots.c.id)
+                        .join(runs, case_slots.c.run_fk == runs.c.id)
+                        .join(snapshots, runs.c.snapshot_fk == snapshots.c.id)
+                        .where(snapshots.c.agent_fk == agent_id)
+                    )
+            last = await asyncio.to_thread(latest_request)
             if last is not None:
                 delay = grant.interval_ms / 1000 - (datetime.now(UTC) - last).total_seconds()
                 if delay > 0:
@@ -332,7 +383,7 @@ class ExecutionService:
                             "method": method,
                             "path": path,
                             "started_at": timestamp(),
-                            "payload_hash": hash_json(slot.task.model_dump(mode="json")),
+                            "payload_hash": hash_json(payload),
                             "lease_token": lease.token,
                         },
                     )
@@ -352,18 +403,20 @@ class ExecutionService:
 
             return await asyncio.to_thread(queue.fenced, lease, commit)
 
-        client = SafeHttpClient(frozenset({endpoint.origin}))
+        owns_client = client is None
+        if client is None:
+            client = await asyncio.to_thread(SafeHttpClient, frozenset({endpoint.origin}))
         try:
             if slot.applicability_reason is not None:
-                settle(slot.applicability_reason)
+                await settle(slot.applicability_reason)
                 return
             if state == "NOT_SENT" and row["cancel_requested"]:
-                settle(Reason.CANCELLED_BY_OPERATOR, cancelled=True)
+                await settle(Reason.CANCELLED_BY_OPERATOR, cancelled=True)
                 return
             method = "POST" if state == "NOT_SENT" else "GET"
             if method == "GET":
-                queue.fenced(
-                    lease,
+                await asyncio.to_thread(
+                    queue.fenced, lease,
                     lambda connection: event(
                         connection, "DISPATCH_UNCERTAIN", {"reclaimed_from": state}
                     ),
@@ -371,22 +424,26 @@ class ExecutionService:
             while True:
                 if datetime.now(UTC) >= deadline:
                     if not writing:
-                        settle(Reason.DISPATCH_UNCERTAIN)
+                        await settle(Reason.DISPATCH_UNCERTAIN)
                         return
                     value, record = await reconcile()
-                    settle(
+                    await settle(
                         None if value["candidate_tx_hash"] else Reason.DISPATCH_UNCERTAIN,
                         value["candidate_tx_hash"],
                         (record.evidence_id,),
                     )
                     return
                 if method == "POST":
+                    if plan.suite_id == "formal-evaluation-v1":
+                        delay = (deadline - datetime.now(UTC)).total_seconds() - 60
+                        if delay > 0:
+                            await asyncio.sleep(delay)
                     witness = await preflight()
                 attempt_no, path = await reserve(method)
                 started, timer = timestamp(), time.monotonic()
                 view = None
                 response = None
-                payload = None
+                response_payload = None
                 reason = None
                 try:
                     if method == "POST" and self.fault_hook:
@@ -395,14 +452,14 @@ class ExecutionService:
                         method,
                         endpoint.origin,
                         path,
-                        json=slot.task.model_dump(mode="json") if method == "POST" else None,
+                        json=payload if method == "POST" else None,
                         request_id=slot.task.request_id if method == "POST" else None,
                     )
                     if method == "POST" and self.fault_hook:
                         self.fault_hook("after_send_before_ack")
-                    payload = strict_json(response.body)
+                    response_payload = strict_json(response.body)
                     if 200 <= response.status < 300:
-                        view = ControlledTaskView.model_validate(payload)
+                        view = ControlledTaskView.model_validate(response_payload)
                         if (
                             view.request_id != slot.task.request_id
                             or view.status_path != "/tasks/" + slot.task.request_id
@@ -423,7 +480,8 @@ class ExecutionService:
                     elif not (
                         method == "GET"
                         and response.status == 404
-                        and payload == {"accepted": False, "error": {"code": "TASK_NOT_FOUND"}}
+                        and response_payload
+                        == {"accepted": False, "error": {"code": "TASK_NOT_FOUND"}}
                     ):
                         reason = Reason.SCHEMA_ERROR
                 except (httpx.TimeoutException, TimeoutError):
@@ -458,11 +516,12 @@ class ExecutionService:
                         "path": path,
                         "request_id": slot.task.request_id,
                         "http_status": response.status if response else None,
-                        "response": payload,
+                        "response": response_payload,
                         "reason_code": reason,
                         "response_captured": response is not None,
                         "started_at": started,
                         "ended_at": ended,
+                        "latency_ms": latency_ms,
                     },
                     "agent-task-response",
                 )
@@ -507,8 +566,18 @@ class ExecutionService:
                         {"observation_id": str(observation.observation_id)},
                     )
 
-                queue.fenced(lease, save)
+                await asyncio.to_thread(queue.fenced, lease, save)
                 retained_refs = tuple(dict.fromkeys((*retained_refs, *observation.evidence_refs)))
+                if (
+                    plan.template_version == "capabilities@3"
+                    and slot.required_class in REJECTION_CASES
+                    and response is not None
+                ):
+                    await settle(
+                        Reason.DISPATCH_UNCERTAIN if method == "GET" else reason,
+                        evidence_refs=(record.evidence_id,),
+                    )
+                    return
                 if reason in {
                     Reason.SCHEMA_ERROR,
                     Reason.AGENT_SERVICE_ERROR,
@@ -517,18 +586,18 @@ class ExecutionService:
                 }:
                     execution_failure = reason
                 if not writing and view is not None and view.task_status in {"succeeded", "failed"}:
-                    settle(reason=reason, evidence_refs=(record.evidence_id,))
+                    await settle(reason=reason, evidence_refs=(record.evidence_id,))
                     return
                 if not writing and view is None and reason is not None:
-                    settle(reason, evidence_refs=(record.evidence_id,))
+                    await settle(reason, evidence_refs=(record.evidence_id,))
                     return
                 if candidate:
-                    settle(candidate=candidate, evidence_refs=(record.evidence_id,))
+                    await settle(candidate=candidate, evidence_refs=(record.evidence_id,))
                     return
                 if writing and (view is None or view.task_status == "failed"):
                     value, chain_record = await reconcile()
                     if value["candidate_tx_hash"]:
-                        settle(
+                        await settle(
                             candidate=value["candidate_tx_hash"],
                             evidence_refs=(record.evidence_id, chain_record.evidence_id),
                         )
@@ -540,23 +609,12 @@ class ExecutionService:
                         and reason is None
                         and not value["exists"]
                     )
-                    with self.db.connect() as connection:
-                        sends = (
-                            connection.scalar(
-                                select(func.count())
-                                .select_from(attempts)
-                                .where(
-                                    attempts.c.slot_fk == slot.slot_id,
-                                    attempts.c.body["method"].astext == "POST",
-                                )
-                            )
-                            or 0
-                        )
+                    sends = await asyncio.to_thread(post_attempts)
                     if known_absent and not accepted and sends < 2:
                         method = "POST"
                         continue
                     if known_absent and sends >= 2:
-                        settle(
+                        await settle(
                             Reason.DISPATCH_UNCERTAIN,
                             evidence_refs=(record.evidence_id, chain_record.evidence_id),
                         )
@@ -564,7 +622,7 @@ class ExecutionService:
                     if reason in {Reason.SCHEMA_ERROR, Reason.AGENT_SERVICE_ERROR} or (
                         view and view.task_status == "failed"
                     ):
-                        settle(
+                        await settle(
                             reason or Reason.AGENT_TASK_FAILED,
                             evidence_refs=(record.evidence_id, chain_record.evidence_id),
                         )
@@ -580,29 +638,22 @@ class ExecutionService:
                 reason = code or Reason(exc.code)
             except ValueError:
                 reason = Reason.DISPATCH_UNCERTAIN
-            with self.db.connect() as connection:
-                sent = connection.scalar(
-                    select(func.count())
-                    .select_from(attempts)
-                    .where(
-                        attempts.c.slot_fk == slot.slot_id,
-                        attempts.c.body["method"].astext == "POST",
-                    )
-                )
+            sent = await asyncio.to_thread(post_attempts)
             if sent and writing:
                 try:
                     value, record = await reconcile()
                     if value["candidate_tx_hash"]:
-                        settle(
+                        await settle(
                             candidate=value["candidate_tx_hash"],
                             evidence_refs=(record.evidence_id,),
                         )
                         return
                 except ApplicationError:
                     pass
-            settle(
+            await settle(
                 execution_failure or reason,
                 cancelled=reason == Reason.CANCELLED_BY_OPERATOR and not sent,
             )
         finally:
-            await client.close()
+            if owns_client:
+                await client.close()

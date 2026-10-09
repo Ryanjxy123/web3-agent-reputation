@@ -7,6 +7,7 @@ from datetime import timedelta
 from typing import Any, TypeVar
 from uuid import UUID, uuid4
 
+from reputation_core.case_templates import mutated_payload
 from reputation_core.evidence import hash_json
 from reputation_core.models import RunPlan
 from sqlalchemy import Connection, Engine, and_, func, or_, select, update
@@ -121,7 +122,11 @@ def persist_plan(
                     lease_token=0,
                     body={
                         "request_id": slot.task.request_id,
-                        "payload_hash": hash_json(slot.task.model_dump(mode="json")),
+                        "payload_hash": hash_json(
+                            mutated_payload(slot)
+                            if plan.template_version == "capabilities@3"
+                            else slot.task.model_dump(mode="json")
+                        ),
                     },
                 )
             )

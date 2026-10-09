@@ -399,6 +399,21 @@
     "purpose": {
       "$ref": "#/$defs/Purpose"
     },
+    "request_overrides": {
+      "anyOf": [
+        {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Request Overrides"
+    },
     "required_class": {
       "maxLength": 100,
       "minLength": 1,

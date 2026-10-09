@@ -1,6 +1,6 @@
 # 真实进度与会话交接
 
-更新时间：2026-10-09；环境：用户 Windows 正式项目工作目录。
+更新时间：2026-10-10；环境：用户 Windows 正式项目工作目录。
 
 | Task ID | Status | 实施结果 |
 |---|---|---|
@@ -22,7 +22,19 @@
 | FOLLOWUP-01 | DONE | 三能力模板与独立只读查询；具体状态及测试见 2026-10-09 任务记录 |
 | FOLLOWUP-02 | DONE | 四态归因、标准 reason_code、原始响应证据及异常归因；具体状态及测试见 2026-10-09 任务记录 |
 | FOLLOWUP-03 | DONE | 冻结 Evidence Bundle 逐任务重判、四态计数比较、历史格式兼容及独立 RPC 复查；最终 Review 修复已通过定向回归 |
+| FOLLOWUP-04 | DONE | 正式多槽位三维评分、固定类别与安全负例、ReportCore 1.2 及独立重算；阶段 Review/真实集成通过 |
+| FOLLOWUP-05 | IN_PROGRESS | 下一阶段完善充分度解释及关键风险，不新增评分阈值 |
 | LOCAL-PG-JUNCTION | DONE | Windows PostgreSQL 改用 D:\web3-runtime 目录联接；R: 已移除，初始化、重启、数据完整性及13项定向测试通过 |
+
+## 2026-10-10 / 本轮任务 4：正式三维评价
+
+- Implemented：formal-evaluation-v1 按互斥 purpose 冻结完整样本；A=0.8有效响应率+0.2及时率，B=各声明能力等权(0.2映射+0.8功能通过率)，T=已接受且可判定正向独立任务正确率。沿用 policy-v1 的20/10/10、覆盖80%、Q60%、TTL86400、写入30/40/30及只读35/65权重；任务成功率独立输出。缺样本、必要类别或声明覆盖继续PARTIAL/overall=null。
+- Evidence/version：capabilities@3/rule3/three-dimensional-v1/ReportCore1.2；原始HTTP、首次HTTP、实际负例payloadhash、逐槽统计依据进入CAS与ZIP。Verifier逐任务重判并重算三维分数；旧1.0/1.1不升级，旧双null仍UNKNOWN。policy-v1内容hash固定，不允许同名改规则。
+- Tests：单元/reference **292 passed**；真实 PostgreSQL/HTTP/Anvil正式评价与报告组合 **12 passed / 0 skipped**（766.20s）；Review修复真实回归 **3 passed / 0 skipped**（117.93s）。Ruff、mypy53files、54生成Schema通过。尚未执行本轮最终全量检查/CI，留待任务5完成后统一验收。
+- Review fixes：首响应不被重试覆盖；同ID冻结材料冲突拒绝；真实来源类别缺失保持UNKNOWN；未确认/非canonical证据不能创建关键冲突；接受负例必须FAIL；ACK丢失保持UNKNOWN且不重发；连续过期槽位同步操作导致heartbeat饥饿，改工作线程并复用HTTP客户端；报告评分在最终fenced写入前组装。两项短租约真实测试验证执行/慢评分不会阻塞heartbeat。成功率及rule3增加模型不变量。
+- Git：feat/formal-evaluation；阶段4待逻辑提交；未push，未创建PR。
+- Limitations：纯写声明缺安全只读可用性来源则PARTIAL；只覆盖既有受控协议及EVM ABI；离线复算不证明采集者诚实。任务5、最终全量及CI仍未验收。
+- Next：严格进入FOLLOWUP-05；本轮不开发任务6、Agent扩展、第三方接入或前端。
 
 ## 2026-10-09 / 本轮任务 1：三能力模板
 

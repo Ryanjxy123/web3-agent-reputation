@@ -170,6 +170,37 @@ def test_legacy_evaluation_request_hash_keeps_prior_idempotency_payload():
     ) != hash_json(original)
 
 
+def test_formal_api_accepts_only_complete_raw_source_locators():
+    from uuid import uuid4
+
+    values = {
+        "snapshot_id": str(uuid4()),
+        "review_version": 1,
+        "profile": "record-read-v1",
+        "policy_version": "policy-v1",
+        "grant_ids": [str(uuid4())],
+        "suite_id": "formal-evaluation-v1",
+    }
+    assert EvaluationCreate.model_validate(values).suite_id == "formal-evaluation-v1"
+    valid = {
+        **values,
+        "record_executor": "0x" + "11" * 20,
+        "record_request_id": "0x" + "12" * 32,
+        "record_hash": "0x" + "13" * 32,
+        "transaction_cases": {"success": "0x" + "14" * 32},
+    }
+    assert EvaluationCreate.model_validate(valid).transaction_cases == valid["transaction_cases"]
+    for changes in (
+        {"record_request_id": None},
+        {"transaction_cases": {"invented": "0x" + "14" * 32}},
+        {"transaction_cases": {"success": "invalid"}},
+        {"query_tx_hash": "0x" + "14" * 32},
+        {"overall_score_bp": 10000},
+    ):
+        with pytest.raises(ValidationError):
+            EvaluationCreate.model_validate({**valid, **changes})
+
+
 def test_read_task_links_require_truthful_transaction_and_fixed_record_block():
     base = {
         "capability_id": "get_tx_status",

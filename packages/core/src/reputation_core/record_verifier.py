@@ -6,6 +6,7 @@ from typing import Any, cast
 from uuid import UUID
 
 from .binding import agent_key_hash, endpoint_hash, signatures_match
+from .case_templates import REJECTION_CASES, mutated_payload
 from .evidence import hash_bytes, hash_json
 from .models import (
     AssertionResult,
@@ -64,7 +65,11 @@ def verify_record(
     rpc = cast(dict[str, Any], data.evm.results)
     facts, task = slot.expected, slot.task
     read_only = slot.capability_id != "anchor_record"
+    negative = data.rule_version == "3" and slot.case_kind == "negative"
     business_rules = (
+        ("functional.rejection",)
+        if negative
+        else
         (
             "query.response",
             "query.block",
@@ -167,30 +172,31 @@ def verify_record(
         )
         matched = outcome == Outcome.PASS
         block_number, block_hash, log_index = None, None, None
-        if matched and not read_only:
+        if matched and not read_only and not negative:
             assert receipt is not None and event is not None
             block_number, block_hash = (
                 str(quantity(receipt["blockNumber"])),
                 hex_data(receipt["blockHash"], 32),
             )
             log_index = event["index"]
-        elif matched and receipt is not None:
+        elif matched and receipt is not None and not negative:
             block_number = str(quantity(receipt["blockNumber"]))
             block_hash = hex_data(receipt["blockHash"], 32)
-        elif matched and slot.capability_id == "verify_record":
+        elif matched and slot.capability_id == "verify_record" and not negative:
             block_number, block_hash = task.read_block_number, task.read_block_hash
         link = TaskLink(
             capability_id=slot.capability_id,
             request_id=task.request_id,
-            candidate_tx_hash=data.evm.candidate_tx_hash,
+            candidate_tx_hash=data.evm.candidate_tx_hash if not negative else None,
             verified_tx_hash=data.evm.candidate_tx_hash
-            if matched and (not read_only or receipt is not None)
+            if matched and not negative and (not read_only or receipt is not None)
             else None,
             executor=facts.executor,
             block_number=block_number,
             block_hash=block_hash,
             log_index=log_index,
             match_status=outcome,
+            completion_kind="rejection" if negative else "execution",
         )
         return RecordVerificationResult(
             assertions=tuple(assertions),
@@ -206,6 +212,14 @@ def verify_record(
             if rule not in existing:
                 emit(rule, False, reason, None, None, unknown=True)
         return finish()
+
+    def class_available(actual_class):
+        if version != "3" or slot.purpose != "functional":
+            return True
+        return emit(
+            "functional.case_available", slot.required_class == actual_class,
+            Reason.MISSING_EVIDENCE, slot.required_class, actual_class, unknown=True,
+        )
 
     if not evidence_refs:
         emit(
@@ -227,7 +241,7 @@ def verify_record(
         snapshot.snapshot_hash,
         unknown=True,
     )
-    if version == "2" and slot.applicability_reason is not None:
+    if version in {"2", "3"} and slot.applicability_reason is not None:
         metadata = snapshot.core.normalized_metadata
         exclusion_ok = (
             context_ok
@@ -246,6 +260,7 @@ def verify_record(
             and data.agent_response is None
             and data.agent_result is None
             and data.agent_task_status is None
+            and (version != "3" or data.initial_agent_http is None)
             and data.evm.candidate_tx_hash is None
         )
         emit(
@@ -277,6 +292,23 @@ def verify_record(
         unknown=True,
     )
     dispatched = data.dispatch_started_at
+    request_payload = task.model_dump(mode="json")
+    if version == "3":
+        try:
+            request_payload = mutated_payload(slot)
+        except (TypeError, ValueError, KeyError):
+            emit(
+                "functional.request_validity", False, Reason.EVIDENCE_INCONSISTENT,
+                "fixed version-3 request mutation", slot.request_overrides, unknown=True,
+            )
+            return unavailable(Reason.EVIDENCE_INCONSISTENT)
+    elif slot.request_overrides is not None:
+        emit(
+            "functional.request_validity", False, Reason.RULE_VERSION_MISMATCH,
+            "legacy task without request overrides", slot.request_overrides, unknown=True,
+        )
+        return unavailable(Reason.RULE_VERSION_MISMATCH)
+    payload_hash = hash_json(request_payload)
     intent_ok = (
         dispatched is not None
         and snapshot.core.captured_at
@@ -284,14 +316,14 @@ def verify_record(
         <= data.intent_persisted_at
         <= dispatched
         <= task.deadline
-        and data.dispatch_payload_hash == hash_json(task.model_dump(mode="json"))
+        and data.dispatch_payload_hash == payload_hash
         and (read_only or slot.synthetic_input is not None)
     )
     context_ok &= emit(
         "task.intent",
         intent_ok,
         data.execution_reason or Reason.DISPATCH_UNCERTAIN,
-        hash_json(task.model_dump(mode="json")),
+        payload_hash,
         data.dispatch_payload_hash,
         unknown=True,
     )
@@ -373,7 +405,20 @@ def verify_record(
         str(grant.grant_id) if grant else None,
         unknown=True,
     )
-    if version == "2" and context_ok:
+    if negative:
+        context_ok &= emit(
+            "functional.request_validity",
+            grant is not None
+            and (
+                slot.required_class != "forbidden_contract"
+                or request_payload["target_contract"] not in grant.contract_allowlist
+            ),
+            Reason.EVIDENCE_INCONSISTENT,
+            {"required_class": slot.required_class, "payload_hash": payload_hash},
+            {"request_overrides": slot.request_overrides},
+            unknown=True,
+        )
+    if version in {"2", "3"} and context_ok:
         http = data.agent_http
         if http is not None:
             status = http.get("http_status")
@@ -414,7 +459,13 @@ def verify_record(
                 and data.dispatch_started_at <= str(http["started_at"]) <= str(http["ended_at"])
                 and str(http["started_at"]) <= task.deadline
             )
-            if not valid_http or http.get("response") != data.agent_response:
+            if (
+                not valid_http
+                or http.get("response") != data.agent_response
+                or negative and (
+                    http.get("method") != "POST" or data.initial_agent_http != http
+                )
+            ):
                 emit(
                     "agent.evidence",
                     False,
@@ -424,12 +475,19 @@ def verify_record(
                     unknown=True,
                 )
                 return unavailable(Reason.EVIDENCE_INCONSISTENT)
-            if type(status) is int and 500 <= status <= 599:
+            if negative:
+                if status is None or status == 429:
+                    return unavailable(
+                        Reason.RATE_LIMIT_UNATTRIBUTED if status == 429
+                        else data.execution_reason or Reason.PLATFORM_NETWORK_ERROR
+                    )
+                # Refusals are checked only after independent chain/context evidence below.
+            elif type(status) is int and 500 <= status <= 599:
                 emit(
                     "agent.service", False, Reason.AGENT_SERVICE_ERROR, "successful service", status
                 )
                 return unavailable(Reason.AGENT_SERVICE_ERROR)
-            if type(status) is int and 200 <= status <= 299 and "response" in http:
+            if not negative and type(status) is int and 200 <= status <= 299 and "response" in http:
                 try:
                     view = ControlledTaskView.model_validate(http["response"])
                     if (
@@ -491,7 +549,7 @@ def verify_record(
                         http["response"],
                     )
                     return unavailable(Reason.SCHEMA_ERROR)
-            elif (
+            elif not negative and (
                 status is None
                 or status in {401, 403, 429}
                 or not (type(status) is int and 200 <= status <= 299)
@@ -509,7 +567,7 @@ def verify_record(
                     "agent.service", False, reason, "observable task response", status, unknown=True
                 )
                 return unavailable(reason)
-        elif data.execution_reason is not None or read_only:
+        elif data.execution_reason is not None or read_only or negative:
             missing_reason = (
                 data.execution_reason
                 if data.execution_reason
@@ -594,6 +652,26 @@ def verify_record(
             item.reason_code for item in assertions if item.outcome == Outcome.UNKNOWN
         )
         return unavailable(context_reason)
+    if negative:
+        if data.evm.error_reason:
+            return unavailable(data.evm.error_reason)
+        assert data.agent_http is not None
+        expected_status, expected_code = REJECTION_CASES[slot.required_class]
+        rejection_response = {"accepted": False, "error": {"code": expected_code}}
+        status = data.agent_http.get("http_status")
+        emit(
+            "functional.rejection",
+            status == expected_status
+            and data.agent_response == rejection_response
+            and data.agent_result is None
+            and data.agent_task_status is None
+            and data.evm.candidate_tx_hash is None,
+            Reason.AGENT_SERVICE_ERROR
+            if type(status) is int and 500 <= status <= 599 else Reason.AGENT_TASK_FAILED,
+            {"http_status": expected_status, "code": expected_code},
+            {"http_status": status, "response": data.agent_response},
+        )
+        return finish()
     if read_only:
         response = data.agent_result
         try:
@@ -630,6 +708,15 @@ def verify_record(
         assert response is not None
         if data.evm.error_reason:
             return unavailable(data.evm.error_reason)
+        if version == "3" and task.capability_id == "get_tx_status" and not emit(
+            "query.candidate",
+            data.evm.candidate_tx_hash == task.query_tx_hash,
+            Reason.EVIDENCE_INCONSISTENT,
+            task.query_tx_hash,
+            data.evm.candidate_tx_hash,
+            unknown=True,
+        ):
+            return unavailable(Reason.EVIDENCE_INCONSISTENT)
         try:
             block, canonical = rpc["read_block"], rpc["read_canonical"]
             if not emit(
@@ -646,30 +733,42 @@ def verify_record(
                 unknown=True,
             ):
                 return unavailable(Reason.STALE_EVIDENCE)
-            emit(
-                "query.parameters",
-                response.read_block_number == task.read_block_number
-                and response.read_block_hash == task.read_block_hash
-                and (
-                    task.capability_id != "get_tx_status" or response.tx_hash == task.query_tx_hash
-                )
-                and (
-                    task.capability_id != "verify_record"
-                    or (
-                        response.record_executor == task.record_executor
-                        and response.record_request_id == task.record_request_id
+            def parameters():
+                emit(
+                    "query.parameters",
+                    response.read_block_number == task.read_block_number
+                    and response.read_block_hash == task.read_block_hash
+                    and (
+                        task.capability_id != "get_tx_status" or response.tx_hash == task.query_tx_hash
                     )
-                ),
-                Reason.SEMANTIC_MISMATCH,
-                task.model_dump(mode="json"),
-                response.model_dump(mode="json"),
-            )
+                    and (
+                        task.capability_id != "verify_record"
+                        or (
+                            response.record_executor == task.record_executor
+                            and response.record_request_id == task.record_request_id
+                        )
+                    ),
+                    Reason.SEMANTIC_MISMATCH,
+                    task.model_dump(mode="json"),
+                    response.model_dump(mode="json"),
+                )
+
+            if version != "3":
+                parameters()
             if task.capability_id == "verify_record":
                 raw = hex_data(rpc["record_call"], 64)
                 flag = int(raw[2:66], 16)
                 actual_hash = "0x" + raw[66:]
                 if flag not in (0, 1) or (flag == 0) != (actual_hash == "0x" + "00" * 32):
                     raise ValueError("invalid record lookup")
+                actual_class = (
+                    "not_found" if not flag
+                    else "match" if actual_hash == task.record_hash else "hash_mismatch"
+                )
+                if not class_available(actual_class):
+                    return unavailable(Reason.MISSING_EVIDENCE)
+                if version == "3":
+                    parameters()
                 emit(
                     "query.record",
                     response.record_exists == bool(flag)
@@ -684,6 +783,18 @@ def verify_record(
                     return unavailable(data.evm.error_reason or Reason.MISSING_EVIDENCE)
                 tx, receipt = rpc["transaction"], rpc["receipt"]
                 if tx is None and receipt is None:
+                    if version == "3":
+                        if not class_available("not_found"):
+                            return unavailable(Reason.MISSING_EVIDENCE)
+                        parameters()
+                        emit(
+                            "query.status", response.tx_status == "NOT_FOUND",
+                            Reason.SEMANTIC_MISMATCH,
+                            {"tx_hash": task.query_tx_hash, "status": "NOT_FOUND",
+                             "scope": "frozen_rpc_observation", "read_block_hash": task.read_block_hash},
+                            {"tx_hash": response.tx_hash, "status": response.tx_status},
+                        )
+                        return finish()
                     return unavailable(Reason.RPC_RECEIPT_NOT_FOUND)
                 if (
                     tx is None
@@ -743,6 +854,13 @@ def verify_record(
                     if not canonical_ok:
                         return unavailable(Reason.PENDING_FINALITY)
                     observed_status = "SUCCESS" if status == 1 else "REVERTED"
+                actual_class = {"SUCCESS": "success", "REVERTED": "revert", "PENDING": "pending"}[
+                    observed_status
+                ]
+                if not class_available(actual_class):
+                    return unavailable(Reason.MISSING_EVIDENCE)
+                if version == "3":
+                    parameters()
                 emit(
                     "query.status",
                     response.tx_hash == task.query_tx_hash
@@ -761,7 +879,7 @@ def verify_record(
             data.evm.error_reason or data.execution_reason or Reason.RPC_RECEIPT_NOT_FOUND
         )
     try:
-        if version == "2":
+        if version in {"2", "3"}:
             receipt = rpc.get("receipt")
             block = rpc.get("receipt_block")
             canonical = rpc.get("receipt_canonical")
@@ -1010,7 +1128,7 @@ def verify_record(
                 unknown=True,
             )
     except (KeyError, TypeError, ValueError, AttributeError, IndexError):
-        if version == "2":
+        if version in {"2", "3"}:
             # Malformed platform reads cannot establish an Agent business failure.
             assertions[:] = [
                 item.model_copy(

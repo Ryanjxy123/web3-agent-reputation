@@ -48,7 +48,8 @@
         "rule_version": {
           "enum": [
             "1",
-            "2"
+            "2",
+            "3"
           ],
           "title": "Rule Version",
           "type": "string"
@@ -179,6 +180,15 @@
             "anchor_record"
           ],
           "title": "Capability Id",
+          "type": "string"
+        },
+        "completion_kind": {
+          "default": "execution",
+          "enum": [
+            "execution",
+            "rejection"
+          ],
+          "title": "Completion Kind",
           "type": "string"
         },
         "executor": {

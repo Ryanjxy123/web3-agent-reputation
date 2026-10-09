@@ -79,6 +79,21 @@
         "purpose": {
           "$ref": "#/$defs/Purpose"
         },
+        "request_overrides": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/JsonValue"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Request Overrides"
+        },
         "required_class": {
           "maxLength": 100,
           "minLength": 1,
@@ -530,7 +545,8 @@
     "suite_id": {
       "enum": [
         "m1-smoke-v1",
-        "capabilities-v1"
+        "capabilities-v1",
+        "formal-evaluation-v1"
       ],
       "title": "Suite Id",
       "type": "string"
@@ -540,7 +556,8 @@
         "anchor_record@1",
         "capabilities@1",
         "anchor_record@2",
-        "capabilities@2"
+        "capabilities@2",
+        "capabilities@3"
       ],
       "title": "Template Version",
       "type": "string"

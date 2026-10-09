@@ -677,7 +677,7 @@ export interface components {
              * Rule Version
              * @enum {string}
              */
-            rule_version: "1" | "2";
+            rule_version: "1" | "2" | "3";
             /**
              * Slot Id
              * Format: uuid4
@@ -802,6 +802,13 @@ export interface components {
              */
             grant_id: string;
             purpose: components["schemas"]["Purpose"];
+            /**
+             * Request Overrides
+             * @default null
+             */
+            request_overrides: {
+                [key: string]: components["schemas"]["JsonValue"];
+            } | null;
             /** Required Class */
             required_class: string;
             /**
@@ -1011,12 +1018,19 @@ export interface components {
              * Suite Id
              * @enum {string}
              */
-            suite_id: "m1-smoke-v1" | "capabilities-v1";
+            suite_id: "m1-smoke-v1" | "capabilities-v1" | "formal-evaluation-v1";
             /**
              * Target Contract
              * @default null
              */
             target_contract: string | null;
+            /**
+             * Transaction Cases
+             * @default null
+             */
+            transaction_cases: {
+                [key: string]: string;
+            } | null;
         };
         /** EvaluationRun */
         EvaluationRun: {
@@ -1349,6 +1363,13 @@ export interface components {
             evm: components["schemas"]["EvmReadEvidence"];
             execution_reason: components["schemas"]["Reason"] | null;
             grant: components["schemas"]["AccessGrant"] | null;
+            /**
+             * Initial Agent Http
+             * @default null
+             */
+            initial_agent_http: {
+                [key: string]: components["schemas"]["JsonValue"];
+            } | null;
             /** Intent Persisted At */
             intent_persisted_at: string;
             /** Platform Instance Id */
@@ -1362,7 +1383,7 @@ export interface components {
              * @default 1
              * @enum {string}
              */
-            rule_version: "1" | "2";
+            rule_version: "1" | "2" | "3";
             /**
              * Schema Version
              * @default record-verification-input-v1
@@ -1450,8 +1471,13 @@ export interface components {
              * @default 1.0.0
              * @enum {string}
              */
-            schema_version: "1.0.0" | "1.1.0";
+            schema_version: "1.0.0" | "1.1.0" | "1.2.0";
             scores: components["schemas"]["ScoreResult"];
+            /**
+             * Scoring Rule Version
+             * @default null
+             */
+            scoring_rule_version: "three-dimensional-v1" | null;
             /** Snapshot Hash */
             snapshot_hash: string;
             /** @default null */
@@ -1461,6 +1487,11 @@ export interface components {
              * @default []
              */
             task_results: components["schemas"]["ReportTaskResult"][];
+            /**
+             * Task Success Rate Bp
+             * @default null
+             */
+            task_success_rate_bp: number | null;
         };
         /** ReportTaskResult */
         ReportTaskResult: {
@@ -1480,7 +1511,7 @@ export interface components {
              * Rule Version
              * @enum {string}
              */
-            rule_version: "1" | "2";
+            rule_version: "1" | "2" | "3";
             /**
              * Slot Id
              * Format: uuid4
@@ -1543,12 +1574,12 @@ export interface components {
              * Suite Id
              * @enum {string}
              */
-            suite_id: "m1-smoke-v1" | "capabilities-v1";
+            suite_id: "m1-smoke-v1" | "capabilities-v1" | "formal-evaluation-v1";
             /**
              * Template Version
              * @enum {string}
              */
-            template_version: "anchor_record@1" | "capabilities@1" | "anchor_record@2" | "capabilities@2";
+            template_version: "anchor_record@1" | "capabilities@1" | "anchor_record@2" | "capabilities@2" | "capabilities@3";
         };
         /**
          * RunStage
@@ -1736,6 +1767,12 @@ export interface components {
              * @enum {string}
              */
             capability_id: "get_tx_status" | "verify_record" | "anchor_record";
+            /**
+             * Completion Kind
+             * @default execution
+             * @enum {string}
+             */
+            completion_kind: "execution" | "rejection";
             /** Executor */
             executor: string;
             /** Log Index */
@@ -2329,7 +2366,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RecordVerificationResult"];
+                    "application/json": components["schemas"]["RecordVerificationResult"] | components["schemas"]["RecordVerificationResult"][];
                 };
             };
             /** @description Validation Error */

@@ -98,7 +98,8 @@
     "suite_id": {
       "enum": [
         "m1-smoke-v1",
-        "capabilities-v1"
+        "capabilities-v1",
+        "formal-evaluation-v1"
       ],
       "title": "Suite Id",
       "type": "string"
@@ -114,6 +115,29 @@
       ],
       "default": null,
       "title": "Target Contract"
+    },
+    "transaction_cases": {
+      "anyOf": [
+        {
+          "additionalProperties": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "propertyNames": {
+            "enum": [
+              "success",
+              "revert",
+              "pending"
+            ]
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Transaction Cases"
     }
   },
   "required": [

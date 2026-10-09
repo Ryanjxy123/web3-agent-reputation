@@ -80,7 +80,8 @@
         "rule_version": {
           "enum": [
             "1",
-            "2"
+            "2",
+            "3"
           ],
           "title": "Rule Version",
           "type": "string"
@@ -197,7 +198,8 @@
         "rule_version": {
           "enum": [
             "1",
-            "2"
+            "2",
+            "3"
           ],
           "title": "Rule Version",
           "type": "string"
@@ -573,13 +575,27 @@
       "default": "1.0.0",
       "enum": [
         "1.0.0",
-        "1.1.0"
+        "1.1.0",
+        "1.2.0"
       ],
       "title": "Schema Version",
       "type": "string"
     },
     "scores": {
       "$ref": "#/$defs/ScoreResult"
+    },
+    "scoring_rule_version": {
+      "anyOf": [
+        {
+          "const": "three-dimensional-v1",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Scoring Rule Version"
     },
     "snapshot_hash": {
       "pattern": "^0x[0-9a-f]{64}$",
@@ -604,6 +620,20 @@
       },
       "title": "Task Results",
       "type": "array"
+    },
+    "task_success_rate_bp": {
+      "anyOf": [
+        {
+          "maximum": 10000,
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Task Success Rate Bp"
     }
   },
   "required": [

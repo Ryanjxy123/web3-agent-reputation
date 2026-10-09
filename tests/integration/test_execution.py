@@ -465,3 +465,25 @@ def test_unavailable_trusted_rpc_is_unknown_and_never_dispatches(prepared):
     assert not records(flow, plan)
     state = flow[0].get(f"/api/v1/evaluations/{run_id}").json()
     assert state["unknown"] == 1 and state["settled"] == 1
+
+
+def test_slow_execution_context_leaves_lease_heartbeat_running(prepared, monkeypatch):
+    flow, _, _ = prepared
+    run_id, plan = create(prepared)
+    identity = flow[1]
+    original = identity.snapshot
+
+    def slow_snapshot(*args, **kwargs):
+        time.sleep(2)
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(identity, "snapshot", slow_snapshot)
+    worker = Worker(
+        identity.db, {"evaluate": ExecutionService(identity.db, identity).execute}, lease_seconds=1
+    )
+    assert asyncio.run(worker.run_once())
+    with identity.db.connect() as connection:
+        assert connection.scalar(
+            select(jobs.c.state).where(jobs.c.kind == "evaluate", jobs.c.run_fk == run_id)
+        ) == "SUCCEEDED"
+    assert len(records(flow, plan)) == 1

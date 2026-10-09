@@ -293,12 +293,15 @@ class CaseSlot(Model):
     grant_id: UUID4
     synthetic_input: dict[str, JsonValue] | None = None
     applicability_reason: Literal[Reason.CAPABILITY_NOT_DECLARED] | None = None
+    request_overrides: dict[str, JsonValue] | None = None
 
     @model_serializer(mode="wrap")
     def wire(self, handler):
         value = handler(self)
         if self.applicability_reason is None:
             value.pop("applicability_reason", None)
+        if self.request_overrides is None:
+            value.pop("request_overrides", None)
         return value
 
     @model_validator(mode="after")
@@ -345,9 +348,9 @@ class RunPlan(Model):
     policy_hash: Hash32
     profile: Profile
     confirmed_capabilities: tuple[Capability, ...]
-    suite_id: Literal["m1-smoke-v1", "capabilities-v1"]
+    suite_id: Literal["m1-smoke-v1", "capabilities-v1", "formal-evaluation-v1"]
     template_version: Literal[
-        "anchor_record@1", "capabilities@1", "anchor_record@2", "capabilities@2"
+        "anchor_record@1", "capabilities@1", "anchor_record@2", "capabilities@2", "capabilities@3"
     ]
     planning_time: Timestamp
     planning_evidence_refs: tuple[UUID4, ...] = ()
@@ -355,6 +358,18 @@ class RunPlan(Model):
 
     @model_validator(mode="after")
     def frozen_identity(self) -> Self:
+        formal = self.suite_id == "formal-evaluation-v1"
+        if formal != (self.template_version == "capabilities@3"):
+            raise ValueError("formal suites require their own assertion template")
+        if not formal and any(slot.request_overrides is not None for slot in self.slots):
+            raise ValueError("legacy suites cannot contain request overrides")
+        if formal and any(
+            slot.request_overrides is not None and slot.case_kind != "negative"
+            or slot.case_kind == "negative" and slot.purpose != Purpose.FUNCTIONAL
+            or slot.purpose == Purpose.AVAILABILITY and slot.capability_id == "anchor_record"
+            for slot in self.slots
+        ):
+            raise ValueError("formal slots require safe availability and functional rejection probes")
         if self.profile == "record-read-v1" and (
             "anchor_record" in self.confirmed_capabilities
             or any(
@@ -411,7 +426,7 @@ class AssertionResult(Model):
     assertion_id: UUID4
     slot_id: UUID4
     rule_id: Version
-    rule_version: Literal["1", "2"]
+    rule_version: Literal["1", "2", "3"]
     outcome: Outcome
     reason_code: Reason | None
     expected: JsonValue
@@ -432,6 +447,7 @@ class AssertionResult(Model):
 
 class TaskLink(Model):
     capability_id: Capability = "anchor_record"
+    completion_kind: Literal["execution", "rejection"] = "execution"
     request_id: Challenge
     candidate_tx_hash: Hash32 | None
     verified_tx_hash: Hash32 | None
@@ -443,6 +459,13 @@ class TaskLink(Model):
 
     @model_validator(mode="after")
     def verified(self) -> Self:
+        if self.completion_kind == "rejection":
+            if any(value is not None for value in (
+                self.candidate_tx_hash, self.verified_tx_hash,
+                self.block_number, self.block_hash, self.log_index,
+            )):
+                raise ValueError("rejection cannot claim a transaction or chain location")
+            return self
         if self.verified_tx_hash is not None and (
             self.verified_tx_hash != self.candidate_tx_hash
             or self.block_number is None
@@ -478,6 +501,8 @@ class TaskLink(Model):
         value = handler(self)
         if self.capability_id == "anchor_record":
             value.pop("capability_id", None)
+        if self.completion_kind == "execution":
+            value.pop("completion_kind", None)
         return value
 
 
@@ -552,7 +577,7 @@ class ReportTaskResult(Model):
     capability_id: Capability
     outcome: Outcome
     reason_code: Reason | None
-    rule_version: Literal["1", "2"]
+    rule_version: Literal["1", "2", "3"]
     input_evidence_id: UUID4
 
     @model_validator(mode="after")
@@ -582,7 +607,7 @@ class TaskOutcomeCounts(Model):
 
 
 class ReportCore(Model):
-    schema_version: Literal["1.0.0", "1.1.0"] = "1.0.0"
+    schema_version: Literal["1.0.0", "1.1.0", "1.2.0"] = "1.0.0"
     agent_ref: AgentRef
     agent_key_hash: Hash32
     snapshot_hash: Hash32
@@ -599,6 +624,8 @@ class ReportCore(Model):
     assertions: tuple[AssertionResult, ...]
     task_results: tuple[ReportTaskResult, ...] = ()
     task_counts: TaskOutcomeCounts | None = None
+    scoring_rule_version: Literal["three-dimensional-v1"] | None = None
+    task_success_rate_bp: BasisPoints | None = None
     evidence_manifest_hash: Hash32
     previous_report_hash: Hash32
     limitations: tuple[SafeText, ...] = Field(min_length=1)
@@ -609,6 +636,9 @@ class ReportCore(Model):
         if self.schema_version == "1.0.0":
             value.pop("task_results", None)
             value.pop("task_counts", None)
+        if self.schema_version != "1.2.0":
+            value.pop("scoring_rule_version", None)
+            value.pop("task_success_rate_bp", None)
         return value
 
     @model_validator(mode="after")
@@ -617,6 +647,10 @@ class ReportCore(Model):
             raise ValueError("invalid report observation window")
         if self.profile != self.scores.profile or self.policy_version != self.scores.policy_version:
             raise ValueError("report and scores disagree")
+        if (self.schema_version == "1.2.0") != (self.scoring_rule_version is not None):
+            raise ValueError("formal report requires an explicit scoring rule version")
+        if self.schema_version != "1.2.0" and self.task_success_rate_bp is not None:
+            raise ValueError("legacy report cannot carry formal task success rate")
         if self.schema_version == "1.0.0":
             if self.task_results or self.task_counts is not None:
                 raise ValueError("legacy report cannot carry task replay summaries")
@@ -633,6 +667,16 @@ class ReportCore(Model):
         }:
             raise ValueError("task result counts disagree")
         versions = {item.slot_id: item.rule_version for item in self.task_results}
+        if self.schema_version == "1.2.0":
+            if any(version != "3" for version in versions.values()):
+                raise ValueError("formal report requires task rule version 3")
+            decided = expected[Outcome.PASS] + expected[Outcome.FAIL]
+            success_rate = (
+                (2 * expected[Outcome.PASS] * 10_000 + decided) // (2 * decided)
+                if decided else None
+            )
+            if self.task_success_rate_bp != success_rate:
+                raise ValueError("formal task success rate disagrees with task results")
         if any(
             assertion.slot_id not in versions
             or assertion.rule_version != versions[assertion.slot_id]

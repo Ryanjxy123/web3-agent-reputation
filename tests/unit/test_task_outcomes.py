@@ -348,7 +348,7 @@ def test_rule_versions_are_explicit_and_generate_distinct_stable_assertions():
     )
     with pytest.raises(ValidationError):
         RecordVerificationInput.model_validate(
-            {**inputs.model_dump(mode="json"), "rule_version": "3"}
+            {**inputs.model_dump(mode="json"), "rule_version": "4"}
         )
 
 

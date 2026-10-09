@@ -634,7 +634,8 @@
           "rule_version": {
             "enum": [
               "1",
-              "2"
+              "2",
+              "3"
             ],
             "title": "Rule Version",
             "type": "string"
@@ -942,6 +943,21 @@
           },
           "purpose": {
             "$ref": "#/components/schemas/Purpose"
+          },
+          "request_overrides": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/JsonValue"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Request Overrides"
           },
           "required_class": {
             "maxLength": 100,
@@ -1474,7 +1490,8 @@
           "suite_id": {
             "enum": [
               "m1-smoke-v1",
-              "capabilities-v1"
+              "capabilities-v1",
+              "formal-evaluation-v1"
             ],
             "title": "Suite Id",
             "type": "string"
@@ -1490,6 +1507,29 @@
             ],
             "default": null,
             "title": "Target Contract"
+          },
+          "transaction_cases": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "pattern": "^0x[0-9a-f]{64}$",
+                  "type": "string"
+                },
+                "propertyNames": {
+                  "enum": [
+                    "success",
+                    "revert",
+                    "pending"
+                  ]
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Transaction Cases"
           }
         },
         "required": [
@@ -2494,6 +2534,21 @@
               }
             ]
           },
+          "initial_agent_http": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/JsonValue"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Initial Agent Http"
+          },
           "intent_persisted_at": {
             "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
             "title": "Intent Persisted At",
@@ -2526,7 +2581,8 @@
             "default": "1",
             "enum": [
               "1",
-              "2"
+              "2",
+              "3"
             ],
             "title": "Rule Version",
             "type": "string"
@@ -2744,13 +2800,27 @@
             "default": "1.0.0",
             "enum": [
               "1.0.0",
-              "1.1.0"
+              "1.1.0",
+              "1.2.0"
             ],
             "title": "Schema Version",
             "type": "string"
           },
           "scores": {
             "$ref": "#/components/schemas/ScoreResult"
+          },
+          "scoring_rule_version": {
+            "anyOf": [
+              {
+                "const": "three-dimensional-v1",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Scoring Rule Version"
           },
           "snapshot_hash": {
             "pattern": "^0x[0-9a-f]{64}$",
@@ -2775,6 +2845,20 @@
             },
             "title": "Task Results",
             "type": "array"
+          },
+          "task_success_rate_bp": {
+            "anyOf": [
+              {
+                "maximum": 10000,
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Task Success Rate Bp"
           }
         },
         "required": [
@@ -2832,7 +2916,8 @@
           "rule_version": {
             "enum": [
               "1",
-              "2"
+              "2",
+              "3"
             ],
             "title": "Rule Version",
             "type": "string"
@@ -2963,7 +3048,8 @@
           "suite_id": {
             "enum": [
               "m1-smoke-v1",
-              "capabilities-v1"
+              "capabilities-v1",
+              "formal-evaluation-v1"
             ],
             "title": "Suite Id",
             "type": "string"
@@ -2973,7 +3059,8 @@
               "anchor_record@1",
               "capabilities@1",
               "anchor_record@2",
-              "capabilities@2"
+              "capabilities@2",
+              "capabilities@3"
             ],
             "title": "Template Version",
             "type": "string"
@@ -3543,6 +3630,15 @@
               "anchor_record"
             ],
             "title": "Capability Id",
+            "type": "string"
+          },
+          "completion_kind": {
+            "default": "execution",
+            "enum": [
+              "execution",
+              "rejection"
+            ],
+            "title": "Completion Kind",
             "type": "string"
           },
           "executor": {
@@ -4526,7 +4622,18 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RecordVerificationResult"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/RecordVerificationResult"
+                    },
+                    {
+                      "items": {
+                        "$ref": "#/components/schemas/RecordVerificationResult"
+                      },
+                      "type": "array"
+                    }
+                  ],
+                  "title": "Response Get Verification Api V1 Evaluations  Run Id  Verification Get"
                 }
               }
             },

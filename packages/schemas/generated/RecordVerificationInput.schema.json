@@ -307,6 +307,21 @@
         "purpose": {
           "$ref": "#/$defs/Purpose"
         },
+        "request_overrides": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/JsonValue"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Request Overrides"
+        },
         "required_class": {
           "maxLength": 100,
           "minLength": 1,
@@ -1396,6 +1411,21 @@
         }
       ]
     },
+    "initial_agent_http": {
+      "anyOf": [
+        {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Initial Agent Http"
+    },
     "intent_persisted_at": {
       "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
       "title": "Intent Persisted At",
@@ -1428,7 +1458,8 @@
       "default": "1",
       "enum": [
         "1",
-        "2"
+        "2",
+        "3"
       ],
       "title": "Rule Version",
       "type": "string"
