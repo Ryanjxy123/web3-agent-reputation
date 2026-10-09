@@ -107,11 +107,25 @@ class ClaimReview(Model):
     mapping_evidence_ids: tuple[UUID4, ...]
     actor: SafeText
     reason: SafeText
+    excluded_capabilities: tuple[Capability, ...] = ()
+
+    @model_serializer(mode="wrap")
+    def wire(self, handler):
+        value = handler(self)
+        if not self.excluded_capabilities:
+            value.pop("excluded_capabilities", None)
+        return value
 
     @model_validator(mode="after")
     def unique_claims(self) -> Self:
         if len(set(self.confirmed_claims)) != len(self.confirmed_claims):
             raise ValueError("duplicate confirmed capability")
+        if len(set(self.excluded_capabilities)) != len(self.excluded_capabilities) or (
+            set(self.confirmed_claims) & set(self.excluded_capabilities)
+        ):
+            raise ValueError(
+                "excluded capabilities must be unique and disjoint from confirmed claims"
+            )
         return self
 
 
@@ -278,6 +292,14 @@ class CaseSlot(Model):
     expected: ExpectedFacts
     grant_id: UUID4
     synthetic_input: dict[str, JsonValue] | None = None
+    applicability_reason: Literal[Reason.CAPABILITY_NOT_DECLARED] | None = None
+
+    @model_serializer(mode="wrap")
+    def wire(self, handler):
+        value = handler(self)
+        if self.applicability_reason is None:
+            value.pop("applicability_reason", None)
+        return value
 
     @model_validator(mode="after")
     def linked(self) -> Self:
@@ -296,7 +318,11 @@ class CaseSlot(Model):
         )
         if not all(checks):
             raise ValueError("task and independently expected facts differ")
-        if task.capability_id == "anchor_record" and expected.binding_id is None:
+        if (
+            task.capability_id == "anchor_record"
+            and expected.binding_id is None
+            and self.applicability_reason is None
+        ):
             raise ValueError("write tasks require an executor binding")
         if task.capability_id == "verify_record" and task.record_executor != expected.executor:
             raise ValueError("record query executor differs from independently expected executor")
@@ -320,7 +346,9 @@ class RunPlan(Model):
     profile: Profile
     confirmed_capabilities: tuple[Capability, ...]
     suite_id: Literal["m1-smoke-v1", "capabilities-v1"]
-    template_version: Literal["anchor_record@1", "capabilities@1"]
+    template_version: Literal[
+        "anchor_record@1", "capabilities@1", "anchor_record@2", "capabilities@2"
+    ]
     planning_time: Timestamp
     planning_evidence_refs: tuple[UUID4, ...] = ()
     slots: tuple[CaseSlot, ...] = Field(min_length=1, max_length=100)
@@ -383,7 +411,7 @@ class AssertionResult(Model):
     assertion_id: UUID4
     slot_id: UUID4
     rule_id: Version
-    rule_version: Literal["1"]
+    rule_version: Literal["1", "2"]
     outcome: Outcome
     reason_code: Reason | None
     expected: JsonValue
@@ -393,8 +421,10 @@ class AssertionResult(Model):
 
     @model_validator(mode="after")
     def attributed(self) -> Self:
-        if self.outcome in (Outcome.UNKNOWN, Outcome.FAIL) and self.reason_code is None:
-            raise ValueError("FAIL and UNKNOWN require a reason code")
+        if self.outcome != Outcome.PASS and self.reason_code is None:
+            raise ValueError("non-PASS outcomes require a reason code")
+        if self.outcome == Outcome.PASS and self.reason_code is not None:
+            raise ValueError("PASS cannot contain a failure reason")
         if self.outcome in (Outcome.PASS, Outcome.FAIL) and not self.evidence_refs:
             raise ValueError("decided assertion requires evidence")
         return self

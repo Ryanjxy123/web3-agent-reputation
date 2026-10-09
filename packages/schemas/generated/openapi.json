@@ -632,7 +632,10 @@
             "type": "string"
           },
           "rule_version": {
-            "const": "1",
+            "enum": [
+              "1",
+              "2"
+            ],
             "title": "Rule Version",
             "type": "string"
           },
@@ -896,6 +899,19 @@
       "CaseSlot": {
         "additionalProperties": false,
         "properties": {
+          "applicability_reason": {
+            "anyOf": [
+              {
+                "const": "CAPABILITY_NOT_DECLARED",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Applicability Reason"
+          },
           "capability_id": {
             "enum": [
               "get_tx_status",
@@ -1039,6 +1055,19 @@
             "title": "Confirmed Claims",
             "type": "array"
           },
+          "excluded_capabilities": {
+            "default": [],
+            "items": {
+              "enum": [
+                "get_tx_status",
+                "verify_record",
+                "anchor_record"
+              ],
+              "type": "string"
+            },
+            "title": "Excluded Capabilities",
+            "type": "array"
+          },
           "mapping_evidence_ids": {
             "items": {
               "format": "uuid4",
@@ -1099,6 +1128,19 @@
             },
             "minItems": 1,
             "title": "Confirmed Claims",
+            "type": "array"
+          },
+          "excluded_capabilities": {
+            "default": [],
+            "items": {
+              "enum": [
+                "get_tx_status",
+                "verify_record",
+                "anchor_record"
+              ],
+              "type": "string"
+            },
+            "title": "Excluded Capabilities",
             "type": "array"
           },
           "expected_review_version": {
@@ -2288,6 +2330,11 @@
           "UNSUPPORTED_PROTOCOL",
           "MAPPING_UNCONFIRMED",
           "CAPABILITY_EXPLICITLY_UNSUPPORTED",
+          "CAPABILITY_NOT_DECLARED",
+          "AGENT_SERVICE_ERROR",
+          "AGENT_TASK_FAILED",
+          "EVIDENCE_INCONSISTENT",
+          "RULE_VERSION_MISMATCH",
           "BINDING_UNVERIFIED",
           "BINDING_EXPIRED",
           "PLATFORM_RPC_ERROR",
@@ -2342,7 +2389,7 @@
       "RecordVerificationInput": {
         "additionalProperties": false,
         "properties": {
-          "agent_response": {
+          "agent_http": {
             "anyOf": [
               {
                 "additionalProperties": {
@@ -2355,7 +2402,11 @@
               }
             ],
             "default": null,
-            "title": "Agent Response"
+            "title": "Agent Http"
+          },
+          "agent_response": {
+            "$ref": "#/components/schemas/JsonValue",
+            "default": null
           },
           "agent_result": {
             "anyOf": [
@@ -2470,6 +2521,15 @@
             "minimum": 1,
             "title": "Review Version",
             "type": "integer"
+          },
+          "rule_version": {
+            "default": "1",
+            "enum": [
+              "1",
+              "2"
+            ],
+            "title": "Rule Version",
+            "type": "string"
           },
           "schema_version": {
             "const": "record-verification-input-v1",
@@ -2834,7 +2894,9 @@
           "template_version": {
             "enum": [
               "anchor_record@1",
-              "capabilities@1"
+              "capabilities@1",
+              "anchor_record@2",
+              "capabilities@2"
             ],
             "title": "Template Version",
             "type": "string"

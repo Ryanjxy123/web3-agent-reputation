@@ -38,15 +38,18 @@ def build_report(
         or inputs.slot.purpose != "functional"
         or inputs.slot.case_kind != "positive"
         or inputs.slot.required_class != "normal"
-        or inputs.slot.expected_outcome != "PASS"
-        or inputs.slot.capability_id not in plan.confirmed_capabilities
+        or inputs.slot.expected_outcome not in {"PASS", "NOT_APPLICABLE"}
+        or (
+            inputs.slot.applicability_reason is None
+            and inputs.slot.capability_id not in plan.confirmed_capabilities
+        )
         or not set(plan.confirmed_capabilities).issubset(inputs.review.confirmed_claims)
         or (
             plan.suite_id == "m1-smoke-v1"
             and (
                 plan.profile != "record-write-v1"
                 or plan.confirmed_capabilities != ("anchor_record",)
-                or plan.template_version != "anchor_record@1"
+                or plan.template_version not in {"anchor_record@1", "anchor_record@2"}
             )
         )
         or plan.review_version != inputs.review_version
@@ -63,11 +66,24 @@ def build_report(
     expected_candidate = (
         inputs.evm.candidate_tx_hash if inputs.slot.capability_id == "anchor_record" else None
     )
+    query_candidate_missing = (
+        inputs.slot.capability_id == "get_tx_status"
+        and inputs.rule_version == "2"
+        and inputs.evm.candidate_tx_hash is None
+        and inputs.evm.error_reason is not None
+    )
     if (
         len(settled) != 1
         or settled[0].candidate_tx_hash != expected_candidate
         or (
-            inputs.slot.capability_id != "anchor_record"
+            inputs.slot.capability_id == "get_tx_status"
+            and inputs.slot.applicability_reason is not None
+            and inputs.evm.candidate_tx_hash is not None
+        )
+        or (
+            inputs.slot.capability_id == "get_tx_status"
+            and inputs.slot.applicability_reason is None
+            and not query_candidate_missing
             and inputs.evm.candidate_tx_hash != inputs.slot.task.query_tx_hash
         )
     ):
@@ -105,7 +121,9 @@ def build_report(
                 "oldest_age_seconds": age_seconds if decided else None,
             }
         ],
-        "behavior": None if plan.profile == "record-read-v1" else {
+        "behavior": None
+        if plan.profile == "record-read-v1"
+        else {
             "planned": 0,
             "accepted": 0,
             "decided": 0,

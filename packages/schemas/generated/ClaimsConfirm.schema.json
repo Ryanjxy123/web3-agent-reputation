@@ -14,6 +14,19 @@
       "title": "Confirmed Claims",
       "type": "array"
     },
+    "excluded_capabilities": {
+      "default": [],
+      "items": {
+        "enum": [
+          "get_tx_status",
+          "verify_record",
+          "anchor_record"
+        ],
+        "type": "string"
+      },
+      "title": "Excluded Capabilities",
+      "type": "array"
+    },
     "expected_review_version": {
       "minimum": 0,
       "title": "Expected Review Version",

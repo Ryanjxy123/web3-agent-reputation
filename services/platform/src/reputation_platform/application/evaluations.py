@@ -21,6 +21,7 @@ from reputation_core.models import (
     Observation,
     Outcome,
     Purpose,
+    Reason,
     RunPlan,
     TaskEnvelope,
 )
@@ -277,9 +278,15 @@ class EvaluationService:
                     409, "MAPPING_UNCONFIRMED", "Capability mapping is not confirmed."
                 )
             review = ClaimReview.model_validate(review_body)
-            if (
-                review.review_version != request.review_version
-                or request.capability_id not in review.confirmed_claims
+            excluded = request.capability_id in review.excluded_capabilities
+            if excluded and request.suite_id == "m1-smoke-v1":
+                raise ApplicationError(
+                    422,
+                    "UNSUPPORTED_PROFILE",
+                    "The M1 smoke suite requires a declared anchor_record capability.",
+                )
+            if review.review_version != request.review_version or (
+                request.capability_id not in review.confirmed_claims and not excluded
             ):
                 raise ApplicationError(
                     409, "REVIEW_CONFLICT", "The current confirmed mapping differs."
@@ -332,10 +339,14 @@ class EvaluationService:
                 ),
                 None,
             )
-            if writing and (
-                proof is None
-                or observation["owner_code"] != "0x"
-                or observation["executor_code"] != "0x"
+            if (
+                writing
+                and not excluded
+                and (
+                    proof is None
+                    or observation["owner_code"] != "0x"
+                    or observation["executor_code"] != "0x"
+                )
             ):
                 raise ApplicationError(
                     409,
@@ -380,7 +391,7 @@ class EvaluationService:
                 target_code_hash=target_code,
                 request_id=task.request_id,
                 record_hash=task.record_hash,
-                binding_id=proof.binding_id if writing and proof else None,
+                binding_id=proof.binding_id if writing and proof and not excluded else None,
                 window_start=utc_text(now),
                 deadline=task.deadline,
                 pre_dispatch_block=observation["snapshot_core"]["read_block_number"],
@@ -394,11 +405,12 @@ class EvaluationService:
                 purpose=Purpose.FUNCTIONAL,
                 case_kind="positive",
                 required_class="normal",
-                expected_outcome=Outcome.PASS,
+                expected_outcome=Outcome.NOT_APPLICABLE if excluded else Outcome.PASS,
                 task=task,
                 expected=facts,
                 grant_id=grant.grant_id,
                 synthetic_input=synthetic,
+                applicability_reason=Reason.CAPABILITY_NOT_DECLARED if excluded else None,
             )
             policy = strict_json(
                 (self.identity.root / "configs/policies/policy-v1.json").read_bytes()
@@ -411,11 +423,13 @@ class EvaluationService:
                 policy_version="policy-v1",
                 policy_hash=hash_json(policy),
                 profile=request.profile,
-                confirmed_capabilities=(request.capability_id,),
+                confirmed_capabilities=review.confirmed_claims
+                if excluded
+                else (request.capability_id,),
                 suite_id=request.suite_id,
-                template_version="anchor_record@1"
+                template_version="anchor_record@2"
                 if request.suite_id == "m1-smoke-v1"
-                else "capabilities@1",
+                else "capabilities@2",
                 planning_time=utc_text(now),
                 planning_evidence_refs=(evidence.evidence_id,),
                 slots=(slot,),

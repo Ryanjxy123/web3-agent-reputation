@@ -18,6 +18,11 @@
         "UNSUPPORTED_PROTOCOL",
         "MAPPING_UNCONFIRMED",
         "CAPABILITY_EXPLICITLY_UNSUPPORTED",
+        "CAPABILITY_NOT_DECLARED",
+        "AGENT_SERVICE_ERROR",
+        "AGENT_TASK_FAILED",
+        "EVIDENCE_INCONSISTENT",
+        "RULE_VERSION_MISMATCH",
         "BINDING_UNVERIFIED",
         "BINDING_EXPIRED",
         "PLATFORM_RPC_ERROR",
@@ -99,7 +104,10 @@
       "type": "string"
     },
     "rule_version": {
-      "const": "1",
+      "enum": [
+        "1",
+        "2"
+      ],
       "title": "Rule Version",
       "type": "string"
     },

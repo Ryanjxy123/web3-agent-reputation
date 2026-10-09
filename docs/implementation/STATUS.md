@@ -1,6 +1,6 @@
 # 真实进度与会话交接
 
-更新时间：2026-10-06；环境：用户 Windows 正式项目工作目录。
+更新时间：2026-10-09；环境：用户 Windows 正式项目工作目录。
 
 | Task ID | Status | 实施结果 |
 |---|---|---|
@@ -19,7 +19,29 @@
 | M1-06 | DONE | 报告冻结、确定性 ZIP、并发/恢复/缺失/篡改拒绝、原生 A/D 报告 smoke 及166项全量回归通过 |
 | M1-07 | DONE | PostgreSQL publisher nonce/outbox、签名后广播恢复、真实 EvaluationAnchor 发布、独立安全 ZIP verifier |
 | M1-08 | DONE | 原生 API/worker/Anvil A/D 纵向演示；A/D bundle、A anchor、离线/在线 verifier、篡改拒绝 |
+| FOLLOWUP-01 | DONE | 三能力模板与独立只读查询；具体状态及测试见 2026-10-09 任务记录 |
+| FOLLOWUP-02 | DONE | 四态归因、标准 reason_code、原始响应证据及异常归因；具体状态及测试见 2026-10-09 任务记录 |
+| FOLLOWUP-03 | PENDING | Evidence Bundle 逐任务独立重判与统计 |
 | LOCAL-PG-JUNCTION | DONE | Windows PostgreSQL 改用 D:\web3-runtime 目录联接；R: 已移除，初始化、重启、数据完整性及13项定向测试通过 |
+
+## 2026-10-09 / 本轮任务 1：三能力模板
+
+- Implemented：共享 Task/Worker/Verifier 支持 get_tx_status、verify_record、anchor_record；查询固定块、指定参数及独立 RPC 对照；只读无执行绑定或业务广播；授权目标合约可独立选择，冻结代码 hash。
+- Files changed：core models/record_verifier/reporting、platform application 与 EVM collector/record、受控 fixture、共享 Schema/OpenAPI/生成 TS、CAPABILITY_TASKS 与 ADR 0011。
+- Tests：单元/reference 127 passed；真实 capabilities/reports/verification/execution 组合 35 passed / 0 skipped（339.59s）；固定块后写入不改变历史查询补测 1 passed（16.87s）。Ruff、mypy 52 files、52 Schema 与 diff check 通过；历史 M1 A/D bundle 离线复核 PASS。
+- Review fixes：只读 report settlement、read profile 的 behavior=None、RPC null/null 不误作不存在、非 canonical/错误定位/确认不足不扣 Agent、历史块查询边界。
+- Git：分支 feat/capabilities-task-replay，任务 1 提交 6f741c9；尚未 push。本轮完整稳定树检查与 CI 待全部 1–3 完成后执行。
+- Limitations：每 run 一个能力槽位；当前复用既有 EVM ABI，未加第三方协议适配器。保留 M1 PARTIAL，未开发完整三维评分、前端或 ERC-8004。
+- Next task：任务 2 四态结果与失败归因。
+
+## 2026-10-09 / 本轮任务 2：四态与原因
+
+- Implemented：复用 Outcome/Reason，新增证据驱动服务失败、业务失败、证据不一致和规则版本原因；新模板/断言规则为 v2，旧 v1 序列化兼容；预评审排除能力可 NOT_APPLICABLE，已声明支持不得排除。
+- Tests：172 单元/reference passed / 0 skipped；任务归因纯单元 45 passed；真实 PostgreSQL/Anvil 归因、能力、核验、报告、执行组合 54 passed / 0 skipped（818.07s）；Ruff、mypy 52 files、52 Schema 通过。保留两条 Starlette/websockets 弃用警告。
+- Review fixes：授权/派发/endpoint 不一致不能将 HTTP 500 算 Agent FAIL；畸形 HTTP status 和声明数组不能崩溃；Agent 服务错误不被后续 RPC 故障遮盖；链上可证实回滚使用 TX_REVERTED；派生响应与冻结原始 HTTP 不一致为 UNKNOWN；损坏 RPC 证据降为 UNKNOWN。补全 NOT_APPLICABLE 不派发、不读任务 RPC且可冻结/导出；早期 RPC UNKNOWN 可以按原判定冻结，后续链恢复不会重写原任务结果；M1 专属 suite 不接受排除的 anchor 能力。
+- Compatibility：旧 v1 reason 与默认 wire serialization 保留；新增状态、原因、原始 HTTP envelope 和 rule_version 进入已有 Evidence Bundle/CAS；Schema/OpenAPI/TS 由共享类型生成。
+- Limitations：非法 JSON 被安全出口拒绝，因无法保留可靠脱敏原文，保持 UNKNOWN。报告发布仍需可信链上下文；全任务独立复核在下一项实现。
+- Git：阶段 2 Review 通过，等待逻辑提交后开始任务 3；当前修改尚未提交或推送。
 
 ## 2026-10-02 / M0-01
 

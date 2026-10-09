@@ -675,9 +675,9 @@ export interface components {
             rule_id: string;
             /**
              * Rule Version
-             * @constant
+             * @enum {string}
              */
-            rule_version: "1";
+            rule_version: "1" | "2";
             /**
              * Slot Id
              * Format: uuid4
@@ -780,6 +780,11 @@ export interface components {
         /** CaseSlot */
         CaseSlot: {
             /**
+             * Applicability Reason
+             * @default null
+             */
+            applicability_reason: "CAPABILITY_NOT_DECLARED" | null;
+            /**
              * Capability Id
              * @enum {string}
              */
@@ -834,6 +839,11 @@ export interface components {
             actor: string;
             /** Confirmed Claims */
             confirmed_claims: ("get_tx_status" | "verify_record" | "anchor_record")[];
+            /**
+             * Excluded Capabilities
+             * @default []
+             */
+            excluded_capabilities: ("get_tx_status" | "verify_record" | "anchor_record")[];
             /** Mapping Evidence Ids */
             mapping_evidence_ids: string[];
             /** Reason */
@@ -852,6 +862,11 @@ export interface components {
         ClaimsConfirm: {
             /** Confirmed Claims */
             confirmed_claims: ("get_tx_status" | "verify_record" | "anchor_record")[];
+            /**
+             * Excluded Capabilities
+             * @default []
+             */
+            excluded_capabilities: ("get_tx_status" | "verify_record" | "anchor_record")[];
             /** Expected Review Version */
             expected_review_version: number;
             /** Reason */
@@ -1302,7 +1317,7 @@ export interface components {
          * Reason
          * @enum {string}
          */
-        Reason: "AUTH_REQUIRED" | "ACCESS_NOT_GRANTED" | "UNSUPPORTED_PROTOCOL" | "MAPPING_UNCONFIRMED" | "CAPABILITY_EXPLICITLY_UNSUPPORTED" | "BINDING_UNVERIFIED" | "BINDING_EXPIRED" | "PLATFORM_RPC_ERROR" | "PLATFORM_NETWORK_ERROR" | "INSUFFICIENT_SAMPLES" | "INSUFFICIENT_COVERAGE" | "PENDING_FINALITY" | "RPC_RECEIPT_NOT_FOUND" | "TIMEOUT" | "SERVICE_TIMEOUT" | "SCHEMA_ERROR" | "SEMANTIC_MISMATCH" | "IDENTITY_CHANGED" | "CHAIN_INSTANCE_CHANGED" | "TX_WRONG_CHAIN" | "TX_WRONG_EXECUTOR" | "TX_WRONG_TARGET" | "TASK_ID_MISMATCH" | "RECORD_HASH_MISMATCH" | "LOG_EMITTER_MISMATCH" | "TX_REVERTED" | "ACCEPTED_TASK_DEADLINE_EXCEEDED" | "DISPATCH_UNCERTAIN" | "STALE_EVIDENCE" | "NOT_DECLARED_READ_ONLY" | "CANCELLED_BY_OPERATOR" | "CONTENT_HASH_MISMATCH" | "MISSING_EVIDENCE" | "ANCHOR_NOT_CONFIRMED" | "RATE_LIMIT_PLATFORM_EXCEEDED" | "RATE_LIMIT_UNATTRIBUTED";
+        Reason: "AUTH_REQUIRED" | "ACCESS_NOT_GRANTED" | "UNSUPPORTED_PROTOCOL" | "MAPPING_UNCONFIRMED" | "CAPABILITY_EXPLICITLY_UNSUPPORTED" | "CAPABILITY_NOT_DECLARED" | "AGENT_SERVICE_ERROR" | "AGENT_TASK_FAILED" | "EVIDENCE_INCONSISTENT" | "RULE_VERSION_MISMATCH" | "BINDING_UNVERIFIED" | "BINDING_EXPIRED" | "PLATFORM_RPC_ERROR" | "PLATFORM_NETWORK_ERROR" | "INSUFFICIENT_SAMPLES" | "INSUFFICIENT_COVERAGE" | "PENDING_FINALITY" | "RPC_RECEIPT_NOT_FOUND" | "TIMEOUT" | "SERVICE_TIMEOUT" | "SCHEMA_ERROR" | "SEMANTIC_MISMATCH" | "IDENTITY_CHANGED" | "CHAIN_INSTANCE_CHANGED" | "TX_WRONG_CHAIN" | "TX_WRONG_EXECUTOR" | "TX_WRONG_TARGET" | "TASK_ID_MISMATCH" | "RECORD_HASH_MISMATCH" | "LOG_EMITTER_MISMATCH" | "TX_REVERTED" | "ACCEPTED_TASK_DEADLINE_EXCEEDED" | "DISPATCH_UNCERTAIN" | "STALE_EVIDENCE" | "NOT_DECLARED_READ_ONLY" | "CANCELLED_BY_OPERATOR" | "CONTENT_HASH_MISMATCH" | "MISSING_EVIDENCE" | "ANCHOR_NOT_CONFIRMED" | "RATE_LIMIT_PLATFORM_EXCEEDED" | "RATE_LIMIT_UNATTRIBUTED";
         /** ReasonRequest */
         ReasonRequest: {
             /** Reason */
@@ -1311,12 +1326,14 @@ export interface components {
         /** RecordVerificationInput */
         RecordVerificationInput: {
             /**
-             * Agent Response
+             * Agent Http
              * @default null
              */
-            agent_response: {
+            agent_http: {
                 [key: string]: components["schemas"]["JsonValue"];
             } | null;
+            /** @default null */
+            agent_response: components["schemas"]["JsonValue"];
             /** @default null */
             agent_result: components["schemas"]["TaskResult"] | null;
             /**
@@ -1340,6 +1357,12 @@ export interface components {
             review: components["schemas"]["ClaimReview"];
             /** Review Version */
             review_version: number;
+            /**
+             * Rule Version
+             * @default 1
+             * @enum {string}
+             */
+            rule_version: "1" | "2";
             /**
              * Schema Version
              * @default record-verification-input-v1
@@ -1493,7 +1516,7 @@ export interface components {
              * Template Version
              * @enum {string}
              */
-            template_version: "anchor_record@1" | "capabilities@1";
+            template_version: "anchor_record@1" | "capabilities@1" | "anchor_record@2" | "capabilities@2";
         };
         /**
          * RunStage

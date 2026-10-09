@@ -4,7 +4,7 @@ from uuid import uuid4
 
 import pytest
 from reputation_core.evidence import hash_bytes, hash_json
-from reputation_core.models import RecordVerificationInput
+from reputation_core.models import RecordVerificationInput, TaskEnvelope
 from reputation_core.record_verifier import verify_record
 
 from tests.factories import ADDRESS, DEADLINE, HASH, NOW, ZERO, agent, slot
@@ -119,6 +119,7 @@ def read_input(capability="get_tx_status", status="NOT_FOUND", exists=False):
             record_request_id=HASH,
         )
         rpc["record_call"] = "0x" + str(int(exists)).rjust(64, "0") + actual_hash[2:]
+    body["task"] = TaskEnvelope.model_validate(body["task"]).model_dump(mode="json")
     return RecordVerificationInput.model_validate(
         {
             "slot": body,

@@ -224,8 +224,10 @@ class IdentityService:
     def confirm(self, snapshot_id: UUID, request: ClaimsConfirm, actor: str) -> ClaimReview:
         snapshot = self.snapshot(snapshot_id)
         claims = snapshot.core.normalized_metadata["capabilities"]
-        if not isinstance(claims, list) or any(
-            capability not in claims for capability in request.confirmed_claims
+        if (
+            not isinstance(claims, list)
+            or any(capability not in claims for capability in request.confirmed_claims)
+            or any(capability in claims for capability in request.excluded_capabilities)
         ):
             raise ApplicationError(
                 422,
@@ -250,6 +252,7 @@ class IdentityService:
                 review_version=version + 1,
                 confirmed_claims=request.confirmed_claims,
                 unsupported_claims=request.unsupported_claims,
+                excluded_capabilities=request.excluded_capabilities,
                 mapping_evidence_ids=snapshot.evidence_refs,
                 actor=actor,
                 reason=request.reason,

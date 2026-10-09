@@ -141,17 +141,26 @@ class ReportService:
                 409, "ASSERTION_REPLAY_MISMATCH", "Stored assertions differ from evidence replay."
             )
         deployment = self.identity.deployment()
-        fresh = inputs.model_copy(
-            update={
-                "evm": collect_task(
-                    deployment,
-                    inputs.slot,
-                    inputs.evm.candidate_tx_hash,
-                    inputs.registry_witness.snapshot_core.read_block_number
-                    if inputs.registry_witness
-                    else None,
-                )
-            }
+        historical_rpc_unknown = (
+            inputs.rule_version == "2"
+            and result.outcome == "UNKNOWN"
+            and inputs.evm.error_reason == "PLATFORM_RPC_ERROR"
+        )
+        fresh = (
+            inputs
+            if inputs.slot.applicability_reason is not None
+            else inputs.model_copy(
+                update={
+                    "evm": collect_task(
+                        deployment,
+                        inputs.slot,
+                        inputs.evm.candidate_tx_hash,
+                        inputs.registry_witness.snapshot_core.read_block_number
+                        if inputs.registry_witness
+                        else None,
+                    )
+                }
+            )
         )
         rechecked = verify_record(fresh, (evidence_id,))
         if fresh.evm.error_reason:
@@ -162,9 +171,11 @@ class ReportService:
                 "Trusted chain context is unavailable or changed before report freeze.",
                 retryable=retryable,
             )
-        if [(item.rule_id, item.outcome, item.reason_code) for item in rechecked.assertions] != [
-            (item.rule_id, item.outcome, item.reason_code) for item in result.assertions
-        ] or rechecked.task_link != result.task_link:
+        if not historical_rpc_unknown and (
+            [(item.rule_id, item.outcome, item.reason_code) for item in rechecked.assertions]
+            != [(item.rule_id, item.outcome, item.reason_code) for item in result.assertions]
+            or rechecked.task_link != result.task_link
+        ):
             raise ApplicationError(
                 409,
                 "STALE_EVIDENCE",

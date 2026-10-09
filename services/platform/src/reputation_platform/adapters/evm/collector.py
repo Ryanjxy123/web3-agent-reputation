@@ -18,6 +18,8 @@ def collect_task(
 ) -> EvmReadEvidence:
     results = {}
     error = None
+    if slot.task.capability_id == "get_tx_status":
+        candidate = slot.task.query_tx_hash
     if config.chain != slot.expected.execution_chain:
         return EvmReadEvidence(
             candidate_tx_hash=candidate,
@@ -87,8 +89,6 @@ def collect_task(
                 "eth_getBlockByNumber",
                 [hex(int(slot.task.read_block_number)), False],
             )
-        if slot.task.capability_id == "get_tx_status":
-            candidate = slot.task.query_tx_hash
         if candidate is not None:
             read("transaction", "eth_getTransactionByHash", [candidate])
             receipt = read("receipt", "eth_getTransactionReceipt", [candidate])

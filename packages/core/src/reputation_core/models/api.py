@@ -33,11 +33,18 @@ class ClaimsConfirm(Model):
     unsupported_claims: tuple[SafeText, ...] = ()
     reason: SafeText
     expected_review_version: int = Field(strict=True, ge=0)
+    excluded_capabilities: tuple[Capability, ...] = ()
 
     @model_validator(mode="after")
     def unique_claims(self) -> Self:
         if len(set(self.confirmed_claims)) != len(self.confirmed_claims):
             raise ValueError("duplicate confirmed capability")
+        if len(set(self.excluded_capabilities)) != len(self.excluded_capabilities) or (
+            set(self.confirmed_claims) & set(self.excluded_capabilities)
+        ):
+            raise ValueError(
+                "excluded capabilities must be unique and disjoint from confirmed claims"
+            )
         return self
 
 

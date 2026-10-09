@@ -35,6 +35,19 @@
     "CaseSlot": {
       "additionalProperties": false,
       "properties": {
+        "applicability_reason": {
+          "anyOf": [
+            {
+              "const": "CAPABILITY_NOT_DECLARED",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Applicability Reason"
+        },
         "capability_id": {
           "enum": [
             "get_tx_status",
@@ -525,7 +538,9 @@
     "template_version": {
       "enum": [
         "anchor_record@1",
-        "capabilities@1"
+        "capabilities@1",
+        "anchor_record@2",
+        "capabilities@2"
       ],
       "title": "Template Version",
       "type": "string"

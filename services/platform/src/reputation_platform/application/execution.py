@@ -88,6 +88,10 @@ class ExecutionService:
         if state == "SETTLED":
             return
         accepted = any(item["accepted"] for item in previous)
+        retained_refs = tuple(
+            dict.fromkeys(ref for item in previous for ref in item["evidence_refs"])
+        )
+        execution_failure = None
         witness = None
         queue.fenced(
             lease,
@@ -120,6 +124,8 @@ class ExecutionService:
             )
 
         def settle(reason=None, candidate=None, evidence_refs=(), cancelled=False):
+            evidence_refs = tuple(dict.fromkeys((*retained_refs, *evidence_refs)))
+
             def commit(connection):
                 attempt_no = connection.scalar(
                     select(func.max(attempts.c.attempt_no)).where(
@@ -148,7 +154,13 @@ class ExecutionService:
                     ended_at=timestamp(),
                     latency_ms=None,
                     error_origin="agent"
-                    if reason == Reason.SCHEMA_ERROR
+                    if reason
+                    in {
+                        Reason.SCHEMA_ERROR,
+                        Reason.AGENT_SERVICE_ERROR,
+                        Reason.AGENT_TASK_FAILED,
+                        Reason.CAPABILITY_EXPLICITLY_UNSUPPORTED,
+                    }
                     else "platform"
                     if reason
                     else None,
@@ -342,6 +354,9 @@ class ExecutionService:
 
         client = SafeHttpClient(frozenset({endpoint.origin}))
         try:
+            if slot.applicability_reason is not None:
+                settle(slot.applicability_reason)
+                return
             if state == "NOT_SENT" and row["cancel_requested"]:
                 settle(Reason.CANCELLED_BY_OPERATOR, cancelled=True)
                 return
@@ -397,21 +412,45 @@ class ExecutionService:
                             )
                         ):
                             raise ValueError("TASK_HANDLE_MISMATCH")
+                        if view.task_status == "succeeded" and view.result is None:
+                            raise ValueError("TASK_RESULT_MISSING")
+                    elif response.status >= 500:
+                        reason = Reason.AGENT_SERVICE_ERROR
+                    elif response.status in {401, 403}:
+                        reason = Reason.ACCESS_NOT_GRANTED
+                    elif response.status == 429:
+                        reason = Reason.RATE_LIMIT_UNATTRIBUTED
                     elif not (
                         method == "GET"
                         and response.status == 404
                         and payload == {"accepted": False, "error": {"code": "TASK_NOT_FOUND"}}
                     ):
                         reason = Reason.SCHEMA_ERROR
-                except (httpx.HTTPError, TimeoutError):
+                except (httpx.TimeoutException, TimeoutError):
+                    reason = Reason.SERVICE_TIMEOUT
+                except httpx.HTTPError:
                     reason = Reason.PLATFORM_NETWORK_ERROR
-                except (NetworkPolicyError, ValueError, ValidationError):
+                except NetworkPolicyError:
+                    reason = Reason.PLATFORM_NETWORK_ERROR
+                    view = None
+                except (ValueError, ValidationError):
                     reason = Reason.SCHEMA_ERROR
                     view = None
                 ended = timestamp()
                 latency_ms = int((time.monotonic() - timer) * 1000)
                 accepted = accepted or view is not None
                 candidate = view.result.tx_hash if view and view.result and writing else None
+                if view is not None and view.task_status == "failed":
+                    reason = (
+                        Reason.CAPABILITY_EXPLICITLY_UNSUPPORTED
+                        if view.reason_code
+                        in {
+                            "UNSUPPORTED_CAPABILITY",
+                            "CAPABILITY_EXPLICITLY_UNSUPPORTED",
+                            "UNSUPPORTED_PROTOCOL",
+                        }
+                        else Reason.AGENT_TASK_FAILED
+                    )
                 record = await persist_record(
                     {
                         "method": method,
@@ -421,6 +460,7 @@ class ExecutionService:
                         "http_status": response.status if response else None,
                         "response": payload,
                         "reason_code": reason,
+                        "response_captured": response is not None,
                         "started_at": started,
                         "ended_at": ended,
                     },
@@ -438,7 +478,9 @@ class ExecutionService:
                     http_status=response.status if response else None,
                     latency_ms=latency_ms,
                     error_origin="platform"
-                    if reason == Reason.PLATFORM_NETWORK_ERROR
+                    if reason in {Reason.PLATFORM_NETWORK_ERROR, Reason.SERVICE_TIMEOUT}
+                    else "unknown"
+                    if reason in {Reason.ACCESS_NOT_GRANTED, Reason.RATE_LIMIT_UNATTRIBUTED}
                     else "agent"
                     if reason
                     else None,
@@ -466,10 +508,18 @@ class ExecutionService:
                     )
 
                 queue.fenced(lease, save)
+                retained_refs = tuple(dict.fromkeys((*retained_refs, *observation.evidence_refs)))
+                if reason in {
+                    Reason.SCHEMA_ERROR,
+                    Reason.AGENT_SERVICE_ERROR,
+                    Reason.AGENT_TASK_FAILED,
+                    Reason.CAPABILITY_EXPLICITLY_UNSUPPORTED,
+                }:
+                    execution_failure = reason
                 if not writing and view is not None and view.task_status in {"succeeded", "failed"}:
                     settle(reason=reason, evidence_refs=(record.evidence_id,))
                     return
-                if not writing and view is None and reason == Reason.SCHEMA_ERROR:
+                if not writing and view is None and reason is not None:
                     settle(reason, evidence_refs=(record.evidence_id,))
                     return
                 if candidate:
@@ -511,9 +561,11 @@ class ExecutionService:
                             evidence_refs=(record.evidence_id, chain_record.evidence_id),
                         )
                         return
-                    if reason == Reason.SCHEMA_ERROR or (view and view.task_status == "failed"):
+                    if reason in {Reason.SCHEMA_ERROR, Reason.AGENT_SERVICE_ERROR} or (
+                        view and view.task_status == "failed"
+                    ):
                         settle(
-                            reason or Reason.DISPATCH_UNCERTAIN,
+                            reason or Reason.AGENT_TASK_FAILED,
                             evidence_refs=(record.evidence_id, chain_record.evidence_id),
                         )
                         return
@@ -548,6 +600,9 @@ class ExecutionService:
                         return
                 except ApplicationError:
                     pass
-            settle(reason, cancelled=reason == Reason.CANCELLED_BY_OPERATOR and not sent)
+            settle(
+                execution_failure or reason,
+                cancelled=reason == Reason.CANCELLED_BY_OPERATOR and not sent,
+            )
         finally:
             await client.close()

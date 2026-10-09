@@ -281,6 +281,7 @@ def test_record_queries_use_explicit_target_and_detect_claim_tampering(capabilit
         != "PASS"
     )
     changed["agent_response"]["result"]["record_matches"] = False
+    changed["agent_http"]["response"]["result"]["record_matches"] = False
     assert (
         verify_record(RecordVerificationInput.model_validate(changed), (identifier,)).outcome
         == "FAIL"
