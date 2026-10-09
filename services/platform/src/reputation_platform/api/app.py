@@ -257,9 +257,13 @@ def create_app(
     def get_plan(run_id: UUID):
         return evaluations.row(run_id)["plan"]
 
-    @app.get("/api/v1/evaluations/{run_id}/verification", response_model=RecordVerificationResult)
+    @app.get(
+        "/api/v1/evaluations/{run_id}/verification",
+        response_model=RecordVerificationResult | tuple[RecordVerificationResult, ...],
+    )
     def get_verification(run_id: UUID):
-        return verification.result(run_id)
+        results = verification.results(run_id)
+        return results[0] if len(results) == 1 else results
 
     @app.post("/api/v1/evaluations/{run_id}/report", response_model=AcceptedJob, status_code=202)
     def request_report(run_id: UUID, actor: str = Depends(operator)):

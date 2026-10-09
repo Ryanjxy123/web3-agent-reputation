@@ -148,6 +148,10 @@ def _expected_rule_version(template: Any) -> str:
         return "1"
     if value.endswith("@2"):
         return "2"
+    if value.endswith("@3"):
+        return "3"
+    if value.endswith("@4"):
+        return "4"
     _fail("RULE_VERSION_MISMATCH", "Run plan uses an unsupported assertion template.")
 
 
@@ -157,7 +161,7 @@ def _bundle_tasks(
     core_data: dict[str, Any],
     records: dict[UUID, EvidenceRecord],
     files: dict[str, bytes],
-) -> list[tuple[Any, UUID, UUID, UUID | None]]:
+) -> list[tuple[Any, UUID, UUID, UUID | None, UUID | None]]:
     """Resolve each planned task to its input, freeze, and optional HTTP evidence."""
     if not isinstance(verification, dict):
         _fail("REPLAY_MISMATCH", "Verification index must be an object.")
@@ -193,6 +197,7 @@ def _bundle_tasks(
             "input_evidence_id",
             "freeze_evidence_id",
             "agent_http_evidence_id",
+            "initial_http_evidence_id",
         }:
             _fail("REPLAY_MISMATCH", "Task replay entry contains unexpected fields.")
         slot_key = row.get("slot_id")
@@ -205,6 +210,10 @@ def _bundle_tasks(
             http_id = (
                 UUID(row["agent_http_evidence_id"]) if row.get("agent_http_evidence_id") else None
             )
+            initial_id = (
+                UUID(row["initial_http_evidence_id"])
+                if row.get("initial_http_evidence_id") else None
+            )
         except (KeyError, TypeError, ValueError) as exc:
             raise VerificationError(
                 "MISSING_EVIDENCE", "Task replay references are invalid."
@@ -213,9 +222,10 @@ def _bundle_tasks(
             input_id not in records
             or freeze_id not in records
             or (http_id is not None and http_id not in records)
+            or (initial_id is not None and initial_id not in records)
         ):
             _fail("MISSING_EVIDENCE", "Task replay references evidence absent from the manifest.")
-        resolved.append((planned[slot_key], input_id, freeze_id, http_id))
+        resolved.append((planned[slot_key], input_id, freeze_id, http_id, initial_id))
     if seen != set(planned):
         _fail("REPLAY_MISMATCH", "Task replay index does not cover every planned task.")
     schema_version = core_data.get("schema_version", "1.0.0")
@@ -225,19 +235,28 @@ def _bundle_tasks(
         (rule_version == "1" and schema_version == "1.0.0" and not new_index)
         or (rule_version == "2" and schema_version == "1.0.0" and not new_index)
         or (rule_version == "2" and schema_version == "1.1.0" and new_index)
+        or (
+            (rule_version, schema_version) in {("3", "1.2.0"), ("4", "1.3.0")} and new_index
+            and plan.suite_id == "formal-evaluation-v1"
+        )
     )
+    if schema_version not in {"1.2.0", "1.3.0"} and (
+        plan.suite_id == "formal-evaluation-v1" or any(row[4] for row in resolved)
+    ):
+        valid_format = False
     if not valid_format:
         _fail(
             "RULE_VERSION_MISMATCH", "Report, assertion rules, and replay index versions disagree."
         )
-    return resolved
+    by_slot = {item[0].slot_id: item for item in resolved}
+    return [by_slot[slot.slot_id] for slot in plan.slots]
 
 
 def _verify_task_documents(
     aliases: dict[str, bytes],
     records: dict[UUID, EvidenceRecord],
     files: dict[str, bytes],
-    tasks: list[tuple[Any, UUID, UUID, UUID | None]],
+    tasks: list[tuple[Any, UUID, UUID, UUID | None, UUID | None]],
     expected_version: str,
     *,
     evaluated_at: str,
@@ -259,7 +278,7 @@ def _verify_task_documents(
     except (TypeError, ValueError) as exc:
         raise VerificationError("REPLAY_MISMATCH", "Observation evidence is invalid.") from exc
     inputs: list[RecordVerificationInput] = []
-    for slot, input_id, freeze_id, http_id in tasks:
+    for slot, input_id, freeze_id, http_id, initial_id in tasks:
         input_record, freeze_record = records[input_id], records[freeze_id]
         if input_record.source != "record-verification-input" or (
             input_id != freeze_id and freeze_record.source != "report-freeze-verification-input"
@@ -294,7 +313,7 @@ def _verify_task_documents(
         original_result = verify_record(task_input, (input_id,))
         frozen_result = verify_record(frozen_input, (input_id,))
         historical_rpc_unknown = (
-            task_input.rule_version == "2"
+            task_input.rule_version in {"2", "3", "4"}
             and original_result.outcome == Outcome.UNKNOWN
             and task_input.evm.error_reason == Reason.PLATFORM_RPC_ERROR
         )
@@ -354,9 +373,46 @@ def _verify_task_documents(
                 ) from exc
             if raw_http != task_input.agent_http:
                 _fail("EVIDENCE_INCONSISTENT", "Agent HTTP evidence differs from replay input.")
+        if initial_id is None:
+            if task_input.initial_agent_http is not None:
+                _fail("MISSING_EVIDENCE", "Initial HTTP response has no committed reference.")
+        else:
+            initial_record = records[initial_id]
+            initial_observations = [
+                item for item in task_observations
+                if item.attempt_no == 1 and not item.diagnostic_only
+                and item.dispatch_state != "SETTLED"
+            ]
+            if (
+                initial_record.source != "agent-task-response"
+                or task_input.initial_agent_http is None
+                or _json(files, initial_record.path) != task_input.initial_agent_http
+                or len(initial_observations) != 1
+                or initial_id not in initial_observations[0].evidence_refs
+                or task_input.initial_agent_http.get("method") != "POST"
+                or task_input.initial_agent_http.get("request_id") != slot.task.request_id
+                or any(
+                    getattr(initial_observations[0], field)
+                    != task_input.initial_agent_http.get(field)
+                    for field in ("started_at", "ended_at", "http_status", "latency_ms")
+                )
+            ):
+                _fail("EVIDENCE_INCONSISTENT", "Initial HTTP evidence differs from the task.")
         inputs.append(task_input)
-    expected_bindings = [item.binding.model_dump(mode="json") for item in inputs if item.binding]
-    expected_grants = [item.grant.model_dump(mode="json") for item in inputs if item.grant]
+    def unique_documents(field: str, identifier: str) -> list[dict[str, Any]]:
+        expected: dict[str, dict[str, Any]] = {}
+        for item in inputs:
+            value = getattr(item, field)
+            if value is None:
+                continue
+            key, body = str(getattr(value, identifier)), value.model_dump(mode="json")
+            if key in expected and expected[key] != body:
+                _fail("EVIDENCE_INCONSISTENT", "Shared context ID contains different documents.")
+            expected[key] = body
+        return list(expected.values())
+
+    expected_bindings = unique_documents("binding", "binding_id")
+    expected_grants = unique_documents("grant", "grant_id")
     if bindings != expected_bindings or grants != expected_grants:
         _fail("EVIDENCE_INCONSISTENT", "Binding or access grant document differs from task input.")
     if {item.slot_id for item in observations} != {task[0].slot_id for task in tasks}:
@@ -520,6 +576,11 @@ def _live_task_check(
 ) -> dict[str, Any]:
     if historical_outcome == Outcome.NOT_APPLICABLE:
         return {"status": "NOT_REQUIRED", "reason_code": historical_reason}
+    if data.rule_version in {"3", "4"} and data.slot.case_kind == "negative":
+        return {
+            "status": "NOT_REQUIRED", "reason_code": historical_reason,
+            "reason": "frozen HTTP rejection is replayed without sending the invalid request",
+        }
     original = verify_record(data, (evidence_id,))
     if any(
         item.rule_id == "agent.service" and item.outcome == Outcome.FAIL
@@ -645,21 +706,21 @@ def verify_bundle(
             _fail("REPLAY_MISMATCH", "Run plan must be an object.")
         expected_version = _expected_rule_version(plan_data.get("template_version"))
         core_schema = core_data.get("schema_version", "1.0.0")
-        if core_schema not in {"1.0.0", "1.1.0"}:
+        if core_schema not in {"1.0.0", "1.1.0", "1.2.0", "1.3.0"}:
             _fail("RULE_VERSION_MISMATCH", "Report uses an unsupported schema version.")
         if core_schema == "1.0.0" and ("task_results" in core_data or "task_counts" in core_data):
             _fail(
                 "RULE_VERSION_MISMATCH", "Legacy report schema cannot carry task replay summaries."
             )
         reported_tasks = core_data.get("task_results", [])
-        if core_schema == "1.1.0" and (
+        if core_schema in {"1.1.0", "1.2.0", "1.3.0"} and (
             not isinstance(reported_tasks, list)
             or not reported_tasks
             or not isinstance(core_data.get("task_counts"), dict)
         ):
-            _fail("RULE_VERSION_MISMATCH", "Version 1.1 reports require task replay summaries.")
+            _fail("RULE_VERSION_MISMATCH", "Task replay reports require results and counts.")
         if (
-            core_schema == "1.1.0"
+            core_schema in {"1.1.0", "1.2.0", "1.3.0"}
             and isinstance(reported_tasks, list)
             and any(
                 not isinstance(item, dict) or item.get("rule_version") != expected_version
@@ -668,8 +729,8 @@ def verify_bundle(
         ):
             _fail("RULE_VERSION_MISMATCH", "Report task results use a different assertion version.")
         plan = RunPlan.model_validate(plan_data)
-        if len(plan.slots) != 1:
-            _fail("REPLAY_MISMATCH", "Current reports support one task per run.")
+        if len(plan.slots) != 1 and core_schema not in {"1.2.0", "1.3.0"}:
+            _fail("REPLAY_MISMATCH", "Historical reports support one task per run.")
         verification = _json(aliases, "verification.json")
         records = _record_by_id(manifest)
         tasks = _bundle_tasks(verification, plan, core_data, records, files)
@@ -700,8 +761,8 @@ def verify_bundle(
             referenced_ids.update(observation.evidence_refs)
         referenced_ids.update(
             evidence_id
-            for _, input_id, freeze_id, http_id in tasks
-            for evidence_id in (input_id, freeze_id, http_id)
+            for _, input_id, freeze_id, http_id, initial_id in tasks
+            for evidence_id in (input_id, freeze_id, http_id, initial_id)
             if evidence_id is not None
         )
         if not referenced_ids.issubset(records):
@@ -731,7 +792,7 @@ def verify_bundle(
 
         computed_counts = {outcome: 0 for outcome in Outcome}
         expected_tasks = []
-        for (slot, input_id, _, _), task_input, result in zip(tasks, inputs, results, strict=True):
+        for (slot, input_id, _, _, _), task_input, result in zip(tasks, inputs, results, strict=True):
             computed_counts[result.outcome] += 1
             expected_tasks.append(
                 ReportTaskResult(
@@ -743,7 +804,7 @@ def verify_bundle(
                     input_evidence_id=input_id,
                 )
             )
-        if core.schema_version == "1.1.0":
+        if core.schema_version in {"1.1.0", "1.2.0", "1.3.0"}:
             if (
                 tuple(expected_tasks) != core.task_results
                 or core.task_counts is None
@@ -761,14 +822,16 @@ def verify_bundle(
 
         rebuilt = build_report(
             plan,
-            inputs[0],
-            input_ids[0],
+            tuple(inputs) if core.schema_version in {"1.2.0", "1.3.0"} else inputs[0],
+            tuple(input_ids) if core.schema_version in {"1.2.0", "1.3.0"} else input_ids[0],
             tuple(observations),
             policy,
             evaluated_at=core.evaluated_at,
             code_version=core.code_version,
             manifest_hash=manifest_hash,
             previous_report_hash=core.previous_report_hash,
+            report_schema_version="1.3.0" if core.schema_version == "1.3.0"
+            else "1.2.0" if core.schema_version == "1.2.0" else None,
         )
         if core.schema_version == "1.0.0" and rebuilt.schema_version == "1.1.0":
             rebuilt = rebuilt.model_copy(
@@ -811,7 +874,13 @@ def verify_bundle(
         "task_results": replayed_tasks,
         "task_counts": {outcome.value: computed_counts[outcome] for outcome in Outcome},
         "task_count_comparison": "MATCH"
-        if core.schema_version == "1.1.0"
+        if core.schema_version in {"1.1.0", "1.2.0", "1.3.0"}
         else "NOT_AVAILABLE_LEGACY_REPORT",
+        "assessment_comparison": "MATCH"
+        if core.schema_version == "1.3.0" else "NOT_AVAILABLE_LEGACY_REPORT",
+        **({
+            "evidence_sufficiency": core.evidence_sufficiency.model_dump(mode="json"),
+            "risk_assessment": core.risk_assessment.model_dump(mode="json"),
+        } if core.evidence_sufficiency is not None and core.risk_assessment is not None else {}),
         "anchor": anchor,
     }

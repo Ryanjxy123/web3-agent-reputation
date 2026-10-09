@@ -677,7 +677,7 @@ export interface components {
              * Rule Version
              * @enum {string}
              */
-            rule_version: "1" | "2";
+            rule_version: "1" | "2" | "3" | "4";
             /**
              * Slot Id
              * Format: uuid4
@@ -802,6 +802,13 @@ export interface components {
              */
             grant_id: string;
             purpose: components["schemas"]["Purpose"];
+            /**
+             * Request Overrides
+             * @default null
+             */
+            request_overrides: {
+                [key: string]: components["schemas"]["JsonValue"];
+            } | null;
             /** Required Class */
             required_class: string;
             /**
@@ -901,6 +908,24 @@ export interface components {
              * @enum {string}
              */
             task_status: "accepted" | "running" | "succeeded" | "failed";
+        };
+        /** CriticalRisk */
+        CriticalRisk: {
+            /**
+             * Assertion Id
+             * Format: uuid4
+             */
+            assertion_id: string;
+            /** Evidence Refs */
+            evidence_refs: string[];
+            reason_code: components["schemas"]["Reason"];
+            /** Rule Id */
+            rule_id: string;
+            /**
+             * Slot Id
+             * Format: uuid4
+             */
+            slot_id: string;
         };
         /** DeployedContract */
         DeployedContract: {
@@ -1011,12 +1036,19 @@ export interface components {
              * Suite Id
              * @enum {string}
              */
-            suite_id: "m1-smoke-v1" | "capabilities-v1";
+            suite_id: "m1-smoke-v1" | "capabilities-v1" | "formal-evaluation-v1";
             /**
              * Target Contract
              * @default null
              */
             target_contract: string | null;
+            /**
+             * Transaction Cases
+             * @default null
+             */
+            transaction_cases: {
+                [key: string]: string;
+            } | null;
         };
         /** EvaluationRun */
         EvaluationRun: {
@@ -1086,6 +1118,48 @@ export interface components {
             source: string;
             /** Trust Group */
             trust_group: string;
+        };
+        /** EvidenceSufficiency */
+        EvidenceSufficiency: {
+            /** Capabilities */
+            capabilities: {
+                [key: string]: components["schemas"]["JsonValue"];
+            }[];
+            /** Dimensions */
+            dimensions: {
+                [key: string]: components["schemas"]["JsonValue"];
+            };
+            /** Exact Gates */
+            exact_gates: {
+                [key: string]: boolean;
+            };
+            /**
+             * Gate Status
+             * @enum {string}
+             */
+            gate_status: "PASS" | "PARTIAL";
+            /**
+             * Missing Evidence
+             * @default []
+             */
+            missing_evidence: string[];
+            /** Overall Allowed */
+            overall_allowed: boolean;
+            /** Sufficiency Bp */
+            sufficiency_bp: number;
+            /** Task Unknown Bp */
+            task_unknown_bp: number;
+            /** Thresholds */
+            thresholds: {
+                [key: string]: components["schemas"]["JsonValue"];
+            };
+            /**
+             * Uncovered Claims
+             * @default []
+             */
+            uncovered_claims: string[];
+            /** Unknown Or Unresolved Bp */
+            unknown_or_unresolved_bp: number;
         };
         /** EvmReadEvidence */
         EvmReadEvidence: {
@@ -1349,6 +1423,13 @@ export interface components {
             evm: components["schemas"]["EvmReadEvidence"];
             execution_reason: components["schemas"]["Reason"] | null;
             grant: components["schemas"]["AccessGrant"] | null;
+            /**
+             * Initial Agent Http
+             * @default null
+             */
+            initial_agent_http: {
+                [key: string]: components["schemas"]["JsonValue"];
+            } | null;
             /** Intent Persisted At */
             intent_persisted_at: string;
             /** Platform Instance Id */
@@ -1362,7 +1443,7 @@ export interface components {
              * @default 1
              * @enum {string}
              */
-            rule_version: "1" | "2";
+            rule_version: "1" | "2" | "3" | "4";
             /**
              * Schema Version
              * @default record-verification-input-v1
@@ -1410,12 +1491,19 @@ export interface components {
             agent_ref: components["schemas"]["AgentRef"];
             /** Assertions */
             assertions: components["schemas"]["AssertionResult"][];
+            /**
+             * Assessment Rule Version
+             * @default null
+             */
+            assessment_rule_version: "evidence-assessment-v1" | null;
             /** Code Version */
             code_version: string;
             /** Evaluated At */
             evaluated_at: string;
             /** Evidence Manifest Hash */
             evidence_manifest_hash: string;
+            /** @default null */
+            evidence_sufficiency: components["schemas"]["EvidenceSufficiency"] | null;
             /** Limitations */
             limitations: string[];
             /** Observation End */
@@ -1440,6 +1528,8 @@ export interface components {
             raw_statistics: {
                 [key: string]: components["schemas"]["JsonValue"];
             };
+            /** @default null */
+            risk_assessment: components["schemas"]["RiskAssessment"] | null;
             /**
              * Run Id
              * Format: uuid4
@@ -1450,8 +1540,13 @@ export interface components {
              * @default 1.0.0
              * @enum {string}
              */
-            schema_version: "1.0.0" | "1.1.0";
+            schema_version: "1.0.0" | "1.1.0" | "1.2.0" | "1.3.0";
             scores: components["schemas"]["ScoreResult"];
+            /**
+             * Scoring Rule Version
+             * @default null
+             */
+            scoring_rule_version: "three-dimensional-v1" | null;
             /** Snapshot Hash */
             snapshot_hash: string;
             /** @default null */
@@ -1461,6 +1556,11 @@ export interface components {
              * @default []
              */
             task_results: components["schemas"]["ReportTaskResult"][];
+            /**
+             * Task Success Rate Bp
+             * @default null
+             */
+            task_success_rate_bp: number | null;
         };
         /** ReportTaskResult */
         ReportTaskResult: {
@@ -1480,7 +1580,7 @@ export interface components {
              * Rule Version
              * @enum {string}
              */
-            rule_version: "1" | "2";
+            rule_version: "1" | "2" | "3" | "4";
             /**
              * Slot Id
              * Format: uuid4
@@ -1498,6 +1598,29 @@ export interface components {
              * Format: uuid4
              */
             report_id: string;
+        };
+        /** RiskAssessment */
+        RiskAssessment: {
+            /**
+             * Conclusion
+             * @enum {string}
+             */
+            conclusion: "CONFIRMED_CRITICAL_CONFLICT" | "NO_CONFIRMED_CRITICAL_CONFLICT";
+            /**
+             * Critical Findings
+             * @default []
+             */
+            critical_findings: components["schemas"]["CriticalRisk"][];
+            /**
+             * Evidence Gap Slots
+             * @default []
+             */
+            evidence_gap_slots: string[];
+            /**
+             * Ordinary Failure Slots
+             * @default []
+             */
+            ordinary_failure_slots: string[];
         };
         /** RunPlan */
         RunPlan: {
@@ -1543,12 +1666,12 @@ export interface components {
              * Suite Id
              * @enum {string}
              */
-            suite_id: "m1-smoke-v1" | "capabilities-v1";
+            suite_id: "m1-smoke-v1" | "capabilities-v1" | "formal-evaluation-v1";
             /**
              * Template Version
              * @enum {string}
              */
-            template_version: "anchor_record@1" | "capabilities@1" | "anchor_record@2" | "capabilities@2";
+            template_version: "anchor_record@1" | "capabilities@1" | "anchor_record@2" | "capabilities@2" | "capabilities@3" | "capabilities@4";
         };
         /**
          * RunStage
@@ -1736,6 +1859,12 @@ export interface components {
              * @enum {string}
              */
             capability_id: "get_tx_status" | "verify_record" | "anchor_record";
+            /**
+             * Completion Kind
+             * @default execution
+             * @enum {string}
+             */
+            completion_kind: "execution" | "rejection";
             /** Executor */
             executor: string;
             /** Log Index */
@@ -2329,7 +2458,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RecordVerificationResult"];
+                    "application/json": components["schemas"]["RecordVerificationResult"] | components["schemas"]["RecordVerificationResult"][];
                 };
             };
             /** @description Validation Error */

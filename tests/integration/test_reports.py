@@ -2,6 +2,7 @@
 
 import asyncio
 import io
+import time
 import zipfile
 from concurrent.futures import ThreadPoolExecutor
 from uuid import uuid4
@@ -190,4 +191,24 @@ def test_report_commit_before_job_ack_is_recovered_without_new_revision(prepared
         old.complete(lease)
     assert service.for_run(lease.run_id) == first
     with identity.db.connect() as connection:
+        assert connection.scalar(select(func.count()).select_from(reports)) == 1
+
+
+def test_slow_report_replay_does_not_hold_the_fenced_job_row(prepared, monkeypatch):
+    """A slow pure replay must leave the short lease heartbeat free to renew."""
+    complete(prepared)
+    identity = prepared[0][1]
+    service = ReportService(identity.db, identity)
+    from reputation_platform.application import reports as report_module
+
+    original = report_module.build_report
+
+    def slow_replay(*args, **kwargs):
+        time.sleep(2)
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(report_module, "build_report", slow_replay)
+    assert asyncio.run(Worker(identity.db, {"report": service.freeze}, lease_seconds=1).run_once())
+    with identity.db.connect() as connection:
+        assert connection.scalar(select(jobs.c.state).where(jobs.c.kind == "report")) == "SUCCEEDED"
         assert connection.scalar(select(func.count()).select_from(reports)) == 1

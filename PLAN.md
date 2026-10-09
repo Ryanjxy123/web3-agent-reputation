@@ -66,3 +66,14 @@
 陌生队友克隆仓库后，可按 README 创建本地配置，运行迁移/合约部署/受控样本/demo/test/verify；不需要负责人电脑里的未提交文件。
 报告里的每一个核心判断能追到任务、原始脱敏证据、断言和固定规则。失败/未知也能演示。
 不得用静态假数据声称系统已测；外网数据、受控实验、历史回放有醒目标识。
+
+## 2026-10-10 本轮范围与阶段结果
+
+仅完成后续任务4（三维评价）和5（充分度/关键风险）；任务4阶段实现、测试、Review修复已通过：292单元/reference、12真实正式评价/报告、3真实Review回归，均无skip；规则与版本见ADR0014/STATUS。
+任务4提交de8fe94。任务5已实现充分度解释/精确gate/证据引用风险/ReportCore1.3，阶段Review及314单元reference、3真实正常/风险/RPC测试通过；复用policy-v1门槛。
+接着执行跨模块Review、全量Python/Web/Foundry/Schema/PostgreSQL/Anvil、提交/PR/CI。
+本轮最终验收仍待完成；不把阶段通过当全量通过，不开始任务6。
+
+最终Review已修复写任务返回字段漏检及畸形RPC误报：新正式计划使用@4/rule4/ReportCore1.3，旧@3在途任务明确保持1.2；340单元/reference、2真实新旧版本回归通过，跨模块Review无剩余阻断。此前全量检查在发现问题后主动中断，不能记为通过，稳定提交后重新执行。quality CI增加到25分钟以容纳约721秒固定正式任务窗口和其余完整检查，测试与评分门槛不变。详细记录见STATUS，最终全量/PR/CI仍待完成。
+
+任务4/5最终验收：稳定代码2379a03完整check.py退出0，Python447/0skip（2247.86s）、Web2、Foundry14（256fuzz）、Ruff/Mypy53/57Schema/TS/ABI全通过。PR#5的代码CI run37967395116在同head下quality/Compose均SUCCESS，CI Python447/0skip（869.28s）；四个历史A/D ZIP最终重放PASS且不升级。最终设计和Review修复见STATUS/ADR0014/0015。验收文档提交后需继续检查最新head CI再按授权合并及同步main；本轮任务4/5实现验收完成，停止任务6。

@@ -48,8 +48,9 @@ class RecordVerificationInput(Model):
     dispatch_payload_hash: Hash32 | None
     registry_witness: RegistryWitness | None
     execution_reason: Reason | None
-    rule_version: Literal["1", "2"] = "1"
+    rule_version: Literal["1", "2", "3", "4"] = "1"
     agent_http: dict[str, JsonValue] | None = None
+    initial_agent_http: dict[str, JsonValue] | None = None
     agent_response: JsonValue = None
     agent_result: TaskResult | None = None
     agent_task_status: Literal["accepted", "running", "succeeded", "failed"] | None = None
@@ -58,7 +59,9 @@ class RecordVerificationInput(Model):
     @model_serializer(mode="wrap")
     def wire(self, handler):
         value = handler(self)
-        for name in ("agent_http", "agent_response", "agent_result", "agent_task_status"):
+        for name in (
+            "agent_http", "initial_agent_http", "agent_response", "agent_result", "agent_task_status"
+        ):
             if value.get(name) is None:
                 value.pop(name, None)
         if self.rule_version == "1":

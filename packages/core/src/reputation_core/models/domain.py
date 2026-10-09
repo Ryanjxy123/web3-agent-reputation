@@ -1,6 +1,6 @@
 """Frozen, versioned wire contracts. No implicit clock, random state, or I/O."""
 
-from typing import Literal, Self
+from typing import Annotated, Literal, Self, cast
 
 from pydantic import UUID4, Field, JsonValue, model_serializer, model_validator
 
@@ -293,12 +293,15 @@ class CaseSlot(Model):
     grant_id: UUID4
     synthetic_input: dict[str, JsonValue] | None = None
     applicability_reason: Literal[Reason.CAPABILITY_NOT_DECLARED] | None = None
+    request_overrides: dict[str, JsonValue] | None = None
 
     @model_serializer(mode="wrap")
     def wire(self, handler):
         value = handler(self)
         if self.applicability_reason is None:
             value.pop("applicability_reason", None)
+        if self.request_overrides is None:
+            value.pop("request_overrides", None)
         return value
 
     @model_validator(mode="after")
@@ -345,9 +348,9 @@ class RunPlan(Model):
     policy_hash: Hash32
     profile: Profile
     confirmed_capabilities: tuple[Capability, ...]
-    suite_id: Literal["m1-smoke-v1", "capabilities-v1"]
+    suite_id: Literal["m1-smoke-v1", "capabilities-v1", "formal-evaluation-v1"]
     template_version: Literal[
-        "anchor_record@1", "capabilities@1", "anchor_record@2", "capabilities@2"
+        "anchor_record@1", "capabilities@1", "anchor_record@2", "capabilities@2", "capabilities@3", "capabilities@4"
     ]
     planning_time: Timestamp
     planning_evidence_refs: tuple[UUID4, ...] = ()
@@ -355,6 +358,18 @@ class RunPlan(Model):
 
     @model_validator(mode="after")
     def frozen_identity(self) -> Self:
+        formal = self.suite_id == "formal-evaluation-v1"
+        if formal != (self.template_version in {"capabilities@3", "capabilities@4"}):
+            raise ValueError("formal suites require their own assertion template")
+        if not formal and any(slot.request_overrides is not None for slot in self.slots):
+            raise ValueError("legacy suites cannot contain request overrides")
+        if formal and any(
+            slot.request_overrides is not None and slot.case_kind != "negative"
+            or slot.case_kind == "negative" and slot.purpose != Purpose.FUNCTIONAL
+            or slot.purpose == Purpose.AVAILABILITY and slot.capability_id == "anchor_record"
+            for slot in self.slots
+        ):
+            raise ValueError("formal slots require safe availability and functional rejection probes")
         if self.profile == "record-read-v1" and (
             "anchor_record" in self.confirmed_capabilities
             or any(
@@ -411,7 +426,7 @@ class AssertionResult(Model):
     assertion_id: UUID4
     slot_id: UUID4
     rule_id: Version
-    rule_version: Literal["1", "2"]
+    rule_version: Literal["1", "2", "3", "4"]
     outcome: Outcome
     reason_code: Reason | None
     expected: JsonValue
@@ -432,6 +447,7 @@ class AssertionResult(Model):
 
 class TaskLink(Model):
     capability_id: Capability = "anchor_record"
+    completion_kind: Literal["execution", "rejection"] = "execution"
     request_id: Challenge
     candidate_tx_hash: Hash32 | None
     verified_tx_hash: Hash32 | None
@@ -443,6 +459,13 @@ class TaskLink(Model):
 
     @model_validator(mode="after")
     def verified(self) -> Self:
+        if self.completion_kind == "rejection":
+            if any(value is not None for value in (
+                self.candidate_tx_hash, self.verified_tx_hash,
+                self.block_number, self.block_hash, self.log_index,
+            )):
+                raise ValueError("rejection cannot claim a transaction or chain location")
+            return self
         if self.verified_tx_hash is not None and (
             self.verified_tx_hash != self.candidate_tx_hash
             or self.block_number is None
@@ -478,6 +501,8 @@ class TaskLink(Model):
         value = handler(self)
         if self.capability_id == "anchor_record":
             value.pop("capability_id", None)
+        if self.completion_kind == "execution":
+            value.pop("completion_kind", None)
         return value
 
 
@@ -552,7 +577,7 @@ class ReportTaskResult(Model):
     capability_id: Capability
     outcome: Outcome
     reason_code: Reason | None
-    rule_version: Literal["1", "2"]
+    rule_version: Literal["1", "2", "3", "4"]
     input_evidence_id: UUID4
 
     @model_validator(mode="after")
@@ -581,8 +606,37 @@ class TaskOutcomeCounts(Model):
         }
 
 
+class EvidenceSufficiency(Model):
+    thresholds: dict[str, JsonValue]
+    dimensions: dict[str, JsonValue]
+    capabilities: tuple[dict[str, JsonValue], ...]
+    unknown_or_unresolved_bp: BasisPoints
+    task_unknown_bp: BasisPoints
+    sufficiency_bp: BasisPoints
+    exact_gates: dict[str, Annotated[bool, Field(strict=True)]]
+    uncovered_claims: tuple[str, ...] = ()
+    missing_evidence: tuple[SafeText, ...] = ()
+    gate_status: Literal["PASS", "PARTIAL"]
+    overall_allowed: bool = Field(strict=True)
+
+
+class CriticalRisk(Model):
+    slot_id: UUID4
+    assertion_id: UUID4
+    rule_id: Version
+    reason_code: Reason
+    evidence_refs: tuple[UUID4, ...] = Field(min_length=1)
+
+
+class RiskAssessment(Model):
+    conclusion: Literal["CONFIRMED_CRITICAL_CONFLICT", "NO_CONFIRMED_CRITICAL_CONFLICT"]
+    critical_findings: tuple[CriticalRisk, ...] = ()
+    ordinary_failure_slots: tuple[UUID4, ...] = ()
+    evidence_gap_slots: tuple[UUID4, ...] = ()
+
+
 class ReportCore(Model):
-    schema_version: Literal["1.0.0", "1.1.0"] = "1.0.0"
+    schema_version: Literal["1.0.0", "1.1.0", "1.2.0", "1.3.0"] = "1.0.0"
     agent_ref: AgentRef
     agent_key_hash: Hash32
     snapshot_hash: Hash32
@@ -599,6 +653,11 @@ class ReportCore(Model):
     assertions: tuple[AssertionResult, ...]
     task_results: tuple[ReportTaskResult, ...] = ()
     task_counts: TaskOutcomeCounts | None = None
+    scoring_rule_version: Literal["three-dimensional-v1"] | None = None
+    assessment_rule_version: Literal["evidence-assessment-v1"] | None = None
+    task_success_rate_bp: BasisPoints | None = None
+    evidence_sufficiency: EvidenceSufficiency | None = None
+    risk_assessment: RiskAssessment | None = None
     evidence_manifest_hash: Hash32
     previous_report_hash: Hash32
     limitations: tuple[SafeText, ...] = Field(min_length=1)
@@ -609,6 +668,14 @@ class ReportCore(Model):
         if self.schema_version == "1.0.0":
             value.pop("task_results", None)
             value.pop("task_counts", None)
+        if self.schema_version not in {"1.2.0", "1.3.0"}:
+            value.pop("scoring_rule_version", None)
+        if self.schema_version != "1.3.0":
+            value.pop("assessment_rule_version", None)
+            value.pop("evidence_sufficiency", None)
+            value.pop("risk_assessment", None)
+        if self.schema_version not in {"1.2.0", "1.3.0"}:
+            value.pop("task_success_rate_bp", None)
         return value
 
     @model_validator(mode="after")
@@ -617,6 +684,18 @@ class ReportCore(Model):
             raise ValueError("invalid report observation window")
         if self.profile != self.scores.profile or self.policy_version != self.scores.policy_version:
             raise ValueError("report and scores disagree")
+        if (self.schema_version in {"1.2.0", "1.3.0"}) != (self.scoring_rule_version is not None):
+            raise ValueError("formal report requires an explicit scoring rule version")
+        if self.schema_version not in {"1.2.0", "1.3.0"} and self.task_success_rate_bp is not None:
+            raise ValueError("legacy report cannot carry formal task success rate")
+        assessment_fields = (
+            self.assessment_rule_version, self.evidence_sufficiency, self.risk_assessment
+        )
+        if (
+            self.schema_version == "1.3.0" and any(value is None for value in assessment_fields)
+            or self.schema_version != "1.3.0" and any(value is not None for value in assessment_fields)
+        ):
+            raise ValueError("formal assessment fields require report schema 1.3.0")
         if self.schema_version == "1.0.0":
             if self.task_results or self.task_counts is not None:
                 raise ValueError("legacy report cannot carry task replay summaries")
@@ -633,12 +712,59 @@ class ReportCore(Model):
         }:
             raise ValueError("task result counts disagree")
         versions = {item.slot_id: item.rule_version for item in self.task_results}
+        if self.schema_version in {"1.2.0", "1.3.0"}:
+            expected_rule = "4" if self.schema_version == "1.3.0" else "3"
+            if any(version != expected_rule for version in versions.values()):
+                raise ValueError(f"formal report requires task rule version {expected_rule}")
+            decided = expected[Outcome.PASS] + expected[Outcome.FAIL]
+            success_rate = (
+                (2 * expected[Outcome.PASS] * 10_000 + decided) // (2 * decided)
+                if decided else None
+            )
+            if self.task_success_rate_bp != success_rate:
+                raise ValueError("formal task success rate disagrees with task results")
         if any(
             assertion.slot_id not in versions
             or assertion.rule_version != versions[assertion.slot_id]
             for assertion in self.assertions
         ):
             raise ValueError("task assertion rules do not match reported slots")
+        if self.schema_version == "1.3.0":
+            assert self.evidence_sufficiency is not None and self.risk_assessment is not None
+            sufficient = self.evidence_sufficiency
+            if (
+                sufficient.overall_allowed != (self.scores.overall_score_bp is not None)
+                or sufficient.gate_status != ("PASS" if sufficient.overall_allowed else "PARTIAL")
+                or sufficient.sufficiency_bp != self.scores.sufficiency_bp
+            ):
+                raise ValueError("sufficiency gates and scores disagree")
+            expected_risks = tuple(
+                CriticalRisk(
+                    slot_id=assertion.slot_id, assertion_id=assertion.assertion_id,
+                    rule_id=assertion.rule_id, reason_code=cast(Reason, assertion.reason_code),
+                    evidence_refs=assertion.evidence_refs,
+                )
+                for assertion in sorted(self.assertions, key=lambda item: str(item.assertion_id))
+                if assertion.critical and assertion.outcome == Outcome.FAIL
+            )
+            critical_slots = {item.slot_id for item in expected_risks}
+            evidence_gap_slots = {item.slot_id for item in self.assertions if item.outcome == Outcome.UNKNOWN}
+            risk = self.risk_assessment
+            if (
+                risk.critical_findings != expected_risks
+                or bool(expected_risks) != self.scores.critical_conflict
+                or risk.conclusion != (
+                    "CONFIRMED_CRITICAL_CONFLICT" if expected_risks else "NO_CONFIRMED_CRITICAL_CONFLICT"
+                )
+                or risk.ordinary_failure_slots != tuple(
+                    item.slot_id for item in self.task_results
+                    if item.outcome == Outcome.FAIL and item.slot_id not in critical_slots
+                )
+                or risk.evidence_gap_slots != tuple(
+                    item.slot_id for item in self.task_results if item.slot_id in evidence_gap_slots
+                )
+            ):
+                raise ValueError("risk assessment and task assertions disagree")
         return self
 
 

@@ -1,12 +1,14 @@
 from copy import deepcopy
 from pathlib import Path
-from uuid import uuid4
+from uuid import UUID, uuid4
 from zipfile import ZipFile
 
 import pytest
+from reputation_core.case_templates import mutated_payload
 from reputation_core.evidence import canonical_bytes, hash_bytes, hash_json, strict_json
 from reputation_core.models import (
     AnchorReceipt,
+    DispatchState,
     EvidenceManifest,
     EvidenceRecord,
     ManifestDocument,
@@ -40,20 +42,178 @@ def test_verifier_rejects_path_traversal(tmp_path):
     assert failure.value.code == "UNSAFE_ARCHIVE"
 
 
+def test_formal_report_replays_scores_and_distinct_task_success_rate(tmp_path):
+    path, _, _, _ = make_bundle(tmp_path, formal=True)
+    result = verify_bundle(str(path))
+    assert result["offline"] == "PASS"
+    assert result["task_counts"]["PASS"] == 1
+    with ZipFile(path) as archive:
+        core = strict_json(archive.read("report_core.json"))
+    assert core["schema_version"] == "1.3.0"
+    assert core["task_success_rate_bp"] == 10000
+    assert core["scores"]["overall_score_bp"] is None
+
+
+@pytest.mark.parametrize("field", ["task_success_rate_bp", "raw_statistics", "scores"])
+def test_formal_scoring_tampering_is_rejected_after_rehash(tmp_path, field):
+    path, _, _, _ = make_bundle(tmp_path, formal=True)
+    changed = tmp_path / "changed-formal.zip"
+
+    def change(core):
+        if field == "task_success_rate_bp":
+            core[field] = 0
+        elif field == "raw_statistics":
+            core[field]["capabilities"][0]["mapping"] = 0
+        else:
+            core[field]["dimensions"]["consistency"]["observed_score_bp"] = 0
+
+    rewrite_bundle(path, changed, core_change=change)
+    with pytest.raises(VerificationError) as failure:
+        verify_bundle(str(changed))
+    assert failure.value.code == "REPLAY_MISMATCH"
+
+
+def test_formal_initial_http_evidence_tamper_is_rejected(tmp_path):
+    path, _, _, _ = make_bundle(tmp_path, formal=True)
+    with ZipFile(path) as archive:
+        index = strict_json(archive.read("verification.json"))
+    initial_id = UUID(index["tasks"][0]["initial_http_evidence_id"])
+    changed = tmp_path / "changed-initial.zip"
+    rewrite_bundle(path, changed, evidence_change={
+        initial_id: lambda value: value.update(latency_ms=99999),
+    })
+    with pytest.raises(VerificationError) as failure:
+        verify_bundle(str(changed))
+    assert failure.value.code == "EVIDENCE_INCONSISTENT"
+
+
+def test_formal_initial_http_cannot_be_reclassified_as_retry(tmp_path):
+    path, _, _, _ = make_bundle(tmp_path, formal=True)
+    changed = tmp_path / "retry-is-initial.zip"
+
+    def mark_retry(observations):
+        observations[0].update(attempt_no=2, diagnostic_only=True)
+
+    rewrite_bundle(path, changed, document_change={"observations.json": mark_retry})
+    with pytest.raises(VerificationError) as failure:
+        verify_bundle(str(changed))
+    assert failure.value.code == "EVIDENCE_INCONSISTENT"
+
+
+def test_formal_negative_replays_correct_rejection_and_actual_payload_hash(tmp_path):
+    path, input_id, freeze_id, _ = make_bundle(tmp_path, formal=True, case="rejection")
+    assert verify_bundle(str(path))["task_counts"]["PASS"] == 1
+    changed = tmp_path / "baseline-payload.zip"
+
+    def baseline_hash(value):
+        value["dispatch_payload_hash"] = hash_json(value["slot"]["task"])
+
+    rewrite_bundle(path, changed, evidence_change={
+        input_id: baseline_hash, freeze_id: baseline_hash,
+    })
+    with pytest.raises(VerificationError) as failure:
+        verify_bundle(str(changed))
+    assert failure.value.code == "REPLAY_MISMATCH"
+
+
+def test_formal_v12_report_remains_recognized_without_assessment_upgrade(tmp_path):
+    path, _, _, _ = make_bundle(tmp_path, formal=True, report_schema_version="1.2.0")
+    with ZipFile(path) as archive:
+        core = strict_json(archive.read("report_core.json"))
+    assert core["schema_version"] == "1.2.0"
+    assert "assessment_rule_version" not in core
+    assert "evidence_sufficiency" not in core and "risk_assessment" not in core
+    result = verify_bundle(str(path))
+    assert result["offline"] == "PASS" and result["task_count_comparison"] == "MATCH"
+    assert result["assessment_comparison"] == "NOT_AVAILABLE_LEGACY_REPORT"
+    assert "evidence_sufficiency" not in result and "risk_assessment" not in result
+
+
+@pytest.mark.parametrize("field", [
+    "sufficiency", "sufficiency_gate", "risk_conclusion", "risk_evidence", "rule_version",
+])
+def test_verifier_rejects_assessment_tampering_even_after_rehash(tmp_path, field):
+    path, _, _, _ = make_bundle(tmp_path, formal=True, case="critical")
+    original = verify_bundle(str(path))
+    assert original["assessment_comparison"] == "MATCH"
+    assert original["risk_assessment"]["critical_findings"]
+    changed = tmp_path / f"assessment-{field}.zip"
+
+    def alter(core):
+        if field == "sufficiency":
+            core["evidence_sufficiency"]["task_unknown_bp"] = 10000
+        elif field == "sufficiency_gate":
+            core["evidence_sufficiency"]["overall_allowed"] = True
+            core["evidence_sufficiency"]["gate_status"] = "PASS"
+        elif field == "risk_conclusion":
+            core["risk_assessment"]["critical_findings"] = []
+            core["risk_assessment"]["conclusion"] = "NO_CONFIRMED_CRITICAL_CONFLICT"
+        elif field == "risk_evidence":
+            core["risk_assessment"]["critical_findings"][0]["evidence_refs"] = [str(uuid4())]
+        else:
+            core["assessment_rule_version"] = "evidence-assessment-v2"
+
+    rewrite_bundle(path, changed, core_change=alter)
+    with pytest.raises(VerificationError) as failure:
+        verify_bundle(str(changed))
+    assert failure.value.code == "REPLAY_MISMATCH"
+
+
+def test_formal_v13_cannot_be_relabeled_as_legacy_with_assessment_fields(tmp_path):
+    path, _, _, _ = make_bundle(tmp_path, formal=True)
+    changed = tmp_path / "relabeled-assessment.zip"
+    rewrite_bundle(path, changed, core_change=lambda core: core.update(schema_version="1.2.0"))
+    with pytest.raises(VerificationError) as failure:
+        verify_bundle(str(changed))
+    assert failure.value.code == "RULE_VERSION_MISMATCH"
+
+
 def make_bundle(
-    tmp_path, *, rule_version="2", legacy_index=False, case="pass", identical_freeze=False
+    tmp_path, *, rule_version="2", legacy_index=False, case="pass", identical_freeze=False,
+    formal=False, report_schema_version=None,
 ):
+    if formal:
+        rule_version = "3" if report_schema_version == "1.2.0" else "4"
     raw_input = (
+        reverted_anchor_input().model_dump(mode="json")
+        if case == "critical"
+        else
         excluded_input()
         if case == "not_applicable"
         else v2_task_input(status="NOT_FOUND")
         if case == "unknown"
         else v2_task_input()
-        if rule_version == "2"
+        if rule_version in {"2", "3", "4"}
         else read_input(status="SUCCESS").model_dump(mode="json")
     )
+    if formal:
+        raw_input["rule_version"] = rule_version
+        if case != "not_applicable":
+            raw_input["slot"]["required_class"] = "normal" if case == "critical" else "success"
+        if raw_input.get("agent_http") is not None:
+            raw_input["initial_agent_http"] = {
+                **deepcopy(raw_input["agent_http"]), "method": "POST", "path": "/tasks",
+                "latency_ms": 0,
+            }
+    if case == "rejection":
+        raw_input["slot"].update(case_kind="negative", required_class="invalid_format")
+        response = {"accepted": False, "error": {"code": "SCHEMA_ERROR"}}
+        raw_input.update(agent_response=response, agent_result=None, agent_task_status=None)
+        for field in ("agent_http", "initial_agent_http"):
+            raw_input[field].update(
+                method="POST", path="/tasks", http_status=422, response=response,
+            )
+        raw_input["agent_http"] = deepcopy(raw_input["initial_agent_http"])
+        from reputation_core.models import CaseSlot
+        raw_input["dispatch_payload_hash"] = hash_json(
+            mutated_payload(CaseSlot.model_validate(raw_input["slot"]))
+        )
+        raw_input["evm"]["candidate_tx_hash"] = None
     if case == "fail":
         claim_result(raw_input, tx_status="REVERTED")
+    if case == "critical":
+        raw_input["evm"]["results"]["transaction"]["to"] = "0x" + "22" * 20
+        raw_input["binding"]["verification_evidence"] = []
     if case == "not_applicable":
         raw_input["execution_reason"] = raw_input["slot"]["applicability_reason"]
     if case in {"service_error", "schema_error", "failed_query"}:
@@ -114,9 +274,9 @@ def make_bundle(
         review_version=inputs.review_version,
         policy_version="policy-v1",
         policy_hash=hash_json(policy),
-        profile="record-read-v1",
+        profile="record-write-v1" if case == "critical" else "record-read-v1",
         confirmed_capabilities=inputs.review.confirmed_claims,
-        suite_id="capabilities-v1",
+        suite_id="formal-evaluation-v1" if formal else "capabilities-v1",
         template_version=f"capabilities@{rule_version}",
         planning_time=NOW,
         slots=(inputs.slot,),
@@ -139,6 +299,16 @@ def make_bundle(
         evidence_refs=(http_id,) if http_id else (),
         diagnostic_only=False,
     )
+    initial_id = (
+        http_id if inputs.initial_agent_http == inputs.agent_http else uuid4()
+    ) if formal and inputs.initial_agent_http is not None else None
+    observed = [observation]
+    if initial_id is not None:
+        observed.insert(0, observation.model_copy(update={
+            "observation_id": uuid4(), "dispatch_state": DispatchState.ACKNOWLEDGED,
+            "latency_ms": 0, "http_status": inputs.initial_agent_http["http_status"],
+            "evidence_refs": (initial_id,),
+        }))
     verification = (
         {
             "schema_version": "task-replay-v1",
@@ -148,6 +318,7 @@ def make_bundle(
                     "input_evidence_id": str(input_id),
                     "freeze_evidence_id": str(freeze_id),
                     **({"agent_http_evidence_id": str(http_id)} if http_id else {}),
+                    **({"initial_http_evidence_id": str(initial_id)} if initial_id else {}),
                 }
             ],
         }
@@ -162,7 +333,7 @@ def make_bundle(
         ],
         "bindings.json": [inputs.binding.model_dump(mode="json")] if inputs.binding else [],
         "claims_review.json": inputs.review.model_dump(mode="json"),
-        "observations.json": [observation.model_dump(mode="json")],
+        "observations.json": [item.model_dump(mode="json") for item in observed],
         "policy.json": policy,
         "run_plan.json": plan.model_dump(mode="json"),
         "snapshot_core.json": inputs.snapshot.core.model_dump(mode="json"),
@@ -206,6 +377,8 @@ def make_bundle(
     if inputs.agent_http is not None:
         http_record = add_record(canonical_bytes(inputs.agent_http), "agent-task-response", http_id)
         assert http_record.evidence_id == http_id
+    if initial_id is not None:
+        add_record(canonical_bytes(inputs.initial_agent_http), "agent-task-response", initial_id)
     aliases = []
     for name, body in documents.items():
         record = add_record(canonical_bytes(body), f"report-document:{name}")
@@ -230,14 +403,15 @@ def make_bundle(
     manifest_hash = hash_json(manifest.model_dump(mode="json"))
     report = build_report(
         plan,
-        inputs,
-        input_id,
-        (observation,),
+        (inputs,) if formal else inputs,
+        (input_id,) if formal else input_id,
+        tuple(observed),
         policy,
         evaluated_at="2026-10-02T12:00:01.000Z",
         code_version="0" * 40,
         manifest_hash=manifest_hash,
         previous_report_hash=ZERO,
+        report_schema_version=report_schema_version,
     )
     if legacy_index and rule_version == "2":
         report = report.model_copy(

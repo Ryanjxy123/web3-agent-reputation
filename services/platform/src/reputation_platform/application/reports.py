@@ -1,4 +1,4 @@
-"""Freeze immutable partial reports; export only hash-checked committed evidence."""
+"""Freeze immutable reports; export only hash-checked committed evidence."""
 
 import asyncio
 import io
@@ -67,7 +67,7 @@ class ReportService:
             ) from None
 
     def request(self, run_id: UUID, actor: str) -> AcceptedJob:
-        VerificationService(self.db, self.identity).result(run_id)
+        VerificationService(self.db, self.identity).results(run_id)
         with self.db.begin() as connection:
             identifier = enqueue(
                 connection, "report", f"report:{run_id}", {"run_id": str(run_id)}, run_id
@@ -115,17 +115,21 @@ class ReportService:
         return self.view(identifier)
 
     def prepare(self, run_id: UUID):
-        result = VerificationService(self.db, self.identity).result(run_id)
-        evidence_id = result.assertions[0].evidence_refs[0]
+        results = VerificationService(self.db, self.identity).results(run_id)
+        evidence_ids = tuple(result.assertions[0].evidence_refs[0] for result in results)
         with self.db.connect() as connection:
             plan = RunPlan.model_validate(
                 connection.execute(select(runs.c.plan).where(runs.c.id == run_id)).scalar_one()
             )
-            record = EvidenceRecord.model_validate(
-                connection.execute(
-                    select(evidence_blobs.c.body).where(evidence_blobs.c.id == evidence_id)
-                ).scalar_one()
-            )
+            records = {
+                item.evidence_id: item
+                for item in (
+                    EvidenceRecord.model_validate(body)
+                    for body in connection.execute(
+                        select(evidence_blobs.c.body).where(evidence_blobs.c.id.in_(evidence_ids))
+                    ).scalars()
+                )
+            }
             observed = tuple(
                 Observation.model_validate(body)
                 for body in connection.execute(
@@ -135,52 +139,65 @@ class ReportService:
                     .order_by(observations.c.id)
                 ).scalars()
             )
-        inputs = RecordVerificationInput.model_validate_json(self.read_evidence(record))
-        if verify_record(inputs, (evidence_id,)) != result:
-            raise ApplicationError(
-                409, "ASSERTION_REPLAY_MISMATCH", "Stored assertions differ from evidence replay."
-            )
+        all_inputs = tuple(
+            RecordVerificationInput.model_validate_json(self.read_evidence(records[evidence_id]))
+            for evidence_id in evidence_ids
+        )
         deployment = self.identity.deployment()
-        historical_rpc_unknown = (
-            inputs.rule_version == "2"
-            and result.outcome == "UNKNOWN"
-            and inputs.evm.error_reason == "PLATFORM_RPC_ERROR"
-        )
-        fresh = (
-            inputs
-            if inputs.slot.applicability_reason is not None
-            else inputs.model_copy(
-                update={
-                    "evm": collect_task(
-                        deployment,
-                        inputs.slot,
-                        inputs.evm.candidate_tx_hash,
-                        inputs.registry_witness.snapshot_core.read_block_number
-                        if inputs.registry_witness
-                        else None,
-                    )
-                }
+        refreshed = []
+        for inputs, result, evidence_id in zip(all_inputs, results, evidence_ids, strict=True):
+            if verify_record(inputs, (evidence_id,)) != result:
+                raise ApplicationError(
+                    409,
+                    "ASSERTION_REPLAY_MISMATCH",
+                    "Stored assertions differ from evidence replay.",
+                )
+            historical_rpc_unknown = (
+                inputs.rule_version in {"2", "3", "4"}
+                and result.outcome == "UNKNOWN"
+                and inputs.evm.error_reason == "PLATFORM_RPC_ERROR"
             )
-        )
-        rechecked = verify_record(fresh, (evidence_id,))
-        if fresh.evm.error_reason:
-            retryable = fresh.evm.error_reason == "PLATFORM_RPC_ERROR"
-            raise ApplicationError(
-                503 if retryable else 409,
-                fresh.evm.error_reason,
-                "Trusted chain context is unavailable or changed before report freeze.",
-                retryable=retryable,
+            fresh = (
+                inputs
+                if inputs.slot.applicability_reason is not None
+                else inputs.model_copy(
+                    update={
+                        "evm": collect_task(
+                            deployment,
+                            inputs.slot,
+                            inputs.evm.candidate_tx_hash,
+                            inputs.registry_witness.snapshot_core.read_block_number
+                            if inputs.registry_witness
+                            else None,
+                        )
+                    }
+                )
             )
-        if not historical_rpc_unknown and (
-            [(item.rule_id, item.outcome, item.reason_code) for item in rechecked.assertions]
-            != [(item.rule_id, item.outcome, item.reason_code) for item in result.assertions]
-            or rechecked.task_link != result.task_link
-        ):
-            raise ApplicationError(
-                409,
-                "STALE_EVIDENCE",
-                "Chain evidence changed before report freeze; run a new evaluation.",
-            )
+            if plan.template_version in {"capabilities@3", "capabilities@4"} and inputs.slot.case_kind == "negative":
+                fresh = fresh.model_copy(
+                    update={"evm": fresh.evm.model_copy(update={"candidate_tx_hash": None})}
+                )
+            rechecked = verify_record(fresh, (evidence_id,))
+            if fresh.evm.error_reason:
+                retryable = fresh.evm.error_reason == "PLATFORM_RPC_ERROR"
+                raise ApplicationError(
+                    503 if retryable else 409,
+                    fresh.evm.error_reason,
+                    "Trusted chain context is unavailable or changed before report freeze.",
+                    retryable=retryable,
+                )
+            if not historical_rpc_unknown and (
+                [(item.rule_id, item.outcome, item.reason_code) for item in rechecked.assertions]
+                != [(item.rule_id, item.outcome, item.reason_code) for item in result.assertions]
+                or rechecked.task_link != result.task_link
+            ):
+                raise ApplicationError(
+                    409,
+                    "STALE_EVIDENCE",
+                    "Chain evidence changed before report freeze; run a new evaluation.",
+                )
+            refreshed.append(fresh)
+        inputs = all_inputs[0]
         web3 = local_web3(deployment.rpc_url)
         verify_deployment(web3, deployment, self.identity.root)
         head = web3.eth.get_block("latest")
@@ -204,25 +221,29 @@ class ReportService:
             platform_instance_id=deployment.platform_instance_id,
         )
         now = timestamp()
-        freeze_record = self.identity.evidence.prepare_json(
-            fresh.model_dump(mode="json"),
-            "report-freeze-verification-input",
-            now,
-            "platform-and-local-rpc",
+        frozen = tuple(
+            self.identity.evidence.prepare_json(
+                fresh.model_dump(mode="json"),
+                "report-freeze-verification-input",
+                now,
+                "platform-and-local-rpc",
+            )
+            for fresh in refreshed
         )
         with self.db.begin() as connection:
-            freeze_record = self.identity.evidence.register(connection, freeze_record)
+            frozen = tuple(self.identity.evidence.register(connection, item) for item in frozen)
         policy = strict_json((self.identity.root / "configs/policies/policy-v1.json").read_bytes())
         refs = {
-            evidence_id,
-            freeze_record.evidence_id,
+            *evidence_ids,
+            *(item.evidence_id for item in frozen),
             *plan.planning_evidence_refs,
             *inputs.snapshot.evidence_refs,
             *inputs.review.mapping_evidence_ids,
             *[ref for item in observed for ref in item.evidence_refs],
         }
-        if inputs.binding:
-            refs.update(inputs.binding.verification_evidence)
+        for verification_input in all_inputs:
+            if verification_input.binding:
+                refs.update(verification_input.binding.verification_evidence)
         with self.db.connect() as connection:
             evidence = [
                 EvidenceRecord.model_validate(body)
@@ -234,53 +255,80 @@ class ReportService:
             raise ApplicationError(409, "MISSING_EVIDENCE", "Report evidence is incomplete.")
         for item in evidence:
             self.read_evidence(item)
-        response_record = None
-        if inputs.agent_http is not None:
-            for item in evidence:
-                if item.source != "agent-task-response":
+        task_index = []
+        for inputs, evidence_id, freeze_record in zip(
+            all_inputs, evidence_ids, frozen, strict=True
+        ):
+            entry = {
+                "slot_id": str(inputs.slot.slot_id),
+                "input_evidence_id": str(evidence_id),
+                "freeze_evidence_id": str(freeze_record.evidence_id),
+            }
+            for field, envelope in (
+                ("agent_http_evidence_id", inputs.agent_http),
+                (
+                    "initial_http_evidence_id",
+                    inputs.initial_agent_http if inputs.rule_version in {"3", "4"} else None,
+                ),
+            ):
+                if envelope is None or inputs.rule_version == "1":
                     continue
-                try:
-                    matches = strict_json(self.read_evidence(item)) == inputs.agent_http
-                except (UnicodeError, ValueError):
-                    continue
-                if matches:
-                    response_record = item
-                    break
-        if inputs.rule_version == "2" and inputs.agent_http is not None and not response_record:
-            raise ApplicationError(
-                409,
-                "MISSING_EVIDENCE",
-                "Frozen Agent HTTP envelope has no matching raw response evidence.",
-            )
-        verification_index = {
-            "schema_version": "task-replay-v1",
-            "tasks": [
-                {
-                    "slot_id": str(inputs.slot.slot_id),
-                    "input_evidence_id": str(evidence_id),
-                    "freeze_evidence_id": str(freeze_record.evidence_id),
-                    **(
-                        {"agent_http_evidence_id": str(response_record.evidence_id)}
-                        if response_record and inputs.rule_version == "2"
-                        else {}
-                    ),
-                }
-            ],
-        } if inputs.rule_version == "2" else {
-            "input_evidence_id": str(evidence_id),
-            "freeze_evidence_id": str(freeze_record.evidence_id),
-        }
+                match = None
+                for item in evidence:
+                    if item.source != "agent-task-response":
+                        continue
+                    try:
+                        if strict_json(self.read_evidence(item)) == envelope:
+                            match = item
+                            break
+                    except (UnicodeError, ValueError):
+                        continue
+                if match is None:
+                    raise ApplicationError(
+                        409,
+                        "MISSING_EVIDENCE",
+                        "Frozen Agent HTTP envelope has no matching raw response evidence.",
+                    )
+                entry[field] = str(match.evidence_id)
+            task_index.append(entry)
+        verification_index = (
+            {
+                "schema_version": "task-replay-v1",
+                "tasks": task_index,
+            }
+            if all_inputs[0].rule_version in {"2", "3", "4"}
+            else {
+                "input_evidence_id": str(evidence_ids[0]),
+                "freeze_evidence_id": str(frozen[0].evidence_id),
+            }
+        )
+        inputs = all_inputs[0]
         documents = {
             "policy.json": policy,
             "snapshot_core.json": inputs.snapshot.core.model_dump(mode="json"),
             "run_plan.json": plan.model_dump(mode="json"),
             "claims_review.json": inputs.review.model_dump(mode="json"),
-            "bindings.json": [inputs.binding.model_dump(mode="json")] if inputs.binding else [],
-            "access_grants.json": [inputs.grant.model_dump(mode="json")] if inputs.grant else [],
+            "bindings.json": list(
+                {
+                    str(item.binding.binding_id): item.binding.model_dump(mode="json")
+                    for item in all_inputs
+                    if item.binding
+                }.values()
+            ),
+            "access_grants.json": list(
+                {
+                    str(item.grant.grant_id): item.grant.model_dump(mode="json")
+                    for item in all_inputs
+                    if item.grant
+                }.values()
+            ),
             "observations.json": [item.model_dump(mode="json") for item in observed],
             "assertions.json": [
                 item.model_dump(mode="json")
-                for item in sorted(result.assertions, key=lambda item: str(item.assertion_id))
+                for item in sorted(
+                    (assertion for result in results for assertion in result.assertions),
+                    key=lambda item: str(item.assertion_id),
+                )
             ],
             "verification.json": verification_index,
         }
@@ -307,8 +355,8 @@ class ReportService:
             )
         return (
             plan,
-            inputs,
-            evidence_id,
+            all_inputs if plan.suite_id == "formal-evaluation-v1" else all_inputs[0],
+            evidence_ids if plan.suite_id == "formal-evaluation-v1" else evidence_ids[0],
             observed,
             policy,
             publication,
@@ -321,11 +369,13 @@ class ReportService:
     async def freeze(self, lease: Lease, queue: JobQueue) -> None:
         if lease.run_id is None:
             raise ApplicationError(422, "RUN_REQUIRED", "Report requires a frozen run.")
-        with self.db.connect() as connection:
-            if connection.execute(
-                select(reports.c.id).where(reports.c.run_fk == lease.run_id)
-            ).first():
-                return
+        def already_reported():
+            with self.db.connect() as connection:
+                return connection.execute(
+                    select(reports.c.id).where(reports.c.run_fk == lease.run_id)
+                ).first() is not None
+        if await asyncio.to_thread(already_reported):
+            return
         (
             plan,
             inputs,
@@ -338,7 +388,9 @@ class ReportService:
             evidence,
             prepared,
         ) = await asyncio.to_thread(self.prepare, lease.run_id)
-        key = agent_key_hash(inputs.slot.expected.agent_ref)
+        key = agent_key_hash(
+            (inputs[0] if isinstance(inputs, tuple) else inputs).slot.expected.agent_ref
+        )
         lock = int(
             hash_json(
                 [key, publication.chain.instance_hash, publication.publisher, publication.contract]
@@ -347,6 +399,41 @@ class ReportService:
         )
         if lock >= 2**63:
             lock -= 2**64
+
+        def assemble():
+            records = {item.evidence_id: item for item in evidence}
+            aliases = []
+            for path, item in sorted(prepared.items()):
+                with self.db.begin() as connection:
+                    registered = self.identity.evidence.register(connection, item)
+                records[registered.evidence_id] = registered
+                aliases.append(ManifestDocument(path=path, evidence_id=registered.evidence_id))
+            manifest = EvidenceManifest(
+                publication=publication,
+                documents=tuple(aliases),
+                evidence=tuple(sorted(records.values(), key=lambda item: str(item.evidence_id))),
+            )
+            core = build_report(
+                plan,
+                inputs,
+                evidence_id,
+                observed,
+                policy,
+                evaluated_at=now,
+                code_version=version,
+                manifest_hash=hash_json(manifest.model_dump(mode="json")),
+                previous_report_hash=publication.previous_report_hash,
+                report_schema_version="1.2.0" if plan.template_version == "capabilities@3" else None,
+            )
+            body = core.model_dump(mode="json")
+            return manifest, body, hash_json(body)
+
+        manifest, core_body, report_hash = await asyncio.to_thread(assemble)
+        manifest_body = manifest.model_dump(mode="json")
+        manifest_items = [
+            {"evidence_fk": item.evidence_id, "body": item.model_dump(mode="json")}
+            for item in manifest.evidence
+        ]
 
         def save(connection):
             connection.execute(text("SELECT pg_advisory_xact_lock(:key)"), {"key": lock})
@@ -372,50 +459,21 @@ class ReportService:
                     "PREVIOUS_REPORT_UNPUBLISHED",
                     "Publish the previous frozen report before freezing another for this agent.",
                 )
-            records = {item.evidence_id: item for item in evidence}
-            aliases = []
-            for path, item in sorted(prepared.items()):
-                registered = self.identity.evidence.register(connection, item)
-                records[registered.evidence_id] = registered
-                aliases.append(ManifestDocument(path=path, evidence_id=registered.evidence_id))
-            manifest = EvidenceManifest(
-                publication=publication,
-                documents=tuple(aliases),
-                evidence=tuple(sorted(records.values(), key=lambda item: str(item.evidence_id))),
-            )
-            core = build_report(
-                plan,
-                inputs,
-                evidence_id,
-                observed,
-                policy,
-                evaluated_at=now,
-                code_version=version,
-                manifest_hash=hash_json(manifest.model_dump(mode="json")),
-                previous_report_hash=publication.previous_report_hash,
-            )
             report_id = uuid4()
             connection.execute(
                 insert(reports).values(
                     id=report_id,
                     run_fk=plan.run_id,
                     revision=1,
-                    report_hash=hash_json(core.model_dump(mode="json")),
-                    previous_report_hash=core.previous_report_hash,
-                    core=core.model_dump(mode="json"),
-                    manifest=manifest.model_dump(mode="json"),
+                    report_hash=report_hash,
+                    previous_report_hash=publication.previous_report_hash,
+                    core=core_body,
+                    manifest=manifest_body,
                 )
             )
             connection.execute(
                 insert(evidence_manifest_items),
-                [
-                    {
-                        "report_fk": report_id,
-                        "evidence_fk": item.evidence_id,
-                        "body": item.model_dump(mode="json"),
-                    }
-                    for item in manifest.evidence
-                ],
+                [{"report_fk": report_id, **item} for item in manifest_items],
             )
             connection.execute(update(runs).where(runs.c.id == plan.run_id).values(stage="DONE"))
             self.identity.audit(
@@ -425,7 +483,7 @@ class ReportService:
                 report_id,
                 {
                     "run_id": str(plan.run_id),
-                    "report_hash": hash_json(core.model_dump(mode="json")),
+                    "report_hash": report_hash,
                 },
             )
 

@@ -59,6 +59,15 @@
       "title": "Capability Id",
       "type": "string"
     },
+    "completion_kind": {
+      "default": "execution",
+      "enum": [
+        "execution",
+        "rejection"
+      ],
+      "title": "Completion Kind",
+      "type": "string"
+    },
     "executor": {
       "title": "Executor",
       "type": "string"
