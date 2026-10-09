@@ -492,8 +492,11 @@
           "type": "string"
         },
         "schema_version": {
-          "const": "1.0.0",
           "default": "1.0.0",
+          "enum": [
+            "1.0.0",
+            "1.1.0"
+          ],
           "title": "Schema Version",
           "type": "string"
         },
@@ -504,6 +507,25 @@
           "pattern": "^0x[0-9a-f]{64}$",
           "title": "Snapshot Hash",
           "type": "string"
+        },
+        "task_counts": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TaskOutcomeCounts"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "task_results": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ReportTaskResult"
+          },
+          "title": "Task Results",
+          "type": "array"
         }
       },
       "required": [
@@ -526,6 +548,61 @@
         "limitations"
       ],
       "title": "ReportCore",
+      "type": "object"
+    },
+    "ReportTaskResult": {
+      "additionalProperties": false,
+      "properties": {
+        "capability_id": {
+          "enum": [
+            "get_tx_status",
+            "verify_record",
+            "anchor_record"
+          ],
+          "title": "Capability Id",
+          "type": "string"
+        },
+        "input_evidence_id": {
+          "format": "uuid4",
+          "title": "Input Evidence Id",
+          "type": "string"
+        },
+        "outcome": {
+          "$ref": "#/$defs/Outcome"
+        },
+        "reason_code": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Reason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "rule_version": {
+          "enum": [
+            "1",
+            "2"
+          ],
+          "title": "Rule Version",
+          "type": "string"
+        },
+        "slot_id": {
+          "format": "uuid4",
+          "title": "Slot Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "slot_id",
+        "capability_id",
+        "outcome",
+        "reason_code",
+        "rule_version",
+        "input_evidence_id"
+      ],
+      "title": "ReportTaskResult",
       "type": "object"
     },
     "ScoreDimension": {
@@ -751,6 +828,43 @@
         "limitations"
       ],
       "title": "ScoreResult",
+      "type": "object"
+    },
+    "TaskOutcomeCounts": {
+      "additionalProperties": false,
+      "properties": {
+        "FAIL": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Fail",
+          "type": "integer"
+        },
+        "NOT_APPLICABLE": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Not Applicable",
+          "type": "integer"
+        },
+        "PASS": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Pass",
+          "type": "integer"
+        },
+        "UNKNOWN": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Unknown",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "PASS",
+        "FAIL",
+        "UNKNOWN",
+        "NOT_APPLICABLE"
+      ],
+      "title": "TaskOutcomeCounts",
       "type": "object"
     }
   },

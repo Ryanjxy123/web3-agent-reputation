@@ -1448,12 +1448,44 @@ export interface components {
             /**
              * Schema Version
              * @default 1.0.0
-             * @constant
+             * @enum {string}
              */
-            schema_version: "1.0.0";
+            schema_version: "1.0.0" | "1.1.0";
             scores: components["schemas"]["ScoreResult"];
             /** Snapshot Hash */
             snapshot_hash: string;
+            /** @default null */
+            task_counts: components["schemas"]["TaskOutcomeCounts"] | null;
+            /**
+             * Task Results
+             * @default []
+             */
+            task_results: components["schemas"]["ReportTaskResult"][];
+        };
+        /** ReportTaskResult */
+        ReportTaskResult: {
+            /**
+             * Capability Id
+             * @enum {string}
+             */
+            capability_id: "get_tx_status" | "verify_record" | "anchor_record";
+            /**
+             * Input Evidence Id
+             * Format: uuid4
+             */
+            input_evidence_id: string;
+            outcome: components["schemas"]["Outcome"];
+            reason_code: components["schemas"]["Reason"] | null;
+            /**
+             * Rule Version
+             * @enum {string}
+             */
+            rule_version: "1" | "2";
+            /**
+             * Slot Id
+             * Format: uuid4
+             */
+            slot_id: string;
         };
         /** ReportView */
         ReportView: {
@@ -1713,6 +1745,17 @@ export interface components {
             request_id: string;
             /** Verified Tx Hash */
             verified_tx_hash: string | null;
+        };
+        /** TaskOutcomeCounts */
+        TaskOutcomeCounts: {
+            /** Fail */
+            FAIL: number;
+            /** Not Applicable */
+            NOT_APPLICABLE: number;
+            /** Pass */
+            PASS: number;
+            /** Unknown */
+            UNKNOWN: number;
         };
         /** TaskResult */
         TaskResult: {

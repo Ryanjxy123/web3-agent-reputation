@@ -547,8 +547,42 @@ class ScoreResult(Model):
         return self
 
 
+class ReportTaskResult(Model):
+    slot_id: UUID4
+    capability_id: Capability
+    outcome: Outcome
+    reason_code: Reason | None
+    rule_version: Literal["1", "2"]
+    input_evidence_id: UUID4
+
+    @model_validator(mode="after")
+    def attributed(self) -> Self:
+        if (self.outcome == Outcome.PASS) != (self.reason_code is None):
+            raise ValueError("only PASS has no task reason")
+        return self
+
+
+class TaskOutcomeCounts(Model):
+    pass_count: Count = Field(validation_alias="PASS", serialization_alias="PASS")
+    fail_count: Count = Field(validation_alias="FAIL", serialization_alias="FAIL")
+    unknown_count: Count = Field(validation_alias="UNKNOWN", serialization_alias="UNKNOWN")
+    not_applicable_count: Count = Field(
+        validation_alias="NOT_APPLICABLE", serialization_alias="NOT_APPLICABLE"
+    )
+
+    @model_serializer(mode="wrap")
+    def outcome_keys(self, handler):
+        value = handler(self)
+        return {
+            "PASS": value["pass_count"],
+            "FAIL": value["fail_count"],
+            "UNKNOWN": value["unknown_count"],
+            "NOT_APPLICABLE": value["not_applicable_count"],
+        }
+
+
 class ReportCore(Model):
-    schema_version: Literal["1.0.0"] = "1.0.0"
+    schema_version: Literal["1.0.0", "1.1.0"] = "1.0.0"
     agent_ref: AgentRef
     agent_key_hash: Hash32
     snapshot_hash: Hash32
@@ -563,9 +597,19 @@ class ReportCore(Model):
     raw_statistics: dict[str, JsonValue]
     scores: ScoreResult
     assertions: tuple[AssertionResult, ...]
+    task_results: tuple[ReportTaskResult, ...] = ()
+    task_counts: TaskOutcomeCounts | None = None
     evidence_manifest_hash: Hash32
     previous_report_hash: Hash32
     limitations: tuple[SafeText, ...] = Field(min_length=1)
+
+    @model_serializer(mode="wrap")
+    def compatible_wire(self, handler):
+        value = handler(self)
+        if self.schema_version == "1.0.0":
+            value.pop("task_results", None)
+            value.pop("task_counts", None)
+        return value
 
     @model_validator(mode="after")
     def consistent(self) -> Self:
@@ -573,6 +617,28 @@ class ReportCore(Model):
             raise ValueError("invalid report observation window")
         if self.profile != self.scores.profile or self.policy_version != self.scores.policy_version:
             raise ValueError("report and scores disagree")
+        if self.schema_version == "1.0.0":
+            if self.task_results or self.task_counts is not None:
+                raise ValueError("legacy report cannot carry task replay summaries")
+            return self
+        if not self.task_results or self.task_counts is None:
+            raise ValueError("task replay report requires results and counts")
+        if len({item.slot_id for item in self.task_results}) != len(self.task_results):
+            raise ValueError("duplicate task result slot")
+        expected = {outcome: 0 for outcome in Outcome}
+        for result in self.task_results:
+            expected[result.outcome] += 1
+        if self.task_counts.model_dump(mode="json") != {
+            outcome.value: count for outcome, count in expected.items()
+        }:
+            raise ValueError("task result counts disagree")
+        versions = {item.slot_id: item.rule_version for item in self.task_results}
+        if any(
+            assertion.slot_id not in versions
+            or assertion.rule_version != versions[assertion.slot_id]
+            for assertion in self.assertions
+        ):
+            raise ValueError("task assertion rules do not match reported slots")
         return self
 
 

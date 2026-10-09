@@ -1,7 +1,33 @@
+from copy import deepcopy
+from pathlib import Path
+from uuid import uuid4
 from zipfile import ZipFile
 
 import pytest
+from reputation_core.evidence import canonical_bytes, hash_bytes, hash_json, strict_json
+from reputation_core.models import (
+    AnchorReceipt,
+    EvidenceManifest,
+    EvidenceRecord,
+    ManifestDocument,
+    Observation,
+    PublicationContext,
+    RecordVerificationInput,
+    RunPlan,
+)
+from reputation_core.record_verifier import verify_record
+from reputation_core.reporting import build_report
 from reputation_verifier import VerificationError, verify_bundle
+
+from tests.factories import ADDRESS, NOW, ZERO
+from tests.unit.test_capability_rules import read_input
+from tests.unit.test_task_outcomes import (
+    claim_result,
+    excluded_input,
+)
+from tests.unit.test_task_outcomes import (
+    task_input as v2_task_input,
+)
 
 
 def test_verifier_rejects_path_traversal(tmp_path):
@@ -11,3 +37,487 @@ def test_verifier_rejects_path_traversal(tmp_path):
     with pytest.raises(VerificationError) as failure:
         verify_bundle(str(path))
     assert failure.value.code == "UNSAFE_ARCHIVE"
+
+
+def make_bundle(tmp_path, *, rule_version="2", legacy_index=False, case="pass"):
+    raw_input = (
+        excluded_input()
+        if case == "not_applicable"
+        else v2_task_input(status="NOT_FOUND")
+        if case == "unknown"
+        else v2_task_input()
+        if rule_version == "2"
+        else read_input(status="SUCCESS")
+    )
+    if case == "fail":
+        claim_result(raw_input, tx_status="REVERTED")
+    inputs = RecordVerificationInput.model_validate(raw_input)
+    input_id, freeze_id = uuid4(), uuid4()
+    http_id = uuid4() if inputs.agent_http is not None else None
+    frozen = inputs.model_copy(
+        update={"evm": inputs.evm.model_copy(update={"observed_at": NOW.replace(".000Z", ".001Z")})}
+    )
+    policy = strict_json(
+        (Path(__file__).resolve().parents[2] / "configs/policies/policy-v1.json").read_bytes()
+    )
+    plan = RunPlan(
+        run_id=uuid4(),
+        snapshot_hash=inputs.snapshot.snapshot_hash,
+        review_version=inputs.review_version,
+        policy_version="policy-v1",
+        policy_hash=hash_json(policy),
+        profile="record-read-v1",
+        confirmed_capabilities=inputs.review.confirmed_claims,
+        suite_id="capabilities-v1",
+        template_version=f"capabilities@{rule_version}",
+        planning_time=NOW,
+        slots=(inputs.slot,),
+    )
+    replay = verify_record(inputs, (input_id,))
+    observation = Observation(
+        observation_id=uuid4(),
+        slot_id=inputs.slot.slot_id,
+        attempt_no=1,
+        dispatch_state="SETTLED",
+        started_at=NOW,
+        ended_at=NOW,
+        latency_ms=None,
+        error_origin="platform" if inputs.evm.error_reason else None,
+        reason_code=inputs.evm.error_reason or inputs.slot.applicability_reason,
+        accepted=inputs.slot.applicability_reason is None,
+        candidate_tx_hash=inputs.evm.candidate_tx_hash
+        if inputs.slot.capability_id == "anchor_record"
+        else None,
+        evidence_refs=(http_id,) if http_id else (),
+        diagnostic_only=False,
+    )
+    verification = (
+        {
+            "schema_version": "task-replay-v1",
+            "tasks": [
+                {
+                    "slot_id": str(inputs.slot.slot_id),
+                    "input_evidence_id": str(input_id),
+                    "freeze_evidence_id": str(freeze_id),
+                    **({"agent_http_evidence_id": str(http_id)} if http_id else {}),
+                }
+            ],
+        }
+        if not legacy_index
+        else {"input_evidence_id": str(input_id), "freeze_evidence_id": str(freeze_id)}
+    )
+    documents = {
+        "access_grants.json": [inputs.grant.model_dump(mode="json")] if inputs.grant else [],
+        "assertions.json": [
+            item.model_dump(mode="json")
+            for item in sorted(replay.assertions, key=lambda item: str(item.assertion_id))
+        ],
+        "bindings.json": [inputs.binding.model_dump(mode="json")] if inputs.binding else [],
+        "claims_review.json": inputs.review.model_dump(mode="json"),
+        "observations.json": [observation.model_dump(mode="json")],
+        "policy.json": policy,
+        "run_plan.json": plan.model_dump(mode="json"),
+        "snapshot_core.json": inputs.snapshot.core.model_dump(mode="json"),
+        "verification.json": verification,
+    }
+    files = {}
+    evidence = []
+    evidence_by_content = {}
+
+    def add_record(data, source, evidence_id=None):
+        digest = hash_bytes(data)
+        if digest in evidence_by_content:
+            return evidence_by_content[digest]
+        record = EvidenceRecord(
+            evidence_id=evidence_id or uuid4(),
+            path=f"blobs/{digest[2:]}.bin",
+            blob_hash=digest,
+            byte_count=len(data),
+            media_type="application/json",
+            source=source,
+            observed_at=NOW,
+            collector_version="verifier-test-v1",
+            redaction_profile="credentials-v1",
+            trust_group="platform-and-local-rpc",
+        )
+        evidence_by_content[digest] = record
+        evidence.append(record)
+        files[record.path] = data
+        return record
+
+    input_record = add_record(
+        canonical_bytes(inputs.model_dump(mode="json")), "record-verification-input", input_id
+    )
+    freeze_record = add_record(
+        canonical_bytes(frozen.model_dump(mode="json")),
+        "report-freeze-verification-input",
+        freeze_id,
+    )
+    assert input_record.evidence_id == input_id
+    assert freeze_record.evidence_id == freeze_id
+    if inputs.agent_http is not None:
+        http_record = add_record(canonical_bytes(inputs.agent_http), "agent-task-response", http_id)
+        assert http_record.evidence_id == http_id
+    aliases = []
+    for name, body in documents.items():
+        record = add_record(canonical_bytes(body), f"report-document:{name}")
+        aliases.append(ManifestDocument(path=name, evidence_id=record.evidence_id))
+        files[name] = files[record.path]
+    chain = inputs.slot.expected.execution_chain
+    manifest = EvidenceManifest(
+        publication=PublicationContext(
+            chain=chain,
+            contract=ADDRESS,
+            publisher=ADDRESS,
+            confirmation_depth=1,
+            previous_report_hash=ZERO,
+            head_sequence=0,
+            head_block_number="1",
+            head_block_hash=inputs.slot.expected.pre_dispatch_block_hash,
+            platform_instance_id=inputs.platform_instance_id,
+        ),
+        documents=tuple(sorted(aliases, key=lambda item: item.path)),
+        evidence=tuple(sorted(evidence, key=lambda item: str(item.evidence_id))),
+    )
+    manifest_hash = hash_json(manifest.model_dump(mode="json"))
+    report = build_report(
+        plan,
+        inputs,
+        input_id,
+        (observation,),
+        policy,
+        evaluated_at="2026-10-02T12:00:01.000Z",
+        code_version="0" * 40,
+        manifest_hash=manifest_hash,
+        previous_report_hash=ZERO,
+    )
+    if legacy_index and rule_version == "2":
+        report = report.model_copy(
+            update={"schema_version": "1.0.0", "task_results": (), "task_counts": None}
+        )
+    report_data = report.model_dump(mode="json")
+    report_hash = hash_json(report_data)
+    receipt = AnchorReceipt(
+        report_hash=report_hash,
+        status="NOT_REQUESTED",
+        trusted_chain_key="local-demo",
+        chain_instance_id=chain.instance_hash,
+        contract=ADDRESS,
+        publisher=ADDRESS,
+        tx_hash=None,
+        sequence=None,
+        block_number=None,
+        block_hash=None,
+        confirmations=0,
+    )
+    files.update(
+        {
+            "report_core.json": canonical_bytes(report_data),
+            "evidence_manifest.json": canonical_bytes(manifest.model_dump(mode="json")),
+            "anchor_receipt.json": canonical_bytes(receipt.model_dump(mode="json")),
+        }
+    )
+    path = tmp_path / f"bundle-{rule_version}-{legacy_index}.zip"
+    with ZipFile(path, "w") as archive:
+        for name, data in sorted(files.items()):
+            archive.writestr(name, data)
+    return path, input_id, freeze_id, http_id
+
+
+def rewrite_bundle(
+    path, destination, *, core_change=None, document_change=None, evidence_change=None
+):
+    with ZipFile(path) as archive:
+        files = {name: archive.read(name) for name in archive.namelist()}
+    manifest = strict_json(files["evidence_manifest.json"])
+    core = strict_json(files["report_core.json"])
+    records = {item["evidence_id"]: item for item in manifest["evidence"]}
+
+    def replace_record(record, body):
+        old_path = record["path"]
+        digest = hash_bytes(body)
+        new_path = f"blobs/{digest[2:]}.bin"
+        record.update(path=new_path, blob_hash=digest, byte_count=len(body))
+        files[new_path] = body
+        if old_path != new_path and old_path not in {
+            item["path"] for item in manifest["evidence"] if item is not record
+        }:
+            files.pop(old_path, None)
+        for doc in manifest["documents"]:
+            if doc["evidence_id"] == record["evidence_id"]:
+                files[doc["path"]] = body
+
+    if document_change:
+        docs = {item["path"]: item for item in manifest["documents"]}
+        for name, change in document_change.items():
+            value = strict_json(files[name])
+            change(value)
+            body = canonical_bytes(value)
+            replace_record(records[docs[name]["evidence_id"]], body)
+            files[name] = body
+    if evidence_change:
+        for evidence_id, change in evidence_change.items():
+            record = records[str(evidence_id)]
+            value = strict_json(files[record["path"]])
+            change(value)
+            replace_record(record, canonical_bytes(value))
+    if core_change:
+        core_change(core)
+    manifest["evidence"] = sorted(manifest["evidence"], key=lambda item: item["evidence_id"])
+    manifest_bytes = canonical_bytes(manifest)
+    core["evidence_manifest_hash"] = hash_json(manifest)
+    core_bytes = canonical_bytes(core)
+    receipt = strict_json(files["anchor_receipt.json"])
+    receipt["report_hash"] = hash_json(core)
+    files.update(
+        {
+            "evidence_manifest.json": manifest_bytes,
+            "report_core.json": core_bytes,
+            "anchor_receipt.json": canonical_bytes(receipt),
+        }
+    )
+    with ZipFile(destination, "w") as archive:
+        for name, data in sorted(files.items()):
+            archive.writestr(name, data)
+
+
+def test_verifier_replays_new_task_result_and_returns_recomputed_counts(tmp_path):
+    path, _, _, _ = make_bundle(tmp_path)
+
+    result = verify_bundle(str(path))
+
+    assert result["offline"] == "PASS"
+    assert result["task_counts"] == {"PASS": 1, "FAIL": 0, "UNKNOWN": 0, "NOT_APPLICABLE": 0}
+    assert result["task_count_comparison"] == "MATCH"
+    assert result["task_results"][0]["outcome"] == "PASS"
+    assert result["task_results"][0]["live_chain"]["status"] == "NOT_CHECKED"
+    assert result["task_results"][0]["live_chain"]["reason"] == "trusted task RPC was not configured"
+
+
+@pytest.mark.parametrize(
+    ("case", "outcome"),
+    [
+        ("pass", "PASS"),
+        ("fail", "FAIL"),
+        ("unknown", "UNKNOWN"),
+        ("not_applicable", "NOT_APPLICABLE"),
+    ],
+)
+def test_verifier_recounts_each_four_state_outcome(tmp_path, case, outcome):
+    path, _, _, _ = make_bundle(tmp_path, case=case)
+
+    result = verify_bundle(str(path))
+
+    assert result["task_results"][0]["outcome"] == outcome
+    assert result["task_counts"][outcome] == 1
+    assert sum(result["task_counts"].values()) == 1
+    assert result["task_count_comparison"] == "MATCH"
+
+
+def test_legacy_replay_reports_recomputed_unknown_count_without_claiming_comparison(tmp_path):
+    path, _, _, _ = make_bundle(tmp_path, case="unknown", legacy_index=True)
+
+    result = verify_bundle(str(path))
+
+    assert result["task_results"][0]["outcome"] == "UNKNOWN"
+    assert result["task_counts"] == {"PASS": 0, "FAIL": 0, "UNKNOWN": 1, "NOT_APPLICABLE": 0}
+    assert result["task_count_comparison"] == "NOT_AVAILABLE_LEGACY_REPORT"
+
+
+@pytest.mark.parametrize(("rule_version", "legacy_index"), [("1", True), ("2", True)])
+def test_verifier_keeps_legacy_report_and_singleton_index_compatibility(
+    tmp_path, rule_version, legacy_index
+):
+    path, _, _, _ = make_bundle(tmp_path, rule_version=rule_version, legacy_index=legacy_index)
+
+    result = verify_bundle(str(path))
+
+    assert result["offline"] == "PASS"
+    assert result["task_counts"]["PASS"] == 1
+    assert result["task_count_comparison"] == "NOT_AVAILABLE_LEGACY_REPORT"
+
+
+def test_verifier_rejects_new_index_with_legacy_report_schema(tmp_path):
+    path, _, _, _ = make_bundle(tmp_path)
+    changed = tmp_path / "stripped-summary.zip"
+
+    def strip_summary(core):
+        core["schema_version"] = "1.0.0"
+        core.pop("task_results")
+        core.pop("task_counts")
+
+    rewrite_bundle(path, changed, core_change=strip_summary)
+    with pytest.raises(VerificationError) as failure:
+        verify_bundle(str(changed))
+    assert failure.value.code == "RULE_VERSION_MISMATCH"
+
+
+def test_verifier_rejects_version_mismatched_index_formats(tmp_path):
+    rule_v1_with_new_index, _, _, _ = make_bundle(tmp_path, rule_version="1")
+    with pytest.raises(VerificationError) as failure:
+        verify_bundle(str(rule_v1_with_new_index))
+    assert failure.value.code == "RULE_VERSION_MISMATCH"
+
+    rule_v2_with_legacy_index, _, _, _ = make_bundle(tmp_path)
+    changed = tmp_path / "legacy-index-new-report.zip"
+
+    def replace_index(index):
+        task = index["tasks"][0]
+        index.clear()
+        index.update(
+            input_evidence_id=task["input_evidence_id"],
+            freeze_evidence_id=task["freeze_evidence_id"],
+        )
+
+    rewrite_bundle(
+        rule_v2_with_legacy_index,
+        changed,
+        document_change={"verification.json": replace_index},
+    )
+    with pytest.raises(VerificationError) as failure:
+        verify_bundle(str(changed))
+    assert failure.value.code == "RULE_VERSION_MISMATCH"
+
+
+def test_verifier_rejects_multi_slot_report_without_full_report_replay(tmp_path):
+    path, _, _, _ = make_bundle(tmp_path)
+    changed = tmp_path / "multi-slot.zip"
+
+    def add_slot(plan):
+        extra = deepcopy(plan["slots"][0])
+        extra["slot_id"] = str(uuid4())
+        extra["slot_key"] += "-second"
+        request_id = "0x" + "11" * 32
+        extra["task"]["request_id"] = request_id
+        extra["expected"]["request_id"] = request_id
+        plan["slots"].append(extra)
+
+    rewrite_bundle(path, changed, document_change={"run_plan.json": add_slot})
+    with pytest.raises(VerificationError) as failure:
+        verify_bundle(str(changed))
+    assert failure.value.code == "REPLAY_MISMATCH"
+
+
+def test_verifier_reports_missing_new_summary_as_rule_mismatch(tmp_path):
+    path, _, _, _ = make_bundle(tmp_path)
+    changed = tmp_path / "missing-summary.zip"
+
+    def remove_summary(core):
+        core.pop("task_results")
+        core.pop("task_counts")
+
+    rewrite_bundle(path, changed, core_change=remove_summary)
+    with pytest.raises(VerificationError) as failure:
+        verify_bundle(str(changed))
+    assert failure.value.code == "RULE_VERSION_MISMATCH"
+
+
+def test_verifier_rejects_task_result_tampering_after_hashes_are_recomputed(tmp_path):
+    path, _, _, _ = make_bundle(tmp_path)
+    changed = tmp_path / "changed-task-result.zip"
+
+    def change_task_result(core):
+        core["task_results"][0].update(outcome="FAIL", reason_code="SEMANTIC_MISMATCH")
+        core["task_counts"] = {"PASS": 0, "FAIL": 1, "UNKNOWN": 0, "NOT_APPLICABLE": 0}
+
+    rewrite_bundle(path, changed, core_change=change_task_result)
+    with pytest.raises(VerificationError) as failure:
+        verify_bundle(str(changed))
+    assert failure.value.code == "REPLAY_MISMATCH"
+
+
+def test_verifier_rejects_tampered_task_counts_after_hashes_are_recomputed(tmp_path):
+    path, _, _, _ = make_bundle(tmp_path)
+    changed = tmp_path / "changed-task-counts.zip"
+
+    def change_counts(core):
+        core["task_counts"] = {"PASS": 0, "FAIL": 1, "UNKNOWN": 0, "NOT_APPLICABLE": 0}
+
+    rewrite_bundle(path, changed, core_change=change_counts)
+    with pytest.raises(VerificationError) as failure:
+        verify_bundle(str(changed))
+    assert failure.value.code == "REPLAY_MISMATCH"
+
+
+def test_verifier_rejects_rule_template_mismatch_explicitly(tmp_path):
+    path, _, _, _ = make_bundle(tmp_path)
+    changed = tmp_path / "wrong-rule.zip"
+
+    def change_template(plan):
+        plan["template_version"] = "capabilities@1"
+
+    rewrite_bundle(path, changed, document_change={"run_plan.json": change_template})
+    with pytest.raises(VerificationError) as failure:
+        verify_bundle(str(changed))
+    assert failure.value.code == "RULE_VERSION_MISMATCH"
+
+
+def test_verifier_rejects_freeze_context_and_http_evidence_mismatch(tmp_path):
+    path, _, freeze_id, http_id = make_bundle(tmp_path)
+    changed_freeze = tmp_path / "changed-freeze.zip"
+
+    def change_freeze(value):
+        value["intent_persisted_at"] = NOW.replace(".000Z", ".001Z")
+
+    rewrite_bundle(path, changed_freeze, evidence_change={freeze_id: change_freeze})
+    with pytest.raises(VerificationError) as failure:
+        verify_bundle(str(changed_freeze))
+    assert failure.value.code == "EVIDENCE_INCONSISTENT"
+
+    assert http_id is not None
+    changed_http = tmp_path / "changed-http.zip"
+
+    def change_http(value):
+        value["response"]["result"]["tx_status"] = "REVERTED"
+
+    rewrite_bundle(path, changed_http, evidence_change={http_id: change_http})
+    with pytest.raises(VerificationError) as failure:
+        verify_bundle(str(changed_http))
+    assert failure.value.code == "EVIDENCE_INCONSISTENT"
+
+
+def test_verifier_rejects_missing_input_reference_after_hashes_are_recomputed(tmp_path):
+    path, _, _, _ = make_bundle(tmp_path)
+    changed = tmp_path / "missing-input.zip"
+
+    def remove_input(index):
+        index["tasks"][0]["input_evidence_id"] = str(uuid4())
+
+    rewrite_bundle(path, changed, document_change={"verification.json": remove_input})
+    with pytest.raises(VerificationError) as failure:
+        verify_bundle(str(changed))
+    assert failure.value.code == "MISSING_EVIDENCE"
+
+
+def test_task_live_recheck_is_separate_from_offline_replay(tmp_path, monkeypatch):
+    path, _, _, _ = make_bundle(tmp_path)
+    from reputation_verifier import bundle
+
+    monkeypatch.setattr(bundle, "_live_rpc_results", lambda _web3, data: data.evm.results)
+    confirmed = verify_bundle(str(path), task_rpc_url="http://127.0.0.1:1")
+    assert confirmed["offline"] == "PASS"
+    assert confirmed["task_results"][0]["live_chain"]["status"] == "CONFIRMED"
+
+    def unavailable(*_args):
+        raise OSError("RPC unavailable")
+
+    monkeypatch.setattr(bundle, "_live_rpc_results", unavailable)
+    unavailable_result = verify_bundle(str(path), task_rpc_url="http://127.0.0.1:1")
+    assert unavailable_result["offline"] == "PASS"
+    assert unavailable_result["task_results"][0]["live_chain"]["status"] == "UNKNOWN"
+
+
+def test_not_applicable_task_does_not_query_live_chain(tmp_path, monkeypatch):
+    path, _, _, _ = make_bundle(tmp_path, case="not_applicable")
+    from reputation_verifier import bundle
+
+    def unexpected_rpc(*_args):
+        pytest.fail("NOT_APPLICABLE task must not query chain RPC")
+
+    monkeypatch.setattr(bundle, "_live_rpc_results", unexpected_rpc)
+    result = verify_bundle(str(path), task_rpc_url="http://127.0.0.1:1")
+
+    live = result["task_results"][0]["live_chain"]
+    assert result["offline"] == "PASS"
+    assert live["status"] == "NOT_REQUIRED"
+    assert live["reason_code"] == "CAPABILITY_NOT_DECLARED"

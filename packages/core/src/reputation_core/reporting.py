@@ -6,7 +6,16 @@ from uuid import UUID
 
 from .binding import agent_key_hash
 from .evidence import hash_json
-from .models import Observation, RecordVerificationInput, ReportCore, RunPlan, ScoreResult
+from .models import (
+    Observation,
+    Outcome,
+    RecordVerificationInput,
+    ReportCore,
+    ReportTaskResult,
+    RunPlan,
+    ScoreResult,
+    TaskOutcomeCounts,
+)
 from .record_verifier import verify_record
 from .scoring_reference import evaluate_from_stats
 
@@ -31,6 +40,7 @@ def build_report(
     manifest_hash: str,
     previous_report_hash: str,
 ) -> ReportCore:
+    expected_rule_version = "2" if plan.template_version.endswith("@2") else "1"
     if (
         len(plan.slots) != 1
         or plan.slots[0] != inputs.slot
@@ -54,6 +64,7 @@ def build_report(
         )
         or plan.review_version != inputs.review_version
         or plan.review_version != inputs.review.review_version
+        or inputs.rule_version != expected_rule_version
         or plan.snapshot_hash != inputs.snapshot.snapshot_hash
         or plan.policy_hash != hash_json(policy)
     ):
@@ -139,7 +150,16 @@ def build_report(
         "critical_conflict": result.critical_conflict,
     }
     scores = ScoreResult.model_validate(evaluate_from_stats(stats, policy))
+    task_result = ReportTaskResult(
+        slot_id=inputs.slot.slot_id,
+        capability_id=inputs.slot.capability_id,
+        outcome=result.outcome,
+        reason_code=result.reason_code,
+        rule_version=inputs.rule_version,
+        input_evidence_id=evidence_id,
+    )
     return ReportCore(
+        schema_version="1.1.0" if expected_rule_version == "2" else "1.0.0",
         agent_ref=inputs.slot.expected.agent_ref,
         agent_key_hash=agent_key_hash(inputs.slot.expected.agent_ref),
         snapshot_hash=plan.snapshot_hash,
@@ -154,6 +174,12 @@ def build_report(
         raw_statistics=stats,
         scores=scores,
         assertions=tuple(sorted(result.assertions, key=lambda item: str(item.assertion_id))),
+        task_results=(task_result,) if expected_rule_version == "2" else (),
+        task_counts=TaskOutcomeCounts.model_validate(
+            {outcome.value: int(outcome == result.outcome) for outcome in Outcome}
+        )
+        if expected_rule_version == "2"
+        else None,
         evidence_manifest_hash=manifest_hash,
         previous_report_hash=previous_report_hash,
         limitations=LIMITATIONS

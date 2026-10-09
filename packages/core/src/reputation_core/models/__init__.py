@@ -37,12 +37,14 @@ from .domain import (
     ExpectedFacts,
     Observation,
     ReportCore,
+    ReportTaskResult,
     RunPlan,
     ScoreDimension,
     ScoreResult,
     SnapshotCore,
     TaskEnvelope,
     TaskLink,
+    TaskOutcomeCounts,
 )
 from .enums import (
     AnchorStatus,
@@ -76,7 +78,7 @@ __all__ = [
     "AssertionResult", "BindingMessage", "CapabilityClaim", "CaseSlot", "ChainIdentity",
     "ClaimReview", "DispatchState", "Endpoint", "EvaluationReport", "EvaluationRun",
     "EvidenceRecord", "ExecutorBinding", "ExpectedFacts", "JobStatus", "Observation",
-    "Outcome", "Purpose", "Reason", "ReportCore", "RunPlan", "RunStage", "RunStatus",
+    "Outcome", "Purpose", "Reason", "ReportCore", "ReportTaskResult", "TaskOutcomeCounts", "RunPlan", "RunStage", "RunStatus",
     "ScoreDimension", "ScoreResult", "SnapshotCore", "TaskEnvelope", "TaskLink",
     "VerificationStep",
 ]

@@ -234,6 +234,42 @@ class ReportService:
             raise ApplicationError(409, "MISSING_EVIDENCE", "Report evidence is incomplete.")
         for item in evidence:
             self.read_evidence(item)
+        response_record = None
+        if inputs.agent_http is not None:
+            for item in evidence:
+                if item.source != "agent-task-response":
+                    continue
+                try:
+                    matches = strict_json(self.read_evidence(item)) == inputs.agent_http
+                except (UnicodeError, ValueError):
+                    continue
+                if matches:
+                    response_record = item
+                    break
+        if inputs.rule_version == "2" and inputs.agent_http is not None and not response_record:
+            raise ApplicationError(
+                409,
+                "MISSING_EVIDENCE",
+                "Frozen Agent HTTP envelope has no matching raw response evidence.",
+            )
+        verification_index = {
+            "schema_version": "task-replay-v1",
+            "tasks": [
+                {
+                    "slot_id": str(inputs.slot.slot_id),
+                    "input_evidence_id": str(evidence_id),
+                    "freeze_evidence_id": str(freeze_record.evidence_id),
+                    **(
+                        {"agent_http_evidence_id": str(response_record.evidence_id)}
+                        if response_record and inputs.rule_version == "2"
+                        else {}
+                    ),
+                }
+            ],
+        } if inputs.rule_version == "2" else {
+            "input_evidence_id": str(evidence_id),
+            "freeze_evidence_id": str(freeze_record.evidence_id),
+        }
         documents = {
             "policy.json": policy,
             "snapshot_core.json": inputs.snapshot.core.model_dump(mode="json"),
@@ -246,10 +282,7 @@ class ReportService:
                 item.model_dump(mode="json")
                 for item in sorted(result.assertions, key=lambda item: str(item.assertion_id))
             ],
-            "verification.json": {
-                "input_evidence_id": str(evidence_id),
-                "freeze_evidence_id": str(freeze_record.evidence_id),
-            },
+            "verification.json": verification_index,
         }
         for path in sorted(
             (self.identity.root / "packages/schemas/generated").glob("*.schema.json")
