@@ -73,3 +73,5 @@
 任务4提交de8fe94。任务5已实现充分度解释/精确gate/证据引用风险/ReportCore1.3，阶段Review及314单元reference、3真实正常/风险/RPC测试通过；复用policy-v1门槛。
 接着执行跨模块Review、全量Python/Web/Foundry/Schema/PostgreSQL/Anvil、提交/PR/CI。
 本轮最终验收仍待完成；不把阶段通过当全量通过，不开始任务6。
+
+最终Review已修复写任务返回字段漏检及畸形RPC误报：新正式计划使用@4/rule4/ReportCore1.3，旧@3在途任务明确保持1.2；340单元/reference、2真实新旧版本回归通过，跨模块Review无剩余阻断。此前全量检查在发现问题后主动中断，不能记为通过，稳定提交后重新执行。quality CI增加到25分钟以容纳约721秒固定正式任务窗口和其余完整检查，测试与评分门槛不变。详细记录见STATUS，最终全量/PR/CI仍待完成。

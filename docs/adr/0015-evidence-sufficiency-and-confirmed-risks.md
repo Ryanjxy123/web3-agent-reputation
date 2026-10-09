@@ -5,6 +5,7 @@
 ## 决策
 
 ReportCore 1.3 新增 `evidence-assessment-v1`、`evidence_sufficiency` 和 `risk_assessment`。
+使用 `capabilities@4` / 断言规则 4，旧 ReportCore1.2 / @3 / 规则3保留原重判。
 平台与独立 Verifier 均从冻结逐任务输入执行同一纯规则，不接收外部充分度统计或风险标签。
 评分公式、权重、样本要求和阈值保持 ADR 0014 / policy-v1 原值。
 
@@ -26,6 +27,9 @@ ReportCore 1.3 新增 `evidence-assessment-v1`、`evidence_sufficiency` 和 `ris
 先核验冻结材料及上下文，再重判任务与断言。只有已确认 `critical=true && outcome=FAIL` 的断言形成关键风险，
 包含 slot、assertion、rule、reason_code 与证据引用。沿用已接受写任务的交易/合约/参数/事件/任务关联关键断言；
 查询答案错误属于普通功能失败，正确报告记录摘要不匹配属于查询 PASS。
+规则4在可信 HTTP、链身份、canonical和finality均确认后比较写任务返回 chain_id/executor/record_hash 与任务约束。
+明确返回错误链/执行者/摘要形成关键失败；返回 tx_hash 与采集候选不一致说明材料选取不一致，保持UNKNOWN。
+没有返回result的合法链上恢复路径仍可依据完整链证据判定；RPC不足不能将这些返回字段认定为关键风险。
 普通履约失败与存在 UNKNOWN 断言的证据缺口分别列出；缺口不能自动推断风险或恶意。
 
 已确认关键风险独立于证据充分度及数值分数输出：高分仍保留关键风险、PARTIAL 仍保留关键风险；
@@ -38,7 +42,7 @@ policy-v1 的 critical_conflict_veto 继续使 advice=NOT_RECOMMENDED。
 
 1.0/1.1/1.2 序列化省略所有 assessment 字段，保留历史哈希和原重算路径。
 Verifier 按原报告版本显式重建；1.2 不会被自动提升到 1.3。
-1.3 必须携带匹配 assessment 版本、充分度与风险对象；旧版本不得伪装携带新结论。
+1.3 必须携带匹配 assessment 版本、规则4、充分度与风险对象；旧版本不得伪装携带新结论。
 Verifier 比较完整重建报告，并输出 assessment_comparison=MATCH；旧版标明 NOT_AVAILABLE_LEGACY_REPORT。
 即使攻击者重算 ZIP、manifest、报告与 receipt hash，修改统计、gate、风险结论或证据引用仍会被重判发现。
 无需新依赖、数据库迁移或前端功能；报告仍只追加，离线一致性仍不证明采集者诚实。

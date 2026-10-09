@@ -677,7 +677,7 @@ export interface components {
              * Rule Version
              * @enum {string}
              */
-            rule_version: "1" | "2" | "3";
+            rule_version: "1" | "2" | "3" | "4";
             /**
              * Slot Id
              * Format: uuid4
@@ -1443,7 +1443,7 @@ export interface components {
              * @default 1
              * @enum {string}
              */
-            rule_version: "1" | "2" | "3";
+            rule_version: "1" | "2" | "3" | "4";
             /**
              * Schema Version
              * @default record-verification-input-v1
@@ -1580,7 +1580,7 @@ export interface components {
              * Rule Version
              * @enum {string}
              */
-            rule_version: "1" | "2" | "3";
+            rule_version: "1" | "2" | "3" | "4";
             /**
              * Slot Id
              * Format: uuid4
@@ -1671,7 +1671,7 @@ export interface components {
              * Template Version
              * @enum {string}
              */
-            template_version: "anchor_record@1" | "capabilities@1" | "anchor_record@2" | "capabilities@2" | "capabilities@3";
+            template_version: "anchor_record@1" | "capabilities@1" | "anchor_record@2" | "capabilities@2" | "capabilities@3" | "capabilities@4";
         };
         /**
          * RunStage

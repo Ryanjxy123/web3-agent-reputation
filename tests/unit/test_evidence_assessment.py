@@ -3,13 +3,14 @@
 from copy import deepcopy
 from uuid import uuid4
 
+import pytest
 from eth_account import Account
 from eth_account.messages import encode_typed_data
 from reputation_core.binding import typed_data
 from reputation_core.case_templates import REJECTION_CASES, mutated_payload
 from reputation_core.evidence import hash_json
 from reputation_core.models import BindingMessage, Observation, RecordVerificationInput
-from reputation_core.record_verifier import CALL_SELECTOR, EVENT_TOPIC, seconds
+from reputation_core.record_verifier import CALL_SELECTOR, EVENT_TOPIC, seconds, verify_record
 from reputation_core.reporting import build_report
 
 from tests.factories import NOW
@@ -76,7 +77,7 @@ def high_score_critical_arguments():
         slot["task"]["request_id"] = slot["expected"]["request_id"] = request_id
         if case == "forbidden_contract":
             slot["request_overrides"] = {"target_contract": "0x" + "22" * 20}
-        body["rule_version"] = "3"
+        body["rule_version"] = "4"
         body["evm"]["observed_at"] = "2026-10-02T12:00:02.000Z"
         http = body["agent_http"]
         http.update(request_id=request_id, ended_at="2026-10-02T12:00:00.100Z", latency_ms=100)
@@ -187,3 +188,82 @@ def test_confirmed_wrong_digest_survives_insufficient_availability():
     assert report.risk_assessment is not None
     assert report.risk_assessment.conclusion == "CONFIRMED_CRITICAL_CONFLICT"
     assert len(report.risk_assessment.critical_findings) == 1
+
+
+@pytest.fixture(scope="module")
+def completed_write():
+    return high_score_critical_arguments()["inputs"][-2]
+
+
+def changed_write_response(original, field):
+    body = original.model_dump(mode="json")
+    value = "1" if field == "chain_id" else "0x" + "ff" * (20 if field == "executor" else 32)
+    for result in (body["agent_result"], body["agent_response"]["result"], body["agent_http"]["response"]["result"]):
+        result[field] = value
+    return body
+
+
+@pytest.mark.parametrize("field,reason", [
+    ("chain_id", "TX_WRONG_CHAIN"), ("executor", "TX_WRONG_EXECUTOR"),
+    ("record_hash", "RECORD_HASH_MISMATCH"), ("tx_hash", "EVIDENCE_INCONSISTENT"),
+])
+@pytest.mark.parametrize("version", ["3", "4"])
+def test_write_response_fields_are_checked_only_by_new_version(completed_write, field, reason, version):
+    body = changed_write_response(completed_write, field)
+    body["rule_version"] = version
+    result = verify_record(RecordVerificationInput.model_validate(body), (uuid4(),))
+    assert all(assertion.rule_version == version for assertion in result.assertions)
+    if version == "3":
+        assert result.outcome == "PASS" and not result.critical_conflict
+        assert not any(item.rule_id.startswith("agent.result.") for item in result.assertions)
+    else:
+        assert result.outcome == ("UNKNOWN" if field == "tx_hash" else "FAIL")
+        assert result.reason_code == reason
+        assert result.critical_conflict == (field != "tx_hash")
+        assert result.task_link.verified_tx_hash is None
+
+
+@pytest.mark.parametrize("issue", ["rpc", "noncanonical", "not_final", "malformed_tx", "malformed_logs", "logs_object", "logs_text", "missing_topics", "missing_http"])
+def test_wrong_write_response_needs_valid_platform_evidence(completed_write, issue):
+    body = changed_write_response(completed_write, "record_hash")
+    rpc = body["evm"]["results"]
+    if issue == "rpc":
+        body["evm"].update(results={}, error_reason="PLATFORM_RPC_ERROR")
+    elif issue == "noncanonical":
+        rpc["receipt_canonical"]["hash"] = "0x" + "ff" * 32
+    elif issue == "not_final":
+        body["slot"]["expected"]["confirmation_depth"] = 2
+    elif issue == "malformed_tx":
+        rpc["transaction"].pop("chainId")
+    elif issue == "malformed_logs":
+        rpc["receipt"]["logs"] = [None]
+    elif issue in {"logs_object", "logs_text"}:
+        rpc["receipt"]["logs"] = {} if issue == "logs_object" else ""
+    elif issue == "missing_topics":
+        rpc["receipt"]["logs"] = [{"malformed": True}]
+    else:
+        body["agent_http"] = None
+    result = verify_record(RecordVerificationInput.model_validate(body), (uuid4(),))
+    assert result.outcome == "UNKNOWN" and not result.critical_conflict
+    assert not any(item.critical and item.outcome == "FAIL" for item in result.assertions)
+
+
+def test_failed_reverted_write_remains_ordinary_failure(completed_write):
+    body = changed_write_response(completed_write, "record_hash")
+    body["agent_task_status"] = "failed"
+    body["agent_response"].update(task_status="failed", reason_code="AGENT_TASK_FAILED")
+    body["agent_http"]["response"] = deepcopy(body["agent_response"])
+    body["evm"]["results"]["receipt"]["status"] = "0x0"
+    result = verify_record(RecordVerificationInput.model_validate(body), (uuid4(),))
+    assert result.outcome == "FAIL" and result.reason_code == "TX_REVERTED"
+    assert not result.critical_conflict
+    assert not any(item.rule_id.startswith("agent.result.hash") for item in result.assertions)
+
+
+def test_write_reconcile_without_returned_result_keeps_chain_judgement(completed_write):
+    body = completed_write.model_dump(mode="json")
+    body.update(agent_http=None, initial_agent_http=None, agent_response=None,
+                agent_result=None, agent_task_status=None, execution_reason=None)
+    result = verify_record(RecordVerificationInput.model_validate(body), (uuid4(),))
+    assert result.outcome == "PASS" and result.task_link.verified_tx_hash == body["evm"]["candidate_tx_hash"]
+    assert not any(item.rule_id.startswith("agent.result.") for item in result.assertions)

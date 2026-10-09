@@ -153,7 +153,7 @@ class ReportService:
                     "Stored assertions differ from evidence replay.",
                 )
             historical_rpc_unknown = (
-                inputs.rule_version in {"2", "3"}
+                inputs.rule_version in {"2", "3", "4"}
                 and result.outcome == "UNKNOWN"
                 and inputs.evm.error_reason == "PLATFORM_RPC_ERROR"
             )
@@ -173,7 +173,7 @@ class ReportService:
                     }
                 )
             )
-            if plan.template_version == "capabilities@3" and inputs.slot.case_kind == "negative":
+            if plan.template_version in {"capabilities@3", "capabilities@4"} and inputs.slot.case_kind == "negative":
                 fresh = fresh.model_copy(
                     update={"evm": fresh.evm.model_copy(update={"candidate_tx_hash": None})}
                 )
@@ -268,7 +268,7 @@ class ReportService:
                 ("agent_http_evidence_id", inputs.agent_http),
                 (
                     "initial_http_evidence_id",
-                    inputs.initial_agent_http if inputs.rule_version == "3" else None,
+                    inputs.initial_agent_http if inputs.rule_version in {"3", "4"} else None,
                 ),
             ):
                 if envelope is None or inputs.rule_version == "1":
@@ -296,7 +296,7 @@ class ReportService:
                 "schema_version": "task-replay-v1",
                 "tasks": task_index,
             }
-            if all_inputs[0].rule_version in {"2", "3"}
+            if all_inputs[0].rule_version in {"2", "3", "4"}
             else {
                 "input_evidence_id": str(evidence_ids[0]),
                 "freeze_evidence_id": str(frozen[0].evidence_id),
@@ -423,6 +423,7 @@ class ReportService:
                 code_version=version,
                 manifest_hash=hash_json(manifest.model_dump(mode="json")),
                 previous_report_hash=publication.previous_report_hash,
+                report_schema_version="1.2.0" if plan.template_version == "capabilities@3" else None,
             )
             body = core.model_dump(mode="json")
             return manifest, body, hash_json(body)

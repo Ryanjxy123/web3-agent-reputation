@@ -152,7 +152,7 @@ def create_formal(flow, body):
         )
         for slot in plan.slots:
             assert intents[slot.slot_id]["payload_hash"] == hash_json(mutated_payload(slot))
-    assert plan.template_version == "capabilities@3"
+    assert plan.template_version == "capabilities@4"
     assert len({slot.task.request_id for slot in plan.slots}) == len(plan.slots)
     return run_id, plan
 
@@ -518,3 +518,48 @@ def test_formal_accepted_negative_is_failed_after_one_post_without_polling(prepa
     assert not result.critical_conflict and result.task_link.verified_tx_hash is None
     assert verify_record(inputs, result.assertions[0].evidence_refs) == result
     assert flow[4].eth.block_number == before
+
+
+def test_inflight_v3_formal_plan_freezes_as_v12_without_upgrade(prepared, tmp_path, monkeypatch):
+    """Simulate creation by the prior planner before the rule-4 deployment."""
+    from reputation_platform.application import evaluations as evaluation_module
+
+    flow, original, _ = prepared
+    body = formal_request(
+        flow, original["snapshot_id"], 1, ("anchor_record",), flow[5].record.address
+    )
+    original_plan = evaluation_module.RunPlan
+
+    def prior_planner(**values):
+        values["template_version"] = "capabilities@3"
+        return original_plan(**values)
+
+    with monkeypatch.context() as old:
+        old.setattr(evaluation_module, "RunPlan", prior_planner)
+        response = flow[0].post(
+            "/api/v1/evaluations", headers={**AUTH, "Idempotency-Key": secrets.token_hex(16)}, json=body
+        )
+        assert response.status_code == 202, response.text
+    run_id = UUID(response.json()["run_id"])
+    identity = flow[1]
+    service = ReportService(identity.db, identity)
+    worker = Worker(identity.db, {
+        "evaluate": ExecutionService(identity.db, identity).execute,
+        "verify": VerificationService(identity.db, identity).verify,
+        "report": service.freeze,
+    })
+    for kind in ("evaluate", "verify", "report"):
+        assert asyncio.run(worker.run_once())
+        with identity.db.connect() as connection:
+            assert connection.scalar(select(jobs.c.state).where(
+                jobs.c.run_fk == run_id, jobs.c.kind == kind
+            )) == "SUCCEEDED"
+    report = service.for_run(run_id)
+    assert report.core.schema_version == "1.2.0"
+    assert report.core.evidence_sufficiency is None and report.core.risk_assessment is None
+    assert all(result.rule_version == "3" for result in report.core.task_results)
+    destination = tmp_path / "inflight-v3.zip"
+    destination.write_bytes(service.export(report.report_id))
+    replay = verify_bundle(str(destination))
+    assert replay["offline"] == "PASS"
+    assert replay["assessment_comparison"] == "NOT_AVAILABLE_LEGACY_REPORT"

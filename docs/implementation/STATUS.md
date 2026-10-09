@@ -43,9 +43,18 @@
 - Verifier/compatibility：显式按1.0/1.1/1.2/1.3重建，历史字段/wire/hash不升级；1.3比较完整充分度及风险，旧报告assessment_comparison明确NOT_AVAILABLE。重新计算全部hash后篡改充分度、风险结论/引用/版本也会拒绝。
 - Tests：稳定单元/reference **314 passed / 0 skipped**（53.03s）；正式正常写入和真实无关成功交易风险 **2 passed**（331.41s）；真实拒绝RPC导致全任务UNKNOWN但A10000/无风险/原UNKNOWN冻结 **1 passed**（212.56s）。高分9480且critical、PARTIAL且critical、缺样本/覆盖、20%UNKNOWN边界、显示6000bp但exact Q不足、1.2不升级、重hash篡改均通过。Ruff、mypy53files、57Schema/TS生成通过。
 - Review fixes：新增充分度与原scoring_reference门槛一致性guard；N/A按维度与能力排除但未测声明不消失；超长/空原始声明不因报告解释文本拼接而崩溃，保持原上下文UNKNOWN；risk必须与重判critical断言引用一致。两轮跨模块Review继续检查最终稳定树。
-- Git：阶段5待逻辑提交；最终完整scripts/check.py及远程PR/CI尚未运行，不声明最终验收通过。
+- Git：阶段5提交6ffa5fe；最终完整scripts/check.py及远程PR/CI尚未通过，不声明最终验收通过。
 - Limitations：工程指标不等于校准信任概率；关键风险沿用已接受写任务关联冲突，读取答案错误作普通功能失败；纯写无安全availability来源仍PARTIAL；离线复核不证明采集者诚实。
 - Next：跨模块最终Review → 全量检查 → PR/CI；本轮到任务5验收后停止。
+
+## 2026-10-10 / 任务 4–5 最终 Review 修复
+
+- Review：补齐写任务返回chain_id/executor/record_hash与任务约束的核验，返回tx_hash与冻结RPC候选不一致为UNKNOWN/EVIDENCE_INCONSISTENT。只有可信HTTP、链身份、canonical/finality和成功回执确认后，错误返回字段才形成关键风险；回滚保持普通失败。畸形RPC日志容器或成员保持UNKNOWN，不能保留未经可信链证据支持的critical。
+- Version：新正式计划使用capabilities@4/rule4/ReportCore1.3；既有@3在途任务显式冻结为1.2，历史1.0/1.1/1.2不升级。独立Verifier双向校验报告/模板/规则版本。
+- Tests：最终稳定单元/reference **340 passed**（38.46s）；新正常正式写入与旧@3在途冻结/导出/离线复核真实PostgreSQL/Anvil **2 passed / 0 skipped**（329.21s）。三组核心回归 **106 passed**，Verifier **55 passed**；Ruff、mypy53files、57Schema/TS生成通过。两名独立Review代理复查无剩余阻断。
+- CI：quality超时由15改为25分钟，新增真实正式评价的固定窗口约721秒，另需原有测试和工具安装/构建；未跳过测试、未放宽评分或验收门槛，Compose超时不变。
+- Full check：第一次scripts/check.py在pytest阶段因发现写结果漏检主动停止，明确记为NOT_PASS；接下来必须在稳定提交重新执行全量检查，不复用中断结果。
+- Git：feat/formal-evaluation基于fetch核实的最新origin/main=499ef56351d8672a105cea8a67ca194caff63a9e；最终修复待提交，push/PR/CI待完成。本轮仍停止在任务5。
 
 ## 2026-10-09 / 本轮任务 1：三能力模板
 

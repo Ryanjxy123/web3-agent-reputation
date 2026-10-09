@@ -1,4 +1,4 @@
-"""Version-3 case coverage and controlled refusals preserve earlier task rules."""
+"""Formal case coverage and controlled refusals preserve earlier task rules."""
 
 import copy
 
@@ -17,12 +17,12 @@ from tests.unit.test_task_outcomes import (
 )
 
 
-def negative_input(capability, case):
+def negative_input(capability, case, rule_version="4"):
     data = (
         reverted_anchor_input().model_dump(mode="json")
         if capability == "anchor_record" else task_input(capability)
     )
-    data["rule_version"] = "3"
+    data["rule_version"] = rule_version
     data["slot"].update(case_kind="negative", required_class=case)
     if case == "forbidden_contract":
         data["slot"]["request_overrides"] = {"target_contract": "0x" + "22" * 20}
@@ -48,8 +48,9 @@ def negative_input(capability, case):
     ("anchor_record", "expired_deadline"), ("anchor_record", "forbidden_contract"),
     ("anchor_record", "unsupported_chain"),
 ])
-def test_correct_refusal_is_functional_pass_without_claiming_execution(capability, case):
-    data = negative_input(capability, case)
+@pytest.mark.parametrize("rule_version", ["3", "4"])
+def test_correct_refusal_is_functional_pass_without_claiming_execution(capability, case, rule_version):
+    data = negative_input(capability, case, rule_version)
     result = decide(data)
     assert result.outcome == "PASS" and not result.critical_conflict
     assert result.task_link.completion_kind == "rejection"

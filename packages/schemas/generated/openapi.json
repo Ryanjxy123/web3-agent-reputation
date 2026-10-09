@@ -635,7 +635,8 @@
             "enum": [
               "1",
               "2",
-              "3"
+              "3",
+              "4"
             ],
             "title": "Rule Version",
             "type": "string"
@@ -2721,7 +2722,8 @@
             "enum": [
               "1",
               "2",
-              "3"
+              "3",
+              "4"
             ],
             "title": "Rule Version",
             "type": "string"
@@ -3092,7 +3094,8 @@
             "enum": [
               "1",
               "2",
-              "3"
+              "3",
+              "4"
             ],
             "title": "Rule Version",
             "type": "string"
@@ -3279,7 +3282,8 @@
               "capabilities@1",
               "anchor_record@2",
               "capabilities@2",
-              "capabilities@3"
+              "capabilities@3",
+              "capabilities@4"
             ],
             "title": "Template Version",
             "type": "string"

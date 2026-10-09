@@ -150,6 +150,8 @@ def _expected_rule_version(template: Any) -> str:
         return "2"
     if value.endswith("@3"):
         return "3"
+    if value.endswith("@4"):
+        return "4"
     _fail("RULE_VERSION_MISMATCH", "Run plan uses an unsupported assertion template.")
 
 
@@ -234,7 +236,7 @@ def _bundle_tasks(
         or (rule_version == "2" and schema_version == "1.0.0" and not new_index)
         or (rule_version == "2" and schema_version == "1.1.0" and new_index)
         or (
-            rule_version == "3" and schema_version in {"1.2.0", "1.3.0"} and new_index
+            (rule_version, schema_version) in {("3", "1.2.0"), ("4", "1.3.0")} and new_index
             and plan.suite_id == "formal-evaluation-v1"
         )
     )
@@ -311,7 +313,7 @@ def _verify_task_documents(
         original_result = verify_record(task_input, (input_id,))
         frozen_result = verify_record(frozen_input, (input_id,))
         historical_rpc_unknown = (
-            task_input.rule_version in {"2", "3"}
+            task_input.rule_version in {"2", "3", "4"}
             and original_result.outcome == Outcome.UNKNOWN
             and task_input.evm.error_reason == Reason.PLATFORM_RPC_ERROR
         )
@@ -574,7 +576,7 @@ def _live_task_check(
 ) -> dict[str, Any]:
     if historical_outcome == Outcome.NOT_APPLICABLE:
         return {"status": "NOT_REQUIRED", "reason_code": historical_reason}
-    if data.rule_version == "3" and data.slot.case_kind == "negative":
+    if data.rule_version in {"3", "4"} and data.slot.case_kind == "negative":
         return {
             "status": "NOT_REQUIRED", "reason_code": historical_reason,
             "reason": "frozen HTTP rejection is replayed without sending the invalid request",

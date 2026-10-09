@@ -570,8 +570,9 @@ def _build_formal_report(
     previous_report_hash: str,
     report_schema_version: Literal["1.2.0", "1.3.0"],
 ) -> ReportCore:
+    expected_rule = "4" if report_schema_version == "1.3.0" else "3"
     if (
-        plan.template_version != "capabilities@3"
+        plan.template_version != f"capabilities@{expected_rule}"
         or len(inputs) != len(plan.slots)
         or len(evidence_ids) != len(inputs)
         or len(set(evidence_ids)) != len(evidence_ids)
@@ -601,7 +602,7 @@ def _build_formal_report(
             or item.review_version != plan.review_version
             or item.review.review_version != plan.review_version
             or item.snapshot.snapshot_hash != plan.snapshot_hash
-            or item.rule_version != "3"
+            or item.rule_version != expected_rule
             or slot.expected.agent_ref != first.slot.expected.agent_ref
             or slot.expected.execution_chain != first.slot.expected.execution_chain
             or slot.purpose == "availability" and slot.capability_id == "anchor_record"

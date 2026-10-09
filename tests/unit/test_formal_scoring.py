@@ -21,7 +21,7 @@ from tests.unit.test_task_outcomes import (
 )
 
 
-def formal_arguments(*, availability=20, functional=10, behavior=0, mode="normal"):
+def formal_arguments(*, availability=20, functional=10, behavior=0, mode="normal", rule_version="4"):
     base = reverted_anchor_input().model_dump(mode="json") if behavior else task_input()
     capability = base["slot"]["capability_id"]
     inputs = []
@@ -40,7 +40,7 @@ def formal_arguments(*, availability=20, functional=10, behavior=0, mode="normal
                     body["evm"]["results"]["transaction"]["input"][:10]
                     + request_id[2:] + slot["task"]["record_hash"][2:]
                 )
-            body["rule_version"] = "3"
+            body["rule_version"] = rule_version
             body["dispatch_payload_hash"] = hash_json(slot["task"])
             body["agent_response"].update(request_id=request_id, status_path="/tasks/" + request_id)
             body["agent_http"].update(
@@ -93,7 +93,7 @@ def formal_arguments(*, availability=20, functional=10, behavior=0, mode="normal
             review_version=1, policy_version="policy-v1", policy_hash=hash_json(policy),
             profile="record-write-v1" if behavior else "record-read-v1",
             confirmed_capabilities=(capability,), suite_id="formal-evaluation-v1",
-            template_version="capabilities@3", planning_time=NOW,
+            template_version=f"capabilities@{rule_version}", planning_time=NOW,
             slots=tuple(value.slot for value in inputs),
         ),
         "inputs": tuple(inputs), "evidence_id": tuple(uuid4() for _ in inputs),
@@ -205,14 +205,14 @@ def test_formal_wire_is_explicit_and_reproducible():
         ReportCore.model_validate(wire)
 
 
-def test_formal_report_requires_task_rule_version_three():
+def test_formal_report_requires_its_schema_task_rule_version():
     wire = build_report(**formal_arguments()).model_dump(mode="json")
     slot_id = wire["task_results"][0]["slot_id"]
     wire["task_results"][0]["rule_version"] = "2"
     for assertion in wire["assertions"]:
         if assertion["slot_id"] == slot_id:
             assertion["rule_version"] = "2"
-    with pytest.raises(ValidationError, match="task rule version 3"):
+    with pytest.raises(ValidationError, match="task rule version 4"):
         ReportCore.model_validate(wire)
 
 
@@ -294,7 +294,7 @@ def test_formal_availability_cannot_execute_writes():
 def test_prior_not_applicable_is_excluded_without_erasing_unmeasured_claim():
     arguments = formal_arguments(availability=0, functional=1)
     body = excluded_input()
-    body["rule_version"] = "3"
+    body["rule_version"] = "4"
     item = RecordVerificationInput.model_validate(body)
     arguments["inputs"] = (item,)
     arguments["plan"] = arguments["plan"].model_copy(update={
@@ -357,7 +357,7 @@ def complete_read_arguments():
         if case == "forbidden_contract":
             # A confirmed ordinary rejection failure: the raw error code is wrong.
             body["agent_response"] = {"accepted": False, "error": {"code": "OTHER_REJECTION"}}
-        body["rule_version"] = "3"
+        body["rule_version"] = "4"
         body["dispatch_payload_hash"] = hash_json(mutated_payload(
             RecordVerificationInput.model_validate(body).slot
         ))
@@ -555,16 +555,26 @@ def test_sufficiency_gate_uses_exact_freshness_not_displayed_basis_points(age, a
 
 def test_v12_replay_omits_assessments_and_retains_original_scoring_fields():
     arguments = complete_read_arguments()
-    old = build_report(**arguments, report_schema_version="1.2.0")
+    legacy = {
+        **arguments,
+        "inputs": tuple(item.model_copy(update={"rule_version": "3"}) for item in arguments["inputs"]),
+        "plan": arguments["plan"].model_copy(update={"template_version": "capabilities@3"}),
+    }
+    old = build_report(**legacy, report_schema_version="1.2.0")
     new = build_report(**arguments)
     old_wire, new_wire = old.model_dump(mode="json"), new.model_dump(mode="json")
     assert old.schema_version == "1.2.0" and old.evidence_sufficiency is None
     assert old.raw_statistics == new.raw_statistics and old.scores == new.scores
     for field in ("evidence_sufficiency", "risk_assessment", "assessment_rule_version"):
         assert field not in old_wire
-        new_wire.pop(field)
-    new_wire["schema_version"] = "1.2.0"
-    assert new_wire == old_wire
+    for field in ("scores", "raw_statistics", "task_counts", "task_success_rate_bp"):
+        assert new_wire[field] == old_wire[field]
+    assert all(item.rule_version == "3" for item in old.task_results)
+    assert all(item.rule_version == "4" for item in new.task_results)
+    with pytest.raises(ValueError, match="CONTEXT_MISMATCH"):
+        build_report(**legacy)
+    with pytest.raises(ValueError, match="CONTEXT_MISMATCH"):
+        build_report(**arguments, report_schema_version="1.2.0")
     old_wire["risk_assessment"] = new.risk_assessment.model_dump(mode="json")
     with pytest.raises(ValidationError, match="assessment fields"):
         ReportCore.model_validate(old_wire)

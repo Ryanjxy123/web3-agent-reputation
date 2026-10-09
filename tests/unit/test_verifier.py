@@ -165,7 +165,7 @@ def test_formal_v13_cannot_be_relabeled_as_legacy_with_assessment_fields(tmp_pat
     rewrite_bundle(path, changed, core_change=lambda core: core.update(schema_version="1.2.0"))
     with pytest.raises(VerificationError) as failure:
         verify_bundle(str(changed))
-    assert failure.value.code == "REPLAY_MISMATCH"
+    assert failure.value.code == "RULE_VERSION_MISMATCH"
 
 
 def make_bundle(
@@ -173,7 +173,7 @@ def make_bundle(
     formal=False, report_schema_version=None,
 ):
     if formal:
-        rule_version = "3"
+        rule_version = "3" if report_schema_version == "1.2.0" else "4"
     raw_input = (
         reverted_anchor_input().model_dump(mode="json")
         if case == "critical"
@@ -183,11 +183,11 @@ def make_bundle(
         else v2_task_input(status="NOT_FOUND")
         if case == "unknown"
         else v2_task_input()
-        if rule_version in {"2", "3"}
+        if rule_version in {"2", "3", "4"}
         else read_input(status="SUCCESS").model_dump(mode="json")
     )
     if formal:
-        raw_input["rule_version"] = "3"
+        raw_input["rule_version"] = rule_version
         if case != "not_applicable":
             raw_input["slot"]["required_class"] = "normal" if case == "critical" else "success"
         if raw_input.get("agent_http") is not None:

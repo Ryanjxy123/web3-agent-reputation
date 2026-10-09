@@ -107,7 +107,8 @@
       "enum": [
         "1",
         "2",
-        "3"
+        "3",
+        "4"
       ],
       "title": "Rule Version",
       "type": "string"

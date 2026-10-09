@@ -209,10 +209,10 @@ class VerificationService:
                 witness.snapshot_core.read_block_number if witness else None,
             )
         )
-        if plan.template_version == "capabilities@3" and slot.case_kind == "negative":
+        if plan.template_version in {"capabilities@3", "capabilities@4"} and slot.case_kind == "negative":
             evm = evm.model_copy(update={"candidate_tx_hash": None})
         return RecordVerificationInput(
-            rule_version=cast(Literal["1", "2", "3"], plan.template_version.rsplit("@", 1)[1]),
+            rule_version=cast(Literal["1", "2", "3", "4"], plan.template_version.rsplit("@", 1)[1]),
             slot=slot,
             snapshot=snapshot,
             review=review,
@@ -227,7 +227,7 @@ class VerificationService:
             execution_reason=last.reason_code,
             agent_http=agent_http,
             initial_agent_http=initial_agent_http
-            if plan.template_version == "capabilities@3"
+            if plan.template_version in {"capabilities@3", "capabilities@4"}
             else None,
             agent_response=agent_response,
             agent_result=agent_view.result if agent_view else None,
