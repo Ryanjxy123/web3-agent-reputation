@@ -23,7 +23,7 @@
 | FOLLOWUP-02 | DONE | 四态归因、标准 reason_code、原始响应证据及异常归因；具体状态及测试见 2026-10-09 任务记录 |
 | FOLLOWUP-03 | DONE | 冻结 Evidence Bundle 逐任务重判、四态计数比较、历史格式兼容及独立 RPC 复查；最终 Review 修复已通过定向回归 |
 | FOLLOWUP-04 | DONE | 正式多槽位三维评分、固定类别与安全负例、ReportCore 1.2 及独立重算；阶段 Review/真实集成通过 |
-| FOLLOWUP-05 | DONE_PHASE_CHECKS | 充分度缺口、精确gate、关键风险证据、1.3独立重算；阶段测试/Review修复通过，最终全量与CI待验证 |
+| FOLLOWUP-05 | DONE | 充分度缺口、精确gate、关键风险证据、1.3独立重算；447项全量与质量/Compose CI通过 |
 | LOCAL-PG-JUNCTION | DONE | Windows PostgreSQL 改用 D:\web3-runtime 目录联接；R: 已移除，初始化、重启、数据完整性及13项定向测试通过 |
 
 ## 2026-10-10 / 本轮任务 4：正式三维评价
@@ -55,6 +55,17 @@
 - CI：quality超时由15改为25分钟，新增真实正式评价的固定窗口约721秒，另需原有测试和工具安装/构建；未跳过测试、未放宽评分或验收门槛，Compose超时不变。
 - Full check：第一次scripts/check.py在pytest阶段因发现写结果漏检主动停止，明确记为NOT_PASS；接下来必须在稳定提交重新执行全量检查，不复用中断结果。
 - Git：feat/formal-evaluation基于fetch核实的最新origin/main=499ef56351d8672a105cea8a67ca194caff63a9e；最终修复待提交，push/PR/CI待完成。本轮仍停止在任务5。
+
+## 2026-10-10 / 任务 4–5 最终验收
+
+- Scope：任务4 → 阶段测试/Review修复 → 任务5 → 阶段测试/Review修复 → 跨模块Review → 完整验收均完成。三维得分、已判定任务成功率、充分度和关键风险独立输出；保持policy-v1原公式、权重与门槛。新报告1.3/规则4可从冻结原始证据重算；历史版本与@3在途任务保持原语义。没有新增依赖、DB migration、Agent扩展、第三方适配器或前端功能。
+- Main files：core模型、record_verifier/reporting；platform evaluations/execution/verification/reports；独立verifier/bundle；同源生成Schema/OpenAPI/TS；测试与ADR0014/0015、CAPABILITY_TASKS。同步DB/签名/客户端初始化在线程中执行、客户端按run复用，报告计算在短fenced写入前完成，租约与fencing不放宽。
+- Local full check：在稳定提交 **2379a039475984b7c9d1f7c1413a8a34b6d2f52c** 运行 `. ./scripts/tools.ps1; uv run --env-file .env --all-packages python scripts/check.py`，**退出0**。完整Python **447 passed / 0 skipped / 2 warnings**（2247.86s），包含真实PostgreSQL/Anvil/HTTP及M1恢复、冻结、发布、复核回归；Ruff、Mypy53源文件、57Schema、生成TS无漂移通过；Web typecheck/build和 **2 tests passed**；Foundry **14 passed / 0 failed / 0 skipped**，含256次fuzz；三份编译ABI检查通过。两条既有Starlette/httpx与websockets弃用警告未隐藏。
+- CI：PR **#5**，base main、head feat/formal-evaluation；Foundation CI run **37967395116**、代码head **2379a039475984b7c9d1f7c1413a8a34b6d2f52c** completed/success；foundation-quality与foundation-compose均SUCCESS。CI实际Python **447 passed / 0 skipped**（869.28s）、Web2、Foundry14（256fuzz）、Schema/TS/ABI全部通过；Compose实际build/迁移/运行时smoke/独立worker通过。验收文档提交后仍须核对最新head的全部CI成功再合并，不复用旧head作为合并许可。
+- Review fixes：首次HTTP不可被后续响应覆盖；来源/材料冲突拒绝；负例实际payload绑定、ACK丢失保持UNKNOWN且不重发；RPC/非canonical/未最终确认材料不能创建critical；同步操作阻塞heartbeat已修复；成功率与分母模型不变量；写返回字段漏检与畸形RPC日志误报；新旧规则和在途报告版本配对。阶段及最终定向回归均重新通过，独立跨模块Review无剩余阻断。
+- Historical replay：最终稳定版本重新离线复核local-chain与local-chain-v2的A/D四个实际历史ZIP均PASS；assessment_comparison明确NOT_AVAILABLE_LEGACY_REPORT，未升级历史报告。最终340单元/reference、2真实新旧版本回归和完整447项通过的证据不替代彼此；首个中断全量结果仍NOT_PASS。
+- Git：阶段提交de8fe94、6ffa5fe、最终修复2379a03均已推送预期origin；工作树在全量检查后干净。验收文档单独逻辑提交，最终head/合并SHA以Git历史和PR为准。仅在latest-head CI全通过、无冲突、无required reviewer、base/head正确时按已有授权合并，安全同步main并删除已完成分支。
+- Acceptance：本轮任务4/5达到本地及代码CI验收要求，无已知实现阻塞。限制仍为当前受控协议/EVM ABI、纯写缺安全availability证据保持PARTIAL、工程指标不是校准概率、离线一致性不证明采集者诚实；Windows本地Docker WSL限制由真实Linux Compose CI单列验收。**停止，不开始任务6。**
 
 ## 2026-10-09 / 本轮任务 1：三能力模板
 
