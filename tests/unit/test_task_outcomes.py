@@ -129,6 +129,14 @@ def test_received_invalid_schema_is_failure_without_fabricated_parsed_response()
     assert result.outcome == "FAIL" and result.reason_code == "SCHEMA_ERROR"
 
 
+def test_valid_json_null_is_agent_schema_failure_while_invalid_json_remains_unknown():
+    data = task_input()
+    data["agent_http"]["response"] = None
+    data.update(agent_response=None, agent_result=None, agent_task_status=None)
+    result = decide(data)
+    assert result.outcome == "FAIL" and result.reason_code == "SCHEMA_ERROR"
+
+
 @pytest.mark.parametrize("reason", ["INTERNAL_ERROR", "CAPABILITY_EXPLICITLY_UNSUPPORTED"])
 def test_declared_capability_execution_failure_is_not_not_applicable(reason):
     data = task_input()
