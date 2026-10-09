@@ -24,6 +24,7 @@ from tests.unit.test_capability_rules import read_input
 from tests.unit.test_task_outcomes import (
     claim_result,
     excluded_input,
+    reverted_anchor_input,
 )
 from tests.unit.test_task_outcomes import (
     task_input as v2_task_input,
@@ -39,7 +40,9 @@ def test_verifier_rejects_path_traversal(tmp_path):
     assert failure.value.code == "UNSAFE_ARCHIVE"
 
 
-def make_bundle(tmp_path, *, rule_version="2", legacy_index=False, case="pass"):
+def make_bundle(
+    tmp_path, *, rule_version="2", legacy_index=False, case="pass", identical_freeze=False
+):
     raw_input = (
         excluded_input()
         if case == "not_applicable"
@@ -47,16 +50,61 @@ def make_bundle(tmp_path, *, rule_version="2", legacy_index=False, case="pass"):
         if case == "unknown"
         else v2_task_input()
         if rule_version == "2"
-        else read_input(status="SUCCESS")
+        else read_input(status="SUCCESS").model_dump(mode="json")
     )
     if case == "fail":
         claim_result(raw_input, tx_status="REVERTED")
+    if case == "not_applicable":
+        raw_input["execution_reason"] = raw_input["slot"]["applicability_reason"]
+    if case in {"service_error", "schema_error", "failed_query"}:
+        response = (
+            {
+                **raw_input["agent_response"],
+                "task_status": "failed",
+                "result": None,
+                "reason_code": "INTERNAL_ERROR",
+            }
+            if case == "failed_query"
+            else {"error": "service unavailable"}
+        )
+        raw_input["agent_http"].update(
+            http_status=503 if case == "service_error" else 200, response=response
+        )
+        raw_input.update(
+            agent_response=deepcopy(response),
+            agent_result=None,
+            agent_task_status="failed" if case == "failed_query" else None,
+        )
+    recovered_evm = deepcopy(raw_input["evm"])
+    if case in {"rpc_unknown", "rpc_unknown_without_candidate"}:
+        raw_input["evm"].update(results={}, error_reason="PLATFORM_RPC_ERROR")
+        if case == "rpc_unknown_without_candidate":
+            raw_input["evm"]["candidate_tx_hash"] = None
     inputs = RecordVerificationInput.model_validate(raw_input)
-    input_id, freeze_id = uuid4(), uuid4()
+    input_id = uuid4()
+    freeze_id = input_id if identical_freeze else uuid4()
     http_id = uuid4() if inputs.agent_http is not None else None
-    frozen = inputs.model_copy(
-        update={"evm": inputs.evm.model_copy(update={"observed_at": NOW.replace(".000Z", ".001Z")})}
+    frozen = (
+        inputs
+        if identical_freeze
+        else inputs.model_copy(
+            update={
+                "evm": inputs.evm.model_copy(update={"observed_at": NOW.replace(".000Z", ".001Z")})
+            }
+        )
     )
+    if case in {"rpc_unknown", "rpc_unknown_without_candidate"}:
+        frozen = frozen.model_copy(
+            update={
+                "evm": frozen.evm.model_copy(
+                    update={
+                        "candidate_tx_hash": recovered_evm["candidate_tx_hash"],
+                        "results": recovered_evm["results"],
+                        "error_reason": None,
+                    }
+                )
+            }
+        )
     policy = strict_json(
         (Path(__file__).resolve().parents[2] / "configs/policies/policy-v1.json").read_bytes()
     )
@@ -83,7 +131,7 @@ def make_bundle(tmp_path, *, rule_version="2", legacy_index=False, case="pass"):
         ended_at=NOW,
         latency_ms=None,
         error_origin="platform" if inputs.evm.error_reason else None,
-        reason_code=inputs.evm.error_reason or inputs.slot.applicability_reason,
+        reason_code=inputs.execution_reason,
         accepted=inputs.slot.applicability_reason is None,
         candidate_tx_hash=inputs.evm.candidate_tx_hash
         if inputs.slot.capability_id == "anchor_record"
@@ -225,7 +273,13 @@ def make_bundle(tmp_path, *, rule_version="2", legacy_index=False, case="pass"):
 
 
 def rewrite_bundle(
-    path, destination, *, core_change=None, document_change=None, evidence_change=None
+    path,
+    destination,
+    *,
+    core_change=None,
+    document_change=None,
+    evidence_change=None,
+    manifest_change=None,
 ):
     with ZipFile(path) as archive:
         files = {name: archive.read(name) for name in archive.namelist()}
@@ -263,6 +317,8 @@ def rewrite_bundle(
             replace_record(record, canonical_bytes(value))
     if core_change:
         core_change(core)
+    if manifest_change:
+        manifest_change(manifest)
     manifest["evidence"] = sorted(manifest["evidence"], key=lambda item: item["evidence_id"])
     manifest_bytes = canonical_bytes(manifest)
     core["evidence_manifest_hash"] = hash_json(manifest)
@@ -291,7 +347,126 @@ def test_verifier_replays_new_task_result_and_returns_recomputed_counts(tmp_path
     assert result["task_count_comparison"] == "MATCH"
     assert result["task_results"][0]["outcome"] == "PASS"
     assert result["task_results"][0]["live_chain"]["status"] == "NOT_CHECKED"
-    assert result["task_results"][0]["live_chain"]["reason"] == "trusted task RPC was not configured"
+    assert (
+        result["task_results"][0]["live_chain"]["reason"] == "trusted task RPC was not configured"
+    )
+
+
+@pytest.mark.parametrize(
+    ("rule_version", "legacy_index", "case"),
+    [("2", False, "pass"), ("2", False, "not_applicable"), ("1", True, "pass")],
+)
+def test_verifier_accepts_deduplicated_input_and_freeze_record(
+    tmp_path, rule_version, legacy_index, case
+):
+    path, input_id, freeze_id, _ = make_bundle(
+        tmp_path,
+        rule_version=rule_version,
+        legacy_index=legacy_index,
+        case=case,
+        identical_freeze=True,
+    )
+
+    assert input_id == freeze_id
+    result = verify_bundle(str(path))
+    assert result["offline"] == "PASS"
+    outcome = "NOT_APPLICABLE" if case == "not_applicable" else "PASS"
+    assert result["task_counts"][outcome] == 1
+
+
+def test_verifier_rejects_distinct_freeze_record_with_input_source(tmp_path):
+    path, input_id, freeze_id, _ = make_bundle(tmp_path)
+    assert input_id != freeze_id
+    changed = tmp_path / "wrong-freeze-source.zip"
+
+    def change_source(manifest):
+        next(item for item in manifest["evidence"] if item["evidence_id"] == str(freeze_id))[
+            "source"
+        ] = "record-verification-input"
+
+    rewrite_bundle(path, changed, manifest_change=change_source)
+    with pytest.raises(VerificationError) as failure:
+        verify_bundle(str(changed))
+    assert failure.value.code == "EVIDENCE_INCONSISTENT"
+
+
+@pytest.mark.parametrize("case", ["pass", "unknown"])
+def test_verifier_rejects_freeze_receipt_change_after_hashes_are_recomputed(tmp_path, case):
+    path, _, freeze_id, _ = make_bundle(tmp_path, case=case)
+    changed = tmp_path / "changed-freeze-receipt.zip"
+
+    def change_receipt(data):
+        if case == "pass":
+            data["evm"]["results"]["receipt"]["status"] = "0x0"
+        else:
+            data["evm"]["results"]["receipt"] = {}
+
+    rewrite_bundle(path, changed, evidence_change={freeze_id: change_receipt})
+    with pytest.raises(VerificationError) as failure:
+        verify_bundle(str(changed))
+    assert failure.value.code == "EVIDENCE_INCONSISTENT"
+
+
+@pytest.mark.parametrize("observed_at", ["2026-10-02T11:59:59.999Z", "2026-10-02T12:00:02.000Z"])
+def test_verifier_rejects_freeze_time_outside_report_interval(tmp_path, observed_at):
+    path, _, freeze_id, _ = make_bundle(tmp_path)
+    changed = tmp_path / "changed-freeze-time.zip"
+
+    def change_time(data):
+        data["evm"]["observed_at"] = observed_at
+
+    rewrite_bundle(path, changed, evidence_change={freeze_id: change_time})
+    with pytest.raises(VerificationError) as failure:
+        verify_bundle(str(changed))
+    assert failure.value.code == "EVIDENCE_INCONSISTENT"
+
+
+@pytest.mark.parametrize("case", ["pass", "rpc_unknown"])
+@pytest.mark.parametrize("reason", ["PLATFORM_RPC_ERROR", "CHAIN_INSTANCE_CHANGED"])
+def test_verifier_rejects_unresolved_freeze_error(tmp_path, case, reason):
+    path, _, freeze_id, _ = make_bundle(tmp_path, case=case)
+    changed = tmp_path / "changed-freeze-error.zip"
+
+    def change_reason(data):
+        data["evm"]["error_reason"] = reason
+
+    rewrite_bundle(path, changed, evidence_change={freeze_id: change_reason})
+    with pytest.raises(VerificationError) as failure:
+        verify_bundle(str(changed))
+    assert failure.value.code == "EVIDENCE_INCONSISTENT"
+
+
+@pytest.mark.parametrize("case", ["rpc_unknown", "rpc_unknown_without_candidate"])
+def test_verifier_keeps_historical_rpc_unknown_after_freeze_recovers(tmp_path, case):
+    path, _, _, _ = make_bundle(tmp_path, case=case)
+
+    result = verify_bundle(str(path))
+
+    assert result["offline"] == "PASS"
+    assert result["task_results"][0]["outcome"] == "UNKNOWN"
+    assert result["task_results"][0]["reason_code"] == "PLATFORM_RPC_ERROR"
+    assert result["task_counts"] == {"PASS": 0, "FAIL": 0, "UNKNOWN": 1, "NOT_APPLICABLE": 0}
+
+
+def test_verifier_rejects_rpc_recovery_with_wrong_query_candidate(tmp_path):
+    path, _, freeze_id, _ = make_bundle(tmp_path, case="rpc_unknown_without_candidate")
+    changed = tmp_path / "wrong-query-candidate.zip"
+
+    def change_candidate(data):
+        data["evm"]["candidate_tx_hash"] = ZERO
+
+    rewrite_bundle(path, changed, evidence_change={freeze_id: change_candidate})
+    with pytest.raises(VerificationError) as failure:
+        verify_bundle(str(changed))
+    assert failure.value.code == "EVIDENCE_INCONSISTENT"
+
+
+def test_verifier_does_not_extend_rpc_recovery_exception_to_legacy_rules(tmp_path):
+    path, _, _, _ = make_bundle(tmp_path, rule_version="1", legacy_index=True, case="rpc_unknown")
+
+    with pytest.raises(VerificationError) as failure:
+        verify_bundle(str(path))
+    assert failure.value.code == "EVIDENCE_INCONSISTENT"
 
 
 @pytest.mark.parametrize(
@@ -521,3 +696,69 @@ def test_not_applicable_task_does_not_query_live_chain(tmp_path, monkeypatch):
     assert result["offline"] == "PASS"
     assert live["status"] == "NOT_REQUIRED"
     assert live["reason_code"] == "CAPABILITY_NOT_DECLARED"
+
+
+@pytest.mark.parametrize(
+    ("case", "reason"),
+    [
+        ("service_error", "AGENT_SERVICE_ERROR"),
+        ("schema_error", "SCHEMA_ERROR"),
+        ("failed_query", "AGENT_TASK_FAILED"),
+    ],
+)
+def test_agent_failure_without_chain_assertions_does_not_claim_live_confirmation(
+    tmp_path, monkeypatch, case, reason
+):
+    path, _, _, _ = make_bundle(tmp_path, case=case)
+    from reputation_verifier import bundle
+
+    def unexpected_rpc(*_args):
+        pytest.fail("HTTP-only Agent failure must not query chain RPC")
+
+    monkeypatch.setattr(bundle, "_live_rpc_results", unexpected_rpc)
+    result = verify_bundle(str(path), task_rpc_url="http://127.0.0.1:1")
+
+    assert result["offline"] == "PASS"
+    assert result["task_results"][0]["outcome"] == "FAIL"
+    assert result["task_results"][0]["reason_code"] == reason
+    assert result["task_results"][0]["live_chain"] == {
+        "status": "NOT_REQUIRED",
+        "reason_code": reason,
+    }
+
+
+def test_failed_anchor_does_not_confirm_live_results_from_another_chain(monkeypatch):
+    from reputation_verifier import bundle
+
+    data = reverted_anchor_input()
+    evidence_id = uuid4()
+    original = verify_record(data, (evidence_id,))
+    other_chain = {**data.evm.results, "chain_id": "0x1"}
+    monkeypatch.setattr(bundle, "_live_rpc_results", lambda *_args: other_chain)
+
+    live = bundle._live_task_check(
+        "http://127.0.0.1:1", data, original.outcome, original.reason_code, evidence_id
+    )
+
+    assert live["status"] == "UNKNOWN"
+    assert live["reason_code"] == "CHAIN_INSTANCE_CHANGED"
+
+
+def test_historical_rpc_unknown_can_be_resolved_by_live_chain_reads(tmp_path, monkeypatch):
+    path, _, freeze_id, _ = make_bundle(tmp_path, case="rpc_unknown")
+    from reputation_verifier import bundle
+
+    with ZipFile(path) as archive:
+        manifest = strict_json(archive.read("evidence_manifest.json"))
+        record = next(
+            item for item in manifest["evidence"] if item["evidence_id"] == str(freeze_id)
+        )
+        frozen = RecordVerificationInput.model_validate_json(archive.read(record["path"]))
+    monkeypatch.setattr(bundle, "_live_rpc_results", lambda *_args: frozen.evm.results)
+
+    result = verify_bundle(str(path), task_rpc_url="http://127.0.0.1:1")
+
+    assert result["task_results"][0]["outcome"] == "UNKNOWN"
+    live = result["task_results"][0]["live_chain"]
+    assert live["status"] == "RESOLVED"
+    assert live["outcome"] == "PASS"

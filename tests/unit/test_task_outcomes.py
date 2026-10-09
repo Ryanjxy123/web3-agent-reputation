@@ -81,6 +81,7 @@ def excluded_input():
         applicability_reason="CAPABILITY_NOT_DECLARED", expected_outcome="NOT_APPLICABLE"
     )
     data.update(
+        execution_reason="CAPABILITY_NOT_DECLARED",
         dispatch_started_at=None,
         dispatch_payload_hash=None,
         agent_http=None,
@@ -558,9 +559,8 @@ def report_for_read_input(data):
         ended_at=NOW,
         latency_ms=None,
         error_origin="platform" if input_model.evm.error_reason else None,
-        reason_code=input_model.evm.error_reason
-        or input_model.slot.applicability_reason,
-        accepted=True,
+        reason_code=input_model.execution_reason,
+        accepted=input_model.slot.applicability_reason is None,
         candidate_tx_hash=None,
         evidence_refs=(uuid4(),),
         diagnostic_only=False,
@@ -584,6 +584,7 @@ def test_report_settlement_accepts_not_applicable_and_early_rpc_unknown_reads(ca
         data = excluded_input()
     else:
         data = task_input()
+        data["execution_reason"] = "PLATFORM_RPC_ERROR"
         data["evm"].update(
             candidate_tx_hash=None, results={}, error_reason="PLATFORM_RPC_ERROR"
         )

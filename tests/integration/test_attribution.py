@@ -25,6 +25,7 @@ from reputation_platform.application.verification import VerificationService
 from reputation_platform.configuration import controlled_fixture_ports
 from reputation_platform.infrastructure.db.tables import attempts, evidence_blobs
 from reputation_platform.worker.main import Worker
+from reputation_verifier import verify_bundle
 from sqlalchemy import func, select
 from web3 import Web3
 
@@ -180,6 +181,13 @@ def freeze_and_export(flow, run_id):
     bundle = reports.export(report.report_id)
     with zipfile.ZipFile(io.BytesIO(bundle)) as archive:
         core = archive.read("report_core.json")
+    path = flow[6] / f"report-{report.report_id}.zip"
+    path.write_bytes(bundle)
+    replayed = verify_bundle(str(path))
+    assert replayed["offline"] == "PASS"
+    assert replayed["task_counts"] == report.core.task_counts.model_dump(mode="json")
+    assert replayed["task_results"][0]["outcome"] == report.core.task_results[0].outcome
+    assert replayed["task_results"][0]["reason_code"] == report.core.task_results[0].reason_code
     return report, core, bundle
 
 

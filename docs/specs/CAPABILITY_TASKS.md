@@ -1,6 +1,6 @@
 # 三能力任务模板
 
-本轮只扩展 M1 的 Task → Worker → Evidence Bundle → 独立 RPC → 纯断言链路；不增加协议适配器或完整评分。m1-smoke-v1 / anchor_record@1 保留原格式，新增 capabilities-v1 / capabilities@1。当前 API 每次 run 冻结一个能力槽位。
+本轮只扩展 M1 的 Task → Worker → Evidence Bundle → 独立 RPC → 纯断言链路；不增加协议适配器或完整评分。m1-smoke-v1 / anchor_record@1 保留原格式，当前 capabilities-v1 使用 capabilities@2，已冻结的 capabilities@1 保留旧规则兼容。当前 API 每次 run 冻结一个能力槽位。
 
 | 能力 | 输入 | 输出 | 独立断言 |
 |---|---|---|---|

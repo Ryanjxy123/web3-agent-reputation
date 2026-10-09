@@ -240,6 +240,7 @@ def _verify_task_documents(
     tasks: list[tuple[Any, UUID, UUID, UUID | None]],
     expected_version: str,
     *,
+    evaluated_at: str,
     require_http_refs: bool,
 ) -> tuple[list[RecordVerificationInput], list[Observation], dict[str, Any]]:
     try:
@@ -260,9 +261,8 @@ def _verify_task_documents(
     inputs: list[RecordVerificationInput] = []
     for slot, input_id, freeze_id, http_id in tasks:
         input_record, freeze_record = records[input_id], records[freeze_id]
-        if (
-            input_record.source != "record-verification-input"
-            or freeze_record.source != "report-freeze-verification-input"
+        if input_record.source != "record-verification-input" or (
+            input_id != freeze_id and freeze_record.source != "report-freeze-verification-input"
         ):
             _fail(
                 "EVIDENCE_INCONSISTENT", "Task input and freeze references have unexpected sources."
@@ -274,19 +274,43 @@ def _verify_task_documents(
             raise VerificationError(
                 "REPLAY_MISMATCH", "Task verification input is invalid."
             ) from exc
+        if not task_input.evm.observed_at <= frozen_input.evm.observed_at <= evaluated_at:
+            _fail(
+                "EVIDENCE_INCONSISTENT", "Freeze time falls outside the task and report interval."
+            )
         if task_input.slot != slot or frozen_input.slot != slot:
             _fail("EVIDENCE_INCONSISTENT", "Task input does not match its planned slot.")
         if task_input.model_dump(exclude={"evm"}) != frozen_input.model_dump(exclude={"evm"}):
             _fail(
                 "EVIDENCE_INCONSISTENT", "Freeze input changes task facts outside chain evidence."
             )
-        if frozen_input.evm.candidate_tx_hash != task_input.evm.candidate_tx_hash:
-            _fail("EVIDENCE_INCONSISTENT", "Freeze input changed the task's candidate transaction.")
         if (
             task_input.rule_version != expected_version
             or frozen_input.rule_version != expected_version
         ):
             _fail("RULE_VERSION_MISMATCH", "Task evidence does not use the plan's assertion rules.")
+        if frozen_input.evm.error_reason:
+            _fail("EVIDENCE_INCONSISTENT", "Freeze input contains an unresolved chain error.")
+        original_result = verify_record(task_input, (input_id,))
+        frozen_result = verify_record(frozen_input, (input_id,))
+        historical_rpc_unknown = (
+            task_input.rule_version == "2"
+            and original_result.outcome == Outcome.UNKNOWN
+            and task_input.evm.error_reason == Reason.PLATFORM_RPC_ERROR
+        )
+        if frozen_input.evm.candidate_tx_hash != task_input.evm.candidate_tx_hash and not (
+            historical_rpc_unknown
+            and task_input.slot.capability_id == "get_tx_status"
+            and task_input.evm.candidate_tx_hash is None
+            and frozen_input.evm.candidate_tx_hash == task_input.slot.task.query_tx_hash
+        ):
+            _fail("EVIDENCE_INCONSISTENT", "Freeze input changed the task's candidate transaction.")
+        if not historical_rpc_unknown and (
+            [(item.rule_id, item.outcome, item.reason_code) for item in original_result.assertions]
+            != [(item.rule_id, item.outcome, item.reason_code) for item in frozen_result.assertions]
+            or original_result.task_link != frozen_result.task_link
+        ):
+            _fail("EVIDENCE_INCONSISTENT", "Freeze evidence changes the task's original judgement.")
         if task_input.snapshot.core.model_dump(mode="json") != snapshot_core:
             _fail("EVIDENCE_INCONSISTENT", "Snapshot document differs from task input.")
         if task_input.review.model_dump(mode="json") != review:
@@ -496,6 +520,12 @@ def _live_task_check(
 ) -> dict[str, Any]:
     if historical_outcome == Outcome.NOT_APPLICABLE:
         return {"status": "NOT_REQUIRED", "reason_code": historical_reason}
+    original = verify_record(data, (evidence_id,))
+    if any(
+        item.rule_id == "agent.service" and item.outcome == Outcome.FAIL
+        for item in original.assertions
+    ) and not any(item.rule_id.startswith("chain.") for item in original.assertions):
+        return {"status": "NOT_REQUIRED", "reason_code": historical_reason}
     if not rpc_url:
         return {
             "status": "NOT_CHECKED",
@@ -516,11 +546,20 @@ def _live_task_check(
         result = verify_record(live_input, (evidence_id,))
     except Exception:
         return {"status": "UNKNOWN", "reason_code": Reason.PLATFORM_RPC_ERROR}
-    if result.outcome == Outcome.UNKNOWN:
+    chain_identity = next(
+        (item for item in result.assertions if item.rule_id == "chain.identity"), None
+    )
+    if (
+        result.outcome == Outcome.UNKNOWN
+        or chain_identity is None
+        or chain_identity.outcome != Outcome.PASS
+    ):
         return {
             "status": "UNKNOWN",
             "outcome": result.outcome,
-            "reason_code": result.reason_code,
+            "reason_code": chain_identity.reason_code
+            if chain_identity is not None and chain_identity.outcome != Outcome.PASS
+            else result.reason_code or Reason.MISSING_EVIDENCE,
             "historical_outcome": historical_outcome,
             "historical_reason_code": historical_reason,
         }
@@ -634,12 +673,21 @@ def verify_bundle(
         verification = _json(aliases, "verification.json")
         records = _record_by_id(manifest)
         tasks = _bundle_tasks(verification, plan, core_data, records, files)
+        try:
+            core = ReportCore.model_validate(core_data)
+        except ValueError as exc:
+            raise VerificationError(
+                "REPLAY_MISMATCH", "Report task results or counts are invalid."
+            ) from exc
+        if hash_json(core.model_dump(mode="json")) != report_hash:
+            _fail("CONTENT_HASH_MISMATCH", "Report core is not in its canonical wire form.")
         inputs, observations, policy = _verify_task_documents(
             aliases,
             records,
             files,
             tasks,
             expected_version,
+            evaluated_at=core.evaluated_at,
             require_http_refs=verification.get("schema_version") == "task-replay-v1",
         )
         referenced_ids = set(plan.planning_evidence_refs)
@@ -658,14 +706,6 @@ def verify_bundle(
         )
         if not referenced_ids.issubset(records):
             _fail("MISSING_EVIDENCE", "A frozen task references evidence absent from the manifest.")
-        try:
-            core = ReportCore.model_validate(core_data)
-        except ValueError as exc:
-            raise VerificationError(
-                "REPLAY_MISMATCH", "Report task results or counts are invalid."
-            ) from exc
-        if hash_json(core.model_dump(mode="json")) != report_hash:
-            _fail("CONTENT_HASH_MISMATCH", "Report core is not in its canonical wire form.")
         input_ids = [entry[1] for entry in tasks]
         results = [
             verify_record(task_input, (input_id,))

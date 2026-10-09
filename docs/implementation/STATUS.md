@@ -21,7 +21,7 @@
 | M1-08 | DONE | 原生 API/worker/Anvil A/D 纵向演示；A/D bundle、A anchor、离线/在线 verifier、篡改拒绝 |
 | FOLLOWUP-01 | DONE | 三能力模板与独立只读查询；具体状态及测试见 2026-10-09 任务记录 |
 | FOLLOWUP-02 | DONE | 四态归因、标准 reason_code、原始响应证据及异常归因；具体状态及测试见 2026-10-09 任务记录 |
-| FOLLOWUP-03 | DONE | 冻结 Evidence Bundle 逐任务重判、四态计数比较、历史格式兼容及独立 RPC 复查 |
+| FOLLOWUP-03 | DONE | 冻结 Evidence Bundle 逐任务重判、四态计数比较、历史格式兼容及独立 RPC 复查；最终 Review 修复已通过定向回归 |
 | LOCAL-PG-JUNCTION | DONE | Windows PostgreSQL 改用 D:\web3-runtime 目录联接；R: 已移除，初始化、重启、数据完整性及13项定向测试通过 |
 
 ## 2026-10-09 / 本轮任务 1：三能力模板
@@ -41,7 +41,7 @@
 - Review fixes：授权/派发/endpoint 不一致不能将 HTTP 500 算 Agent FAIL；畸形 HTTP status 和声明数组不能崩溃；Agent 服务错误不被后续 RPC 故障遮盖；链上可证实回滚使用 TX_REVERTED；派生响应与冻结原始 HTTP 不一致为 UNKNOWN；损坏 RPC 证据降为 UNKNOWN。补全 NOT_APPLICABLE 不派发、不读任务 RPC且可冻结/导出；早期 RPC UNKNOWN 可以按原判定冻结，后续链恢复不会重写原任务结果；M1 专属 suite 不接受排除的 anchor 能力。
 - Compatibility：旧 v1 reason 与默认 wire serialization 保留；新增状态、原因、原始 HTTP envelope 和 rule_version 进入已有 Evidence Bundle/CAS；Schema/OpenAPI/TS 由共享类型生成。
 - Limitations：非法 JSON 被安全出口拒绝，因无法保留可靠脱敏原文，保持 UNKNOWN。报告发布仍需可信链上下文；全任务独立复核在下一项实现。
-- Git：阶段 2 Review 通过，等待逻辑提交后开始任务 3；当前修改尚未提交或推送。
+- Git：阶段 2 Review 后提交 854610d，JSON null 边界补测提交 1d88cc7；尚未 push。
 
 ## 2026-10-09 / 本轮任务 3：证据驱动逐任务复核
 
@@ -49,8 +49,9 @@
 - Compatibility：`@2` + ReportCore 1.0 + 旧单任务索引仅作为本轮前已冻结报告的兼容格式；继续重判并返回计算计数，但明确输出 `task_count_comparison=NOT_AVAILABLE_LEGACY_REPORT`。新报告必须 `@2` + ReportCore 1.1 + `task-replay-v1`，否则以规则版本错配拒绝。当前 report builder 只支持每 run 单槽位；Verifier 拒绝多槽位 bundle，避免在未重建全报告统计时误报 PASS。
 - Tests：Verifier/四态/报告契约单元组合 **74 passed / 0 skipped**；真实 PostgreSQL/Anvil A/D 报告导出、离线逐项复核及独立任务 RPC 复查 **2 passed / 0 skipped**（3 个其他报告用例 deselected）；旧 `runtime/local-chain` 与 `local-chain-v2` 的 A/D 四个真实 ZIP 也均离线复核通过，A 为 PASS，D 为 FAIL/SEMANTIC_MISMATCH。Ruff、Mypy 52 个源文件、54 份 Schema 检查通过。完整 `scripts/check.py` 和 GitHub CI 结果待稳定提交后运行/核实。
 - Review fixes：补齐模板、ReportCore schema 与索引格式双向配对，拒绝移除 v1.1 任务摘要或降级索引；拒绝当前模型不支持的多槽位报告；NOT_APPLICABLE 跳过非必要链 RPC；损坏的原始 HTTP CAS 不再导致报告冻结异常崩溃，缺少匹配内容时明确拒绝冻结。修复一次 Ruff 导入排序。
+- Final review：真实 NA 导出后复核首先复现 **1 failed**（CAS 去重复用原输入 ID）；已修复同 ID 来源兼容，并增加冻结 RPC 重判/未恢复错误/时间顺序、v2 结算原因及在线链身份一致性校验。相关单元组合 **101 passed / 0 skipped**（10.22s）；真实归因报告导出复核 **4 passed / 0 skipped**（14 个其他用例 deselected，119.61s），覆盖 FAIL、UNKNOWN、NOT_APPLICABLE 及 RPC 恢复后的原 UNKNOWN 保留。全量检查早期在 pytest 阶段因该 Review 问题主动中断，不记通过；修复稳定提交后重新运行。
 - Limitations：旧格式报告没有冻结任务计数，无法声称与原报告计数比较；无可信 RPC 时结果证明冻结证据与版本化规则内部一致，不单独证明原始采集者诚实或当前链状态。在线复查是可选的，RPC 来源只接受操作者配置。本轮未实现三维评分、前端、ERC-8004 或第三方协议适配器。
-- Git：分支 `feat/capabilities-task-replay`；任务 1、2 已提交，任务 3 与状态文档当前尚未提交/推送；稳定树检查、PR 和 CI 状态待记录。
+- Git：分支 `feat/capabilities-task-replay`；任务 3 提交 b724f04；最终 Review 修复待提交，稳定树检查、PR 和 CI 状态待记录，尚未 push。
 - Next task：FOLLOWUP-04/三维评分保持未开始；按用户要求本轮到任务 3 后停止，等待下一轮指令。
 
 ## 2026-10-02 / M0-01

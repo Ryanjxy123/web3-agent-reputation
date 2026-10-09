@@ -86,6 +86,7 @@ def build_report(
     if (
         len(settled) != 1
         or settled[0].candidate_tx_hash != expected_candidate
+        or (inputs.rule_version == "2" and settled[0].reason_code != inputs.execution_reason)
         or (
             inputs.slot.capability_id == "get_tx_status"
             and inputs.slot.applicability_reason is not None
