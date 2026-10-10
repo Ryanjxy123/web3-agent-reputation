@@ -77,3 +77,6 @@
 最终Review已修复写任务返回字段漏检及畸形RPC误报：新正式计划使用@4/rule4/ReportCore1.3，旧@3在途任务明确保持1.2；340单元/reference、2真实新旧版本回归通过，跨模块Review无剩余阻断。此前全量检查在发现问题后主动中断，不能记为通过，稳定提交后重新执行。quality CI增加到25分钟以容纳约721秒固定正式任务窗口和其余完整检查，测试与评分门槛不变。详细记录见STATUS，最终全量/PR/CI仍待完成。
 
 任务4/5最终验收：稳定代码2379a03完整check.py退出0，Python447/0skip（2247.86s）、Web2、Foundry14（256fuzz）、Ruff/Mypy53/57Schema/TS/ABI全通过。PR#5的代码CI run37967395116在同head下quality/Compose均SUCCESS，CI Python447/0skip（869.28s）；四个历史A/D ZIP最终重放PASS且不升级。最终设计和Review修复见STATUS/ADR0014/0015。验收文档提交后需继续检查最新head CI再按授权合并及同步main；本轮任务4/5实现验收完成，停止任务6。
+
+
+2026-10-10 最新main复查：328a712已合并PR#5的任务4/5。本轮任务4评分复查通过，再在任务5/跨模块Review复现并修复RPC日志误风险、UNKNOWN冻结恢复及正式Run状态。新规则5/@5/ReportCore1.4保留旧规则4/1.3原语义；评分和充分度参数不变，设计见ADR0016。稳定单元/reference396项、真实PostgreSQL/Anvil定向4项通过；完整稳定树check.py及新PR/CI仍待完成，以STATUS后续真实结果为准。本轮仅任务4/5，不进入任务6。

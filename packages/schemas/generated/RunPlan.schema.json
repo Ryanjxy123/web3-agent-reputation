@@ -558,7 +558,8 @@
         "anchor_record@2",
         "capabilities@2",
         "capabilities@3",
-        "capabilities@4"
+        "capabilities@4",
+        "capabilities@5"
       ],
       "title": "Template Version",
       "type": "string"

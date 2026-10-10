@@ -23,8 +23,18 @@
 | FOLLOWUP-02 | DONE | 四态归因、标准 reason_code、原始响应证据及异常归因；具体状态及测试见 2026-10-09 任务记录 |
 | FOLLOWUP-03 | DONE | 冻结 Evidence Bundle 逐任务重判、四态计数比较、历史格式兼容及独立 RPC 复查；最终 Review 修复已通过定向回归 |
 | FOLLOWUP-04 | DONE | 正式多槽位三维评分、固定类别与安全负例、ReportCore 1.2 及独立重算；阶段 Review/真实集成通过 |
-| FOLLOWUP-05 | DONE | 充分度缺口、精确gate、关键风险证据、1.3独立重算；447项全量与质量/Compose CI通过 |
+| FOLLOWUP-05 | REVALIDATING | 既有任务4/5已由PR#5合并；复查修复RPC日志误风险及冻结恢复，新规则5/报告1.4定向通过，待稳定树全量与PR/CI |
 | LOCAL-PG-JUNCTION | DONE | Windows PostgreSQL 改用 D:\web3-runtime 目录联接；R: 已移除，初始化、重启、数据完整性及13项定向测试通过 |
+
+## 2026-10-10 / 最新 main 任务4/5复查修复
+
+- Baseline：fetch核实main/origin/main为328a712，PR#5已合并任务4/5；最新main CI run37973933397的quality/Compose均SUCCESS。复用现有三维评分、充分度与风险机制，不重复实现、不开发任务6。
+- Order/Review：先复查任务4，176项定向单元/reference通过且无阻断，再检查任务5及跨模块链路。发现格式合法但位置互斥的RPC日志被rule4误归critical、恢复读数拒绝冻结原UNKNOWN、正式完整报告仍显示Run PARTIAL；修复后重新验证。原main重跑check.py在发现问题后主动中止，明确NOT_PASS，不复用其结果。
+- Implemented：新capabilities@5/rule5/ReportCore1.4在业务断言前核验全部日志schema、固定事件ABI、交易/区块/序号、removed与唯一有序logIndex。RPC互斥为UNKNOWN/EVIDENCE_INCONSISTENT，畸形为UNKNOWN/PLATFORM_RPC_ERROR；均不扣Agent分、不创建critical。preserve_rpc_unknown共享纯规则保持原测量UNKNOWN，冻结复读和在线恢复单列，原已判定任务遇坏证据仍拒冻。新完整正式报告设Run COMPLETED，充分度不足保持PARTIAL。
+- Compatibility：policy-v1/three-dimensional-v1/evidence-assessment-v1、公式/权重/阈值均不变；历史@3→1.2、@4→1.3显式冻结/重放，不升级。原rule4对照16个场景、原1.3报告对照3个场景逐字段一致。Schema/OpenAPI/TS同源生成，无新依赖、DB migration、合约或前端功能。
+- Tests：稳定单元/reference396 passed/0 skipped（32.14s）；新增44项日志/ABI/helper单元通过。真实PostgreSQL/HTTP/Anvil首测矛盾恢复、反向拒冻及在途@4组合3 passed/0 skipped（206.35s）；追加真实畸形日志恢复1 passed/0 skipped（90.23s）。Ruff、Mypy53、57Schema及TS生成通过。独立跨模块Review已确认无剩余本范围阻断。
+- Git：fix/rpc-log-evidence-attribution基于328a712；修复待提交；最终完整check.py及新PR/CI待完成，不提前声称最终验收。
+- Limitations/Next：旧规则4报告保留原语义，纠正评价需新规则重新测量；离线复核不证明采集者诚实，纯写缺安全availability样本仍PARTIAL。本轮继续全量检查→PR/CI，验收后停止任务6。
 
 ## 2026-10-10 / 本轮任务 4：正式三维评价
 

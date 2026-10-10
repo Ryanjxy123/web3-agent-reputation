@@ -77,7 +77,7 @@ def high_score_critical_arguments():
         slot["task"]["request_id"] = slot["expected"]["request_id"] = request_id
         if case == "forbidden_contract":
             slot["request_overrides"] = {"target_contract": "0x" + "22" * 20}
-        body["rule_version"] = "4"
+        body["rule_version"] = "5"
         body["evm"]["observed_at"] = "2026-10-02T12:00:02.000Z"
         http = body["agent_http"]
         http.update(request_id=request_id, ended_at="2026-10-02T12:00:00.100Z", latency_ms=100)
@@ -207,7 +207,7 @@ def changed_write_response(original, field):
     ("chain_id", "TX_WRONG_CHAIN"), ("executor", "TX_WRONG_EXECUTOR"),
     ("record_hash", "RECORD_HASH_MISMATCH"), ("tx_hash", "EVIDENCE_INCONSISTENT"),
 ])
-@pytest.mark.parametrize("version", ["3", "4"])
+@pytest.mark.parametrize("version", ["3", "4", "5"])
 def test_write_response_fields_are_checked_only_by_new_version(completed_write, field, reason, version):
     body = changed_write_response(completed_write, field)
     body["rule_version"] = version

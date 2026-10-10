@@ -350,7 +350,7 @@ class RunPlan(Model):
     confirmed_capabilities: tuple[Capability, ...]
     suite_id: Literal["m1-smoke-v1", "capabilities-v1", "formal-evaluation-v1"]
     template_version: Literal[
-        "anchor_record@1", "capabilities@1", "anchor_record@2", "capabilities@2", "capabilities@3", "capabilities@4"
+        "anchor_record@1", "capabilities@1", "anchor_record@2", "capabilities@2", "capabilities@3", "capabilities@4", "capabilities@5"
     ]
     planning_time: Timestamp
     planning_evidence_refs: tuple[UUID4, ...] = ()
@@ -359,7 +359,7 @@ class RunPlan(Model):
     @model_validator(mode="after")
     def frozen_identity(self) -> Self:
         formal = self.suite_id == "formal-evaluation-v1"
-        if formal != (self.template_version in {"capabilities@3", "capabilities@4"}):
+        if formal != (self.template_version in {"capabilities@3", "capabilities@4", "capabilities@5"}):
             raise ValueError("formal suites require their own assertion template")
         if not formal and any(slot.request_overrides is not None for slot in self.slots):
             raise ValueError("legacy suites cannot contain request overrides")
@@ -426,7 +426,7 @@ class AssertionResult(Model):
     assertion_id: UUID4
     slot_id: UUID4
     rule_id: Version
-    rule_version: Literal["1", "2", "3", "4"]
+    rule_version: Literal["1", "2", "3", "4", "5"]
     outcome: Outcome
     reason_code: Reason | None
     expected: JsonValue
@@ -577,7 +577,7 @@ class ReportTaskResult(Model):
     capability_id: Capability
     outcome: Outcome
     reason_code: Reason | None
-    rule_version: Literal["1", "2", "3", "4"]
+    rule_version: Literal["1", "2", "3", "4", "5"]
     input_evidence_id: UUID4
 
     @model_validator(mode="after")
@@ -636,7 +636,7 @@ class RiskAssessment(Model):
 
 
 class ReportCore(Model):
-    schema_version: Literal["1.0.0", "1.1.0", "1.2.0", "1.3.0"] = "1.0.0"
+    schema_version: Literal["1.0.0", "1.1.0", "1.2.0", "1.3.0", "1.4.0"] = "1.0.0"
     agent_ref: AgentRef
     agent_key_hash: Hash32
     snapshot_hash: Hash32
@@ -668,13 +668,13 @@ class ReportCore(Model):
         if self.schema_version == "1.0.0":
             value.pop("task_results", None)
             value.pop("task_counts", None)
-        if self.schema_version not in {"1.2.0", "1.3.0"}:
+        if self.schema_version not in {"1.2.0", "1.3.0", "1.4.0"}:
             value.pop("scoring_rule_version", None)
-        if self.schema_version != "1.3.0":
+        if self.schema_version not in {"1.3.0", "1.4.0"}:
             value.pop("assessment_rule_version", None)
             value.pop("evidence_sufficiency", None)
             value.pop("risk_assessment", None)
-        if self.schema_version not in {"1.2.0", "1.3.0"}:
+        if self.schema_version not in {"1.2.0", "1.3.0", "1.4.0"}:
             value.pop("task_success_rate_bp", None)
         return value
 
@@ -684,18 +684,18 @@ class ReportCore(Model):
             raise ValueError("invalid report observation window")
         if self.profile != self.scores.profile or self.policy_version != self.scores.policy_version:
             raise ValueError("report and scores disagree")
-        if (self.schema_version in {"1.2.0", "1.3.0"}) != (self.scoring_rule_version is not None):
+        if (self.schema_version in {"1.2.0", "1.3.0", "1.4.0"}) != (self.scoring_rule_version is not None):
             raise ValueError("formal report requires an explicit scoring rule version")
-        if self.schema_version not in {"1.2.0", "1.3.0"} and self.task_success_rate_bp is not None:
+        if self.schema_version not in {"1.2.0", "1.3.0", "1.4.0"} and self.task_success_rate_bp is not None:
             raise ValueError("legacy report cannot carry formal task success rate")
         assessment_fields = (
             self.assessment_rule_version, self.evidence_sufficiency, self.risk_assessment
         )
         if (
-            self.schema_version == "1.3.0" and any(value is None for value in assessment_fields)
-            or self.schema_version != "1.3.0" and any(value is not None for value in assessment_fields)
+            self.schema_version in {"1.3.0", "1.4.0"} and any(value is None for value in assessment_fields)
+            or self.schema_version not in {"1.3.0", "1.4.0"} and any(value is not None for value in assessment_fields)
         ):
-            raise ValueError("formal assessment fields require report schema 1.3.0")
+            raise ValueError("formal assessment fields require report schema 1.3.0 or 1.4.0")
         if self.schema_version == "1.0.0":
             if self.task_results or self.task_counts is not None:
                 raise ValueError("legacy report cannot carry task replay summaries")
@@ -712,8 +712,8 @@ class ReportCore(Model):
         }:
             raise ValueError("task result counts disagree")
         versions = {item.slot_id: item.rule_version for item in self.task_results}
-        if self.schema_version in {"1.2.0", "1.3.0"}:
-            expected_rule = "4" if self.schema_version == "1.3.0" else "3"
+        if self.schema_version in {"1.2.0", "1.3.0", "1.4.0"}:
+            expected_rule = {"1.2.0": "3", "1.3.0": "4", "1.4.0": "5"}[self.schema_version]
             if any(version != expected_rule for version in versions.values()):
                 raise ValueError(f"formal report requires task rule version {expected_rule}")
             decided = expected[Outcome.PASS] + expected[Outcome.FAIL]
@@ -729,7 +729,7 @@ class ReportCore(Model):
             for assertion in self.assertions
         ):
             raise ValueError("task assertion rules do not match reported slots")
-        if self.schema_version == "1.3.0":
+        if self.schema_version in {"1.3.0", "1.4.0"}:
             assert self.evidence_sufficiency is not None and self.risk_assessment is not None
             sufficient = self.evidence_sufficiency
             if (
