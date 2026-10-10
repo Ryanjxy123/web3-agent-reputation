@@ -23,7 +23,7 @@
 | FOLLOWUP-02 | DONE | 四态归因、标准 reason_code、原始响应证据及异常归因；具体状态及测试见 2026-10-09 任务记录 |
 | FOLLOWUP-03 | DONE | 冻结 Evidence Bundle 逐任务重判、四态计数比较、历史格式兼容及独立 RPC 复查；最终 Review 修复已通过定向回归 |
 | FOLLOWUP-04 | DONE | 正式多槽位三维评分、固定类别与安全负例、ReportCore 1.2 及独立重算；阶段 Review/真实集成通过 |
-| FOLLOWUP-05 | REVALIDATING | 既有任务4/5已由PR#5合并；复查修复RPC日志误风险及冻结恢复，新规则5/报告1.4定向通过，待稳定树全量与PR/CI |
+| FOLLOWUP-05 | DONE | 既有任务4/5已由PR#5合并；复查修复RPC日志误风险、冻结恢复及正式Run状态，新规则5/报告1.4；完整507项Python/Web/Foundry/Schema与代码CI通过，最终PR见#6 |
 | LOCAL-PG-JUNCTION | DONE | Windows PostgreSQL 改用 D:\web3-runtime 目录联接；R: 已移除，初始化、重启、数据完整性及13项定向测试通过 |
 
 ## 2026-10-10 / 最新 main 任务4/5复查修复
@@ -34,8 +34,12 @@
 - Compatibility：policy-v1/three-dimensional-v1/evidence-assessment-v1、公式/权重/阈值均不变；历史@3→1.2、@4→1.3显式冻结/重放，不升级。原rule4对照16个场景、原1.3报告对照3个场景逐字段一致。Schema/OpenAPI/TS同源生成，无新依赖、DB migration、合约或前端功能。
 - Tests：稳定单元/reference396 passed/0 skipped（32.14s）；新增44项日志/ABI/helper单元通过。真实PostgreSQL/HTTP/Anvil首测矛盾恢复、反向拒冻及在途@4组合3 passed/0 skipped（206.35s）；追加真实畸形日志恢复1 passed/0 skipped（90.23s）。Ruff、Mypy53、57Schema及TS生成通过。独立跨模块Review已确认无剩余本范围阻断。
 - Full check retry：5a83358完整check.py在pytest收集阶段发现新增unit/integration同名模块冲突，退出2/NOT_PASS；集成文件改为test_rpc_evidence_recovery.py，测试内容/门槛不变。保存原失败日志，先验证全量收集再在稳定提交重跑。
-- Git：fix/rpc-log-evidence-attribution基于328a712；修复5a83358已push，PR#6为draft，最终完整check.py及latest-head CI待完成，不提前声称最终验收。
-- Limitations/Next：旧规则4报告保留原语义，纠正评价需新规则重新测量；离线复核不证明采集者诚实，纯写缺安全availability样本仍PARTIAL。本轮继续全量检查→PR/CI，验收后停止任务6。
+- Full check interruptions：1b54cdf首轮完整检查因本地PostgreSQL进程消失/连接超时而停止，工具返回-1/NOT_PASS；恢复数据库后的工具会话也消失，日志停在前几项通过且无最终退出码，仍为NOT_PASS。两次原日志分别保留；通过既有local_postgres.py恢复原数据，不重建数据库、不修改业务代码或门槛，随后用独立后台进程保存完整日志与退出码重新验证。
+- Local final：稳定代码提交 **1b54cdf23c2eb14c2a0e5fa0642a418d72c38ac3** 的完整 `uv run --env-file .env --all-packages python scripts/check.py` **退出0**（2026-10-10 21:56:47–22:26:18 CST）。只设置PYTHONUNBUFFERED和pytest详细输出，FAIL_ON_SKIP=1保持不变。完整Python **507 passed / 0 skipped / 2 warnings**（1714.92s），包含真实PostgreSQL/HTTP/Anvil、正式评分/充分度/风险、新旧版本及M1回归；Web typecheck/build与 **2 tests passed**；Foundry **14 passed / 0 failed / 0 skipped**，含256次fuzz；Ruff、Mypy53、57Schema、TS生成无漂移及三份ABI检查通过。结果文件明确记录同一head与exit_code=0；两条既有Starlette/httpx与websockets弃用警告未隐藏。
+- CI：PR **#6** 的代码head **1b54cdf23c2eb14c2a0e5fa0642a418d72c38ac3**，Foundation CI run **38041353658** completed/success，foundation-quality与foundation-compose均SUCCESS。CI实际Python **507 passed / 0 skipped**（1006.06s）、Web2、Foundry14（256fuzz）、Schema/TS/ABI全通过；Linux Compose真实build、迁移/runtime smoke和独立worker通过。被新提交取消的旧run38041274211不计通过。最终验收文档提交后仍须核对PR最新head全部检查，不能拿旧head成功代替合并许可。
+- Review/acceptance：任务4评分复查→任务5修复/测试/Review→跨模块需求审计均完成，无剩余本范围代码阻断。风险、充分度、数值和任务成功率独立；坏RPC先保持UNKNOWN，已确认风险不受高分/PARTIAL抵消；完整新报告Run为COMPLETED。四个实际历史A/D ZIP在当前版本离线重放PASS，计数/assessment比较明确NOT_AVAILABLE_LEGACY_REPORT，未升级旧报告。本轮任务4/5实现和完整验收通过。
+- Git：fix/rpc-log-evidence-attribution基于328a712；代码提交5a83358及收集修复1b54cdf均已push，PR **#6** 的base为main、head为本任务分支。最终文档单独提交；最新head CI、合并SHA及分支清理结果以PR/Git历史为准。仅在全部检查成功、无冲突/required reviewer及base/head正确时按已有授权合并，再安全同步main并删除本任务分支。
+- Limitations/Next：旧规则4报告保留原语义，纠正评价需新规则重新测量；工程分不是校准概率，离线复核不证明采集者诚实，纯写缺安全availability样本仍PARTIAL，仅覆盖现有受控协议/EVM ABI。Windows本机Docker/WSL限制由真实Linux Compose CI单列验收。本轮到任务5停止，不开发任务6、Agent扩展、第三方接入或前端。
 
 ## 2026-10-10 / 本轮任务 4：正式三维评价
 

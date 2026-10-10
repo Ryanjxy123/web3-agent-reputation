@@ -79,4 +79,4 @@
 任务4/5最终验收：稳定代码2379a03完整check.py退出0，Python447/0skip（2247.86s）、Web2、Foundry14（256fuzz）、Ruff/Mypy53/57Schema/TS/ABI全通过。PR#5的代码CI run37967395116在同head下quality/Compose均SUCCESS，CI Python447/0skip（869.28s）；四个历史A/D ZIP最终重放PASS且不升级。最终设计和Review修复见STATUS/ADR0014/0015。验收文档提交后需继续检查最新head CI再按授权合并及同步main；本轮任务4/5实现验收完成，停止任务6。
 
 
-2026-10-10 最新main复查：328a712已合并PR#5的任务4/5。本轮任务4评分复查通过，再在任务5/跨模块Review复现并修复RPC日志误风险、UNKNOWN冻结恢复及正式Run状态。新规则5/@5/ReportCore1.4保留旧规则4/1.3原语义；评分和充分度参数不变，设计见ADR0016。稳定单元/reference396项、真实PostgreSQL/Anvil定向4项通过；完整稳定树check.py及新PR/CI仍待完成，以STATUS后续真实结果为准。本轮仅任务4/5，不进入任务6。
+2026-10-10 最新main复查：328a712已合并PR#5的任务4/5。本轮任务4评分复查通过，再在任务5/跨模块Review复现并修复RPC日志误风险、UNKNOWN冻结恢复及正式Run状态。新规则5/@5/ReportCore1.4保留旧规则4/1.3原语义；评分和充分度参数不变，设计见ADR0016。稳定单元/reference396项、真实PostgreSQL/Anvil定向4项通过；稳定代码1b54cdf完整check.py退出0：Python507/0skip（1714.92s）、Web2、Foundry14/256fuzz、Ruff/Mypy53/57Schema/TS/ABI均通过。代码CI run38041353658的quality/Compose均SUCCESS（Python507/0skip）；四个实际历史ZIP重放通过。首次同名收集失败、本地数据库/工具进程中断均保留NOT_PASS记录，恢复后完整重跑，未降低门槛。PR#6最终文档提交后核对最新head检查再按授权合并、同步main和清理本任务分支，结果以PR/Git历史为准。完整需求审计及跨模块Review无剩余阻断，详细证据和限制见STATUS；本轮任务4/5验收完成，停止，不进入任务6。
