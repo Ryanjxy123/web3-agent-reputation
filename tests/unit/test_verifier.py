@@ -49,7 +49,7 @@ def test_formal_report_replays_scores_and_distinct_task_success_rate(tmp_path):
     assert result["task_counts"]["PASS"] == 1
     with ZipFile(path) as archive:
         core = strict_json(archive.read("report_core.json"))
-    assert core["schema_version"] == "1.3.0"
+    assert core["schema_version"] == "1.4.0"
     assert core["task_success_rate_bp"] == 10000
     assert core["scores"]["overall_score_bp"] is None
 
@@ -159,10 +159,50 @@ def test_verifier_rejects_assessment_tampering_even_after_rehash(tmp_path, field
     assert failure.value.code == "REPLAY_MISMATCH"
 
 
-def test_formal_v13_cannot_be_relabeled_as_legacy_with_assessment_fields(tmp_path):
+def test_formal_cannot_be_relabeled_as_legacy_with_assessment_fields(tmp_path):
     path, _, _, _ = make_bundle(tmp_path, formal=True)
     changed = tmp_path / "relabeled-assessment.zip"
     rewrite_bundle(path, changed, core_change=lambda core: core.update(schema_version="1.2.0"))
+    with pytest.raises(VerificationError) as failure:
+        verify_bundle(str(changed))
+    assert failure.value.code == "RULE_VERSION_MISMATCH"
+
+
+def test_formal_v13_remains_recognized_without_upgrade(tmp_path):
+    path, _, _, _ = make_bundle(tmp_path, formal=True, report_schema_version="1.3.0")
+    with ZipFile(path) as archive:
+        core = strict_json(archive.read("report_core.json"))
+    result = verify_bundle(str(path))
+    assert core["schema_version"] == "1.3.0"
+    assert all(item["rule_version"] == "4" for item in core["task_results"])
+    assert result["offline"] == "PASS" and result["assessment_comparison"] == "MATCH"
+    assert result["evidence_sufficiency"] == core["evidence_sufficiency"]
+    assert result["risk_assessment"] == core["risk_assessment"]
+
+
+def test_formal_rpc_log_gap_stays_unknown_when_freeze_read_recovers(tmp_path):
+    path, input_id, freeze_id, _ = make_bundle(tmp_path, formal=True, case="rpc_logs_unknown")
+    result = verify_bundle(str(path))
+    assert result["offline"] == "PASS" and result["assessment_comparison"] == "MATCH"
+    assert result["task_counts"] == {"PASS": 0, "FAIL": 0, "UNKNOWN": 1, "NOT_APPLICABLE": 0}
+    assert result["risk_assessment"]["critical_findings"] == []
+    with ZipFile(path) as archive:
+        manifest = strict_json(archive.read("evidence_manifest.json"))
+        by_id = {UUID(item["evidence_id"]): item for item in manifest["evidence"]}
+        original = RecordVerificationInput.model_validate_json(archive.read(by_id[input_id]["path"]))
+        frozen = RecordVerificationInput.model_validate_json(archive.read(by_id[freeze_id]["path"]))
+    assert verify_record(original, (input_id,)).outcome == "UNKNOWN"
+    assert verify_record(frozen, (input_id,)).outcome == "PASS"
+
+
+@pytest.mark.parametrize(("source", "target"), [
+    ("1.2.0", "1.3.0"), ("1.2.0", "1.4.0"), ("1.3.0", "1.2.0"),
+    ("1.3.0", "1.4.0"), ("1.4.0", "1.2.0"), ("1.4.0", "1.3.0"),
+])
+def test_formal_report_version_cannot_upgrade_or_downgrade_its_frozen_rules(tmp_path, source, target):
+    path, _, _, _ = make_bundle(tmp_path, formal=True, report_schema_version=source)
+    changed = tmp_path / "relabeled-report.zip"
+    rewrite_bundle(path, changed, core_change=lambda core: core.update(schema_version=target))
     with pytest.raises(VerificationError) as failure:
         verify_bundle(str(changed))
     assert failure.value.code == "RULE_VERSION_MISMATCH"
@@ -173,7 +213,10 @@ def make_bundle(
     formal=False, report_schema_version=None,
 ):
     if formal:
-        rule_version = "3" if report_schema_version == "1.2.0" else "4"
+        rule_version = (
+            "3" if report_schema_version == "1.2.0"
+            else "4" if report_schema_version == "1.3.0" else "5"
+        )
     raw_input = (
         reverted_anchor_input().model_dump(mode="json")
         if case == "critical"
@@ -183,13 +226,22 @@ def make_bundle(
         else v2_task_input(status="NOT_FOUND")
         if case == "unknown"
         else v2_task_input()
-        if rule_version in {"2", "3", "4"}
+        if rule_version in {"2", "3", "4", "5"}
         else read_input(status="SUCCESS").model_dump(mode="json")
     )
+    if case == "rpc_logs_unknown":
+        from tests.unit.test_evidence_assessment import high_score_critical_arguments
+        raw_input = high_score_critical_arguments()["inputs"][30].model_dump(mode="json")
+        raw_input["binding"]["verification_evidence"] = []
+        raw_input["evm"]["observed_at"] = NOW
+        for field in ("agent_http", "initial_agent_http"):
+            raw_input[field].update(started_at=NOW, ended_at=NOW, latency_ms=0)
     if formal:
         raw_input["rule_version"] = rule_version
         if case != "not_applicable":
-            raw_input["slot"]["required_class"] = "normal" if case == "critical" else "success"
+            raw_input["slot"]["required_class"] = (
+                "normal" if raw_input["slot"]["capability_id"] == "anchor_record" else "success"
+            )
         if raw_input.get("agent_http") is not None:
             raw_input["initial_agent_http"] = {
                 **deepcopy(raw_input["agent_http"]), "method": "POST", "path": "/tasks",
@@ -236,6 +288,8 @@ def make_bundle(
             agent_task_status="failed" if case == "failed_query" else None,
         )
     recovered_evm = deepcopy(raw_input["evm"])
+    if case == "rpc_logs_unknown":
+        raw_input["evm"]["results"]["receipt"]["logs"][0]["transactionHash"] = "0x" + "ee" * 32
     if case in {"rpc_unknown", "rpc_unknown_without_candidate"}:
         raw_input["evm"].update(results={}, error_reason="PLATFORM_RPC_ERROR")
         if case == "rpc_unknown_without_candidate":
@@ -253,7 +307,7 @@ def make_bundle(
             }
         )
     )
-    if case in {"rpc_unknown", "rpc_unknown_without_candidate"}:
+    if case in {"rpc_unknown", "rpc_unknown_without_candidate", "rpc_logs_unknown"}:
         frozen = frozen.model_copy(
             update={
                 "evm": frozen.evm.model_copy(
@@ -274,7 +328,7 @@ def make_bundle(
         review_version=inputs.review_version,
         policy_version="policy-v1",
         policy_hash=hash_json(policy),
-        profile="record-write-v1" if case == "critical" else "record-read-v1",
+        profile="record-write-v1" if inputs.slot.capability_id == "anchor_record" else "record-read-v1",
         confirmed_capabilities=inputs.review.confirmed_claims,
         suite_id="formal-evaluation-v1" if formal else "capabilities-v1",
         template_version=f"capabilities@{rule_version}",

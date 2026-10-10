@@ -50,7 +50,7 @@ def build_report(
     code_version: str,
     manifest_hash: str,
     previous_report_hash: str,
-    report_schema_version: Literal["1.2.0", "1.3.0"] | None = None,
+    report_schema_version: Literal["1.2.0", "1.3.0", "1.4.0"] | None = None,
 ) -> ReportCore:
     if plan.suite_id == "formal-evaluation-v1":
         return _build_formal_report(
@@ -63,7 +63,7 @@ def build_report(
             code_version=code_version,
             manifest_hash=manifest_hash,
             previous_report_hash=previous_report_hash,
-            report_schema_version=report_schema_version or "1.3.0",
+            report_schema_version=report_schema_version or "1.4.0",
         )
     if report_schema_version is not None:
         raise ValueError("legacy reports cannot be upgraded by schema selection")
@@ -568,9 +568,9 @@ def _build_formal_report(
     code_version: str,
     manifest_hash: str,
     previous_report_hash: str,
-    report_schema_version: Literal["1.2.0", "1.3.0"],
+    report_schema_version: Literal["1.2.0", "1.3.0", "1.4.0"],
 ) -> ReportCore:
-    expected_rule = "4" if report_schema_version == "1.3.0" else "3"
+    expected_rule = {"1.2.0": "3", "1.3.0": "4", "1.4.0": "5"}[report_schema_version]
     if (
         plan.template_version != f"capabilities@{expected_rule}"
         or len(inputs) != len(plan.slots)
@@ -759,7 +759,7 @@ def _build_formal_report(
     decided_count = counts["PASS"] + counts["FAIL"]
     sufficiency, risks = (
         _assess_evidence(stats, scores, inputs, results, policy)
-        if report_schema_version == "1.3.0" else (None, None)
+        if report_schema_version in {"1.3.0", "1.4.0"} else (None, None)
     )
     return ReportCore(
         schema_version=report_schema_version, scoring_rule_version="three-dimensional-v1",

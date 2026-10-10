@@ -152,7 +152,7 @@ def create_formal(flow, body):
         )
         for slot in plan.slots:
             assert intents[slot.slot_id]["payload_hash"] == hash_json(mutated_payload(slot))
-    assert plan.template_version == "capabilities@4"
+    assert plan.template_version == "capabilities@5"
     assert len({slot.task.request_id for slot in plan.slots}) == len(plan.slots)
     return run_id, plan
 
@@ -194,8 +194,12 @@ def run_formal(flow, run_id, tmp_path, *, rpc_fault=False):
     response = flow[0].get(f"/api/v1/evaluations/{run_id}/verification")
     assert response.status_code == 200 and len(response.json()) == len(results)
     report = reports.for_run(run_id)
-    assert report.core.schema_version == "1.3.0"
+    assert report.core.schema_version == "1.4.0"
     assert len(report.core.task_results) == len(results)
+    expected_status = "COMPLETED" if report.core.scores.evaluation_state == "COMPLETE" else "PARTIAL"
+    assert flow[0].get(f"/api/v1/evaluations/{run_id}").json()["status"] == expected_status
+    with identity.db.connect() as connection:
+        assert connection.scalar(select(runs.c.status).where(runs.c.id == run_id)) == expected_status
     destination = tmp_path / "formal-bundle.zip"
     destination.write_bytes(reports.export(report.report_id))
     independent = verify_bundle(str(destination))
@@ -520,8 +524,11 @@ def test_formal_accepted_negative_is_failed_after_one_post_without_polling(prepa
     assert flow[4].eth.block_number == before
 
 
-def test_inflight_v3_formal_plan_freezes_as_v12_without_upgrade(prepared, tmp_path, monkeypatch):
-    """Simulate creation by the prior planner before the rule-4 deployment."""
+@pytest.mark.parametrize(("rule_version", "schema_version"), [("3", "1.2.0"), ("4", "1.3.0")])
+def test_inflight_formal_plan_freezes_without_upgrade(
+    prepared, tmp_path, monkeypatch, rule_version, schema_version
+):
+    """Prior planners keep their frozen assertion and report semantics."""
     from reputation_platform.application import evaluations as evaluation_module
 
     flow, original, _ = prepared
@@ -531,7 +538,7 @@ def test_inflight_v3_formal_plan_freezes_as_v12_without_upgrade(prepared, tmp_pa
     original_plan = evaluation_module.RunPlan
 
     def prior_planner(**values):
-        values["template_version"] = "capabilities@3"
+        values["template_version"] = f"capabilities@{rule_version}"
         return original_plan(**values)
 
     with monkeypatch.context() as old:
@@ -555,11 +562,14 @@ def test_inflight_v3_formal_plan_freezes_as_v12_without_upgrade(prepared, tmp_pa
                 jobs.c.run_fk == run_id, jobs.c.kind == kind
             )) == "SUCCEEDED"
     report = service.for_run(run_id)
-    assert report.core.schema_version == "1.2.0"
-    assert report.core.evidence_sufficiency is None and report.core.risk_assessment is None
-    assert all(result.rule_version == "3" for result in report.core.task_results)
-    destination = tmp_path / "inflight-v3.zip"
+    assert report.core.schema_version == schema_version
+    assert (report.core.evidence_sufficiency is not None) == (rule_version == "4")
+    assert (report.core.risk_assessment is not None) == (rule_version == "4")
+    assert all(result.rule_version == rule_version for result in report.core.task_results)
+    destination = tmp_path / f"inflight-v{rule_version}.zip"
     destination.write_bytes(service.export(report.report_id))
     replay = verify_bundle(str(destination))
     assert replay["offline"] == "PASS"
-    assert replay["assessment_comparison"] == "NOT_AVAILABLE_LEGACY_REPORT"
+    assert replay["assessment_comparison"] == (
+        "MATCH" if rule_version == "4" else "NOT_AVAILABLE_LEGACY_REPORT"
+    )

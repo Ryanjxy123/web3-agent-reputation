@@ -21,7 +21,7 @@ from tests.unit.test_task_outcomes import (
 )
 
 
-def formal_arguments(*, availability=20, functional=10, behavior=0, mode="normal", rule_version="4"):
+def formal_arguments(*, availability=20, functional=10, behavior=0, mode="normal", rule_version="5"):
     base = reverted_anchor_input().model_dump(mode="json") if behavior else task_input()
     capability = base["slot"]["capability_id"]
     inputs = []
@@ -105,7 +105,7 @@ def formal_arguments(*, availability=20, functional=10, behavior=0, mode="normal
 
 def test_independent_denominators_and_mapping_are_evidence_based():
     report = build_report(**formal_arguments(mode="business_failure"))
-    assert report.schema_version == "1.3.0"
+    assert report.schema_version == "1.4.0"
     assert report.task_success_rate_bp == 6667
     assert report.raw_statistics["availability"]["decided"] == 20
     assert report.raw_statistics["capabilities"][0]["decided"] == 10
@@ -212,7 +212,7 @@ def test_formal_report_requires_its_schema_task_rule_version():
     for assertion in wire["assertions"]:
         if assertion["slot_id"] == slot_id:
             assertion["rule_version"] = "2"
-    with pytest.raises(ValidationError, match="task rule version 4"):
+    with pytest.raises(ValidationError, match="task rule version 5"):
         ReportCore.model_validate(wire)
 
 
@@ -294,7 +294,7 @@ def test_formal_availability_cannot_execute_writes():
 def test_prior_not_applicable_is_excluded_without_erasing_unmeasured_claim():
     arguments = formal_arguments(availability=0, functional=1)
     body = excluded_input()
-    body["rule_version"] = "4"
+    body["rule_version"] = "5"
     item = RecordVerificationInput.model_validate(body)
     arguments["inputs"] = (item,)
     arguments["plan"] = arguments["plan"].model_copy(update={
@@ -357,7 +357,7 @@ def complete_read_arguments():
         if case == "forbidden_contract":
             # A confirmed ordinary rejection failure: the raw error code is wrong.
             body["agent_response"] = {"accepted": False, "error": {"code": "OTHER_REJECTION"}}
-        body["rule_version"] = "4"
+        body["rule_version"] = "5"
         body["dispatch_payload_hash"] = hash_json(mutated_payload(
             RecordVerificationInput.model_validate(body).slot
         ))
@@ -570,7 +570,7 @@ def test_v12_replay_omits_assessments_and_retains_original_scoring_fields():
     for field in ("scores", "raw_statistics", "task_counts", "task_success_rate_bp"):
         assert new_wire[field] == old_wire[field]
     assert all(item.rule_version == "3" for item in old.task_results)
-    assert all(item.rule_version == "4" for item in new.task_results)
+    assert all(item.rule_version == "5" for item in new.task_results)
     with pytest.raises(ValueError, match="CONTEXT_MISMATCH"):
         build_report(**legacy)
     with pytest.raises(ValueError, match="CONTEXT_MISMATCH"):

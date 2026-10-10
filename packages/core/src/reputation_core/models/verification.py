@@ -48,7 +48,7 @@ class RecordVerificationInput(Model):
     dispatch_payload_hash: Hash32 | None
     registry_witness: RegistryWitness | None
     execution_reason: Reason | None
-    rule_version: Literal["1", "2", "3", "4"] = "1"
+    rule_version: Literal["1", "2", "3", "4", "5"] = "1"
     agent_http: dict[str, JsonValue] | None = None
     initial_agent_http: dict[str, JsonValue] | None = None
     agent_response: JsonValue = None
