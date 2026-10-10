@@ -1,0 +1,1 @@
+{"jsonrpc":"2.0","id":19,"result":{"protocolVersion":"2025-11-25","capabilities":{"tools":{}},"serverInfo":{"name":"akashi-notari","title":"Akashi Notari","version":"1.1.0"},"instructions":"Proof of existence for files. Compute the SHA-256 of the file locally; never send the file. find_proof is free. anchor_hash costs a small USDC fee on Base, paid with x402."}}

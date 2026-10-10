@@ -132,8 +132,13 @@ def test_formal_v12_report_remains_recognized_without_assessment_upgrade(tmp_pat
 @pytest.mark.parametrize("field", [
     "sufficiency", "sufficiency_gate", "risk_conclusion", "risk_evidence", "rule_version",
 ])
-def test_verifier_rejects_assessment_tampering_even_after_rehash(tmp_path, field):
-    path, _, _, _ = make_bundle(tmp_path, formal=True, case="critical")
+@pytest.mark.parametrize("report_schema_version", [None, "1.5.0"])
+def test_verifier_rejects_assessment_tampering_even_after_rehash(
+    tmp_path, field, report_schema_version,
+):
+    path, _, _, _ = make_bundle(
+        tmp_path, formal=True, case="critical", report_schema_version=report_schema_version,
+    )
     original = verify_bundle(str(path))
     assert original["assessment_comparison"] == "MATCH"
     assert original["risk_assessment"]["critical_findings"]
@@ -195,9 +200,92 @@ def test_formal_rpc_log_gap_stays_unknown_when_freeze_read_recovers(tmp_path):
     assert verify_record(frozen, (input_id,)).outcome == "PASS"
 
 
+@pytest.mark.parametrize(("case", "outcome", "reason"), [
+    ("pass", "PASS", None),
+    ("critical", "FAIL", "TX_REVERTED"),
+    ("rpc_receipt_unknown", "UNKNOWN", "PLATFORM_RPC_ERROR"),
+])
+def test_formal_v15_replays_outcomes_and_partial_risk(tmp_path, case, outcome, reason):
+    path, input_id, freeze_id, _ = make_bundle(
+        tmp_path, formal=True, case=case, report_schema_version="1.5.0",
+    )
+    result = verify_bundle(str(path))
+    assert result["offline"] == "PASS"
+    assert result["task_count_comparison"] == result["assessment_comparison"] == "MATCH"
+    task, = result["task_results"]
+    assert (task["outcome"], task["reason_code"], task["rule_version"]) == (outcome, reason, "6")
+    assert result["task_counts"][outcome] == 1 and sum(result["task_counts"].values()) == 1
+    assert not result["evidence_sufficiency"]["overall_allowed"]
+    with ZipFile(path) as archive:
+        core = strict_json(archive.read("report_core.json"))
+        manifest = strict_json(archive.read("evidence_manifest.json"))
+        by_id = {UUID(item["evidence_id"]): item for item in manifest["evidence"]}
+        original = RecordVerificationInput.model_validate_json(archive.read(by_id[input_id]["path"]))
+        frozen = RecordVerificationInput.model_validate_json(archive.read(by_id[freeze_id]["path"]))
+    assert core["schema_version"] == "1.5.0"
+    assert core["scores"]["evaluation_state"] == "PARTIAL"
+    assert core["scores"]["overall_score_bp"] is None
+    if case == "critical":
+        assert core["scores"]["advice"] == "NOT_RECOMMENDED"
+        assert result["risk_assessment"]["conclusion"] == "CONFIRMED_CRITICAL_CONFLICT"
+        assert any(
+            finding["rule_id"] == "tx.target" and finding["reason_code"] == "TX_WRONG_TARGET"
+            for finding in result["risk_assessment"]["critical_findings"]
+        )
+    else:
+        assert result["risk_assessment"]["critical_findings"] == []
+    if case == "rpc_receipt_unknown":
+        assert verify_record(original, (input_id,)).outcome == "UNKNOWN"
+        assert verify_record(frozen, (input_id,)).outcome == "PASS"
+
+
+def test_formal_v15_rpc_assertion_tampering_is_rejected_after_rehash(tmp_path):
+    path, _, _, _ = make_bundle(
+        tmp_path, formal=True, case="rpc_receipt_unknown", report_schema_version="1.5.0",
+    )
+    assert verify_bundle(str(path))["task_results"][0]["outcome"] == "UNKNOWN"
+    changed = tmp_path / "changed-rpc-assertion.zip"
+
+    def erase_rpc_gap(assertions):
+        assertion = next(item for item in assertions if item["rule_id"] == "receipt.evidence")
+        assert assertion["outcome"] == "UNKNOWN"
+        assertion.update(outcome="PASS", reason_code=None)
+
+    rewrite_bundle(
+        path, changed,
+        core_change=lambda core: erase_rpc_gap(core["assertions"]),
+        document_change={"assertions.json": erase_rpc_gap},
+    )
+    with pytest.raises(VerificationError) as failure:
+        verify_bundle(str(changed))
+    assert failure.value.code == "REPLAY_MISMATCH"
+
+
+@pytest.mark.parametrize("target", ["plan", "inputs"])
+def test_formal_v15_rejects_frozen_rule_downgrade_after_rehash(tmp_path, target):
+    path, input_id, freeze_id, _ = make_bundle(
+        tmp_path, formal=True, report_schema_version="1.5.0",
+    )
+    changed = tmp_path / "downgraded-rule.zip"
+    rewrite_bundle(
+        path, changed,
+        document_change={
+            "run_plan.json": lambda plan: plan.update(template_version="capabilities@5"),
+        } if target == "plan" else None,
+        evidence_change={
+            input_id: lambda data: data.update(rule_version="5"),
+            freeze_id: lambda data: data.update(rule_version="5"),
+        } if target == "inputs" else None,
+    )
+    with pytest.raises(VerificationError) as failure:
+        verify_bundle(str(changed))
+    assert failure.value.code == "RULE_VERSION_MISMATCH"
+
+
 @pytest.mark.parametrize(("source", "target"), [
     ("1.2.0", "1.3.0"), ("1.2.0", "1.4.0"), ("1.3.0", "1.2.0"),
     ("1.3.0", "1.4.0"), ("1.4.0", "1.2.0"), ("1.4.0", "1.3.0"),
+    ("1.4.0", "1.5.0"), ("1.5.0", "1.4.0"),
 ])
 def test_formal_report_version_cannot_upgrade_or_downgrade_its_frozen_rules(tmp_path, source, target):
     path, _, _, _ = make_bundle(tmp_path, formal=True, report_schema_version=source)
@@ -215,7 +303,8 @@ def make_bundle(
     if formal:
         rule_version = (
             "3" if report_schema_version == "1.2.0"
-            else "4" if report_schema_version == "1.3.0" else "5"
+            else "4" if report_schema_version == "1.3.0"
+            else "6" if report_schema_version == "1.5.0" else "5"
         )
     raw_input = (
         reverted_anchor_input().model_dump(mode="json")
@@ -226,10 +315,10 @@ def make_bundle(
         else v2_task_input(status="NOT_FOUND")
         if case == "unknown"
         else v2_task_input()
-        if rule_version in {"2", "3", "4", "5"}
+        if rule_version in {"2", "3", "4", "5", "6"}
         else read_input(status="SUCCESS").model_dump(mode="json")
     )
-    if case == "rpc_logs_unknown":
+    if case in {"rpc_logs_unknown", "rpc_receipt_unknown"}:
         from tests.unit.test_evidence_assessment import high_score_critical_arguments
         raw_input = high_score_critical_arguments()["inputs"][30].model_dump(mode="json")
         raw_input["binding"]["verification_evidence"] = []
@@ -290,6 +379,8 @@ def make_bundle(
     recovered_evm = deepcopy(raw_input["evm"])
     if case == "rpc_logs_unknown":
         raw_input["evm"]["results"]["receipt"]["logs"][0]["transactionHash"] = "0x" + "ee" * 32
+    if case == "rpc_receipt_unknown":
+        raw_input["evm"]["results"]["receipt"]["status"] = "0x2"
     if case in {"rpc_unknown", "rpc_unknown_without_candidate"}:
         raw_input["evm"].update(results={}, error_reason="PLATFORM_RPC_ERROR")
         if case == "rpc_unknown_without_candidate":
@@ -307,7 +398,7 @@ def make_bundle(
             }
         )
     )
-    if case in {"rpc_unknown", "rpc_unknown_without_candidate", "rpc_logs_unknown"}:
+    if case in {"rpc_unknown", "rpc_unknown_without_candidate", "rpc_logs_unknown", "rpc_receipt_unknown"}:
         frozen = frozen.model_copy(
             update={
                 "evm": frozen.evm.model_copy(

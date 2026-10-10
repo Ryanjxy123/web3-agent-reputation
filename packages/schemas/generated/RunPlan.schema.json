@@ -559,7 +559,8 @@
         "capabilities@2",
         "capabilities@3",
         "capabilities@4",
-        "capabilities@5"
+        "capabilities@5",
+        "capabilities@6"
       ],
       "title": "Template Version",
       "type": "string"

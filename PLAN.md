@@ -1,5 +1,9 @@
 # 从零构造执行计划（ExecPlan）
 
+当前授权范围（2026-10-10）：仅后续任务6→阶段Review/修复→任务7免费只读PoC→跨模块Review及完整回归/PR/CI。基于已核实main `68ee882`，不开展任务8–10；任务6受控异常独立预期见 `docs/testing/CONTROLLED_SCENARIOS.md`，RPC边界/历史兼容决策见 ADR0017，实际完成状态以 STATUS 为准。任务6–7已完成最终本地回归与 Foundation CI，剩余仅按仓库规则完成 PR 合并后的同步与清理。
+
+阶段进度：任务6受控异常和任务7Akashi免费只读PoC均实现、测试、Review修复并重验（DONE）；保留历史版本与policy-v1。真实第三方正例及ERC8004注册存在分别确认，局部未发现保持UNKNOWN。完整回归与同 head Foundation CI 已通过，下一步仅按仓库规则完成 PR Ready、合并及合并后同步清理。
+
 版本：foundation-v1.1，2026-10-03。状态：M0 基础验收完成（原生 Windows + Linux Compose CI）；M0-07 公网 OpenAPI 403 单列；M1-01 至 M1-08 已完成，M0+M1 最终验收通过。
 
 ## 1. 最终要交付的系统
@@ -72,11 +76,15 @@
 仅完成后续任务4（三维评价）和5（充分度/关键风险）；任务4阶段实现、测试、Review修复已通过：292单元/reference、12真实正式评价/报告、3真实Review回归，均无skip；规则与版本见ADR0014/STATUS。
 任务4提交de8fe94。任务5已实现充分度解释/精确gate/证据引用风险/ReportCore1.3，阶段Review及314单元reference、3真实正常/风险/RPC测试通过；复用policy-v1门槛。
 接着执行跨模块Review、全量Python/Web/Foundry/Schema/PostgreSQL/Anvil、提交/PR/CI。
-本轮最终验收仍待完成；不把阶段通过当全量通过，不开始任务6。
+本轮最终验收已完成；不把阶段通过当全量通过，不开始任务8–10。
 
-最终Review已修复写任务返回字段漏检及畸形RPC误报：新正式计划使用@4/rule4/ReportCore1.3，旧@3在途任务明确保持1.2；340单元/reference、2真实新旧版本回归通过，跨模块Review无剩余阻断。此前全量检查在发现问题后主动中断，不能记为通过，稳定提交后重新执行。quality CI增加到25分钟以容纳约721秒固定正式任务窗口和其余完整检查，测试与评分门槛不变。详细记录见STATUS，最终全量/PR/CI仍待完成。
+最终Review已修复写任务返回字段漏检及畸形RPC误报：新正式计划使用@4/rule4/ReportCore1.3，旧@3在途任务明确保持1.2；340单元/reference、2真实新旧版本回归通过，跨模块Review无剩余阻断。此前全量检查在发现问题后主动中断，不能记为通过，稳定提交后重新执行。quality CI增加到25分钟以容纳约721秒固定正式任务窗口和其余完整检查，测试与评分门槛不变。详细记录见STATUS，任务4/5最终全量/PR/CI已完成。
 
 任务4/5最终验收：稳定代码2379a03完整check.py退出0，Python447/0skip（2247.86s）、Web2、Foundry14（256fuzz）、Ruff/Mypy53/57Schema/TS/ABI全通过。PR#5的代码CI run37967395116在同head下quality/Compose均SUCCESS，CI Python447/0skip（869.28s）；四个历史A/D ZIP最终重放PASS且不升级。最终设计和Review修复见STATUS/ADR0014/0015。验收文档提交后需继续检查最新head CI再按授权合并及同步main；本轮任务4/5实现验收完成，停止任务6。
+
+## 2026-10-11 任务6–7最终状态
+
+任务6受控故障场景与任务7 Akashi 免费只读 PoC 已完成实现、Review/修复、定向回归、完整本地检查及 GitHub Foundation CI。稳定 head `5c8f2393ff628cb5bb1973bcd1b52836bc37c3df` 对应 run `38067747321` 的 `foundation-quality`、`foundation-compose` 均成功；PR #7 base 为 `main` 且无冲突。后续只按 AGENTS 规则完成 PR 状态、合并后 main 同步和分支清理，不开展任务8–10。
 
 
 2026-10-10 最新main复查：328a712已合并PR#5的任务4/5。本轮任务4评分复查通过，再在任务5/跨模块Review复现并修复RPC日志误风险、UNKNOWN冻结恢复及正式Run状态。新规则5/@5/ReportCore1.4保留旧规则4/1.3原语义；评分和充分度参数不变，设计见ADR0016。稳定单元/reference396项、真实PostgreSQL/Anvil定向4项通过；稳定代码1b54cdf完整check.py退出0：Python507/0skip（1714.92s）、Web2、Foundry14/256fuzz、Ruff/Mypy53/57Schema/TS/ABI均通过。代码CI run38041353658的quality/Compose均SUCCESS（Python507/0skip）；四个实际历史ZIP重放通过。首次同名收集失败、本地数据库/工具进程中断均保留NOT_PASS记录，恢复后完整重跑，未降低门槛。PR#6最终文档提交后核对最新head检查再按授权合并、同步main和清理本任务分支，结果以PR/Git历史为准。完整需求审计及跨模块Review无剩余阻断，详细证据和限制见STATUS；本轮任务4/5验收完成，停止，不进入任务6。

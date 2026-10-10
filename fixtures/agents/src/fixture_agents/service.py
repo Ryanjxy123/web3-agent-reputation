@@ -43,16 +43,29 @@ class Agent:
         value = json.loads(config.read_bytes())
         self.deployment = LocalDeployment.model_validate(value["deployment"])
         self.metadata, self.mode = value["metadata"], value["mode"]
-        if self.mode not in {"normal", "replay"}:
+        if self.mode not in {"normal", "replay", "intermittent", "timeout", "unsupported", "wrong_executor"}:
             raise ValueError("UNSUPPORTED_FIXTURE_MODE")
+        self.fault_seed = value.get("fault_seed", "controlled-v1")
+        self.failure_every = value.get("failure_every", 2)
+        self.delay_seconds = value.get("delay_seconds", 20)
+        if not isinstance(self.fault_seed, str) or not 0 < len(self.fault_seed) <= 128:
+            raise ValueError("INVALID_FAULT_SEED")
+        if type(self.failure_every) is not int or not 1 <= self.failure_every <= 1000:
+            raise ValueError("INVALID_FAILURE_EVERY")
+        if type(self.delay_seconds) not in {int, float} or not 0 < self.delay_seconds <= 65:
+            raise ValueError("INVALID_DELAY_SECONDS")
         self.account = Account.from_key(value["private_key"])
         self.replay_tx_hash = value["replay_tx_hash"]
         self.contract_allowlist = {
             Web3.to_checksum_address(address).lower()
             for address in value.get("record_contract_allowlist", [self.deployment.record.address])
         }
-        if self.metadata["declared_executor"] != self.account.address.lower():
+        if not Web3.is_address(self.metadata["declared_executor"]) or self.metadata["declared_executor"].lower() == "0x" + "00" * 20:
             raise ValueError("EXECUTOR_CONFIG_MISMATCH")
+        if self.mode != "wrong_executor" and self.metadata["declared_executor"] != self.account.address.lower():
+            raise ValueError("EXECUTOR_CONFIG_MISMATCH")
+        if self.mode == "wrong_executor" and self.metadata["declared_executor"].lower() == self.account.address.lower():
+            raise ValueError("EXECUTOR_FAULT_REQUIRES_DISTINCT_KEY")
         if self.mode == "replay" and not self.replay_tx_hash:
             raise ValueError("REPLAY_TRANSACTION_REQUIRED")
         self.after_sign, self.after_broadcast = after_sign, after_broadcast
@@ -123,6 +136,15 @@ class Agent:
             != expected.deployment_instance_id
         ):
             raise TaskRejected("CHAIN_INSTANCE_MISMATCH", 503)
+
+    async def http_behavior(self, request_id: str) -> None:
+        if self.mode == "intermittent":
+            # Persisted task IDs keep a fault stable across retries and service restarts.
+            digest = hash_bytes(f"{self.fault_seed}:{request_id}".encode())
+            if int(digest, 16) % self.failure_every == 0:
+                raise TaskRejected("FIXTURE_SERVICE_UNAVAILABLE", 503)
+        elif self.mode == "timeout":
+            await asyncio.sleep(self.delay_seconds)
 
     def accept(self, task: TaskEnvelope) -> ControlledTaskView:
         payload = task.model_dump(mode="json")
@@ -195,6 +217,12 @@ class Agent:
             if row is None or row["status"] not in {"accepted", "running"}:
                 return
             task = TaskEnvelope.model_validate_json(row["payload"])
+            if self.mode == "unsupported" and row["signed_raw"] is None:
+                db.execute(
+                    "UPDATE tasks SET status='failed',reason='CAPABILITY_EXPLICITLY_UNSUPPORTED' WHERE request_id=?",
+                    (request_id,),
+                )
+                return
             if task.capability_id != "anchor_record":
                 assert task.read_block_number is not None and task.read_block_hash is not None
                 block = self.web3.eth.get_block(int(task.read_block_number))
@@ -314,7 +342,7 @@ class Agent:
         result = TaskResult(
             chain_id="31337",
             tx_hash=tx_hash,
-            executor=self.account.address.lower(),
+            executor=self.metadata["declared_executor"],
             record_hash=task.record_hash,
         )
         with self.connect() as db:
@@ -378,13 +406,15 @@ def create_app(config_path: Path | None = None, *, run_worker: bool = True) -> F
         return agent.metadata
 
     @app.post("/tasks", response_model=ControlledTaskView, status_code=202)
-    def submit(task: TaskEnvelope, idempotency_key: str | None = Header(default=None)):
+    async def submit(task: TaskEnvelope, idempotency_key: str | None = Header(default=None)):
         if idempotency_key != task.request_id:
             raise HTTPException(400, detail="IDEMPOTENCY_KEY_REQUIRED")
-        return agent.accept(task)
+        await agent.http_behavior(task.request_id)
+        return await asyncio.to_thread(agent.accept, task)
 
     @app.get("/tasks/{request_id}", response_model=ControlledTaskView)
-    def status(request_id: str):
-        return agent.status(request_id)
+    async def status(request_id: str):
+        await agent.http_behavior(request_id)
+        return await asyncio.to_thread(agent.status, request_id)
 
     return app

@@ -124,7 +124,7 @@ def persist_plan(
                         "request_id": slot.task.request_id,
                         "payload_hash": hash_json(
                             mutated_payload(slot)
-                            if plan.template_version in {"capabilities@3", "capabilities@4", "capabilities@5"}
+                            if plan.template_version in {"capabilities@3", "capabilities@4", "capabilities@5", "capabilities@6"}
                             else slot.task.model_dump(mode="json")
                         ),
                     },

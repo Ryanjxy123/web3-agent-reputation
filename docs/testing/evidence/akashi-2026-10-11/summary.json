@@ -1,0 +1,385 @@
+{
+  "state": "COMPLETED_READONLY_POC",
+  "source_commit": "21a1ebd5e6af277c5e94407d576a8ca5219591f5",
+  "cases": {
+    "positive-1": {
+      "status": "PASS",
+      "reason": "BUSINESS_EVENT_CONFIRMED",
+      "assertions": [
+        {
+          "rule": "rpc.canonical",
+          "status": "PASS",
+          "confirmations": 14271191
+        },
+        {
+          "rule": "query.echo",
+          "status": "PASS",
+          "expected": "0xd01d3e019906321b7d410538aebb696dec806df1099756ec85ac7b2da91df7fc",
+          "observed": "0xd01d3e019906321b7d410538aebb696dec806df1099756ec85ac7b2da91df7fc"
+        },
+        {
+          "rule": "proof.anchored",
+          "status": "PASS",
+          "expected": true,
+          "observed": true
+        },
+        {
+          "rule": "proof.events",
+          "status": "PASS",
+          "expected": [
+            {
+              "hash": "be44340d151cbfa7a5dc59b579dd6632fb0891b573f8fdc927264309a3b168f0",
+              "filename": "g5nutljwwaamdxe.png",
+              "submitter": "0x0230c6dd5db1d3f871386a3ce1a5a836b2590044",
+              "timestamp": 1763105659,
+              "paid": "151000000000000",
+              "currency": "ETH",
+              "chain": "base",
+              "chainId": 8453,
+              "contract": "0xeed9d0f7265892e84e43d05da464c75add199260",
+              "txHash": "0xd01d3e019906321b7d410538aebb696dec806df1099756ec85ac7b2da91df7fc",
+              "blockNumber": 38158156
+            }
+          ],
+          "observed": [
+            {
+              "hash": "be44340d151cbfa7a5dc59b579dd6632fb0891b573f8fdc927264309a3b168f0",
+              "filename": "g5nutljwwaamdxe.png",
+              "submitter": "0x0230c6dd5db1d3f871386a3ce1a5a836b2590044",
+              "timestamp": 1763105659,
+              "paid": "151000000000000",
+              "currency": "ETH",
+              "chain": "base",
+              "chainId": 8453,
+              "contract": "0xeed9d0f7265892e84e43d05da464c75add199260",
+              "txHash": "0xd01d3e019906321b7d410538aebb696dec806df1099756ec85ac7b2da91df7fc",
+              "blockNumber": 38158156
+            }
+          ]
+        },
+        {
+          "rule": "tx.target",
+          "status": "PASS",
+          "expected": [
+            "0xe0c6bb0914be3e49e13ffbc389cf659871a1bcd3",
+            "0xeed9d0f7265892e84e43d05da464c75add199260"
+          ],
+          "observed": "0xeed9d0f7265892e84e43d05da464c75add199260"
+        }
+      ],
+      "confirmed_proofs": [
+        {
+          "hash": "be44340d151cbfa7a5dc59b579dd6632fb0891b573f8fdc927264309a3b168f0",
+          "filename": "g5nutljwwaamdxe.png",
+          "submitter": "0x0230c6dd5db1d3f871386a3ce1a5a836b2590044",
+          "timestamp": 1763105659,
+          "paid": "151000000000000",
+          "currency": "ETH",
+          "chain": "base",
+          "chainId": 8453,
+          "contract": "0xeed9d0f7265892e84e43d05da464c75add199260",
+          "txHash": "0xd01d3e019906321b7d410538aebb696dec806df1099756ec85ac7b2da91df7fc",
+          "blockNumber": 38158156
+        }
+      ],
+      "confirmations": 14271191
+    },
+    "positive-2": {
+      "status": "PASS",
+      "reason": "BUSINESS_EVENT_CONFIRMED",
+      "assertions": [
+        {
+          "rule": "rpc.canonical",
+          "status": "PASS",
+          "confirmations": 14271191
+        },
+        {
+          "rule": "query.echo",
+          "status": "PASS",
+          "expected": "0xd01d3e019906321b7d410538aebb696dec806df1099756ec85ac7b2da91df7fc",
+          "observed": "0xd01d3e019906321b7d410538aebb696dec806df1099756ec85ac7b2da91df7fc"
+        },
+        {
+          "rule": "proof.anchored",
+          "status": "PASS",
+          "expected": true,
+          "observed": true
+        },
+        {
+          "rule": "proof.events",
+          "status": "PASS",
+          "expected": [
+            {
+              "hash": "be44340d151cbfa7a5dc59b579dd6632fb0891b573f8fdc927264309a3b168f0",
+              "filename": "g5nutljwwaamdxe.png",
+              "submitter": "0x0230c6dd5db1d3f871386a3ce1a5a836b2590044",
+              "timestamp": 1763105659,
+              "paid": "151000000000000",
+              "currency": "ETH",
+              "chain": "base",
+              "chainId": 8453,
+              "contract": "0xeed9d0f7265892e84e43d05da464c75add199260",
+              "txHash": "0xd01d3e019906321b7d410538aebb696dec806df1099756ec85ac7b2da91df7fc",
+              "blockNumber": 38158156
+            }
+          ],
+          "observed": [
+            {
+              "hash": "be44340d151cbfa7a5dc59b579dd6632fb0891b573f8fdc927264309a3b168f0",
+              "filename": "g5nutljwwaamdxe.png",
+              "submitter": "0x0230c6dd5db1d3f871386a3ce1a5a836b2590044",
+              "timestamp": 1763105659,
+              "paid": "151000000000000",
+              "currency": "ETH",
+              "chain": "base",
+              "chainId": 8453,
+              "contract": "0xeed9d0f7265892e84e43d05da464c75add199260",
+              "txHash": "0xd01d3e019906321b7d410538aebb696dec806df1099756ec85ac7b2da91df7fc",
+              "blockNumber": 38158156
+            }
+          ]
+        },
+        {
+          "rule": "tx.target",
+          "status": "PASS",
+          "expected": [
+            "0xe0c6bb0914be3e49e13ffbc389cf659871a1bcd3",
+            "0xeed9d0f7265892e84e43d05da464c75add199260"
+          ],
+          "observed": "0xeed9d0f7265892e84e43d05da464c75add199260"
+        }
+      ],
+      "confirmed_proofs": [
+        {
+          "hash": "be44340d151cbfa7a5dc59b579dd6632fb0891b573f8fdc927264309a3b168f0",
+          "filename": "g5nutljwwaamdxe.png",
+          "submitter": "0x0230c6dd5db1d3f871386a3ce1a5a836b2590044",
+          "timestamp": 1763105659,
+          "paid": "151000000000000",
+          "currency": "ETH",
+          "chain": "base",
+          "chainId": 8453,
+          "contract": "0xeed9d0f7265892e84e43d05da464c75add199260",
+          "txHash": "0xd01d3e019906321b7d410538aebb696dec806df1099756ec85ac7b2da91df7fc",
+          "blockNumber": 38158156
+        }
+      ],
+      "confirmations": 14271191
+    },
+    "positive-3": {
+      "status": "PASS",
+      "reason": "BUSINESS_EVENT_CONFIRMED",
+      "assertions": [
+        {
+          "rule": "rpc.canonical",
+          "status": "PASS",
+          "confirmations": 14271191
+        },
+        {
+          "rule": "query.echo",
+          "status": "PASS",
+          "expected": "0xd01d3e019906321b7d410538aebb696dec806df1099756ec85ac7b2da91df7fc",
+          "observed": "0xd01d3e019906321b7d410538aebb696dec806df1099756ec85ac7b2da91df7fc"
+        },
+        {
+          "rule": "proof.anchored",
+          "status": "PASS",
+          "expected": true,
+          "observed": true
+        },
+        {
+          "rule": "proof.events",
+          "status": "PASS",
+          "expected": [
+            {
+              "hash": "be44340d151cbfa7a5dc59b579dd6632fb0891b573f8fdc927264309a3b168f0",
+              "filename": "g5nutljwwaamdxe.png",
+              "submitter": "0x0230c6dd5db1d3f871386a3ce1a5a836b2590044",
+              "timestamp": 1763105659,
+              "paid": "151000000000000",
+              "currency": "ETH",
+              "chain": "base",
+              "chainId": 8453,
+              "contract": "0xeed9d0f7265892e84e43d05da464c75add199260",
+              "txHash": "0xd01d3e019906321b7d410538aebb696dec806df1099756ec85ac7b2da91df7fc",
+              "blockNumber": 38158156
+            }
+          ],
+          "observed": [
+            {
+              "hash": "be44340d151cbfa7a5dc59b579dd6632fb0891b573f8fdc927264309a3b168f0",
+              "filename": "g5nutljwwaamdxe.png",
+              "submitter": "0x0230c6dd5db1d3f871386a3ce1a5a836b2590044",
+              "timestamp": 1763105659,
+              "paid": "151000000000000",
+              "currency": "ETH",
+              "chain": "base",
+              "chainId": 8453,
+              "contract": "0xeed9d0f7265892e84e43d05da464c75add199260",
+              "txHash": "0xd01d3e019906321b7d410538aebb696dec806df1099756ec85ac7b2da91df7fc",
+              "blockNumber": 38158156
+            }
+          ]
+        },
+        {
+          "rule": "tx.target",
+          "status": "PASS",
+          "expected": [
+            "0xe0c6bb0914be3e49e13ffbc389cf659871a1bcd3",
+            "0xeed9d0f7265892e84e43d05da464c75add199260"
+          ],
+          "observed": "0xeed9d0f7265892e84e43d05da464c75add199260"
+        }
+      ],
+      "confirmed_proofs": [
+        {
+          "hash": "be44340d151cbfa7a5dc59b579dd6632fb0891b573f8fdc927264309a3b168f0",
+          "filename": "g5nutljwwaamdxe.png",
+          "submitter": "0x0230c6dd5db1d3f871386a3ce1a5a836b2590044",
+          "timestamp": 1763105659,
+          "paid": "151000000000000",
+          "currency": "ETH",
+          "chain": "base",
+          "chainId": 8453,
+          "contract": "0xeed9d0f7265892e84e43d05da464c75add199260",
+          "txHash": "0xd01d3e019906321b7d410538aebb696dec806df1099756ec85ac7b2da91df7fc",
+          "blockNumber": 38158156
+        }
+      ],
+      "confirmations": 14271191
+    },
+    "repeat": {
+      "status": "PASS",
+      "reason": "THREE_OBSERVATIONS_ONLY"
+    },
+    "http-mcp": {
+      "status": "PASS",
+      "reason": "NORMALIZED_BUSINESS_FIELDS"
+    },
+    "positive-mcp": {
+      "status": "PASS",
+      "reason": "BUSINESS_EVENT_CONFIRMED",
+      "assertions": [
+        {
+          "rule": "rpc.canonical",
+          "status": "PASS",
+          "confirmations": 14271191
+        },
+        {
+          "rule": "query.echo",
+          "status": "PASS",
+          "expected": "0xd01d3e019906321b7d410538aebb696dec806df1099756ec85ac7b2da91df7fc",
+          "observed": "0xd01d3e019906321b7d410538aebb696dec806df1099756ec85ac7b2da91df7fc"
+        },
+        {
+          "rule": "proof.anchored",
+          "status": "PASS",
+          "expected": true,
+          "observed": true
+        },
+        {
+          "rule": "proof.events",
+          "status": "PASS",
+          "expected": [
+            {
+              "hash": "be44340d151cbfa7a5dc59b579dd6632fb0891b573f8fdc927264309a3b168f0",
+              "filename": "g5nutljwwaamdxe.png",
+              "submitter": "0x0230c6dd5db1d3f871386a3ce1a5a836b2590044",
+              "timestamp": 1763105659,
+              "paid": "151000000000000",
+              "currency": "ETH",
+              "chain": "base",
+              "chainId": 8453,
+              "contract": "0xeed9d0f7265892e84e43d05da464c75add199260",
+              "txHash": "0xd01d3e019906321b7d410538aebb696dec806df1099756ec85ac7b2da91df7fc",
+              "blockNumber": 38158156
+            }
+          ],
+          "observed": [
+            {
+              "hash": "be44340d151cbfa7a5dc59b579dd6632fb0891b573f8fdc927264309a3b168f0",
+              "filename": "g5nutljwwaamdxe.png",
+              "submitter": "0x0230c6dd5db1d3f871386a3ce1a5a836b2590044",
+              "timestamp": 1763105659,
+              "paid": "151000000000000",
+              "currency": "ETH",
+              "chain": "base",
+              "chainId": 8453,
+              "contract": "0xeed9d0f7265892e84e43d05da464c75add199260",
+              "txHash": "0xd01d3e019906321b7d410538aebb696dec806df1099756ec85ac7b2da91df7fc",
+              "blockNumber": 38158156
+            }
+          ]
+        },
+        {
+          "rule": "tx.target",
+          "status": "PASS",
+          "expected": [
+            "0xe0c6bb0914be3e49e13ffbc389cf659871a1bcd3",
+            "0xeed9d0f7265892e84e43d05da464c75add199260"
+          ],
+          "observed": "0xeed9d0f7265892e84e43d05da464c75add199260"
+        }
+      ],
+      "confirmed_proofs": [
+        {
+          "hash": "be44340d151cbfa7a5dc59b579dd6632fb0891b573f8fdc927264309a3b168f0",
+          "filename": "g5nutljwwaamdxe.png",
+          "submitter": "0x0230c6dd5db1d3f871386a3ce1a5a836b2590044",
+          "timestamp": 1763105659,
+          "paid": "151000000000000",
+          "currency": "ETH",
+          "chain": "base",
+          "chainId": 8453,
+          "contract": "0xeed9d0f7265892e84e43d05da464c75add199260",
+          "txHash": "0xd01d3e019906321b7d410538aebb696dec806df1099756ec85ac7b2da91df7fc",
+          "blockNumber": 38158156
+        }
+      ],
+      "confirmations": 14271191
+    },
+    "random-query": {
+      "status": "UNKNOWN",
+      "reason": "GLOBAL_ABSENCE_NOT_ESTABLISHED",
+      "requested_hash": "274af8fdb8d6eb97f51f4d1a5e920c3b14447cfaf105ea36e1c6362037f3c56a",
+      "response": {
+        "hash": "274af8fdb8d6eb97f51f4d1a5e920c3b14447cfaf105ea36e1c6362037f3c56a",
+        "anchored": false,
+        "proofs": [],
+        "searched": [
+          "0xe0C6bB0914be3E49e13fFBc389cF659871a1bCD3"
+        ],
+        "unsearched": [
+          "0xeed9D0f7265892e84e43d05dA464c75add199260"
+        ]
+      }
+    },
+    "random-response": {
+      "status": "PASS",
+      "reason": "BOUNDED_SEARCH_RESPONSE_ONLY"
+    },
+    "invalid-input": {
+      "status": "PASS",
+      "reason": "INPUT_REJECTION"
+    }
+  },
+  "service_accessible": true,
+  "mcp_find_proof_discovered": true,
+  "erc8004_registration": {
+    "status": "PASS",
+    "reason": "OWNER_AND_URI_READ_AT_FIXED_BLOCK",
+    "chain_id": 8453,
+    "registry": "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432",
+    "agent_id": 98097,
+    "owner": "0xa88630300706488e9d31597ccc4394206f4d4c6c",
+    "token_uri": "https://anchor.akashi-notari.com/.well-known/agent-registration.json",
+    "block_number": "0x3200222",
+    "block_hash": "0x7b80946facac84c06b18282165c9413748a2a55b991c8d5e2f7f020a451ce64d"
+  },
+  "limits": [
+    "No formal score or database integration",
+    "Three repeats do not establish long-term availability",
+    "Random lookup does not establish whole-chain absence",
+    "Registration does not establish executor binding"
+  ]
+}

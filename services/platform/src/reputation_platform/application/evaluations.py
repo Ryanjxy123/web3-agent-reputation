@@ -539,7 +539,7 @@ class EvaluationService:
                 profile=request.profile,
                 confirmed_capabilities=review.confirmed_claims if excluded else capabilities,
                 suite_id=request.suite_id,
-                template_version="capabilities@5"
+                template_version="capabilities@6"
                 if formal
                 else "anchor_record@2"
                 if request.suite_id == "m1-smoke-v1"
