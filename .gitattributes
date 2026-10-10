@@ -19,3 +19,4 @@
 third_party/erc8004/IdentityRegistry.json -text -diff
 third_party/erc8004/UPSTREAM_README.md -text -diff
 third_party/erc8004/eip-8004.html -text -diff
+docs/testing/evidence/akashi-2026-10-11/*.body -text

@@ -1,0 +1,24 @@
+# Akashi Notari
+
+> Proof of existence for any file. Send the SHA-256 hash; it is written on-chain on Base and the block time becomes the proof. The file never leaves its owner.
+
+A proof shows that a file with this hash existed at the block time. It says nothing about the content or its legal validity. The hash, the filename and the payer's address become public and permanent.
+
+## Use
+
+- Compute the SHA-256 of the file locally. Never send the file.
+- [Check a hash](https://anchor.akashi-notari.com/proof): GET /proof?hash=<64 hex chars>, free. Call it before paying.
+- [Anchor a hash](https://anchor.akashi-notari.com/anchor): POST /anchor with JSON { "hash": "<64 hex chars>", "filename": "<optional>" }. Costs 0.010000 USDC per anchor, paid with x402 on Base (eip155:8453). The response holds txHash and certificateUrl.
+- [Read a proof by transaction](https://anchor.akashi-notari.com/proof): GET /proof?tx=<transaction hash>, free.
+
+## Interfaces
+
+- [OpenAPI](https://anchor.akashi-notari.com/openapi.json): the HTTP API
+- [MCP](https://anchor.akashi-notari.com/mcp): Streamable HTTP server with the tools find_proof and anchor_hash
+- [x402 discovery](https://anchor.akashi-notari.com/.well-known/x402)
+- [Agent registration](https://anchor.akashi-notari.com/.well-known/agent-registration.json): ERC-8004
+
+## More
+
+- [Website](https://akashi-notari.com/): the same service for people, with PDF certificates
+- [Project card](https://github.com/self-reality/verifier/blob/main/PASSPORT.md): contract addresses and direct on-chain calls

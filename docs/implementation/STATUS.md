@@ -1,6 +1,6 @@
 # 真实进度与会话交接
 
-更新时间：2026-10-10；环境：用户 Windows 正式项目工作目录。
+更新时间：2026-10-11；环境：用户 Windows 正式项目工作目录。
 
 | Task ID | Status | 实施结果 |
 |---|---|---|
@@ -25,8 +25,18 @@
 | FOLLOWUP-04 | DONE | 正式多槽位三维评分、固定类别与安全负例、ReportCore 1.2 及独立重算；阶段 Review/真实集成通过 |
 | FOLLOWUP-05 | DONE | 既有任务4/5已由PR#5合并；复查修复RPC日志误风险、冻结恢复及正式Run状态，新规则5/报告1.4；完整507项Python/Web/Foundry/Schema与代码CI通过，最终PR见#6 |
 | FOLLOWUP-06 | STAGE_PASS | A/D 新故障模式、独立预期及真实单槽位评分/充分度/风险/复核通过；Review 修复 RPC envelope 与只读 ABI 边界，规则6/报告1.5；待任务7后完整回归/CI |
-| FOLLOWUP-07 | NOT_STARTED | 等任务6阶段测试/Review通过后执行免费只读 Akashi PoC；不开发完整第三方适配、身份集成或前端 |
+| FOLLOWUP-07 | STAGE_PASS | Akashi真实免费HTTP/MCP只读正例、独立Base事件核验、随机局部查询/非法输入/重复/注册存在检查通过；Review修复后重验，待最终完整回归/CI |
 | LOCAL-PG-JUNCTION | DONE | Windows PostgreSQL 改用 D:\web3-runtime 目录联接；R: 已移除，初始化、重启、数据完整性及13项定向测试通过 |
+
+## 2026-10-11 / 本轮任务7：免费第三方只读PoC
+
+- Actual：官方Akashi文档/health/OpenAPI/llms/注册描述和MCP discovery真实可达；免费GET /proof及MCP find_proof实际业务可调用。固定官方源码21a1ebd的历史示例tx作为候选，先用独立mainnet.base.org核实Base8453、tx/receipt/status1、旧ETH官方合约、Anchored ABI/topic、hash/filename/payer/timestamp/paid及固定canonical块；可靠正例3次HTTP和1次MCP均PASS，HTTP/MCP归一化一致。块38158156，观测head52429346，确认14271191。
+- Separate results：随机合法SHA256返回200/anchored:false，但legacy合约unsearched；有限搜索响应合理，全链不存在UNKNOWN。非法hash明确400为正确输入拒绝PASS，不扣业务分。三次HTTP672/203/203ms只说明这些观察稳定。ERC8004 Base registry与既有锁定上游b9e466c一致，ID98097在固定块独立code/ownerOf/tokenURI确认非零owner与官方注册URI，身份存在PASS；没有证明executor绑定或完整正式评价。
+- Safety/evidence：SafeHttpClient.readonly_poc显式隔离静态HTTPS/path/MCP/RPC白名单；正式平台仍回环HTTP。无redirect/proxy/Cookie复用、20秒/1MiB、串行1秒间隔/总预算64且无自动重试；禁止anchor_hash、/anchor、任意eth_call、支付/签名/链写入。402先停且不读付款body；HTTP200内付款要求也停止。最终完整run33次（32x200/1x400），含调查及一次导入失败全轮76次（74x200/2x400），没有付费/402/主网写入；全部实际请求经策略审计、原始body SHA256复算通过。
+- Review/fixes：补嵌套PAYMENT_REQUIRED/MCP工具错误停止、证据写盘失败终止、CLI根目录导入、Cookie自动重放、tools/annotations畸形边界；纯断言补MCP多表示冲突、日志语义位置/严格有序index、间接目标及非SHA CID保守UNKNOWN。最终跨模块Review发现40KiB深MCP文本JSON的RecursionError绕过协议错误处理，转ValueError后保持UNKNOWN并补回归。原始body禁换行转换，约191KB小型公开材料发布于docs/testing/evidence/akashi-2026-10-11，30份必要原始响应+hash/time/status/请求及summary；三份非业务发现原文明确省略，原SHA及本地完整材料保留，无认证/钱包/支付凭据。
+- Tests/failures：新增纯业务断言94项；网络出口+既有HTTP100项；观察/发布真实材料重放10项；稳定合计204 passed/0 skipped（1.65s）。Ruff全树、Mypy53+两PoC脚本及57Schema通过，最新全量收集879项。初HTTP测试因巨大bytes参数ID导致Windows环境长度错误，修短ID后通过；首次完整CLI仅资料阶段后ModuleNotFoundError退出1，修根目录path后完整重跑退出0，未把失败当通过；额外脚本Mypy初报异构JSON字典推断18项错误，补两处dict[str,Any]边界注解后通过。独立模块自Review、最终跨模块Review及修复重验完成，无剩余范围阻断；最终check.py/CI尚未通过。
+- Adaptation：复用JSON/hash/RPC基础、未来Task/Evidence CAS及Verifier组织；需要最小静态HTTP/MCP映射、官方事件版本断言、可信Base固定区块、公开快照/授权及身份执行者绑定。不能把Demo getRecord/request_id/grant/controlled envelope直接套用。只交独立PoC与分析，不接正式DB/评分，不新增依赖或前端。详见AKASHI_READONLY_POC和ADR0018。
+- Git/next：任务6阶段提交35bbef2；任务7阶段提交SHA以Git历史为准。下一步最终跨模块Review→稳定提交完整check.py→PR/最新head CI→按AGENTS条件合并同步；不开展8–10。Windows Docker/WSL限制仍由真实Linux Compose CI单列验收。
 
 ## 2026-10-10 / 本轮任务6：受控异常阶段验收
 

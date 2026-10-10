@@ -1,0 +1,13 @@
+{
+  "base": {
+    "address": "0xe0C6bB0914be3E49e13fFBc389cF659871a1bCD3",
+    "chainId": 8453,
+    "deployedAt": "2026-10-06T08:01:23.756Z",
+    "config": {
+      "token": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "price": "10000",
+      "relayer": "0xf0E21361De4F97AdA748fDD1dD8dBbB698B7289e",
+      "owner": "0xa88630300706488e9d31597ccC4394206F4D4C6C"
+    }
+  }
+}
