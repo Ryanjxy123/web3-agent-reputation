@@ -33,7 +33,8 @@
 - Implemented：新capabilities@5/rule5/ReportCore1.4在业务断言前核验全部日志schema、固定事件ABI、交易/区块/序号、removed与唯一有序logIndex。RPC互斥为UNKNOWN/EVIDENCE_INCONSISTENT，畸形为UNKNOWN/PLATFORM_RPC_ERROR；均不扣Agent分、不创建critical。preserve_rpc_unknown共享纯规则保持原测量UNKNOWN，冻结复读和在线恢复单列，原已判定任务遇坏证据仍拒冻。新完整正式报告设Run COMPLETED，充分度不足保持PARTIAL。
 - Compatibility：policy-v1/three-dimensional-v1/evidence-assessment-v1、公式/权重/阈值均不变；历史@3→1.2、@4→1.3显式冻结/重放，不升级。原rule4对照16个场景、原1.3报告对照3个场景逐字段一致。Schema/OpenAPI/TS同源生成，无新依赖、DB migration、合约或前端功能。
 - Tests：稳定单元/reference396 passed/0 skipped（32.14s）；新增44项日志/ABI/helper单元通过。真实PostgreSQL/HTTP/Anvil首测矛盾恢复、反向拒冻及在途@4组合3 passed/0 skipped（206.35s）；追加真实畸形日志恢复1 passed/0 skipped（90.23s）。Ruff、Mypy53、57Schema及TS生成通过。独立跨模块Review已确认无剩余本范围阻断。
-- Git：fix/rpc-log-evidence-attribution基于328a712；修复待提交；最终完整check.py及新PR/CI待完成，不提前声称最终验收。
+- Full check retry：5a83358完整check.py在pytest收集阶段发现新增unit/integration同名模块冲突，退出2/NOT_PASS；集成文件改为test_rpc_evidence_recovery.py，测试内容/门槛不变。保存原失败日志，先验证全量收集再在稳定提交重跑。
+- Git：fix/rpc-log-evidence-attribution基于328a712；修复5a83358已push，PR#6为draft，最终完整check.py及latest-head CI待完成，不提前声称最终验收。
 - Limitations/Next：旧规则4报告保留原语义，纠正评价需新规则重新测量；离线复核不证明采集者诚实，纯写缺安全availability样本仍PARTIAL。本轮继续全量检查→PR/CI，验收后停止任务6。
 
 ## 2026-10-10 / 本轮任务 4：正式三维评价
