@@ -1,8 +1,8 @@
 # 从零构造执行计划（ExecPlan）
 
-当前授权范围（2026-10-10）：仅后续任务6→阶段Review/修复→任务7免费只读PoC→跨模块Review及完整回归/PR/CI。基于已核实main `68ee882`，不开展任务8–10；任务6受控异常独立预期见 `docs/testing/CONTROLLED_SCENARIOS.md`，RPC边界/历史兼容决策见 ADR0017，实际完成状态以 STATUS 为准。任务6–7已完成最终本地回归与 Foundation CI，剩余仅按仓库规则完成 PR 合并后的同步与清理。
+当前授权范围（2026-10-10）：仅后续任务6→阶段Review/修复→任务7免费只读PoC→跨模块Review及完整回归/PR/CI。基于已核实main `68ee882`，不开展任务8–10；任务6受控异常独立预期见 `docs/testing/CONTROLLED_SCENARIOS.md`，RPC边界/历史兼容决策见 ADR0017，实际完成状态以 STATUS 为准。任务6–7已完成最终本地回归、Foundation CI及PR #7合并后的同步与分支清理。
 
-阶段进度：任务6受控异常和任务7Akashi免费只读PoC均实现、测试、Review修复并重验（DONE）；保留历史版本与policy-v1。真实第三方正例及ERC8004注册存在分别确认，局部未发现保持UNKNOWN。完整回归与同 head Foundation CI 已通过，下一步仅按仓库规则完成 PR Ready、合并及合并后同步清理。
+阶段进度：任务6受控异常和任务7Akashi免费只读PoC均实现、测试、Review修复并重验（DONE）；保留历史版本与policy-v1。真实第三方正例及ERC8004注册存在分别确认，局部未发现保持UNKNOWN。完整回归与最终PR head的Foundation CI已通过；PR #7已合并，停止本轮，不开展任务8–10。
 
 版本：foundation-v1.1，2026-10-03。状态：M0 基础验收完成（原生 Windows + Linux Compose CI）；M0-07 公网 OpenAPI 403 单列；M1-01 至 M1-08 已完成，M0+M1 最终验收通过。
 
@@ -84,7 +84,7 @@
 
 ## 2026-10-11 任务6–7最终状态
 
-任务6受控故障场景与任务7 Akashi 免费只读 PoC 已完成实现、Review/修复、定向回归、完整本地检查及 GitHub Foundation CI。稳定 head `5c8f2393ff628cb5bb1973bcd1b52836bc37c3df` 对应 run `38067747321` 的 `foundation-quality`、`foundation-compose` 均成功；PR #7 base 为 `main` 且无冲突。后续只按 AGENTS 规则完成 PR 状态、合并后 main 同步和分支清理，不开展任务8–10。
+任务6受控故障场景与任务7 Akashi 免费只读 PoC 已完成实现、Review/修复、定向回归、完整本地检查及 GitHub Foundation CI。最终PR head `0177ce11a7d9d669f57f9c1921ff8852d66a7a81` 对应 run `38069590008` 的 `foundation-quality`、`foundation-compose` 均成功。PR #7按仓库规则合并为 `ed782f24c075a9caf6e1a34c5ce6897f0b498d3d`；本地main与origin/main一致、工作树干净，本任务本地/远程功能分支均已删除。后续文档提交的SHA与CI以Git/PR历史为准；本轮停止，不开展任务8–10。
 
 
 2026-10-10 最新main复查：328a712已合并PR#5的任务4/5。本轮任务4评分复查通过，再在任务5/跨模块Review复现并修复RPC日志误风险、UNKNOWN冻结恢复及正式Run状态。新规则5/@5/ReportCore1.4保留旧规则4/1.3原语义；评分和充分度参数不变，设计见ADR0016。稳定单元/reference396项、真实PostgreSQL/Anvil定向4项通过；稳定代码1b54cdf完整check.py退出0：Python507/0skip（1714.92s）、Web2、Foundry14/256fuzz、Ruff/Mypy53/57Schema/TS/ABI均通过。代码CI run38041353658的quality/Compose均SUCCESS（Python507/0skip）；四个实际历史ZIP重放通过。首次同名收集失败、本地数据库/工具进程中断均保留NOT_PASS记录，恢复后完整重跑，未降低门槛。PR#6最终文档提交后核对最新head检查再按授权合并、同步main和清理本任务分支，结果以PR/Git历史为准。完整需求审计及跨模块Review无剩余阻断，详细证据和限制见STATUS；本轮任务4/5验收完成，停止，不进入任务6。
