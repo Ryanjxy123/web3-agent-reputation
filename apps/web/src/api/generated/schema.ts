@@ -677,7 +677,7 @@ export interface components {
              * Rule Version
              * @enum {string}
              */
-            rule_version: "1" | "2" | "3" | "4" | "5";
+            rule_version: "1" | "2" | "3" | "4" | "5" | "6";
             /**
              * Slot Id
              * Format: uuid4
@@ -1443,7 +1443,7 @@ export interface components {
              * @default 1
              * @enum {string}
              */
-            rule_version: "1" | "2" | "3" | "4" | "5";
+            rule_version: "1" | "2" | "3" | "4" | "5" | "6";
             /**
              * Schema Version
              * @default record-verification-input-v1
@@ -1540,7 +1540,7 @@ export interface components {
              * @default 1.0.0
              * @enum {string}
              */
-            schema_version: "1.0.0" | "1.1.0" | "1.2.0" | "1.3.0" | "1.4.0";
+            schema_version: "1.0.0" | "1.1.0" | "1.2.0" | "1.3.0" | "1.4.0" | "1.5.0";
             scores: components["schemas"]["ScoreResult"];
             /**
              * Scoring Rule Version
@@ -1580,7 +1580,7 @@ export interface components {
              * Rule Version
              * @enum {string}
              */
-            rule_version: "1" | "2" | "3" | "4" | "5";
+            rule_version: "1" | "2" | "3" | "4" | "5" | "6";
             /**
              * Slot Id
              * Format: uuid4
@@ -1671,7 +1671,7 @@ export interface components {
              * Template Version
              * @enum {string}
              */
-            template_version: "anchor_record@1" | "capabilities@1" | "anchor_record@2" | "capabilities@2" | "capabilities@3" | "capabilities@4" | "capabilities@5";
+            template_version: "anchor_record@1" | "capabilities@1" | "anchor_record@2" | "capabilities@2" | "capabilities@3" | "capabilities@4" | "capabilities@5" | "capabilities@6";
         };
         /**
          * RunStage

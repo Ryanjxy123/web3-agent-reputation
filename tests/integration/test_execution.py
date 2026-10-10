@@ -48,7 +48,9 @@ __all__ = ["flow", "identity_chain"]
 @pytest.fixture
 def prepared(flow, request):
     client, identity, samples, keys, web3, deployment, runtime = flow
-    sample = getattr(request, "param", "a")
+    parameter = getattr(request, "param", "a")
+    scenario = parameter if isinstance(parameter, dict) else {"sample": parameter}
+    sample = scenario.get("sample", "a")
     ports = controlled_fixture_ports()
     port = ports[0] if sample == "a" else ports[1]
     replay = None
@@ -68,11 +70,16 @@ def prepared(flow, request):
     config = {
         "deployment": deployment.model_dump(mode="json"),
         "metadata": samples[sample]["metadata"],
-        "private_key": keys[f"executor-{sample}"],
+        "private_key": keys[f"executor-{scenario.get('executor_sample', sample)}"],
         "mode": "normal" if sample == "a" else "replay",
         "replay_tx_hash": replay,
         "registry_abi": contract_abi(identity.root, "DemoAgentRegistry"),
         "record_abi": contract_abi(identity.root, "DemoRecordRegistry"),
+        **{
+            field: scenario[field]
+            for field in ("mode", "fault_seed", "failure_every", "delay_seconds")
+            if field in scenario
+        },
     }
     path = runtime / f"fixture-{sample}.json"
     path.write_text(json.dumps(config), encoding="utf-8")

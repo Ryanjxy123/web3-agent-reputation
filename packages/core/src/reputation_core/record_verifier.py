@@ -15,6 +15,7 @@ from .models import (
     Reason,
     RecordVerificationInput,
     RecordVerificationResult,
+    TaskEnvelope,
     TaskLink,
 )
 
@@ -57,16 +58,118 @@ def seconds(value: str) -> int:
     return int(datetime.fromisoformat(value).timestamp())
 
 
+def transaction_evidence_reason(
+    rpc: dict[str, Any], candidate: str, *, writing: bool
+) -> Reason | None:
+    """Separate malformed/contradictory RPC observations from genuine pending finality."""
+    try:
+        tx, receipt = rpc["transaction"], rpc["receipt"]
+        if tx is None and receipt is None:
+            return None
+        if not isinstance(tx, dict) or receipt is not None and not isinstance(receipt, dict):
+            raise ValueError("malformed transaction/receipt")
+        tx_hash = hex_data(tx["hash"], 32)
+        tx_chain = quantity(tx["chainId"])
+        if writing:
+            hex_data(tx["from"], 20)
+            if tx["to"] is not None:
+                hex_data(tx["to"], 20)
+            hex_data(tx["input"])
+        if tx_hash != candidate or tx_chain != quantity(rpc["chain_id"]):
+            return Reason.EVIDENCE_INCONSISTENT
+        if receipt is None:
+            if (tx["blockHash"] is None) != (tx["blockNumber"] is None):
+                return Reason.EVIDENCE_INCONSISTENT
+            if tx["blockHash"] is not None:
+                hex_data(tx["blockHash"], 32)
+                quantity(tx["blockNumber"])
+            return None
+        for value in (tx, receipt):
+            hex_data(value["blockHash"], 32)
+            quantity(value["blockNumber"])
+            if writing:
+                quantity(value["transactionIndex"])
+        receipt_hash = hex_data(receipt["transactionHash"], 32)
+        if quantity(receipt["status"]) not in (0, 1) or (
+            writing and not isinstance(receipt["logs"], list)
+        ):
+            raise ValueError("malformed receipt status/logs")
+        if receipt_hash != tx_hash or any(
+            (hex_data(tx[field], 32) != hex_data(receipt[field], 32))
+            if field == "blockHash" else quantity(tx[field]) != quantity(receipt[field])
+            for field in (("blockHash", "blockNumber", "transactionIndex") if writing
+                          else ("blockHash", "blockNumber"))
+        ):
+            return Reason.EVIDENCE_INCONSISTENT
+        block, canonical, head = rpc["receipt_block"], rpc["receipt_canonical"], rpc["head"]
+        for value in (block, canonical, head):
+            hex_data(value["hash"], 32)
+            quantity(value["number"])
+        if writing:
+            quantity(block["timestamp"])
+        if (
+            hex_data(block["hash"], 32) != hex_data(receipt["blockHash"], 32)
+            or quantity(block["number"]) != quantity(receipt["blockNumber"])
+            or quantity(canonical["number"]) != quantity(receipt["blockNumber"])
+            or quantity(head["number"]) < quantity(receipt["blockNumber"])
+        ):
+            return Reason.EVIDENCE_INCONSISTENT
+        if (
+            quantity(head["number"]) == quantity(canonical["number"])
+            and hex_data(canonical["hash"], 32) == hex_data(receipt["blockHash"], 32)
+            and hex_data(head["hash"], 32) != hex_data(canonical["hash"], 32)
+        ):
+            return Reason.EVIDENCE_INCONSISTENT
+        # A different canonical block can be a reorg; the existing finality rule handles it.
+    except (KeyError, TypeError, ValueError, AttributeError, IndexError):
+        return Reason.PLATFORM_RPC_ERROR
+    return None
+
+
+def query_evidence_reason(rpc: dict[str, Any], task: TaskEnvelope) -> Reason | None:
+    """Retain malformed fixed-block reads separately from a genuine canonical fork."""
+    try:
+        block, canonical = rpc["read_block"], rpc["read_canonical"]
+        for value in (block, canonical):
+            hex_data(value["hash"], 32)
+            quantity(value["number"])
+        if (
+            hex_data(block["hash"], 32) != task.read_block_hash
+            or str(quantity(block["number"])) != task.read_block_number
+            or str(quantity(canonical["number"])) != task.read_block_number
+        ):
+            return Reason.EVIDENCE_INCONSISTENT
+        if hex_data(canonical["hash"], 32) != task.read_block_hash:
+            return Reason.STALE_EVIDENCE
+        if task.capability_id == "verify_record":
+            raw = hex_data(rpc["record_call"], 64)
+            flag = int(raw[2:66], 16)
+            if flag not in (0, 1) or (flag == 0) != (raw[66:] == "00" * 32):
+                raise ValueError("invalid record lookup")
+    except (KeyError, TypeError, ValueError, AttributeError, IndexError):
+        return Reason.PLATFORM_RPC_ERROR
+    return None
+
+
 def preserve_rpc_unknown(
     data: RecordVerificationInput, result: RecordVerificationResult
 ) -> bool:
     """A later healthy RPC read cannot replace an already frozen platform evidence gap."""
     return result.outcome == Outcome.UNKNOWN and (
-        data.rule_version in {"2", "3", "4", "5"}
+        data.rule_version in {"2", "3", "4", "5", "6"}
         and data.evm.error_reason == Reason.PLATFORM_RPC_ERROR
-        or data.rule_version == "5" and any(
+        or data.rule_version in {"5", "6"} and any(
             item.rule_id == "receipt.logs" and item.outcome == Outcome.UNKNOWN
             and item.reason_code in {Reason.EVIDENCE_INCONSISTENT, Reason.PLATFORM_RPC_ERROR}
+            and item.expected is not None
+            for item in result.assertions
+        )
+        or data.rule_version == "6" and any(
+            item.rule_id in {"receipt.evidence", "query.evidence", "chain.available", "chain.identity", "chain.position"}
+            and item.outcome == Outcome.UNKNOWN
+            and item.reason_code in {
+                Reason.EVIDENCE_INCONSISTENT, Reason.PLATFORM_RPC_ERROR, Reason.CHAIN_INSTANCE_CHANGED,
+            }
             and item.expected is not None
             for item in result.assertions
         )
@@ -81,7 +184,7 @@ def verify_record(
     rpc = cast(dict[str, Any], data.evm.results)
     facts, task = slot.expected, slot.task
     read_only = slot.capability_id != "anchor_record"
-    negative = data.rule_version in {"3", "4", "5"} and slot.case_kind == "negative"
+    negative = data.rule_version in {"3", "4", "5", "6"} and slot.case_kind == "negative"
     business_rules = (
         ("functional.rejection",)
         if negative
@@ -103,8 +206,12 @@ def verify_record(
     event: dict[str, Any] | None = None
     receipt: dict[str, Any] | None = None
     version = data.rule_version
-    if version == "5" and not read_only and not negative:
+    if version in {"5", "6"} and not read_only and not negative:
         business_rules = (*business_rules, "receipt.logs")
+    if version == "6" and slot.capability_id in {"anchor_record", "get_tx_status"} and not negative:
+        business_rules = (*business_rules, "receipt.evidence")
+    if version == "6" and read_only and not negative:
+        business_rules = (*business_rules, "query.evidence")
     declared = snapshot.core.normalized_metadata.get("capabilities")
     declared_valid = (
         isinstance(declared, list)
@@ -232,7 +339,7 @@ def verify_record(
         return finish()
 
     def class_available(actual_class):
-        if version not in {"3", "4", "5"} or slot.purpose != "functional":
+        if version not in {"3", "4", "5", "6"} or slot.purpose != "functional":
             return True
         return emit(
             "functional.case_available", slot.required_class == actual_class,
@@ -259,7 +366,7 @@ def verify_record(
         snapshot.snapshot_hash,
         unknown=True,
     )
-    if version in {"2", "3", "4", "5"} and slot.applicability_reason is not None:
+    if version in {"2", "3", "4", "5", "6"} and slot.applicability_reason is not None:
         metadata = snapshot.core.normalized_metadata
         exclusion_ok = (
             context_ok
@@ -278,7 +385,7 @@ def verify_record(
             and data.agent_response is None
             and data.agent_result is None
             and data.agent_task_status is None
-            and (version not in {"3", "4", "5"} or data.initial_agent_http is None)
+            and (version not in {"3", "4", "5", "6"} or data.initial_agent_http is None)
             and data.evm.candidate_tx_hash is None
         )
         emit(
@@ -311,7 +418,7 @@ def verify_record(
     )
     dispatched = data.dispatch_started_at
     request_payload = task.model_dump(mode="json")
-    if version in {"3", "4", "5"}:
+    if version in {"3", "4", "5", "6"}:
         try:
             request_payload = mutated_payload(slot)
         except (TypeError, ValueError, KeyError):
@@ -436,10 +543,10 @@ def verify_record(
             {"request_overrides": slot.request_overrides},
             unknown=True,
         )
-    if version in {"2", "3", "4", "5"} and context_ok:
+    if version in {"2", "3", "4", "5", "6"} and context_ok:
         http = data.agent_http
         if (
-            version in {"4", "5"} and not read_only and data.agent_result is not None
+            version in {"4", "5", "6"} and not read_only and data.agent_result is not None
             and (http is None or "response" not in http)
         ):
             emit(
@@ -619,10 +726,15 @@ def verify_record(
             )
             return unavailable(missing_reason)
     try:
+        if version == "6":
+            hex_data(rpc["head"]["hash"], 32)
+            quantity(rpc["head"]["number"])
+            quantity(rpc["pre_dispatch_block"]["number"])
+            quantity(rpc["dispatch_block"]["number"])
         identity = {
             "chain_id": str(quantity(rpc["chain_id"])),
             "genesis_hash": hex_data(rpc["genesis"]["hash"], 32),
-            "deployment_instance_id": hex_data(rpc["deployment_instance"]),
+            "deployment_instance_id": hex_data(rpc["deployment_instance"], 32 if version == "6" else None),
             "registry_code_hash": hash_bytes(bytes.fromhex(hex_data(rpc["registry_code"])[2:])),
         }
         observed_instance = hash_json(identity)
@@ -656,6 +768,20 @@ def verify_record(
             unknown=True,
         )
         dispatch_hash = hex_data(rpc["dispatch_block"]["hash"], 32)
+        if version == "6":
+            context_ok &= emit(
+                "chain.position",
+                quantity(rpc["pre_dispatch_block"]["number"]) == int(facts.pre_dispatch_block)
+                and witness is not None
+                and quantity(rpc["dispatch_block"]["number"])
+                == int(witness.snapshot_core.read_block_number),
+                Reason.EVIDENCE_INCONSISTENT,
+                {"pre_dispatch_block": facts.pre_dispatch_block,
+                 "dispatch_block": witness.snapshot_core.read_block_number if witness else None},
+                {"pre_dispatch_block": rpc["pre_dispatch_block"]["number"],
+                 "dispatch_block": rpc["dispatch_block"]["number"]},
+                unknown=True,
+            )
         context_ok &= emit(
             "chain.dispatch_head",
             witness is not None and dispatch_hash == witness.snapshot_core.read_block_hash,
@@ -699,6 +825,18 @@ def verify_record(
             {"http_status": status, "response": data.agent_response},
         )
         return finish()
+    if version == "6" and slot.capability_id in {"anchor_record", "get_tx_status"}:
+        candidate = data.evm.candidate_tx_hash
+        if candidate is not None and data.evm.error_reason is None:
+            rpc_reason = transaction_evidence_reason(rpc, candidate, writing=not read_only)
+            emit(
+                "receipt.evidence", rpc_reason is None, rpc_reason,
+                "well-formed, internally consistent RPC transaction and receipt",
+                {"transaction": rpc.get("transaction"), "receipt": rpc.get("receipt")},
+                unknown=True,
+            )
+            if rpc_reason is not None:
+                return unavailable(rpc_reason)
     if read_only:
         response = data.agent_result
         try:
@@ -735,7 +873,7 @@ def verify_record(
         assert response is not None
         if data.evm.error_reason:
             return unavailable(data.evm.error_reason)
-        if version in {"3", "4", "5"} and task.capability_id == "get_tx_status" and not emit(
+        if version in {"3", "4", "5", "6"} and task.capability_id == "get_tx_status" and not emit(
             "query.candidate",
             data.evm.candidate_tx_hash == task.query_tx_hash,
             Reason.EVIDENCE_INCONSISTENT,
@@ -744,6 +882,17 @@ def verify_record(
             unknown=True,
         ):
             return unavailable(Reason.EVIDENCE_INCONSISTENT)
+        if version == "6":
+            query_reason = query_evidence_reason(rpc, task)
+            emit(
+                "query.evidence", query_reason is None, query_reason,
+                {"read_block_number": task.read_block_number, "read_block_hash": task.read_block_hash,
+                 "record_abi": "(bool,bytes32)" if task.capability_id == "verify_record" else None},
+                {name: rpc.get(name) for name in ("read_block", "read_canonical", "record_call")},
+                unknown=True,
+            )
+            if query_reason is not None:
+                return unavailable(query_reason)
         try:
             block, canonical = rpc["read_block"], rpc["read_canonical"]
             if not emit(
@@ -780,7 +929,7 @@ def verify_record(
                     response.model_dump(mode="json"),
                 )
 
-            if version not in {"3", "4", "5"}:
+            if version not in {"3", "4", "5", "6"}:
                 parameters()
             if task.capability_id == "verify_record":
                 raw = hex_data(rpc["record_call"], 64)
@@ -794,7 +943,7 @@ def verify_record(
                 )
                 if not class_available(actual_class):
                     return unavailable(Reason.MISSING_EVIDENCE)
-                if version in {"3", "4", "5"}:
+                if version in {"3", "4", "5", "6"}:
                     parameters()
                 emit(
                     "query.record",
@@ -810,7 +959,7 @@ def verify_record(
                     return unavailable(data.evm.error_reason or Reason.MISSING_EVIDENCE)
                 tx, receipt = rpc["transaction"], rpc["receipt"]
                 if tx is None and receipt is None:
-                    if version in {"3", "4", "5"}:
+                    if version in {"3", "4", "5", "6"}:
                         if not class_available("not_found"):
                             return unavailable(Reason.MISSING_EVIDENCE)
                         parameters()
@@ -886,7 +1035,7 @@ def verify_record(
                 ]
                 if not class_available(actual_class):
                     return unavailable(Reason.MISSING_EVIDENCE)
-                if version in {"3", "4", "5"}:
+                if version in {"3", "4", "5", "6"}:
                     parameters()
                 emit(
                     "query.status",
@@ -906,7 +1055,7 @@ def verify_record(
             data.evm.error_reason or data.execution_reason or Reason.RPC_RECEIPT_NOT_FOUND
         )
     try:
-        if version in {"2", "3", "4", "5"}:
+        if version in {"2", "3", "4", "5", "6"}:
             receipt = rpc.get("receipt")
             block = rpc.get("receipt_block")
             canonical = rpc.get("receipt_canonical")
@@ -938,7 +1087,7 @@ def verify_record(
                 < facts.confirmation_depth
             ):
                 return unavailable(Reason.PENDING_FINALITY)
-        if version == "5":
+        if version in {"5", "6"}:
             assert receipt is not None
             if quantity(receipt["status"]) == 1:
                 try:
@@ -988,7 +1137,7 @@ def verify_record(
                         "well-formed canonical receipt logs", receipt.get("logs"), unknown=True,
                     )
                     return unavailable(Reason.PLATFORM_RPC_ERROR)
-        if version in {"4", "5"} and data.agent_result is not None:
+        if version in {"4", "5", "6"} and data.agent_result is not None:
             write_result = data.agent_result
             if not emit(
                 "agent.result.transaction",
@@ -1040,7 +1189,8 @@ def verify_record(
         )
         emit(
             "tx.target",
-            hex_data(tx["to"], 20) == facts.target_contract,
+            (tx["to"] is not None and hex_data(tx["to"], 20) == facts.target_contract)
+            if version == "6" else hex_data(tx["to"], 20) == facts.target_contract,
             Reason.TX_WRONG_TARGET,
             facts.target_contract,
             tx["to"],
@@ -1245,7 +1395,7 @@ def verify_record(
                 unknown=True,
             )
     except (KeyError, TypeError, ValueError, AttributeError, IndexError):
-        if version in {"2", "3", "4", "5"}:
+        if version in {"2", "3", "4", "5", "6"}:
             # Malformed platform reads cannot establish an Agent business failure.
             assertions[:] = [
                 item.model_copy(
@@ -1257,7 +1407,7 @@ def verify_record(
                 )
                 if item.outcome == Outcome.FAIL and (
                     not item.rule_id.startswith("agent.")
-                    or version in {"4", "5"} and item.rule_id.startswith("agent.result.")
+                    or version in {"4", "5", "6"} and item.rule_id.startswith("agent.result.")
                 )
                 else item
                 for item in assertions

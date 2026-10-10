@@ -24,7 +24,20 @@
 | FOLLOWUP-03 | DONE | 冻结 Evidence Bundle 逐任务重判、四态计数比较、历史格式兼容及独立 RPC 复查；最终 Review 修复已通过定向回归 |
 | FOLLOWUP-04 | DONE | 正式多槽位三维评分、固定类别与安全负例、ReportCore 1.2 及独立重算；阶段 Review/真实集成通过 |
 | FOLLOWUP-05 | DONE | 既有任务4/5已由PR#5合并；复查修复RPC日志误风险、冻结恢复及正式Run状态，新规则5/报告1.4；完整507项Python/Web/Foundry/Schema与代码CI通过，最终PR见#6 |
+| FOLLOWUP-06 | STAGE_PASS | A/D 新故障模式、独立预期及真实单槽位评分/充分度/风险/复核通过；Review 修复 RPC envelope 与只读 ABI 边界，规则6/报告1.5；待任务7后完整回归/CI |
+| FOLLOWUP-07 | NOT_STARTED | 等任务6阶段测试/Review通过后执行免费只读 Akashi PoC；不开发完整第三方适配、身份集成或前端 |
 | LOCAL-PG-JUNCTION | DONE | Windows PostgreSQL 改用 D:\web3-runtime 目录联接；R: 已移除，初始化、重启、数据完整性及13项定向测试通过 |
+
+## 2026-10-10 / 本轮任务6：受控异常阶段验收
+
+- Baseline/scope：main/origin/main核实为68ee882（PR#6）。既有正式多槽位已在main存在，因此不重建架构；冻结前采样单槽位、互斥purpose，少样本全部PARTIAL/overall=null。实现前独立预期见CONTROLLED_SCENARIOS，设计与兼容见ADR0017。
+- Actual：正常A PASS/A10000；3.2秒响应PASS/A8000；稳定503 FAIL/AGENT_SERVICE_ERROR/A0；20秒响应UNKNOWN/SERVICE_TIMEOUT/有效分母0。已声明但unsupported为FAIL/CAPABILITY_EXPLICITLY_UNSUPPORTED，HTTP A10000、功能0而非N/A。正常行为PASS/10000；D历史交易FAIL/TASK_ID_MISMATCH及真实D执行当前任务FAIL/TX_WRONG_EXECUTOR均critical，PARTIAL仍NOT_RECOMMENDED。
+- Identity：真实注册URI/description版本标记与revision变化为UNKNOWN/IDENTITY_CHANGED，新快照不继承binding；executor有代码导致UNKNOWN/BINDING_UNVERIFIED，撤权UNKNOWN/ACCESS_NOT_GRANTED。检查原始HTTP和派发事件确认没有实际业务派发；not_sent是数据库结算占位。版本用例验证注册画像变化，不声称部署新服务二进制。
+- RPC：真实连接拒绝和不响应socket触发实际读取超时；错误链/非法receipt/畸形record_call是对真实RPC采集结果的受控注入，明确区别。均UNKNOWN、无平台诱发critical；HTTP可用性独立保留。冻结原UNKNOWN与健康复读两份证据，在线Verifier单列RESOLVED/PASS，不改历史。
+- Review/fixes：修复rule5把非法status当PENDING_FINALITY及缺status当SCHEMA_ERROR、tx/receipt/block/head/chainId位置互斥漏检、只读固定块/ABI边界及恢复占位断言豁免。新capabilities@6/rule6/ReportCore1.5贯通共享类型、Worker、报告、Verifier及生成契约；规则1–5/报告1.0–1.4重放语义不变，在途@5冻结1.4。四个既有真实A/D ZIP离线重放PASS，旧assessment明确NOT_AVAILABLE_LEGACY_REPORT。
+- Tests：稳定unit/reference547 passed（47.46s）；fixture配置及真实Anvil执行38 passed（21.86s）；controlled E2E16+既有RPC recovery3为19 passed（327.19s）；追加真实RPC timeout1 passed（44.99s）；RPC/query/Verifier定向194 passed（22.48s）。均0 skipped。Ruff、Mypy53、57Schema/TS及diff检查通过。既有websockets与Starlette弃用warning未隐藏；完整check.py与本轮CI尚未运行，不能以阶段结果替代。
+- Failure history：初测Web3地址未checksum、额外metadata.version不被DTO允许、not_sent占位被误当派发，均修复测试真实性；在并行编辑期间加载旧代码产生NameError/旧trace，停止编辑后稳定重跑通过；新增合法rule6使旧“不支持6”测试失败，改为不支持7；Mypy临时变量类型冲突已修复。未修改评分权重、门槛或预期制造通过。
+- Git/next：阶段6提交于feat/controlled-agents-readonly-poc，提交SHA以Git历史为准；完成阶段Review后才开始FOLLOWUP-07免费只读PoC。最后跨模块Review、完整回归、PR/CI；不开展8–10。
 
 ## 2026-10-10 / 最新 main 任务4/5复查修复
 

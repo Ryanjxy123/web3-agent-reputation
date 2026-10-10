@@ -45,7 +45,7 @@ def single_write(prepared, monkeypatch):
     with monkeypatch.context() as scoped:
         scoped.setattr(evaluation_module, "RunPlan", one_behavioral_slot)
         run_id, plan = create_formal(flow, body)
-    assert len(plan.slots) == 1 and plan.template_version == "capabilities@5"
+    assert len(plan.slots) == 1 and plan.template_version == "capabilities@6"
     contract = flow[4].eth.contract(
         address=Web3.to_checksum_address(flow[5].record.address),
         abi=contract_abi(flow[1].root, "DemoRecordRegistry"),
@@ -119,7 +119,7 @@ def test_rpc_log_location_fault_preserves_unknown_but_cannot_invalidate_a_decide
         return
 
     report = service.for_run(run_id)
-    assert report.core.schema_version == "1.4.0"
+    assert report.core.schema_version == "1.5.0"
     assert report.core.task_counts.unknown_count == 1 and report.core.task_counts.fail_count == 0
     assert report.core.task_results[0].reason_code == historical_reason
     assert report.core.scores.overall_score_bp is None and not report.core.scores.critical_conflict

@@ -169,7 +169,7 @@ class ReportService:
                     }
                 )
             )
-            if plan.template_version in {"capabilities@3", "capabilities@4", "capabilities@5"} and inputs.slot.case_kind == "negative":
+            if plan.template_version in {"capabilities@3", "capabilities@4", "capabilities@5", "capabilities@6"} and inputs.slot.case_kind == "negative":
                 fresh = fresh.model_copy(
                     update={"evm": fresh.evm.model_copy(update={"candidate_tx_hash": None})}
                 )
@@ -264,7 +264,7 @@ class ReportService:
                 ("agent_http_evidence_id", inputs.agent_http),
                 (
                     "initial_http_evidence_id",
-                    inputs.initial_agent_http if inputs.rule_version in {"3", "4", "5"} else None,
+                    inputs.initial_agent_http if inputs.rule_version in {"3", "4", "5", "6"} else None,
                 ),
             ):
                 if envelope is None or inputs.rule_version == "1":
@@ -292,7 +292,7 @@ class ReportService:
                 "schema_version": "task-replay-v1",
                 "tasks": task_index,
             }
-            if all_inputs[0].rule_version in {"2", "3", "4", "5"}
+            if all_inputs[0].rule_version in {"2", "3", "4", "5", "6"}
             else {
                 "input_evidence_id": str(evidence_ids[0]),
                 "freeze_evidence_id": str(frozen[0].evidence_id),
@@ -475,7 +475,7 @@ class ReportService:
             connection.execute(
                 update(runs).where(runs.c.id == plan.run_id).values(
                     stage="DONE",
-                    **({"status": "COMPLETED"} if plan.template_version == "capabilities@5"
+                    **({"status": "COMPLETED"} if plan.template_version in {"capabilities@5", "capabilities@6"}
                        and core_body["scores"]["evaluation_state"] == "COMPLETE" else {}),
                 )
             )

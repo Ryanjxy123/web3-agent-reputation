@@ -78,7 +78,7 @@ class ExecutionService:
         writing = slot.capability_id == "anchor_record"
         payload = (
             mutated_payload(slot)
-            if plan.template_version in {"capabilities@3", "capabilities@4", "capabilities@5"}
+            if plan.template_version in {"capabilities@3", "capabilities@4", "capabilities@5", "capabilities@6"}
             else slot.task.model_dump(mode="json")
         )
         snapshot = await asyncio.to_thread(self.identity.snapshot, row["snapshot_fk"])
@@ -569,7 +569,7 @@ class ExecutionService:
                 await asyncio.to_thread(queue.fenced, lease, save)
                 retained_refs = tuple(dict.fromkeys((*retained_refs, *observation.evidence_refs)))
                 if (
-                    plan.template_version in {"capabilities@3", "capabilities@4", "capabilities@5"}
+                    plan.template_version in {"capabilities@3", "capabilities@4", "capabilities@5", "capabilities@6"}
                     and slot.required_class in REJECTION_CASES
                     and response is not None
                 ):

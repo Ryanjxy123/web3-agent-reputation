@@ -1,5 +1,9 @@
 # 从零构造执行计划（ExecPlan）
 
+当前授权范围（2026-10-10）：仅后续任务6→阶段Review/修复→任务7免费只读PoC→跨模块Review及完整回归/PR/CI。基于已核实main `68ee882`，不开展任务8–10；任务6受控异常独立预期见 `docs/testing/CONTROLLED_SCENARIOS.md`，RPC边界/历史兼容决策见 ADR0017，实际完成状态以 STATUS 为准。
+
+阶段进度：任务6实现、真实定向测试、Review修复及重验已通过（STAGE_PASS）；保留历史版本与policy-v1，最终完整回归/CI尚待任务7之后执行。下一步仅FOLLOWUP-07免费只读PoC。
+
 版本：foundation-v1.1，2026-10-03。状态：M0 基础验收完成（原生 Windows + Linux Compose CI）；M0-07 公网 OpenAPI 403 单列；M1-01 至 M1-08 已完成，M0+M1 最终验收通过。
 
 ## 1. 最终要交付的系统
