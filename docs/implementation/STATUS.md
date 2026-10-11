@@ -27,9 +27,18 @@
 | FOLLOWUP-06 | DONE | A/D 新故障模式、独立预期及真实单槽位评分/充分度/风险/复核通过；Review 修复 RPC envelope 与只读 ABI 边界，规则6/报告1.5；最终本地回归与 Foundation CI 通过 |
 | FOLLOWUP-07 | DONE | Akashi真实免费HTTP/MCP只读正例、独立Base事件核验、随机局部查询/非法输入/重复/注册存在检查通过；Review修复后重验；最终本地回归与 Foundation CI 通过 |
 | FOLLOWUP-08 | DONE | 正式HTTPS/MCP只读适配、安全DNS socket pin、限频/配额/付款停止与CAS审计完成；真实免费调用、301项定向验证、独立Review修复及985项完整Foundation CI通过 |
-| FOLLOWUP-09 | NOT_STARTED | 下一阶段：ERC-8004固定块身份、注册metadata/端点及受限只读身份关联 |
+| FOLLOWUP-09 | VERIFYING | 固定块ERC-8004 Reader/公共快照/只读关联已实现；定向与独立Review修复通过，最终真实重验、完整CI/合并待核验 |
 | FOLLOWUP-10 | NOT_STARTED | 依赖任务9：正式Worker/评价/Bundle/独立Verifier闭环，保持充分度与绑定规则 |
 | LOCAL-PG-JUNCTION | DONE | Windows PostgreSQL 改用 D:\web3-runtime 目录联接；R: 已移除，初始化、重启、数据完整性及13项定向测试通过 |
+
+## 2026-10-11 / 本轮任务9受限公开身份接入
+
+- Baseline：已核对PR#9 MERGED，main=origin/main=079bb57abac954fd920b539060679575858cea2c，合并树与e5ece713逐文件一致，工作树干净；本任务分支feat/erc8004-readonly-identity，未开展任务10。
+- Implemented：复用锁定ERC-8004 ABI、SafeHttpClient、CAS、AgentSnapshot、PostgreSQL和ingest Worker，固定Base8453/Registry/98097；同数字块ownerOf/tokenURI/code与canonical复查；严格元数据复合身份/声明，MCP精确端点、HTTP另核OpenAPI原件；public snapshot hash承诺core+PublicIdentityRead，旧格式无字段/哈希变化。注册/端点/执行者/业务分开，executor/business永远UNKNOWN，不产生binding或绕过写任务门槛。设计ADR0020，运行说明PUBLIC_READONLY_IDENTITY。
+- Directed：核心、Reader、安全出口/适配、契约和历史PoC定向541 passed/0skip（16.33s），新增真实公开原件重算1 passed/0skip；真实PostgreSQL公共/受控身份及适配证据24 passed/0skip（63.21s），合计566；Web2/build、Foundry14/256fuzz、Ruff/Mypy59、CLI Mypy、61Schema/TS/ABI通过。首轮uv未在PATH/错误测试文件名导致NOT_RUN已纠正，没有记为通过；过程中并发编辑的lint输出也保留失败，稳定代码再检查通过。
+- Review/fixes：独立实际复现并修复发送后落库前重复公共读取（持久发起ledger，恢复UNKNOWN无重发）、失败新读保留旧PASS（当前关联失效）、网络故障误归解析失败、ABI URI/畸形RPC额外字段编码凭据漏脱敏、缺注册原文仍PASS、OpenAPI GET输入和顶层/path付款漏检。所有问题补回归/重测，最后受控回归和独立复审无剩余可行动发现。
+- Live：修复后最终run2退出0，10次免费身份只读全部200（无业务请求）；固定块52451849/hash0x6e8fc723ddaa8096f44749ab9a45a4bc1c117049866ae0f7f204c22d1bf18e6f，Owner与历史一致。20CAS、10DNS、ABI/raw SHA256、元数据/OpenAPI/hash、双端点关联及IPpin审计全PASS；注册/端点PASS，executor/businessUNKNOWN。35原件逐字节公开于docs/testing/evidence/akashi-identity-2026-10-11，manifest/6源文件hash无变化；after-review/final_acceptance=true。全本轮20真实身份请求，无支付/签名/主网写入；run1仅pre-review NOT_FINAL材料保留runtime，没有用其冒充最终通过。
+- Git/next：实现和验收原件准备提交；完整check.py、PR/CI与合并待核验。本阶段仅身份关联，任务10未开始，不能描述为公开Agent完整评价闭环。
 
 ## 2026-10-11 / 本轮任务8正式只读适配
 

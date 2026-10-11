@@ -396,6 +396,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/snapshots/{snapshot_id}/readonly-association": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Readonly Association */
+        get: operations["get_readonly_association_api_v1_snapshots__snapshot_id__readonly_association_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health/live": {
         parameters: {
             query?: never;
@@ -590,6 +607,8 @@ export interface components {
              * @default []
              */
             evidence_refs: string[];
+            /** @default null */
+            public_identity: components["schemas"]["PublicIdentityRead"] | null;
             /** Snapshot Hash */
             snapshot_hash: string;
             /**
@@ -953,18 +972,18 @@ export interface components {
             host: string;
             /**
              * Method
-             * @constant
+             * @enum {string}
              */
-            method: "POST";
+            method: "GET" | "POST";
             /** Path */
             path: string;
             /** Port */
             port: number;
             /**
              * Protocol
-             * @constant
+             * @enum {string}
              */
-            protocol: "controlled-http-v1";
+            protocol: "controlled-http-v1" | "akashi-http-readonly-v1" | "akashi-mcp-readonly-v1";
             /**
              * Scheme
              * @enum {string}
@@ -1264,6 +1283,8 @@ export interface components {
              * Format: uuid4
              */
             id: string;
+            /** @default null */
+            public_identity: components["schemas"]["PublicIdentityRead"] | null;
             /**
              * Reason Code
              * @default null
@@ -1356,6 +1377,92 @@ export interface components {
          * @enum {string}
          */
         Outcome: "PASS" | "FAIL" | "UNKNOWN" | "NOT_APPLICABLE";
+        /** PublicIdentityRead */
+        PublicIdentityRead: {
+            /** Abi Sha256 */
+            abi_sha256: string;
+            metadata: components["schemas"]["PublicRegistrationMetadata"] | null;
+            /** Metadata Bytes Hash */
+            metadata_bytes_hash: string | null;
+            /**
+             * Metadata Outcome
+             * @enum {string}
+             */
+            metadata_outcome: "PASS" | "UNKNOWN";
+            metadata_reason: components["schemas"]["Reason"] | null;
+            /**
+             * Openapi Bytes Hash
+             * @default null
+             */
+            openapi_bytes_hash: string | null;
+            /**
+             * Registration Outcome
+             * @enum {string}
+             */
+            registration_outcome: "PASS" | "FAIL" | "UNKNOWN";
+            registration_reason: components["schemas"]["Reason"] | null;
+            /** Registry Code Hash */
+            registry_code_hash: string | null;
+            /**
+             * Registry Standard
+             * @default erc8004-v1
+             * @constant
+             */
+            registry_standard: "erc8004-v1";
+            /** Rpc Source */
+            rpc_source: string;
+            /**
+             * Schema Version
+             * @default 1.0.0
+             * @constant
+             */
+            schema_version: "1.0.0";
+            /** Source Hashes */
+            source_hashes: string[];
+        };
+        /** PublicRegistrationMetadata */
+        PublicRegistrationMetadata: {
+            /**
+             * Active
+             * @default null
+             */
+            active: boolean | null;
+            /**
+             * Description
+             * @default null
+             */
+            description: string | null;
+            /** Name */
+            name: string;
+            /** Registration Agent Key */
+            registration_agent_key: string;
+            /** Services */
+            services: components["schemas"]["PublicServiceDeclaration"][];
+            /** Supported Trust */
+            supported_trust: string[];
+            /**
+             * Type
+             * @constant
+             */
+            type: "https://eips.ethereum.org/EIPS/eip-8004#registration-v1";
+            /**
+             * X402 Support
+             * @default null
+             */
+            x402_support: boolean | null;
+        };
+        /** PublicServiceDeclaration */
+        PublicServiceDeclaration: {
+            /** Endpoint */
+            endpoint: string;
+            /** Name */
+            name: string;
+            /**
+             * Version
+             * @default null
+             */
+            version: string | null;
+        };
         /** PublicationContext */
         PublicationContext: {
             chain: components["schemas"]["ChainIdentity"];
@@ -1387,6 +1494,67 @@ export interface components {
          * @enum {string}
          */
         Purpose: "availability" | "functional" | "behavioral" | "background";
+        /** ReadonlyIdentityAssociation */
+        ReadonlyIdentityAssociation: {
+            /**
+             * Business Outcome
+             * @default UNKNOWN
+             * @constant
+             */
+            business_outcome: "UNKNOWN";
+            /**
+             * Business Reason
+             * @default INSUFFICIENT_SAMPLES
+             * @constant
+             */
+            business_reason: "INSUFFICIENT_SAMPLES";
+            /**
+             * Endpoint Outcome
+             * @enum {string}
+             */
+            endpoint_outcome: "PASS" | "FAIL" | "UNKNOWN";
+            endpoint_reason: components["schemas"]["Reason"] | null;
+            /**
+             * Executor Outcome
+             * @default UNKNOWN
+             * @constant
+             */
+            executor_outcome: "UNKNOWN";
+            /**
+             * Executor Reason
+             * @default BINDING_UNVERIFIED
+             * @constant
+             */
+            executor_reason: "BINDING_UNVERIFIED";
+            /** Identity Hash */
+            identity_hash: string | null;
+            /**
+             * Openapi Bytes Hash
+             * @default null
+             */
+            openapi_bytes_hash: string | null;
+            /**
+             * Protocol
+             * @enum {string}
+             */
+            protocol: "akashi-http-readonly-v1" | "akashi-mcp-readonly-v1";
+            /**
+             * Registration Outcome
+             * @enum {string}
+             */
+            registration_outcome: "PASS" | "FAIL" | "UNKNOWN";
+            registration_reason: components["schemas"]["Reason"] | null;
+            /**
+             * Schema Version
+             * @default 1.0.0
+             * @constant
+             */
+            schema_version: "1.0.0";
+            /** Snapshot Hash */
+            snapshot_hash: string;
+            /** Target Url */
+            target_url: string;
+        };
         /**
          * Reason
          * @enum {string}
@@ -2750,6 +2918,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClaimReview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_readonly_association_api_v1_snapshots__snapshot_id__readonly_association_get: {
+        parameters: {
+            query: {
+                protocol: "akashi-http-readonly-v1" | "akashi-mcp-readonly-v1";
+            };
+            header?: never;
+            path: {
+                snapshot_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadonlyIdentityAssociation"];
                 };
             };
             /** @description Validation Error */

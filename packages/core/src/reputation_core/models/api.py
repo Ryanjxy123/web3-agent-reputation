@@ -7,6 +7,7 @@ from pydantic import UUID4, Field, JsonValue, model_serializer, model_validator
 from .base import Challenge, Hash32, Model, NonzeroAddress, SafeText, Timestamp
 from .domain import AccessGrant, AgentRef, BindingMessage, Capability, Profile, SourceType
 from .enums import JobStatus, RunStatus
+from .public_identity import PublicIdentityRead
 
 
 class AgentCreate(Model):
@@ -26,6 +27,7 @@ class JobView(Model):
     state: JobStatus
     reason_code: str | None = None
     snapshot_id: UUID4 | None = None
+    public_identity: PublicIdentityRead | None = None
 
 
 class ClaimsConfirm(Model):

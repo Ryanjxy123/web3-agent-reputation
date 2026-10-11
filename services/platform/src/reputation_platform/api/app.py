@@ -3,6 +3,7 @@
 import hmac
 import os
 from contextlib import asynccontextmanager
+from typing import Literal
 from uuid import UUID, uuid4
 
 from fastapi import Depends, FastAPI, Header, Request, Response
@@ -30,6 +31,7 @@ from reputation_core.models import (
     JobView,
     LocalDeployment,
     Observation,
+    ReadonlyIdentityAssociation,
     ReasonRequest,
     RecordVerificationResult,
     RefreshRequest,
@@ -182,6 +184,13 @@ def create_app(
     def get_snapshot(snapshot_id: UUID):
         return identity.snapshot(snapshot_id)
 
+    @app.get("/api/v1/snapshots/{snapshot_id}/readonly-association", response_model=ReadonlyIdentityAssociation)
+    def get_readonly_association(
+        snapshot_id: UUID,
+        protocol: Literal["akashi-http-readonly-v1", "akashi-mcp-readonly-v1"],
+    ):
+        return identity.readonly_association(snapshot_id, protocol)
+
     @app.post("/api/v1/snapshots/{snapshot_id}/claims/confirm", response_model=ClaimReview)
     def confirm_claims(snapshot_id: UUID, body: ClaimsConfirm, actor: str = Depends(operator)):
         return identity.confirm(snapshot_id, body, actor)
@@ -223,6 +232,7 @@ def create_app(
             "state": row["state"],
             "reason_code": row["last_error"],
             "snapshot_id": row["payload"].get("snapshot_id"),
+            "public_identity": row["payload"].get("public_identity"),
         }
 
     @app.post("/api/v1/access-grants", response_model=GrantView, status_code=201)

@@ -1,7 +1,6 @@
 """Static free proof queries; service responses remain unverified business evidence."""
 
 import asyncio
-import hashlib
 import re
 import time
 from dataclasses import dataclass
@@ -10,12 +9,18 @@ from uuid import UUID, uuid4
 
 import httpx
 from reputation_core.akashi import normalize_proof
-from reputation_core.evidence import canonical_bytes, strict_json
 from reputation_core.models import DispatchState, EvidenceRecord, Observation, Reason
 from sqlalchemy import Connection
 
 from reputation_platform.adapters.registries.demo import timestamp
-from reputation_platform.infrastructure.evidence_store import SECRET_FIELDS, EvidenceStore, redact
+from reputation_platform.infrastructure.evidence_store import EvidenceStore
+from reputation_platform.infrastructure.network.audited_readonly import (
+    EvidencePersistenceError as EvidencePersistenceError,
+)
+from reputation_platform.infrastructure.network.audited_readonly import (
+    audited_readonly_request,
+    evidence_json,
+)
 from reputation_platform.infrastructure.network.safe_http import (
     HttpObservation,
     NetworkPolicyError,
@@ -27,40 +32,6 @@ from reputation_platform.infrastructure.network.safe_http import (
 ORIGIN = "https://anchor.akashi-notari.com"
 PROTOCOLS = ("akashi-http-readonly-v1", "akashi-mcp-readonly-v1")
 MCP_VERSION = "2025-11-25"
-
-
-class EvidencePersistenceError(RuntimeError):
-    pass
-
-
-def _evidence_json(value: Any) -> Any:
-    """Redact credentials inside MCP text JSON as well as structured JSON."""
-    value = redact(value)
-    if isinstance(value, dict):
-        secret_names = {key.replace("_", "").replace("-", "") for key in SECRET_FIELDS} | {
-            "refreshtoken", "clientsecret", "mcpsessionid", "sessionid",
-        }
-        result = {
-            key: "[REDACTED]" if key.lower().replace("_", "").replace("-", "") in secret_names
-            else _evidence_json(child) for key, child in value.items()
-        }
-        if result.get("type") == "text" and isinstance(result.get("text"), str):
-            try:
-                embedded = strict_json(result["text"].encode())
-                scrubbed = _evidence_json(embedded)
-                if scrubbed != embedded:
-                    result["text"] = canonical_bytes(scrubbed).decode()
-            except (ValueError, RecursionError):
-                result["text"] = "[OPAQUE TEXT OMITTED]"
-        return result
-    if isinstance(value, list):
-        return [_evidence_json(child) for child in value]
-    if isinstance(value, str) and re.search(
-        r'(?i)bearer\s|(?:authorization|cookie|api[_-]?key|access[_-]?token|token|password|'
-        r'secret|private[_-]?key)["\x27]?\s*[:=]|-----BEGIN .*PRIVATE KEY', value
-    ):
-        return "[REDACTED]"
-    return value
 
 
 @dataclass(frozen=True)
@@ -92,58 +63,22 @@ class AkashiReadonlyAdapter:
         self._lock = asyncio.Lock()
         self._response: HttpObservation | None = None
 
-    async def _save(self, value, source, observed_at):
-        try:
-            return await asyncio.to_thread(
-                self.evidence.prepare_json, value, source, observed_at, "public-http"
-            )
-        except (OSError, ValueError, RecursionError):
-            self._stopped = True
-            raise EvidencePersistenceError("PUBLIC_EVIDENCE_SAVE_FAILED") from None
-
     async def _request(self, method, path, payload, records):
-        started = timestamp()
-        intent = {"protocol": self.protocol, "capability_id": self.capability_id,
-                  "method": method, "origin": ORIGIN,
-                  "path": path, "request_json": payload, "started_at": started}
-        # A durable intent is required before every network attempt, including discovery.
-        records.append(await self._save(intent, "public-readonly-intent", started))
         headers = None
         if path == "/mcp" and self._negotiated:
             headers = {"mcp-protocol-version": MCP_VERSION}
             if self._session:
                 headers["mcp-session-id"] = self._session
         try:
-            response = await self.client.request(method, ORIGIN, path, json=payload, headers=headers)
-        except (NetworkPolicyError, httpx.HTTPError, TimeoutError) as exc:
-            error = str(exc) if isinstance(exc, NetworkPolicyError) else type(exc).__name__
-            records.append(await self._save(
-                {**intent, "error": error}, "public-readonly-response", timestamp()
-            ))
+            response = await audited_readonly_request(
+                self.client, self.evidence, protocol=self.protocol,
+                capability_id=self.capability_id, method=method, origin=ORIGIN,
+                path=path, payload=payload, records=records, headers=headers,
+            )
+        except EvidencePersistenceError:
+            self._stopped = True
             raise
         self._response = response
-        parsed = None
-        try:
-            parsed = decode_public_json(response)
-        except NetworkPolicyError:
-            pass
-        redacted = _evidence_json(parsed)
-        retain_raw = parsed is not None and redacted == parsed and response.status != 402
-        response_evidence = {
-            **intent,
-            "response": {
-                "status": response.status, "content_type": response.content_type,
-                "json": redacted,
-                "raw_body_utf8": response.body.decode() if retain_raw else None,
-                "raw_body_retained": retain_raw,
-                "body_sha256": hashlib.sha256(response.body).hexdigest()
-                if not response.audit.get("body_not_read") else None,
-                "body_bytes": len(response.body), "audit": response.audit,
-            },
-        }
-        records.append(await self._save(
-            response_evidence, "public-readonly-response", timestamp()
-        ))
         if response.audit.get("payment_required") or response.status == 402:
             self._stopped = True
             raise NetworkPolicyError("PAYMENT_REQUIRED")
@@ -236,7 +171,7 @@ class AkashiReadonlyAdapter:
                         Reason.AGENT_SERVICE_ERROR if response.status >= 500 else Reason.SCHEMA_ERROR
                     )
                     origin = "unknown" if response.status == 429 else "agent"
-                if normalized is not None and _evidence_json(normalized) != normalized:
+                if normalized is not None and evidence_json(normalized) != normalized:
                     normalized = None
                     raise ValueError("SENSITIVE_PROOF_FIELDS")
             except (TimeoutError, httpx.TimeoutException):

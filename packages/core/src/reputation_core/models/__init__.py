@@ -60,6 +60,12 @@ from .enums import (
     RunStatus,
     VerificationStep,
 )
+from .public_identity import (
+    PublicIdentityRead,
+    PublicRegistrationMetadata,
+    PublicServiceDeclaration,
+    ReadonlyIdentityAssociation,
+)
 from .reporting import EvidenceManifest, ManifestDocument, PublicationContext, ReportView
 from .runtime import ControlledTaskView, DeployedContract, LocalDeployment, TaskResult
 from .verification import (
@@ -70,6 +76,8 @@ from .verification import (
 )
 
 __all__ = [
+    "PublicIdentityRead", "PublicRegistrationMetadata", "PublicServiceDeclaration",
+    "ReadonlyIdentityAssociation",
     "EvidenceManifest", "ManifestDocument", "PublicationContext", "ReportView",
     "EvmReadEvidence", "RecordVerificationInput", "RecordVerificationResult", "RegistryWitness",
     "AccessGrantCreate", "GrantView", "ReasonRequest", "AcceptedEvaluation",

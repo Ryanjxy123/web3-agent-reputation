@@ -19,6 +19,7 @@ from .base import (
     Version,
 )
 from .enums import AnchorStatus, DispatchState, Outcome, Purpose, Reason, RunStage, RunStatus
+from .public_identity import PublicIdentityRead
 
 Capability = Literal["get_tx_status", "verify_record", "anchor_record"]
 Profile = Literal["record-read-v1", "record-write-v1"]
@@ -42,8 +43,15 @@ class Endpoint(Model):
     host: str = Field(pattern=r"^[a-z0-9][a-z0-9.-]{0,252}$")
     port: int = Field(strict=True, ge=1, le=65535)
     path: str = Field(pattern=r"^/[a-zA-Z0-9/_-]*$")
-    method: Literal["POST"]
-    protocol: Literal["controlled-http-v1"]
+    method: Literal["GET", "POST"]
+    protocol: Literal["controlled-http-v1", "akashi-http-readonly-v1", "akashi-mcp-readonly-v1"]
+
+    @model_validator(mode="after")
+    def protocol_method(self) -> Self:
+        expected = "GET" if self.protocol == "akashi-http-readonly-v1" else "POST"
+        if self.method != expected:
+            raise ValueError("endpoint method differs from the static protocol")
+        return self
 
     @property
     def origin(self) -> str:
@@ -80,6 +88,14 @@ class AgentSnapshot(Model):
     core: SnapshotCore
     snapshot_hash: Hash32
     evidence_refs: tuple[UUID4, ...] = ()
+    public_identity: PublicIdentityRead | None = None
+
+    @model_serializer(mode="wrap")
+    def wire(self, handler):
+        value = handler(self)
+        if self.public_identity is None:
+            value.pop("public_identity", None)
+        return value
 
 
 class CapabilityClaim(Model):
