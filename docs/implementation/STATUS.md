@@ -27,7 +27,7 @@
 | FOLLOWUP-06 | DONE | A/D 新故障模式、独立预期及真实单槽位评分/充分度/风险/复核通过；Review 修复 RPC envelope 与只读 ABI 边界，规则6/报告1.5；最终本地回归与 Foundation CI 通过 |
 | FOLLOWUP-07 | DONE | Akashi真实免费HTTP/MCP只读正例、独立Base事件核验、随机局部查询/非法输入/重复/注册存在检查通过；Review修复后重验；最终本地回归与 Foundation CI 通过 |
 | FOLLOWUP-08 | DONE | 正式HTTPS/MCP只读适配、安全DNS socket pin、限频/配额/付款停止与CAS审计完成；真实免费调用、301项定向验证、独立Review修复及985项完整Foundation CI通过 |
-| FOLLOWUP-09 | VERIFYING | 固定块公共身份/端点关联及最终真实重验通过；代码CI全通过，本机全量发现报告续租测试时序问题，修复后完整重验/最终head合并待核验 |
+| FOLLOWUP-09 | DONE | 固定块公共身份/端点关联、最终真实重验与独立Review通过；报告续租测试修复后本机/CI完整1279项通过，PR#10最终文档head checks/合并待核验 |
 | FOLLOWUP-10 | NOT_STARTED | 依赖任务9：正式Worker/评价/Bundle/独立Verifier闭环，保持充分度与绑定规则 |
 | LOCAL-PG-JUNCTION | DONE | Windows PostgreSQL 改用 D:\web3-runtime 目录联接；R: 已移除，初始化、重启、数据完整性及13项定向测试通过 |
 
@@ -38,8 +38,9 @@
 - Directed：核心、Reader、安全出口/适配、契约和历史PoC定向541 passed/0skip（16.33s），新增真实公开原件重算1 passed/0skip；真实PostgreSQL公共/受控身份及适配证据24 passed/0skip（63.21s），合计566；Web2/build、Foundry14/256fuzz、Ruff/Mypy59、CLI Mypy、61Schema/TS/ABI通过。首轮uv未在PATH/错误测试文件名导致NOT_RUN已纠正，没有记为通过；过程中并发编辑的lint输出也保留失败，稳定代码再检查通过。
 - Review/fixes：独立实际复现并修复发送后落库前重复公共读取（持久发起ledger，恢复UNKNOWN无重发）、失败新读保留旧PASS（当前关联失效）、网络故障误归解析失败、ABI URI/畸形RPC额外字段编码凭据漏脱敏、缺注册原文仍PASS、OpenAPI GET输入和顶层/path付款漏检。所有问题补回归/重测，最后受控回归和独立复审无剩余可行动发现。
 - Live：修复后最终run2退出0，10次免费身份只读全部200（无业务请求）；固定块52451849/hash0x6e8fc723ddaa8096f44749ab9a45a4bc1c117049866ae0f7f204c22d1bf18e6f，Owner与历史一致。20CAS、10DNS、ABI/raw SHA256、元数据/OpenAPI/hash、双端点关联及IPpin审计全PASS；注册/端点PASS，executor/businessUNKNOWN。35原件逐字节公开于docs/testing/evidence/akashi-identity-2026-10-11，manifest/6源文件hash无变化；after-review/final_acceptance=true。全本轮20真实身份请求，无支付/签名/主网写入；run1仅pre-review NOT_FINAL材料保留runtime，没有用其冒充最终通过。
-- Full regression：修复收集冲突的d34a9a9对应Foundation CI run38112125274，quality/Compose均SUCCESS；Python1279 passed/0skip/2warnings（1244.22s），Ruff/Mypy59/61Schema/TS/Web2与build/Foundry14及256fuzz/三ABI全通过。本机同head完整check.py退出1：1278 passed、1 failed（2142.15s），不能计为通过；唯一失败是既有报告重放测试的1秒租期安全LostLease，job保持LEASED，没有越过fencing。改为重放开始后等待一次真实数据库续租事件，正常租期、有限等待、SUCCEEDED及单报告断言均保留；没有修改生产lease/fence。修复定向1 passed（16.15s）及独立Review通过；runtime-only真实行锁突变退出1（28.43s）被续租事件断言检测，撤除突变后1 passed（16.54s），证明行锁验收没有放宽。完整本机/新head CI仍需重验。两个上游弃用warnings保持可见。
-- Git/next：实现cd4238fa1235d1db390aa14e596271ab7c5ba881与收集修复d34a9a9dbff748856f8ae66170cdf97df90e772b已推，PR#10已创建。首轮完整check.py因unit/integration同名test_public_identity发生collection error，exit2（不是通过）；改名后1279项收集退出0仅表示收集通过。所有失败原件保留runtime；本机续租测试修复提交后先完成完整重验与最新head CI，再按AGENTS合并核对main。本阶段仅身份关联，任务10未开始，不能描述为公开Agent完整评价闭环。
+- Regression failure/fix：d34a9a9对应Foundation CI run38112125274，quality/Compose均SUCCESS，Python1279 passed/0skip（1244.22s）。本机同head完整check.py退出1：1278 passed、1 failed（2142.15s），不能计为通过；唯一失败是既有报告重放测试的1秒租期安全LostLease，job保持LEASED，没有越过fencing。改为重放开始后等待一次真实数据库续租事件，正常租期、有限等待、SUCCEEDED及单报告断言均保留；没有修改生产lease/fence。修复定向1 passed（16.15s）及独立Review通过；runtime-only真实行锁突变退出1（28.43s）被续租事件断言检测，撤除突变后1 passed（16.54s），证明行锁验收没有放宽。两个上游弃用warnings保持可见。
+- Final full acceptance：稳定00bcb43aa8023ed0a834626492e3394df37e9c7b本机完整check.py退出0，Python1279 passed/0skip/2warnings（2118.55s）；同head Foundation CI run38114309427的quality/Compose均SUCCESS，Python1279 passed/0skip/2warnings（1174.56s）。两者Ruff/Mypy59、61Schema/TS漂移、Web build/2 tests、Foundry14/256fuzz、三ABI全部通过。实际日志与结果分别runtime/task9-full-check-reviewed.log、task9-full-check-reviewed-result.json、task9-reviewed-ci.log和task9-reviewed-ci-summary.json。六实施源码与最终真实run2承诺保持不变，无需追加公网调用。四份历史真实A/D Bundle离线重放PASS，未将未执行的线上anchor核验记为通过。需求映射和独立Review无剩余阻断。
+- Git/next：实现cd4238fa、收集修复d34a9a9、续租测试修复00bcb43已推，PR#10已创建。首轮完整check.py收集冲突exit2及第二轮本机exit1保留为NOT_PASS；改名后1279项收集退出0仅表示收集通过。当前实现→定向→Review→修复→重测→完整阶段验收完成；本节最终验收文档提交后仍核对最新head全部checks，再按AGENTS合并、同步main和仅清理本任务分支，最终SHA/CI以Git/PR历史为准。本阶段仅身份关联，任务10未开始；完成Git交付后下一项为10正式Worker、真实业务链核对、评分/Bundle/独立Verifier，不能把任务9描述为公开Agent完整评价闭环。
 
 ## 2026-10-11 / 本轮任务8正式只读适配
 
