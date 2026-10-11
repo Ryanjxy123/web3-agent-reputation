@@ -22,7 +22,8 @@ async function run() {
     if (!process.env.WEB_SMOKE_ORIGIN) {
       server = spawn(process.execPath, [path.resolve(__dirname, '../node_modules/vite/bin/vite.js'), '--host', '127.0.0.1', '--port', '4173', '--strictPort'], { cwd: path.resolve(__dirname, '..'), stdio: ['ignore', 'pipe', 'pipe'] });
       let serverOutput = '';
-      const capture = chunk => { serverOutput = (serverOutput + chunk.toString()).slice(-8000); };
+      const stripAnsi = value => value.replace(/\u001b\[[0-?]*[ -\/]*[@-~]/g, '');
+      const capture = chunk => { serverOutput = stripAnsi(serverOutput + chunk.toString()).slice(-8000); };
       server.stdout.on('data', capture); server.stderr.on('data', capture);
       for (let attempt = 0; !serverOutput.includes(baseUrl) && attempt < 100; attempt += 1) {
         if (server.exitCode !== null) throw new Error(`Vite failed to start: ${serverOutput}`);
