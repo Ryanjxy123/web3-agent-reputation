@@ -1,0 +1,9 @@
+# Akashi public readonly evaluation evidence
+
+This directory retains the formal task 10 run `task10-live-final-20261011-1540` on 2026-10-11. It used real Akashi HTTPS/MCP, operator DoT DNS, Base RPC reads, isolated local PostgreSQL and a local Anvil publication context. The 66 responses comprise 56 Base RPC reads, 6 HTTPS requests and 4 MCP requests (64 HTTP 200, one 202 and one 400). No payment, signature or mainnet write was performed.
+
+The five queries produced four PASS and one UNKNOWN; a finite hash lookup cannot prove global nonexistence. ReportCore 1.6.0 remains PARTIAL with overall_score_bp=null and executor UNKNOWN. Independent Bundle replay is PASS with assessment/task-count MATCH; local publication is UNANCHORED. Audit/CAS/DNS originals are redacted. run-context.json contains only a random isolated database name, without credentials.
+
+source-manifest.json preserves the actual pre-run hashes. All executing platform/core/verifier sources match the delivered implementation. After the run started, the migration downgrade was fixed with Alembic op.f to prevent a repeated constraint-name prefix, and the PostgreSQL integration test gained assertions that downgrade refuses existing public history plus explicit real Anvil deployment fixtures for denied-call replay. These two files contain the only logic changes from that source manifest; Git also converts domain.py and safe_http.py from Windows CRLF to LF without changing executable content. Neither changes the live HTTP/MCP/RPC execution path. Empty migration roundtrip and historical-row protection/recovery were then tested on real PostgreSQL. The earlier 15:18 run remains in ignored runtime and is not the final published run.
+
+See docs/runbooks/PUBLIC_READONLY_EVALUATION.md for rerun instructions. publication-manifest.json commits every retained file by SHA-256 and byte count; Git preserves evidence bytes across platforms.

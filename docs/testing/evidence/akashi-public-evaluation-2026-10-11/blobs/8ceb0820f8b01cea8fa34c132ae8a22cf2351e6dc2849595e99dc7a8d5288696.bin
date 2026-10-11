@@ -1,0 +1,1 @@
+{"capability_id":"verify_record","method":"POST","origin":"https://mainnet.base.org","path":"/","protocol":"akashi-business-readonly-v1","request_json":{"id":8,"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["0x320702d",false]},"started_at":"2026-10-11T07:42:05.833Z"}

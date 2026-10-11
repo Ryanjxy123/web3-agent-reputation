@@ -3,6 +3,7 @@
 import asyncio
 import re
 import time
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any, Literal
 from uuid import UUID, uuid4
@@ -51,10 +52,14 @@ class ReadonlyResult:
 class AkashiReadonlyAdapter:
     capability_id = "verify_record"
 
-    def __init__(self, protocol: str, client: SafeHttpClient, evidence: EvidenceStore):
+    def __init__(
+        self, protocol: str, client: SafeHttpClient, evidence: EvidenceStore,
+        register_record: Callable[[EvidenceRecord], Awaitable[EvidenceRecord]] | None = None,
+    ):
         if protocol not in PROTOCOLS or not client.is_public_readonly:
             raise NetworkPolicyError("UNSUPPORTED_PUBLIC_PROTOCOL")
         self.protocol, self.client, self.evidence = protocol, client, evidence
+        self.register_record = register_record
         self._identifier = 0
         self._session: str | None = None
         self._initialized = False
@@ -62,6 +67,10 @@ class AkashiReadonlyAdapter:
         self._stopped = False
         self._lock = asyncio.Lock()
         self._response: HttpObservation | None = None
+
+    def _halt(self, reason: str) -> None:
+        self._stopped = True
+        self.client.stop_public_readonly(reason)
 
     async def _request(self, method, path, payload, records):
         headers = None
@@ -74,13 +83,14 @@ class AkashiReadonlyAdapter:
                 self.client, self.evidence, protocol=self.protocol,
                 capability_id=self.capability_id, method=method, origin=ORIGIN,
                 path=path, payload=payload, records=records, headers=headers,
+                register_record=self.register_record,
             )
         except EvidencePersistenceError:
-            self._stopped = True
+            self._halt("EVIDENCE_PERSISTENCE_ERROR")
             raise
         self._response = response
         if response.audit.get("payment_required") or response.status == 402:
-            self._stopped = True
+            self._halt("PAYMENT_REQUIRED")
             raise NetworkPolicyError("PAYMENT_REQUIRED")
         return response
 
@@ -100,7 +110,8 @@ class AkashiReadonlyAdapter:
         return response, value["result"]
 
     async def query(
-        self, query: dict[str, str], slot_id: UUID, *, attempt_no: int = 1
+        self, query: dict[str, str], slot_id: UUID, *, attempt_no: int = 1,
+        records: list[EvidenceRecord] | None = None,
     ) -> ReadonlyResult:
         if (not isinstance(query, dict) or set(query) not in ({"tx"}, {"hash"})
                 or not all(isinstance(value, str) for value in query.values())
@@ -114,7 +125,8 @@ class AkashiReadonlyAdapter:
                 raise NetworkPolicyError("PUBLIC_ADAPTER_STOPPED")
             started = timestamp()
             timer = time.monotonic()
-            records: list[EvidenceRecord] = []
+            if records is None:
+                records = []
             self._response = None
             response: HttpObservation | None = None
             normalized = None
@@ -142,12 +154,12 @@ class AkashiReadonlyAdapter:
                                    and tool.get("name") == "find_proof"] if isinstance(tools, list) else []
                         annotations = matches[0].get("annotations") if len(matches) == 1 else None
                         if len(matches) == 1 and payment_requested(matches[0]):
-                            self._stopped = True
+                            self._halt("PAYMENT_REQUIRED")
                             raise NetworkPolicyError("PAYMENT_REQUIRED")
                         if (not isinstance(annotations, dict)
                                 or annotations.get("readOnlyHint") is not True
                                 or annotations.get("destructiveHint", False) is not False):
-                            self._stopped = True
+                            self._halt("MCP_TOOL_NOT_READONLY")
                             raise NetworkPolicyError("MCP_TOOL_NOT_READONLY")
                         self._initialized = True
                     response, value = await self._mcp("tools/call", {
@@ -175,23 +187,19 @@ class AkashiReadonlyAdapter:
                     normalized = None
                     raise ValueError("SENSITIVE_PROOF_FIELDS")
             except (TimeoutError, httpx.TimeoutException):
-                if self.protocol == PROTOCOLS[1]:
-                    self._stopped = True
+                self._halt("SERVICE_TIMEOUT")
                 reason, origin = Reason.SERVICE_TIMEOUT, "unknown"
             except httpx.HTTPError:
-                if self.protocol == PROTOCOLS[1]:
-                    self._stopped = True
+                self._halt("PLATFORM_NETWORK_ERROR")
                 reason, origin = Reason.PLATFORM_NETWORK_ERROR, "platform"
             except NetworkPolicyError:
-                if self.protocol == PROTOCOLS[1]:
-                    self._stopped = True
+                self._halt("UNSUPPORTED_PROTOCOL")
                 reason, origin = Reason.UNSUPPORTED_PROTOCOL, "unknown"
             except (ValueError, TypeError, KeyError, RecursionError):
-                if self.protocol == PROTOCOLS[1]:
-                    self._stopped = True
+                self._halt("SCHEMA_ERROR")
                 reason, origin = Reason.SCHEMA_ERROR, "agent"
             except OSError:
-                self._stopped = True
+                self._halt("PLATFORM_NETWORK_ERROR")
                 raise
             return ReadonlyResult(Observation(
                 observation_id=uuid4(), slot_id=slot_id, attempt_no=attempt_no,

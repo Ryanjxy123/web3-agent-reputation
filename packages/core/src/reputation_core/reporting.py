@@ -14,6 +14,8 @@ from .models import (
     EvidenceSufficiency,
     Observation,
     Outcome,
+    PublicReadonlyRunPlan,
+    PublicReadonlyVerificationInput,
     Reason,
     RecordVerificationInput,
     RecordVerificationResult,
@@ -40,8 +42,8 @@ POLICY_V1_HASH = "0xb77fe04e65be4f73e3d588c6db2b5902e752fd56c771e32c874d1e631c8f
 
 
 def build_report(
-    plan: RunPlan,
-    inputs: RecordVerificationInput | tuple[RecordVerificationInput, ...],
+    plan: RunPlan | PublicReadonlyRunPlan,
+    inputs: RecordVerificationInput | tuple[RecordVerificationInput, ...] | PublicReadonlyVerificationInput | tuple[PublicReadonlyVerificationInput, ...],
     evidence_id: UUID | tuple[UUID, ...],
     observations: tuple[Observation, ...],
     policy: dict[str, Any],
@@ -52,10 +54,24 @@ def build_report(
     previous_report_hash: str,
     report_schema_version: Literal["1.2.0", "1.3.0", "1.4.0", "1.5.0"] | None = None,
 ) -> ReportCore:
+    if isinstance(plan, PublicReadonlyRunPlan):
+        from .public_reporting import build_public_readonly_report
+        public_inputs = inputs if isinstance(inputs, tuple) else (inputs,)
+        if any(not isinstance(item, PublicReadonlyVerificationInput) for item in public_inputs) or report_schema_version is not None:
+            raise ValueError("REPORT_CONTEXT_MISMATCH")
+        return build_public_readonly_report(
+            plan, cast(tuple[PublicReadonlyVerificationInput, ...], public_inputs),
+            evidence_id if isinstance(evidence_id, tuple) else (evidence_id,), observations, policy,
+            evaluated_at=evaluated_at, code_version=code_version, manifest_hash=manifest_hash,
+            previous_report_hash=previous_report_hash,
+        )
+    if isinstance(inputs, PublicReadonlyVerificationInput) or isinstance(inputs, tuple) and any(isinstance(item, PublicReadonlyVerificationInput) for item in inputs):
+        raise ValueError("REPORT_CONTEXT_MISMATCH")
+    inputs = cast(RecordVerificationInput | tuple[RecordVerificationInput, ...], inputs)
     if plan.suite_id == "formal-evaluation-v1":
         return _build_formal_report(
             plan,
-            inputs if isinstance(inputs, tuple) else (inputs,),
+            cast(tuple[RecordVerificationInput, ...], inputs) if isinstance(inputs, tuple) else (inputs,),
             evidence_id if isinstance(evidence_id, tuple) else (evidence_id,),
             observations,
             policy,
@@ -344,7 +360,7 @@ def _verified_class(
 
 
 def _assess_evidence(
-    stats: dict[str, Any], scores: ScoreResult, inputs: tuple[RecordVerificationInput, ...],
+    stats: dict[str, Any], scores: ScoreResult, inputs: tuple[RecordVerificationInput | PublicReadonlyVerificationInput, ...],
     results: list[RecordVerificationResult], policy: dict[str, Any],
 ) -> tuple[EvidenceSufficiency, RiskAssessment]:
     """Explain existing exact policy gates and preserve only confirmed critical failures."""

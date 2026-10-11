@@ -1,0 +1,58 @@
+{
+  "host": "mainnet.base.org",
+  "source": "fixed-operator-dns-over-tls",
+  "resolver_ip": "8.8.8.8",
+  "resolver_port": 853,
+  "tls_server_name": "dns.google",
+  "tls_verified": true,
+  "tls_version": "TLSv1.3",
+  "certificate_sha256": "bd5a8a7f39a4a78e048d29ab4f0152cb3652cf9be183d54cfee5dd5b228701ab",
+  "dnssec_verified": false,
+  "observed_at": "2026-10-11T07:40:43.703784+00:00",
+  "queries": [
+    {
+      "query_type": 1,
+      "query_wire_base64": "n0UBAAABAAAAAAAAB21haW5uZXQEYmFzZQNvcmcAAAEAAQ==",
+      "response_wire_base64": "n0WBgAABAAIAAAAAB21haW5uZXQEYmFzZQNvcmcAAAEAAcAMAAEAAQAAADAABKxAk2fADAABAAEAAAAwAARoEiiZ",
+      "records": [
+        {
+          "owner": "mainnet.base.org",
+          "type": 1,
+          "ttl": 48,
+          "address": "172.64.147.103"
+        },
+        {
+          "owner": "mainnet.base.org",
+          "type": 1,
+          "ttl": 48,
+          "address": "104.18.40.153"
+        }
+      ]
+    },
+    {
+      "query_type": 28,
+      "query_wire_base64": "N8YBAAABAAAAAAAAB21haW5uZXQEYmFzZQNvcmcAABwAAQ==",
+      "response_wire_base64": "N8aBgAABAAIAAAAAB21haW5uZXQEYmFzZQNvcmcAABwAAcAMABwAAQAAAGIAECoGmMExCQAAAAAAAGgSKJnADAAcAAEAAABiABAqBpjBMQkAAAAAAACsQJNn",
+      "records": [
+        {
+          "owner": "mainnet.base.org",
+          "type": 28,
+          "ttl": 98,
+          "address": "2a06:98c1:3109::6812:2899"
+        },
+        {
+          "owner": "mainnet.base.org",
+          "type": 28,
+          "ttl": 98,
+          "address": "2a06:98c1:3109::ac40:9367"
+        }
+      ]
+    }
+  ],
+  "resolved_ips": [
+    "104.18.40.153",
+    "172.64.147.103",
+    "2a06:98c1:3109::6812:2899",
+    "2a06:98c1:3109::ac40:9367"
+  ]
+}

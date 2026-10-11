@@ -45,15 +45,21 @@ from .local_deploy import local_web3
 
 
 class ExecutionService:
-    def __init__(self, db: Engine, identity: IdentityService | None = None, *, fault_hook=None):
+    def __init__(self, db: Engine, identity: IdentityService | None = None, *, fault_hook=None, client_factory=None):
         self.db, self.identity = db, identity or IdentityService(db)
         self.evaluations = EvaluationService(db, self.identity)
         self.fault_hook = fault_hook
+        self.client_factory = client_factory
 
     async def execute(self, lease: Lease, queue: JobQueue) -> None:
         if lease.run_id is None:
             raise ApplicationError(422, "RUN_REQUIRED", "Execution requires a frozen run.")
         row = await asyncio.to_thread(self.evaluations.row, lease.run_id)
+        if row["plan"].get("suite_id") == "public-readonly-v1":
+            from .public_execution import PublicReadonlyExecutionService
+            await PublicReadonlyExecutionService(self.db, self.identity,
+                client_factory=self.client_factory, fault_hook=self.fault_hook).execute(lease, queue, row)
+            return
         plan = RunPlan.model_validate(row["plan"])
         if len(plan.slots) != 1 and plan.suite_id != "formal-evaluation-v1":
             raise ApplicationError(

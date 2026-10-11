@@ -60,6 +60,18 @@ from .enums import (
     RunStatus,
     VerificationStep,
 )
+from .public_evaluation import (
+    EvidencePacket,
+    PublicReadonlyCaseSlot,
+    PublicReadonlyEvaluationCreate,
+    PublicReadonlyExpectedFacts,
+    PublicReadonlyGrant,
+    PublicReadonlyGrantCreate,
+    PublicReadonlyGrantView,
+    PublicReadonlyRunPlan,
+    PublicReadonlyTask,
+    PublicReadonlyVerificationInput,
+)
 from .public_identity import (
     PublicIdentityRead,
     PublicRegistrationMetadata,
@@ -76,6 +88,10 @@ from .verification import (
 )
 
 __all__ = [
+    "EvidencePacket", "PublicReadonlyCaseSlot", "PublicReadonlyEvaluationCreate",
+    "PublicReadonlyExpectedFacts", "PublicReadonlyGrant", "PublicReadonlyGrantCreate",
+    "PublicReadonlyGrantView", "PublicReadonlyRunPlan", "PublicReadonlyTask",
+    "PublicReadonlyVerificationInput",
     "PublicIdentityRead", "PublicRegistrationMetadata", "PublicServiceDeclaration",
     "ReadonlyIdentityAssociation",
     "EvidenceManifest", "ManifestDocument", "PublicationContext", "ReportView",

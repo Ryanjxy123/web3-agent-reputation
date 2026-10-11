@@ -23,6 +23,10 @@ from reputation_core.models import (
     ReportView,
     RunPlan,
 )
+from reputation_core.models.public_evaluation import (
+    PublicReadonlyRunPlan,
+    PublicReadonlyVerificationInput,
+)
 from reputation_core.record_verifier import preserve_rpc_unknown, verify_record
 from reputation_core.reporting import build_report
 from sqlalchemy import Engine, insert, select, text, update
@@ -51,8 +55,9 @@ FORMAT = b"Web3 Agent Reputation evidence bundle v1. Local Anvil demonstration.\
 
 
 class ReportService:
-    def __init__(self, db: Engine, identity: IdentityService | None = None):
+    def __init__(self, db: Engine, identity: IdentityService | None = None, *, client_factory=None):
         self.db, self.identity = db, identity or IdentityService(db)
+        self.client_factory = client_factory
 
     def read_evidence(self, record: EvidenceRecord) -> bytes:
         try:
@@ -114,13 +119,13 @@ class ReportService:
             raise ApplicationError(404, "REPORT_NOT_FOUND", "Report is not available.")
         return self.view(identifier)
 
-    def prepare(self, run_id: UUID):
+    def prepare(self, run_id: UUID, lease: Lease | None = None, queue: JobQueue | None = None):
         results = VerificationService(self.db, self.identity).results(run_id)
         evidence_ids = tuple(result.assertions[0].evidence_refs[0] for result in results)
         with self.db.connect() as connection:
-            plan = RunPlan.model_validate(
-                connection.execute(select(runs.c.plan).where(runs.c.id == run_id)).scalar_one()
-            )
+            plan_body = connection.execute(
+                select(runs.c.plan).where(runs.c.id == run_id)
+            ).scalar_one()
             records = {
                 item.evidence_id: item
                 for item in (
@@ -139,6 +144,30 @@ class ReportService:
                     .order_by(observations.c.id)
                 ).scalars()
             )
+        if plan_body.get("suite_id") == "public-readonly-v1":
+            from .public_reports import refresh_public_inputs
+
+            public_plan = PublicReadonlyRunPlan.model_validate(plan_body)
+            public_inputs = tuple(
+                PublicReadonlyVerificationInput.model_validate_json(
+                    self.read_evidence(records[evidence_id])
+                )
+                for evidence_id in evidence_ids
+            )
+            observed_by_slot = {item.slot_id: item for item in observed}
+            if len(observed_by_slot) != len(observed) or set(observed_by_slot) != {
+                slot.slot_id for slot in public_plan.slots
+            }:
+                raise ApplicationError(409, "EVIDENCE_INCONSISTENT", "Public observations are incomplete.")
+            public_observed = tuple(observed_by_slot[slot.slot_id] for slot in public_plan.slots)
+            fresh_public = asyncio.run(
+                refresh_public_inputs(self, public_inputs, results, evidence_ids, lease, queue)
+            )
+            return self._prepare_documents(
+                public_plan, public_inputs, results, evidence_ids, public_observed,
+                self.identity.deployment(), fresh_public,
+            )
+        plan = RunPlan.model_validate(plan_body)
         all_inputs = tuple(
             RecordVerificationInput.model_validate_json(self.read_evidence(records[evidence_id]))
             for evidence_id in evidence_ids
@@ -193,7 +222,17 @@ class ReportService:
                     "Chain evidence changed before report freeze; run a new evaluation.",
                 )
             refreshed.append(fresh)
+        return self._prepare_documents(
+            plan, all_inputs, results, evidence_ids, observed, deployment, tuple(refreshed)
+        )
+
+    def _prepare_documents(
+        self, plan, all_inputs, results, evidence_ids, observed, deployment, refreshed,
+    ):
+        public = isinstance(plan, PublicReadonlyRunPlan)
         inputs = all_inputs[0]
+        if public and deployment.chain.chain_id != "31337":
+            raise ApplicationError(409, "CHAIN_INSTANCE_MISMATCH", "Publication requires local Anvil.")
         web3 = local_web3(deployment.rpc_url)
         verify_deployment(web3, deployment, self.identity.root)
         head = web3.eth.get_block("latest")
@@ -220,9 +259,10 @@ class ReportService:
         frozen = tuple(
             self.identity.evidence.prepare_json(
                 fresh.model_dump(mode="json"),
-                "report-freeze-verification-input",
+                "report-freeze-public-readonly-input" if public
+                else "report-freeze-verification-input",
                 now,
-                "platform-and-local-rpc",
+                "platform-and-public-rpc" if public else "platform-and-local-rpc",
             )
             for fresh in refreshed
         )
@@ -238,8 +278,13 @@ class ReportService:
             *[ref for item in observed for ref in item.evidence_refs],
         }
         for verification_input in all_inputs:
-            if verification_input.binding:
+            if public:
+                refs.update(packet.record.evidence_id for packet in verification_input.packets)
+            elif verification_input.binding:
                 refs.update(verification_input.binding.verification_evidence)
+        if public:
+            for verification_input in refreshed:
+                refs.update(packet.record.evidence_id for packet in verification_input.packets)
         with self.db.connect() as connection:
             evidence = [
                 EvidenceRecord.model_validate(body)
@@ -251,6 +296,12 @@ class ReportService:
             raise ApplicationError(409, "MISSING_EVIDENCE", "Report evidence is incomplete.")
         for item in evidence:
             self.read_evidence(item)
+        if public:
+            from .public_reports import check_public_packets
+
+            by_id = {item.evidence_id: item for item in evidence}
+            for verification_input in (*all_inputs, *refreshed):
+                check_public_packets(verification_input, by_id, self.read_evidence)
         task_index = []
         for inputs, evidence_id, freeze_record in zip(
             all_inputs, evidence_ids, frozen, strict=True
@@ -260,6 +311,9 @@ class ReportService:
                 "input_evidence_id": str(evidence_id),
                 "freeze_evidence_id": str(freeze_record.evidence_id),
             }
+            if public:
+                task_index.append(entry)
+                continue
             for field, envelope in (
                 ("agent_http_evidence_id", inputs.agent_http),
                 (
@@ -289,10 +343,10 @@ class ReportService:
             task_index.append(entry)
         verification_index = (
             {
-                "schema_version": "task-replay-v1",
+                "schema_version": "public-readonly-replay-v1" if public else "task-replay-v1",
                 "tasks": task_index,
             }
-            if all_inputs[0].rule_version in {"2", "3", "4", "5", "6"}
+            if public or all_inputs[0].rule_version in {"2", "3", "4", "5", "6"}
             else {
                 "input_evidence_id": str(evidence_ids[0]),
                 "freeze_evidence_id": str(frozen[0].evidence_id),
@@ -308,7 +362,7 @@ class ReportService:
                 {
                     str(item.binding.binding_id): item.binding.model_dump(mode="json")
                     for item in all_inputs
-                    if item.binding
+                    if not public and item.binding
                 }.values()
             ),
             "access_grants.json": list(
@@ -328,6 +382,12 @@ class ReportService:
             ],
             "verification.json": verification_index,
         }
+        if public:
+            documents["public_snapshot.json"] = inputs.snapshot.model_dump(mode="json")
+            documents["readonly_associations.json"] = list({
+                item.association.protocol: item.association.model_dump(mode="json")
+                for item in all_inputs
+            }.values())
         for path in sorted(
             (self.identity.root / "packages/schemas/generated").glob("*.schema.json")
         ):
@@ -351,8 +411,8 @@ class ReportService:
             )
         return (
             plan,
-            all_inputs if plan.suite_id == "formal-evaluation-v1" else all_inputs[0],
-            evidence_ids if plan.suite_id == "formal-evaluation-v1" else evidence_ids[0],
+            all_inputs if public or plan.suite_id == "formal-evaluation-v1" else all_inputs[0],
+            evidence_ids if public or plan.suite_id == "formal-evaluation-v1" else evidence_ids[0],
             observed,
             policy,
             publication,
@@ -383,7 +443,7 @@ class ReportService:
             version,
             evidence,
             prepared,
-        ) = await asyncio.to_thread(self.prepare, lease.run_id)
+        ) = await asyncio.to_thread(self.prepare, lease.run_id, lease, queue)
         key = agent_key_hash(
             (inputs[0] if isinstance(inputs, tuple) else inputs).slot.expected.agent_ref
         )
