@@ -5,7 +5,7 @@ import io
 import zipfile
 from concurrent.futures import ThreadPoolExecutor
 from threading import Event
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from reputation_core.evidence import canonical_bytes, hash_bytes, hash_json, strict_json
@@ -14,7 +14,7 @@ from reputation_core.reporting import build_report
 from reputation_platform.application.errors import ApplicationError
 from reputation_platform.application.reports import ReportService
 from reputation_platform.infrastructure.db.jobs import JobQueue, LostLease, enqueue
-from reputation_platform.infrastructure.db.tables import jobs, reports, runs
+from reputation_platform.infrastructure.db.tables import jobs, reports, runs, snapshots
 from reputation_platform.worker.main import Worker
 from reputation_verifier import verify_bundle
 from sqlalchemy import func, select, text, update
@@ -65,6 +65,22 @@ def test_real_report_recomputes_partial_and_exports_identical_bytes(prepared, tm
     assert live_replay["task_results"][0]["live_chain"]["status"] == "CONFIRMED"
     response = prepared[0][0].get(f"/api/v1/reports/{report.report_id}/bundle")
     assert response.status_code == 200 and response.content == bundle
+    api = prepared[0][0]
+    with service.db.connect() as connection:
+        agent_id = connection.execute(select(snapshots.c.agent_fk).where(
+            snapshots.c.id == UUID(prepared[1]["snapshot_id"])
+        )).scalar_one()
+    history = api.get(f"/api/v1/agents/{agent_id}/reports")
+    assert history.status_code == 200 and history.json() == {"items": [report.model_dump(mode="json")], "next_cursor": None}
+    assert api.get(f"/api/v1/agents/{agent_id}/reports", params={"cursor": str(uuid4())}).status_code == 404
+    assert api.get(f"/api/v1/agents/{uuid4()}/reports").status_code == 404
+    receipt = api.get(f"/api/v1/reports/{report.report_id}/anchor")
+    assert receipt.status_code == 200 and receipt.json()["status"] == "NOT_REQUESTED"
+    packet_id = core.task_results[0].input_evidence_id
+    packet = api.get(f"/api/v1/reports/{report.report_id}/evidence/{packet_id}")
+    assert packet.status_code == 200 and packet.json()["record"]["evidence_id"] == str(packet_id)
+    assert packet.json()["body"]["slot"]["slot_id"] == str(core.task_results[0].slot_id)
+    assert api.get(f"/api/v1/reports/{report.report_id}/evidence/{uuid4()}").status_code == 404
     with zipfile.ZipFile(io.BytesIO(bundle)) as archive:
         files = {name: archive.read(name) for name in archive.namelist()}
     assert hash_bytes(files["report_core.json"]) == report.report_hash

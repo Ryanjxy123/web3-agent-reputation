@@ -26,3 +26,5 @@ docs/testing/evidence/akashi-identity-2026-10-11/dns/*.json -text -diff
 # The publication manifest commits every retained task 10 file byte-for-byte.
 docs/testing/evidence/akashi-public-evaluation-2026-10-11/** -text
 docs/testing/evidence/akashi-public-evaluation-2026-10-11/blobs/*.bin -diff
+# The Task 11 publication manifest commits captured inputs, Bundles and results exactly.
+docs/testing/experiments/task11/formal-20261012-three-repeats-v2/** -text whitespace=cr-at-eol

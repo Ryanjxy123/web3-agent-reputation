@@ -1,6 +1,6 @@
 # 真实进度与会话交接
 
-更新时间：2026-10-11；环境：用户 Windows 正式项目工作目录。
+更新时间：2026-10-12；环境：用户 Windows 正式项目工作目录。
 
 | Task ID | Status | 实施结果 |
 |---|---|---|
@@ -30,6 +30,16 @@
 | FOLLOWUP-09 | DONE | 固定块公共身份/端点关联、最终真实重验与独立Review通过；完整1279项通过，最终head CI成功，PR#10合并为1897a74并核对main一致 |
 | FOLLOWUP-10 | DONE | 正式公共只读Worker/证据/报告/独立Verifier、Review/修复、真实闭环及本地完整1409项/0skip验收通过；最终head CI和Git交付按本节门槛执行，实际结果以PR#11/Git历史为准 |
 | LOCAL-PG-JUNCTION | DONE | Windows PostgreSQL 改用 D:\web3-runtime 目录联接；R: 已移除，初始化、重启、数据完整性及13项定向测试通过 |
+
+## 2026-10-12 / 任务11阶段验收（任务12/13与最终发布仍进行中）
+
+- Baseline：main=origin/main=`76b411af797e480b0b8c117a5d06b78ebcfccd24`，工作分支 `feat/tasks-11-13-delivery`；用户授权继续11→12→13与最终回归/PR/CI/合并/Release。此前历史停止范围已由本轮要求替代。
+- Task11 implementation：独立Ground Truth配置，复用真实PostgreSQL/HTTP Agent/Anvil/Worker/既有核验与评分，12场景×3次。正式v2 capture36 passed/0skip（461.04s）、exit0、source_changed=[]；离线analyse和克隆路径analyse exit0；指标边界7测试通过。完整原件与82文件exact源码ZIP冻结于`docs/testing/experiments/task11/formal-20261012-three-repeats-v2`。没有修改评分、充分度或风险版本。
+- Results：Proposed6PASS/15FAIL/12UNKNOWN/3N/A；各方法适用集已知错误Recall为Online0.2/Receipt0/Proposed1，common writes为0/0/1；ProposedP/R/F1均1，关键风险9/9；Bundle结果/原因36/36，风险33/33，3份旧N/A报告明确无风险字段。正常写共享管道实测执行2567.532±52.378ms、链核验347.637±47.471ms、报告2807.448±173.974ms。不能把这些开销当独立基线benchmark。
+- Review/fixes：拒绝初始手写判定/计时；真实旧30次和首轮36次保留runtime且不计最终。修复UNKNOWN弃权与Recall分母、receipt只读范围、方法范围预声明、实际HTTP/RPC请求计量、旧N/A风险不可比较、源码hash与原件完整性。首轮36次capture后源文件变化，因此重新采集v2而不改旧数据。独立Review与manifest/源码ZIP/重算/脱敏核查见实验README和REVIEW。
+- Limits：受控重复不估计生产普遍性或显著性；无独立错误只读业务fixture；间歇服务用failure_every=1稳定选错，不估计故障概率；RPC计数不含Agent子进程；历史风险字段保持原格式。
+- Prerequisites included with Task11：为保持实际执行源码可追溯，同提交包含实验运行时已存在的最小产品读API/生成DTO、fixture独立ledger路径和相关API测试/ADR。Task12页面单独验收和提交。读API用UUID keyset分页、manifest member/hash限定证据，写接口token/grant不变。API定向最终8 passed/0skip（50.06s）；首轮错误端口变量6pass/1fail记录NOT_PASS保留。Ruff/Mypy70/74Schema通过。
+- Gate：任务11阶段实验/定向/独立Review/修复/重测/冻结通过，可逻辑提交；任务12真实页面联调与最后Review、任务13部署/全量回归/required CI/PR/合并/Release尚未全部验收，不能声称正式发布。旧提前全量进程已停止，NOT_PASS记录保留；不复用历史1409项作为本轮最终结果。
 
 ## 2026-10-11 / 本轮任务10正式公共只读评价（本地阶段验收完成）
 

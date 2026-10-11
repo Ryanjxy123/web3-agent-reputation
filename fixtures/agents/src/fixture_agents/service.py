@@ -359,7 +359,8 @@ class Agent:
 
 def create_app(config_path: Path | None = None, *, run_worker: bool = True) -> FastAPI:
     config = config_path or Path(os.environ["FIXTURE_CONFIG"])
-    agent = Agent(config)
+    ledger = os.environ.get("FIXTURE_LEDGER_PATH")
+    agent = Agent(config, Path(ledger) if ledger else None)
 
     async def consume():
         while True:

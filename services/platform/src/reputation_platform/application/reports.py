@@ -15,11 +15,13 @@ from reputation_core.models import (
     AnchorReceipt,
     AnchorStatus,
     EvidenceManifest,
+    EvidencePacket,
     EvidenceRecord,
     ManifestDocument,
     Observation,
     PublicationContext,
     RecordVerificationInput,
+    ReportPage,
     ReportView,
     RunPlan,
 )
@@ -29,7 +31,7 @@ from reputation_core.models.public_evaluation import (
 )
 from reputation_core.record_verifier import preserve_rpc_unknown, verify_record
 from reputation_core.reporting import build_report
-from sqlalchemy import Engine, insert, select, text, update
+from sqlalchemy import Engine, insert, select, text, tuple_, update
 from web3 import Web3
 
 from reputation_platform.adapters.evm.collector import collect_task
@@ -44,6 +46,7 @@ from reputation_platform.infrastructure.db.tables import (
     observations,
     reports,
     runs,
+    snapshots,
 )
 
 from .errors import ApplicationError
@@ -118,6 +121,30 @@ class ReportService:
         if identifier is None:
             raise ApplicationError(404, "REPORT_NOT_FOUND", "Report is not available.")
         return self.view(identifier)
+
+    def for_agent(self, agent_id: UUID, limit: int = 20, cursor: UUID | None = None) -> ReportPage:
+        self.identity.agent(agent_id)
+        with self.db.connect() as connection:
+            query = (
+                select(reports.c.id)
+                .join(runs, reports.c.run_fk == runs.c.id)
+                .join(snapshots, snapshots.c.id == runs.c.snapshot_fk)
+                .where(snapshots.c.agent_fk == agent_id)
+            )
+            if cursor:
+                created = connection.execute(query.with_only_columns(reports.c.created_at).where(
+                    reports.c.id == cursor
+                )).scalar_one_or_none()
+                if created is None:
+                    raise ApplicationError(404, "NOT_FOUND", "Report cursor does not belong to this Agent.")
+                query = query.where(tuple_(reports.c.created_at, reports.c.id) < (created, cursor))
+            identifiers = connection.execute(query.order_by(
+                reports.c.created_at.desc(), reports.c.id.desc()
+            ).limit(limit + 1)).scalars().all()
+        return ReportPage(
+            items=tuple(self.view(identifier) for identifier in identifiers[:limit]),
+            next_cursor=identifiers[limit - 1] if len(identifiers) > limit else None,
+        )
 
     def prepare(self, run_id: UUID, lease: Lease | None = None, queue: JobQueue | None = None):
         results = VerificationService(self.db, self.identity).results(run_id)
@@ -552,19 +579,8 @@ class ReportService:
 
         await asyncio.to_thread(queue.fenced, lease, save)
 
-    def export(self, report_id: UUID) -> bytes:
+    def anchor_receipt(self, report_id: UUID) -> AnchorReceipt:
         report = self.view(report_id)
-        files = {
-            "report_core.json": canonical_bytes(report.core.model_dump(mode="json")),
-            "evidence_manifest.json": canonical_bytes(report.manifest.model_dump(mode="json")),
-            "FORMAT.md": FORMAT,
-        }
-        by_id = {}
-        for record in report.manifest.evidence:
-            data = self.read_evidence(record)
-            files[record.path], by_id[record.evidence_id] = data, data
-        for document in report.manifest.documents:
-            files[document.path] = by_id[document.evidence_id]
         context = report.manifest.publication
         with self.db.connect() as connection:
             body = connection.execute(
@@ -574,7 +590,7 @@ class ReportService:
                 .order_by(anchor_receipts.c.created_at.desc())
                 .limit(1)
             ).scalar_one_or_none()
-        receipt = (
+        return (
             AnchorReceipt.model_validate(body)
             if body
             else AnchorReceipt(
@@ -591,6 +607,28 @@ class ReportService:
                 confirmations=0,
             )
         )
+
+    def evidence_packet(self, report_id: UUID, evidence_id: UUID) -> EvidencePacket:
+        report = self.view(report_id)
+        record = next((item for item in report.manifest.evidence if item.evidence_id == evidence_id), None)
+        if record is None:
+            raise ApplicationError(404, "NOT_FOUND", "Evidence is not part of this report.")
+        return EvidencePacket(record=record, body=strict_json(self.read_evidence(record)))
+
+    def export(self, report_id: UUID) -> bytes:
+        report = self.view(report_id)
+        files = {
+            "report_core.json": canonical_bytes(report.core.model_dump(mode="json")),
+            "evidence_manifest.json": canonical_bytes(report.manifest.model_dump(mode="json")),
+            "FORMAT.md": FORMAT,
+        }
+        by_id = {}
+        for record in report.manifest.evidence:
+            data = self.read_evidence(record)
+            files[record.path], by_id[record.evidence_id] = data, data
+        for document in report.manifest.documents:
+            files[document.path] = by_id[document.evidence_id]
+        receipt = self.anchor_receipt(report_id)
         files["anchor_receipt.json"] = canonical_bytes(receipt.model_dump(mode="json"))
         if sum(len(value) for value in files.values()) > 64 * 1024 * 1024:
             raise ApplicationError(

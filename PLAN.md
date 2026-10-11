@@ -1,6 +1,8 @@
 # 从零构造执行计划（ExecPlan）
 
-当前授权范围（2026-10-11）：续接main `ededc90`，依次任务8→Review/修复/验收→任务9→Review/修复/验收→任务10；优先完整交付8，资源不足则先提交与交接当前阶段。第三方只允许免费只读，无付款/签名/主网写入。任务8设计ADR0019，实际进度以STATUS为准；不展开11–13。
+当前授权范围（2026-10-12）：基于已核实main 76b411a，在feat/tasks-11-13-delivery按任务11→Review/修复/验收/提交→12→Review/修复/验收/提交→13→综合回归/PR/required CI/合并/Release连续推进。当前三项均未验收；真实实验重新采样中，前端与交付材料是未验收准备。禁止把历史测试或初始unsupported实验数字作为本轮通过。最新checkpoint见docs/implementation/STATUS.md。
+
+历史授权范围（2026-10-11）：续接main `ededc90`，依次任务8→Review/修复/验收→任务9→Review/修复/验收→任务10；优先完整交付8，资源不足则先提交与交接当前阶段。第三方只允许免费只读，无付款/签名/主网写入。任务8设计ADR0019，实际进度以STATUS为准；不展开11–13。
 
 阶段进度：任务1–10实现与本地阶段验收完成。任务8 PR#9合并并核对main一致，本机与CI完整检查通过；任务9稳定00bcb43本机与Foundation CI完整1279项/0skip通过，最终文档head1334362的CI38116332399 quality/Compose均成功，PR#10合并为1897a74。任务10在feat/public-readonly-evaluation完成公共模型/Worker/证据/报告/独立Verifier，定向与独立Review修复、真实Akashi HTTP/MCP+Base66响应通过；4PASS/1UNKNOWN、ReportCore1.6/PARTIAL/overall=null、executor UNKNOWN、离线Bundle PASS/MATCH、本地publication UNANCHORED。本机完整check.py退出0：1409Python/0skip、Web2、Foundry14/256fuzz、Ruff/Mypy69/71Schema/TS/ABI全通过；干净CI发现3个测试遗漏deployment fixture，已补显式真实fixture，在不存在配置路径下3passed，未改生产逻辑或断言。实现0de08e4/修复c8f6dd4已推送、Draft PR#11；最终文档head全部CI成功才按AGENTS合并/同步main/清理本任务分支，真实CI与合并SHA以PR/Git历史为准。旧失败/无退出码日志不计通过，评分/充分度/身份绑定与历史规则不变；本轮到10停止，不展开11–13，详情见STATUS/ADR0021。
 
@@ -88,3 +90,6 @@
 
 
 2026-10-10 最新main复查：328a712已合并PR#5的任务4/5。本轮任务4评分复查通过，再在任务5/跨模块Review复现并修复RPC日志误风险、UNKNOWN冻结恢复及正式Run状态。新规则5/@5/ReportCore1.4保留旧规则4/1.3原语义；评分和充分度参数不变，设计见ADR0016。稳定单元/reference396项、真实PostgreSQL/Anvil定向4项通过；稳定代码1b54cdf完整check.py退出0：Python507/0skip（1714.92s）、Web2、Foundry14/256fuzz、Ruff/Mypy53/57Schema/TS/ABI均通过。代码CI run38041353658的quality/Compose均SUCCESS（Python507/0skip）；四个实际历史ZIP重放通过。首次同名收集失败、本地数据库/工具进程中断均保留NOT_PASS记录，恢复后完整重跑，未降低门槛。PR#6最终文档提交后核对最新head检查再按授权合并、同步main和清理本任务分支，结果以PR/Git历史为准。完整需求审计及跨模块Review无剩余阻断，详细证据和限制见STATUS；本轮任务4/5验收完成，停止，不进入任务6。
+
+
+2026-10-12 任务11阶段验收：12独立场景×3次真实v2采集36passed/0skip（461.04s），7指标测试与独立Review通过；源码/原件/分析/图表完整冻结。适用集Recall为Online0.2/Receipt0/Proposed1；UNKNOWN/N/A和局限保持，评分规则不改。实际运行时已有的最小读API/DTO和fixture ledger作为源码追溯前提同批提交，Task12页面另验收。当前继续12最后Review/真实UI、13部署/完整回归/PR/required CI/合并/Release；未完成门槛不记正式交付，详见STATUS。

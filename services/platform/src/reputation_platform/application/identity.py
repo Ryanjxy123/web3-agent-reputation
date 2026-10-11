@@ -11,6 +11,7 @@ from reputation_core.binding import agent_key_hash, endpoint_hash, signatures_ma
 from reputation_core.evidence import hash_json, strict_json
 from reputation_core.models import (
     AcceptedJob,
+    AgentPage,
     AgentRef,
     AgentSnapshot,
     AgentView,
@@ -28,9 +29,10 @@ from reputation_core.models import (
     ReadonlyIdentityAssociation,
     Reason,
     RefreshRequest,
+    SnapshotPage,
 )
 from reputation_core.public_identity import associate_readonly_identity
-from sqlalchemy import Connection, Engine, insert, select, update
+from sqlalchemy import Connection, Engine, insert, select, tuple_, update
 
 from reputation_platform.adapters.registries.demo import DemoRegistryReader, timestamp
 from reputation_platform.adapters.registries.erc8004 import (
@@ -136,6 +138,21 @@ class IdentityService:
                 and public_read.get("snapshot_id") != str(current["id"])
             ) else "UNVERIFIED",
             current_snapshot_id=current["id"] if current else None,
+        )
+
+    def agents(self, limit: int = 20, cursor: UUID | None = None) -> AgentPage:
+        """Return registered agents in a stable order for the operator UI."""
+        with self.db.connect() as connection:
+            query = select(agents.c.id).order_by(agents.c.created_at, agents.c.id).limit(limit + 1)
+            if cursor:
+                created = connection.execute(select(agents.c.created_at).where(agents.c.id == cursor)).scalar_one_or_none()
+                if created is None:
+                    raise ApplicationError(404, "NOT_FOUND", "Agent cursor does not exist.")
+                query = query.where(tuple_(agents.c.created_at, agents.c.id) > (created, cursor))
+            identifiers = connection.execute(query).scalars().all()
+        return AgentPage(
+            items=tuple(self.agent(identifier) for identifier in identifiers[:limit]),
+            next_cursor=identifiers[limit - 1] if len(identifiers) > limit else None,
         )
 
     @staticmethod
@@ -360,6 +377,23 @@ class IdentityService:
         if body is None:
             raise ApplicationError(404, "NOT_FOUND", "Snapshot does not exist.")
         return AgentSnapshot.model_validate(body)
+
+    def snapshot_history(self, agent_id: UUID, limit: int = 20, cursor: UUID | None = None) -> SnapshotPage:
+        self.agent(agent_id)
+        with self.db.connect() as connection:
+            query = select(snapshots.c.id, snapshots.c.body).where(snapshots.c.agent_fk == agent_id)
+            if cursor:
+                created = connection.execute(select(snapshots.c.created_at).where(
+                    snapshots.c.id == cursor, snapshots.c.agent_fk == agent_id
+                )).scalar_one_or_none()
+                if created is None:
+                    raise ApplicationError(404, "NOT_FOUND", "Snapshot cursor does not belong to this Agent.")
+                query = query.where(tuple_(snapshots.c.created_at, snapshots.c.id) < (created, cursor))
+            rows = connection.execute(query.order_by(snapshots.c.created_at.desc(), snapshots.c.id.desc()).limit(limit + 1)).all()
+        return SnapshotPage(
+            items=tuple(AgentSnapshot.model_validate(row.body) for row in rows[:limit]),
+            next_cursor=rows[limit - 1].id if len(rows) > limit else None,
+        )
 
     def require_current(self, connection: Connection, snapshot_id: UUID) -> None:
         agent_id = connection.execute(
