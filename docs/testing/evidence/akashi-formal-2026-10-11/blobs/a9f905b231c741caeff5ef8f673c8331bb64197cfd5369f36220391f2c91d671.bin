@@ -1,0 +1,1 @@
+{"capability_id":"verify_record","method":"GET","origin":"https://anchor.akashi-notari.com","path":"/proof?hash=155a8c8259f8cb1e80f2b572e99b6f7c7308ab4c9323a1d52eff9696fb13bcd7","protocol":"akashi-http-readonly-v1","request_json":null,"started_at":"2026-10-11T03:19:34.336Z"}

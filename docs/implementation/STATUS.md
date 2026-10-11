@@ -26,7 +26,19 @@
 | FOLLOWUP-05 | DONE | 既有任务4/5已由PR#5合并；复查修复RPC日志误风险、冻结恢复及正式Run状态，新规则5/报告1.4；完整507项Python/Web/Foundry/Schema与代码CI通过，最终PR见#6 |
 | FOLLOWUP-06 | DONE | A/D 新故障模式、独立预期及真实单槽位评分/充分度/风险/复核通过；Review 修复 RPC envelope 与只读 ABI 边界，规则6/报告1.5；最终本地回归与 Foundation CI 通过 |
 | FOLLOWUP-07 | DONE | Akashi真实免费HTTP/MCP只读正例、独立Base事件核验、随机局部查询/非法输入/重复/注册存在检查通过；Review修复后重验；最终本地回归与 Foundation CI 通过 |
+| FOLLOWUP-08 | IN_PROGRESS_FINAL_VALIDATION | 正式HTTPS/MCP只读适配、安全DNS socket pin、限频/配额/付款停止与CAS审计已实现，真实免费调用/定向测试/独立Review修复通过；全量回归与CI待完成 |
+| FOLLOWUP-09 | NOT_STARTED | 下一阶段：ERC-8004固定块身份、注册metadata/端点及受限只读身份关联 |
+| FOLLOWUP-10 | NOT_STARTED | 依赖任务9：正式Worker/评价/Bundle/独立Verifier闭环，保持充分度与绑定规则 |
 | LOCAL-PG-JUNCTION | DONE | Windows PostgreSQL 改用 D:\web3-runtime 目录联接；R: 已移除，初始化、重启、数据完整性及13项定向测试通过 |
+
+## 2026-10-11 / 本轮任务8正式只读适配
+
+- Baseline：按用户续接指令读取原goal-objective任务8–10，main/origin/main均ededc90、工作树干净、目标remote与权限核实。分支feat/formal-readonly-adapter；严格按8→Review/修复/验收→9→10，不重复仓库大审查，未开始9/10。
+- Implemented：复用SafeHttpClient增加显式公共只读模式；固定Akashi HTTPS/443/path/MCP白名单，全部DNS答案IPv4/IPv6公网校验、实际数字IP socket pin、原Host/TLS SNI/CERT_REQUIRED、禁复用/redirect/proxy/Cookie与认证；20s/1MiB/depth32、串行完成后1s间隔、64次尝试配额、零自动重试。HTTP402不读body，付款header/JSON/MCP text/所选find_proof付款声明均停止；未知MCP副作用/握手异常不可跳过工具门槛。
+- Adapter/evidence：平台静态HTTP/MCP适配为verify_record类查询，现有Observation+EvidenceRecord/CAS；发送前持久意图、接收后审计与安全原body保存，失败写盘停止。原PoC纯业务断言移入core保持AST相同，旧脚本兼容导出。复用PostgreSQL注册/只追加，去重ID重映射；没有改TaskEnvelope/Grant/Schema/评分或正式controlled Worker，任务9/10才接身份/规划/评分/Verifier。设计ADR0019，运行说明THIRD_PARTY_READONLY。
+- Directed/review：最终安全出口/适配/PG/旧PoC/业务断言等定向299 passed/0 skipped（7.39s），全树Ruff、Mypy55源文件和新增CLI各退出0；公开真实材料回归另外执行后更新。独立Review复现并修复MCP部分握手超时跳过工具检查、所选工具付款漏检、camelCase凭据漏脱敏、normalized敏感字段外泄；独立最新Review101 passed/0skip。额外Windows重跑发现sleep提前唤醒限频问题，改为单调期限循环+请求完成后间隔，并使用可控时钟测试排除宿主调度误报，Review通过。没有放宽断言或跳过失败。
+- Live：系统DNS解析198.18.0.85被正确阻断（run1退出1）；显式1.1.1.1 DNS也被fake-IP截获。操作者固定8.8.8.8:853/dns.google的TLS认证DNS resolver获得新鲜A/AAAA，仍经全部公网校验+pin，不声称DNSSEC。run2一次ConnectError，退出1且无自动重试；run3完整退出0。最终代码run4再次退出0：共8次请求（HTTP200/200/200/400；MCP200/202/200/200），2HTTP正例与MCP归一一致，随机hash200/有限未发现，非法hash400；没有402、支付、签名或主网写入。成功原始acceptance/16CAS/8DNS完整脱敏公开于docs/testing/evidence/akashi-formal-2026-10-11；所有失败材料保留runtime。该结果仅协议/证据验收，不冒充新身份或业务链上独立核验/完整评价。
+- Gate/Git：阶段实现、定向验证和独立Review通过；完整check.py/最新head Foundation CI待运行/验收，尚未将任务8标DONE。四份历史真实A/D ZIP预检离线重放均PASS，完整回归后再核对。下一步完成8全量/PR/CI；资源不足时交接9，而非开始未完成的并行阶段。
 
 ## 2026-10-11 / 本轮任务6–7最终验收
 
