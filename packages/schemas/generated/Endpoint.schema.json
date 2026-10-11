@@ -13,7 +13,10 @@
       "type": "string"
     },
     "method": {
-      "const": "POST",
+      "enum": [
+        "GET",
+        "POST"
+      ],
       "title": "Method",
       "type": "string"
     },
@@ -29,7 +32,11 @@
       "type": "integer"
     },
     "protocol": {
-      "const": "controlled-http-v1",
+      "enum": [
+        "controlled-http-v1",
+        "akashi-http-readonly-v1",
+        "akashi-mcp-readonly-v1"
+      ],
       "title": "Protocol",
       "type": "string"
     },

@@ -17,6 +17,7 @@ from reputation_platform.configuration import controlled_fixture_ports
 
 MAX_BODY = 1024 * 1024
 PUBLIC_ORIGIN = "https://anchor.akashi-notari.com"
+PUBLIC_RPC_ORIGIN = "https://mainnet.base.org"
 PUBLIC_REQUEST_QUOTA = 64
 PUBLIC_REQUEST_INTERVAL = 1.0
 Resolver = Callable[[str], Iterable[str] | Awaitable[Iterable[str]]]
@@ -163,6 +164,29 @@ def _readonly_request_allowed(method: str, origin: str, path: str, body: dict | 
     return False
 
 
+def _public_readonly_request_allowed(
+    method: str, origin: str, path: str, body: dict | None,
+) -> bool:
+    if not _readonly_request_allowed(method, origin, path, body):
+        return False
+    if origin == PUBLIC_ORIGIN:
+        return path.startswith("/proof?") or path in {
+            "/mcp", "/openapi.json", "/.well-known/agent-registration.json",
+        }
+    if origin != PUBLIC_RPC_ORIGIN or not isinstance(body, dict):
+        return False
+    operation, parameters = body["method"], body.get("params", [])
+    if operation == "eth_chainId":
+        return parameters == []
+    if operation == "eth_getBlockByNumber":
+        return parameters[0] == "latest" or _quantity(parameters[0])
+    if operation == "eth_getCode":
+        return parameters[0].lower() == POC_IDENTITY_REGISTRY and _quantity(parameters[1])
+    if operation == "eth_call":
+        return _quantity(parameters[1])
+    return False
+
+
 class NetworkPolicyError(ValueError):
     pass
 
@@ -305,13 +329,14 @@ def _public_addresses(addresses: Iterable[str]) -> tuple[str, ...]:
 class _PinnedBackend(httpcore.AsyncNetworkBackend):
     def __init__(self):
         self.addresses: tuple[str, ...] = ()
+        self.hostname: str | None = None
         self.backend = httpcore.AnyIOBackend()
 
     async def connect_tcp(
         self, host: str, port: int, timeout: float | None = None,
         local_address: str | None = None, socket_options=None,
     ) -> httpcore.AsyncNetworkStream:
-        if host != "anchor.akashi-notari.com" or port != 443 or not self.addresses:
+        if host != self.hostname or port != 443 or not self.addresses:
             raise NetworkPolicyError("TARGET_NOT_ALLOWED")
         return await self.backend.connect_tcp(
             self.addresses[0], port, timeout=timeout,
@@ -334,6 +359,7 @@ class SafeHttpClient:
     _request_lock: asyncio.Lock
     _request_count: int
     _next_request_at: float
+    _public_stopped: str | None
 
     def __init__(
         self, allowed_origins: frozenset[str], *, transport: httpx.AsyncBaseTransport | None = None
@@ -382,18 +408,23 @@ class SafeHttpClient:
             raise NetworkPolicyError("PUBLIC_READONLY_DISABLED")
         backend = _PinnedBackend()
         instance = cls.readonly_poc(transport=transport or _PinnedTransport(backend))
-        instance.origins = frozenset({PUBLIC_ORIGIN})
+        instance.origins = frozenset({PUBLIC_ORIGIN, PUBLIC_RPC_ORIGIN})
         instance._public = True
         instance._public_backend = backend
         instance._resolver = resolver or _resolve_public
         instance._request_lock = asyncio.Lock()
         instance._request_count = 0
         instance._next_request_at = 0.0
+        instance._public_stopped = None
         return instance
 
     @property
     def is_public_readonly(self) -> bool:
         return self._public
+
+    def stop_public_readonly(self, reason: str) -> None:
+        if self._public:
+            self._public_stopped = reason
 
     async def close(self) -> None:
         await self.client.aclose()
@@ -413,6 +444,8 @@ class SafeHttpClient:
                 method, origin, path, json=json, request_id=request_id, headers=headers,
             )
         async with self._request_lock:
+            if self._public_stopped:
+                raise NetworkPolicyError(self._public_stopped)
             if self._payment_required:
                 raise NetworkPolicyError("PAYMENT_REQUIRED")
             if self._request_count >= PUBLIC_REQUEST_QUOTA:
@@ -432,6 +465,8 @@ class SafeHttpClient:
         self, method: str, origin: str, path: str, *, json: dict | None = None,
         request_id: str | None = None, headers: dict[str, str] | None = None,
     ) -> HttpObservation:
+        if self._public and self._public_stopped:
+            raise NetworkPolicyError(self._public_stopped)
         if self._payment_required:
             raise NetworkPolicyError("PAYMENT_REQUIRED")
         if origin not in self.origins:
@@ -449,7 +484,7 @@ class SafeHttpClient:
         if self._readonly:
             allowed = _readonly_request_allowed(method, origin, path, json) and request_id is None
         if self._public:
-            allowed = allowed and (path.startswith("/proof?") or path == "/mcp")
+            allowed = allowed and _public_readonly_request_allowed(method, origin, path, json)
         if not allowed:
             raise NetworkPolicyError("METHOD_OR_PATH_NOT_ALLOWED")
         request_headers = {"Accept-Encoding": "identity"}
@@ -472,12 +507,15 @@ class SafeHttpClient:
         audit = {}
         async with asyncio.timeout(20 if self._readonly else 15):
             if self._public:
+                hostname = urlsplit(origin).hostname
+                assert hostname is not None
                 try:
-                    addresses = self._resolver("anchor.akashi-notari.com")
+                    addresses = self._resolver(hostname)
                     resolved = await addresses if inspect.isawaitable(addresses) else addresses
                 except OSError:
                     raise httpx.ConnectError("Public DNS resolution failed") from None
                 self._public_backend.addresses = _public_addresses(resolved)
+                self._public_backend.hostname = hostname
                 audit = {
                     "sequence": self._request_count,
                     "resolved_ips": list(self._public_backend.addresses),
@@ -532,7 +570,28 @@ class SafeHttpClient:
                     if raw:
                         try:
                             parsed_value = decode_public_json(observation)
-                            payment = payment_requested(parsed_value)
+                            if method == "GET" and origin == PUBLIC_ORIGIN and path == "/openapi.json":
+                                paths = parsed_value.get("paths")
+                                proof = paths.get("/proof") if isinstance(paths, dict) else None
+                                selected = proof.get("get") if isinstance(proof, dict) else None
+                                if not isinstance(selected, dict):
+                                    audit["validation_error"] = "UNSUPPORTED_OPENAPI_PROOF"
+                                    self.stop_public_readonly("UNSUPPORTED_OPENAPI_PROOF")
+                                # Ignore other operations, while preserving global/path payment limits.
+                                scopes = [
+                                    {key: child for key, child in parsed_value.items() if key != "paths"},
+                                    {key: child for key, child in proof.items() if key not in {
+                                        "get", "put", "post", "delete", "options", "head", "patch", "trace",
+                                    }} if isinstance(proof, dict) else {},
+                                    selected,
+                                ]
+                                payment = any(
+                                    payment_requested(scope) or isinstance(scope, dict) and any(
+                                        key in scope for key in {"x-payment-info", "x402", "x402Support", "price"}
+                                    ) for scope in scopes
+                                )
+                            else:
+                                payment = payment_requested(parsed_value)
                             result = parsed_value.get("result")
                             if isinstance(result, dict) and isinstance(result.get("content"), list):
                                 for item in result["content"]:

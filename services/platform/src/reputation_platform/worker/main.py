@@ -91,9 +91,10 @@ class Worker:
 
 async def serve(once: bool = False) -> None:
     database = engine()
+    identity = IdentityService(database)
     # Only reviewed in-process adapters may register here. No metadata-driven import.
     handlers: dict[str, Handler] = {
-        "ingest": IdentityService(database).ingest,
+        "ingest": identity.ingest,
         "evaluate": ExecutionService(database).execute,
         "verify": VerificationService(database).verify,
         "report": ReportService(database).freeze,
@@ -108,4 +109,5 @@ async def serve(once: bool = False) -> None:
             if not worked:
                 await asyncio.sleep(1)
     finally:
+        await identity.close_public_client()
         database.dispose()

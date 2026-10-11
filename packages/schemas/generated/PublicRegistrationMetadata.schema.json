@@ -1,0 +1,126 @@
+{
+  "$defs": {
+    "PublicServiceDeclaration": {
+      "additionalProperties": false,
+      "properties": {
+        "endpoint": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Endpoint",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "anyOf": [
+            {
+              "maxLength": 100,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Version"
+        }
+      },
+      "required": [
+        "name",
+        "endpoint"
+      ],
+      "title": "PublicServiceDeclaration",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "active": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Active"
+    },
+    "description": {
+      "anyOf": [
+        {
+          "maxLength": 2000,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Description"
+    },
+    "name": {
+      "maxLength": 2000,
+      "minLength": 1,
+      "title": "Name",
+      "type": "string"
+    },
+    "registration_agent_key": {
+      "maxLength": 2000,
+      "minLength": 1,
+      "title": "Registration Agent Key",
+      "type": "string"
+    },
+    "services": {
+      "items": {
+        "$ref": "#/$defs/PublicServiceDeclaration"
+      },
+      "maxItems": 20,
+      "title": "Services",
+      "type": "array"
+    },
+    "supported_trust": {
+      "items": {
+        "maxLength": 2000,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 20,
+      "title": "Supported Trust",
+      "type": "array"
+    },
+    "type": {
+      "const": "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
+      "title": "Type",
+      "type": "string"
+    },
+    "x402_support": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "X402 Support"
+    }
+  },
+  "required": [
+    "type",
+    "name",
+    "services",
+    "registration_agent_key",
+    "supported_trust"
+  ],
+  "title": "PublicRegistrationMetadata",
+  "type": "object"
+}
