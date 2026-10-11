@@ -2,9 +2,9 @@
 
 import asyncio
 import io
-import time
 import zipfile
 from concurrent.futures import ThreadPoolExecutor
+from threading import Event
 from uuid import uuid4
 
 import pytest
@@ -195,20 +195,33 @@ def test_report_commit_before_job_ack_is_recovered_without_new_revision(prepared
 
 
 def test_slow_report_replay_does_not_hold_the_fenced_job_row(prepared, monkeypatch):
-    """A slow pure replay must leave the short lease heartbeat free to renew."""
+    """A real heartbeat must renew while pure report replay remains blocked."""
     complete(prepared)
     identity = prepared[0][1]
     service = ReportService(identity.db, identity)
     from reputation_platform.application import reports as report_module
 
     original = report_module.build_report
+    replay_entered, renewed_during_replay = Event(), Event()
+    worker = Worker(identity.db, {"report": service.freeze})
+    worker.heartbeat_interval = 0.05
+    heartbeat = worker.queue.heartbeat
+
+    def renew(lease):
+        during_replay = replay_entered.is_set()
+        heartbeat(lease)
+        if during_replay:
+            renewed_during_replay.set()
 
     def slow_replay(*args, **kwargs):
-        time.sleep(2)
+        replay_entered.set()
+        assert renewed_during_replay.wait(10), "heartbeat blocked during report replay"
         return original(*args, **kwargs)
 
+    monkeypatch.setattr(worker.queue, "heartbeat", renew)
     monkeypatch.setattr(report_module, "build_report", slow_replay)
-    assert asyncio.run(Worker(identity.db, {"report": service.freeze}, lease_seconds=1).run_once())
+    assert asyncio.run(worker.run_once())
+    assert renewed_during_replay.is_set()
     with identity.db.connect() as connection:
         assert connection.scalar(select(jobs.c.state).where(jobs.c.kind == "report")) == "SUCCEEDED"
         assert connection.scalar(select(func.count()).select_from(reports)) == 1

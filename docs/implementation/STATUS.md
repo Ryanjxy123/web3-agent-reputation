@@ -27,7 +27,7 @@
 | FOLLOWUP-06 | DONE | A/D 新故障模式、独立预期及真实单槽位评分/充分度/风险/复核通过；Review 修复 RPC envelope 与只读 ABI 边界，规则6/报告1.5；最终本地回归与 Foundation CI 通过 |
 | FOLLOWUP-07 | DONE | Akashi真实免费HTTP/MCP只读正例、独立Base事件核验、随机局部查询/非法输入/重复/注册存在检查通过；Review修复后重验；最终本地回归与 Foundation CI 通过 |
 | FOLLOWUP-08 | DONE | 正式HTTPS/MCP只读适配、安全DNS socket pin、限频/配额/付款停止与CAS审计完成；真实免费调用、301项定向验证、独立Review修复及985项完整Foundation CI通过 |
-| FOLLOWUP-09 | VERIFYING | 固定块ERC-8004 Reader/公共快照/只读关联已实现；定向与独立Review修复通过，最终真实重验、完整CI/合并待核验 |
+| FOLLOWUP-09 | VERIFYING | 固定块公共身份/端点关联及最终真实重验通过；代码CI全通过，本机全量发现报告续租测试时序问题，修复后完整重验/最终head合并待核验 |
 | FOLLOWUP-10 | NOT_STARTED | 依赖任务9：正式Worker/评价/Bundle/独立Verifier闭环，保持充分度与绑定规则 |
 | LOCAL-PG-JUNCTION | DONE | Windows PostgreSQL 改用 D:\web3-runtime 目录联接；R: 已移除，初始化、重启、数据完整性及13项定向测试通过 |
 
@@ -38,7 +38,8 @@
 - Directed：核心、Reader、安全出口/适配、契约和历史PoC定向541 passed/0skip（16.33s），新增真实公开原件重算1 passed/0skip；真实PostgreSQL公共/受控身份及适配证据24 passed/0skip（63.21s），合计566；Web2/build、Foundry14/256fuzz、Ruff/Mypy59、CLI Mypy、61Schema/TS/ABI通过。首轮uv未在PATH/错误测试文件名导致NOT_RUN已纠正，没有记为通过；过程中并发编辑的lint输出也保留失败，稳定代码再检查通过。
 - Review/fixes：独立实际复现并修复发送后落库前重复公共读取（持久发起ledger，恢复UNKNOWN无重发）、失败新读保留旧PASS（当前关联失效）、网络故障误归解析失败、ABI URI/畸形RPC额外字段编码凭据漏脱敏、缺注册原文仍PASS、OpenAPI GET输入和顶层/path付款漏检。所有问题补回归/重测，最后受控回归和独立复审无剩余可行动发现。
 - Live：修复后最终run2退出0，10次免费身份只读全部200（无业务请求）；固定块52451849/hash0x6e8fc723ddaa8096f44749ab9a45a4bc1c117049866ae0f7f204c22d1bf18e6f，Owner与历史一致。20CAS、10DNS、ABI/raw SHA256、元数据/OpenAPI/hash、双端点关联及IPpin审计全PASS；注册/端点PASS，executor/businessUNKNOWN。35原件逐字节公开于docs/testing/evidence/akashi-identity-2026-10-11，manifest/6源文件hash无变化；after-review/final_acceptance=true。全本轮20真实身份请求，无支付/签名/主网写入；run1仅pre-review NOT_FINAL材料保留runtime，没有用其冒充最终通过。
-- Git/next：实现cd4238fa1235d1db390aa14e596271ab7c5ba881已推，PR#10已创建。首轮完整check.py因unit/integration同名test_public_identity发生collection error，exit2（不是通过）；集成文件改名test_public_identity_ingest后全部1279项收集退出0，测试逻辑/断言不变。修复提交后重新运行完整检查/最终CI，结果待核验。本阶段仅身份关联，任务10未开始，不能描述为公开Agent完整评价闭环。
+- Full regression：修复收集冲突的d34a9a9对应Foundation CI run38112125274，quality/Compose均SUCCESS；Python1279 passed/0skip/2warnings（1244.22s），Ruff/Mypy59/61Schema/TS/Web2与build/Foundry14及256fuzz/三ABI全通过。本机同head完整check.py退出1：1278 passed、1 failed（2142.15s），不能计为通过；唯一失败是既有报告重放测试的1秒租期安全LostLease，job保持LEASED，没有越过fencing。改为重放开始后等待一次真实数据库续租事件，正常租期、有限等待、SUCCEEDED及单报告断言均保留；没有修改生产lease/fence。修复定向1 passed（16.15s）及独立Review通过；runtime-only真实行锁突变退出1（28.43s）被续租事件断言检测，撤除突变后1 passed（16.54s），证明行锁验收没有放宽。完整本机/新head CI仍需重验。两个上游弃用warnings保持可见。
+- Git/next：实现cd4238fa1235d1db390aa14e596271ab7c5ba881与收集修复d34a9a9dbff748856f8ae66170cdf97df90e772b已推，PR#10已创建。首轮完整check.py因unit/integration同名test_public_identity发生collection error，exit2（不是通过）；改名后1279项收集退出0仅表示收集通过。所有失败原件保留runtime；本机续租测试修复提交后先完成完整重验与最新head CI，再按AGENTS合并核对main。本阶段仅身份关联，任务10未开始，不能描述为公开Agent完整评价闭环。
 
 ## 2026-10-11 / 本轮任务8正式只读适配
 
@@ -49,7 +50,7 @@
 - Live：系统DNS解析198.18.0.85被正确阻断（run1退出1）；显式1.1.1.1 DNS也被fake-IP截获。操作者固定8.8.8.8:853/dns.google的TLS认证DNS resolver获得新鲜A/AAAA，仍经全部公网校验+pin，不声称DNSSEC。run2一次ConnectError，退出1且无自动重试；run3完整退出0。最终代码run4再次退出0：共8次请求（HTTP200/200/200/400；MCP200/202/200/200），2HTTP正例与MCP归一一致，随机hash200/有限未发现，非法hash400；没有402、支付、签名或主网写入。成功原始acceptance/16CAS/8DNS完整脱敏公开于docs/testing/evidence/akashi-formal-2026-10-11；所有失败材料保留runtime。该结果仅协议/证据验收，不冒充新身份或业务链上独立核验/完整评价。
 - Complete CI：稳定代码提交d8297bbf2c2b0a10dea6338700daf17a697f692f对应Foundation CI run38108211933完成success，quality/compose均SUCCESS。完整check.py实际Python985 passed/0 skipped/2 warnings（1245.72s）、Web2、Foundry14/256fuzz、Ruff/Mypy55、57Schema、TS生成与三ABI检查全部通过。日志runtime/task8-code-ci.log，未把安装缓存的“skip”文字当作测试跳过。
 - Evidence/history audit：四份实际历史A/D ZIP由当前源码离线重放全部PASS（anchor NOT_CHECKED）；16CAS与commit/run4逐字节一致，7份非空响应SHA256有效，8DNS外层JSON仅CRLF/LF差异，32段DNS wire字节完全一致。整轮29次尝试（5+8+8+8），全部符合白名单；5次公网IP拒绝、1次连接失败、23响应（18x200/3x202/2x400），付款/402均零。审计文件runtime/task8-acceptance-audit.json，无新增实测流量。
-- Gate/Git/next：任务8实际实现→定向验证→独立Review→修复→重验→完整CI阶段验收通过。PR#9 base main/head feat/formal-readonly-adapter；验收文档提交后按AGENTS核对最终head checks再合并及同步main，最终SHA/CI以Git/PR历史为准。本机完整命令uv run --env-file .env --all-packages python scripts/check.py已在稳定代码d8297bb启动，记录runtime/task8-full-check.log与task8-full-check-result.json；结果以产物为准，不将尚未结束的本机运行冒充通过。本轮优先交付8，不打开新的未完阶段；下一会话从9正式实施（ERC-8004固定块owner/URI/metadata/端点和受限只读关联），9Review/验收后才做10正式Worker/评分/Bundle/Verifier。无8未提交源码需恢复，不降低写入绑定、评分或充分度。
+- Gate/Git/next：任务8实现→定向验证→独立Review→修复→重验→完整CI阶段验收通过。PR#9已合并为079bb57abac954fd920b539060679575858cea2c，任务9开工前核对main=origin/main、合并树与最终PR head一致、工作树干净，本任务分支已删除。本机稳定代码d8297bb完整check.py亦退出0，Python985 passed/0skip/2warnings（2041.58s），其余完整检查全部通过；结果原件runtime/task8-full-check.log与task8-full-check-result.json，完成时间2026-10-11T03:58:04Z。任务8无未完成源码需恢复；已顺序进入9，9Review/验收/合并后才做10正式Worker/评分/Bundle/Verifier，不降低写入绑定、评分或充分度。
 
 ## 2026-10-11 / 本轮任务6–7最终验收
 
