@@ -29,10 +29,18 @@
 | FOLLOWUP-08 | DONE | 正式HTTPS/MCP只读适配、安全DNS socket pin、限频/配额/付款停止与CAS审计完成；真实免费调用、301项定向验证、独立Review修复及985项完整Foundation CI通过 |
 | FOLLOWUP-09 | DONE | 固定块公共身份/端点关联、最终真实重验与独立Review通过；完整1279项通过，最终head CI成功，PR#10合并为1897a74并核对main一致 |
 | FOLLOWUP-10 | DONE | 正式公共只读Worker/证据/报告/独立Verifier、Review/修复、真实闭环及本地完整1409项/0skip验收通过；最终head CI和Git交付按本节门槛执行，实际结果以PR#11/Git历史为准 |
-| FOLLOWUP-11 | ACCEPTED_LOCAL | 12场景×3真实对照/完整冻结/独立Review通过，ba1b148；最终CI/Release待完成 |
-| FOLLOWUP-12 | ACCEPTED_LOCAL | 真实Vue产品/API联调、21unit/11browser/build、终审修复通过；最终回归待完成 |
-| FOLLOWUP-13 | IN_PROGRESS | 部署/文档/打包/重复A/D演示已准备，最终全量/CI/合并/Release待完成 |
+| FOLLOWUP-11 | DONE | 正式 v2 的 12 场景×3 次真实对照、原件/源码冻结、独立 Review 与离线重算通过；实验结论和范围不变 |
+| FOLLOWUP-12 | DONE | 真实 Vue/API 产品、21 unit/11 browser/typecheck/build、A/D 证据与 CLI MATCH 联调、异步选择终审修复通过 |
+| FOLLOWUP-13 | ACCEPTED_TECHNICAL | 部署/重复 A-D 双锚定演示、文档/打包/独立检出复现及最终技术门槛通过；合并、main 同步与 Release 状态以外部记录为准 |
 | LOCAL-PG-JUNCTION | DONE | Windows PostgreSQL 改用 D:\web3-runtime 目录联接；R: 已移除，初始化、重启、数据完整性及13项定向测试通过 |
+
+## 2026-10-12 / 最终技术验收与交付记录
+
+- Tested source：实现基线 `aa539c9d9162e6bc54e641d4f0713608433e4dad`；任务 11 的精确实验源码和正式 v2 原件保持冻结。五条异步切换回归已修复；21 unit、typecheck/build、11 browser groups 全部通过，无未捕获异常；未修改评分或充分度规则。
+- Final local gate：`scripts/check.py` 在该 SHA exit 0，Python **1448 passed / 0 skipped / 2 warnings**，pytest 1729.30s，完整 gate 1765.39s；Ruff、Mypy 70 源文件、74 Schema、TS drift、Web build/21 unit/11 browser、Foundry 14/0/0、三 ABI 均通过。结果见 `runtime/tasks11-13-full-check-reviewed.log` 与 `runtime/tasks11-13-full-check-reviewed-result.json`，`source_changed=[]`。
+- Current CI：run `38164569622` 在同一 head 的 `foundation-quality` job `114544335869` 与 `foundation-compose` job `114544335700` 均 SUCCESS。Quality 为 18/18 步骤成功、1448 passed/0 skipped/2 warnings；Compose 真实 A/D、报告、双锚定、离线/在线复核和篡改拒绝均通过。日志与 metadata 保存在 `runtime/task13-quality-ci-aa539c-reviewed-job.log/.json` 与 `runtime/task13-compose-ci-aa539c9-reviewed-job.log/.json`。
+- Reproduction/package：独立检出、锁定安装、冻结重放和 911/911 raw Git blob 包核对通过；40 ZIP/7039 成员无真实凭据。`aa539c9` 的最终发布包须在实际合并 commit 上重新生成，不能沿用旧基线包哈希。
+- Git/Release：PR #12 当前 base `main`、head `aa539c9`、CLEAN/MERGEABLE，无 required reviewer decision；合并、main 同步、最终包和 Release 仍以外部 Git/Release 记录为准。早期中断和旧 candidate 结果保留且不计入本门禁。
 
 ## 2026-10-12 / 任务11阶段验收（任务12/13与最终发布仍进行中）
 

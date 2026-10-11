@@ -1,6 +1,6 @@
 # 从零构造执行计划（ExecPlan）
 
-当前授权范围（2026-10-12）：基于已核实main 76b411a，在feat/tasks-11-13-delivery按任务11→Review/修复/验收/提交→12→Review/修复/验收/提交→13→综合回归/PR/required CI/合并/Release连续推进。当前三项均未验收；真实实验重新采样中，前端与交付材料是未验收准备。禁止把历史测试或初始unsupported实验数字作为本轮通过。最新checkpoint见docs/implementation/STATUS.md。
+当前授权范围（2026-10-12）：基于已核实 main 76b411a，在 feat/tasks-11-13-delivery 按任务 11→Review/修复/验收/提交→12→Review/修复/验收/提交→13→综合回归/PR/required CI/合并/Release 连续推进。任务 11 正式 v2 实验已冻结，任务 12 产品与终审修复已验收，任务 13 部署/文档/打包/复现已验证；最终技术门槛结果见 STATUS/验收记录，最终 Git/Release 身份以 PR #12 与实际发布记录为准。历史测试或初始 unsupported 实验不计本轮最终通过。最新 checkpoint 见 docs/implementation/STATUS.md。
 
 历史授权范围（2026-10-11）：续接main `ededc90`，依次任务8→Review/修复/验收→任务9→Review/修复/验收→任务10；优先完整交付8，资源不足则先提交与交接当前阶段。第三方只允许免费只读，无付款/签名/主网写入。任务8设计ADR0019，实际进度以STATUS为准；不展开11–13。
 
@@ -98,4 +98,4 @@
 
 2026-10-12 任务13实现/Review与定向14项、原生真实重复A/D/双anchor/Verifier通过，历史9+UI2 Bundle/109测试回归通过。CODE_VERSION/CAS/fixture卷/RPC/打包/文档已修复；正式赛事/匿名/第一方许可未知如实披露，不新增阻塞。进入稳定代码最终scripts/check.py/required quality+完整Compose CI/PR/合并/clean main/Release；最终验收未通过不标DONE。
 
-最终Review补正：复现并修复跨选择stale report/cancel/load/poll，21unit/type/build/11browser通过；raw Git blob精确打包（git archive有EOL转换），10package tests通过；旧本地全量中断NOT_FINAL。新稳定candidate重新全量/CI，旧Compose成功只为对应head事实。clean checkout离线实验/公共Bundle与911-file exact package已实际复现，不使用旧candidate结果冒充最终head。
+2026-10-12 最终交接：任务 11 正式实验、任务 12 真实产品及任务 13 部署/交付软件已完成实施、独立 Review、修复和复现。已测试实现基线为 `aa539c9d9162e6bc54e641d4f0713608433e4dad`；全量 1448 Python/0 skipped、完整 gate 1765.39s 与 required CI run38164569622 均通过。旧中断全量不计通过。最终文档 head CI、合并/main 同步、针对发布 commit 的包/manifest 及 Release 由 PR #12/Git/Release 外部记录标识；不修改冻结实验与评分。官方赛事、匿名和许可要求仍按 COMPETITION_DELIVERY 核实。

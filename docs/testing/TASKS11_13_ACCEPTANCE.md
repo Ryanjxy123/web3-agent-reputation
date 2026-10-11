@@ -1,6 +1,6 @@
 # Tasks 11–13 acceptance record
 
-Recorded on 2026-10-12. This file records actual stage evidence and remaining final checks; it does not assert final full acceptance, current required CI success, merge, or Release publication. Progress and final Git identity are maintained in [STATUS.md](../implementation/STATUS.md).
+Recorded on 2026-10-12. This file records actual stage evidence, final technical acceptance and the remaining Git/Release delivery steps. It does not claim that merge, synchronized `main` or Release publication has occurred. Progress and final Git identity are maintained in [STATUS.md](../implementation/STATUS.md).
 
 ## Task 11 accepted experiment
 
@@ -57,7 +57,7 @@ The real third-party historical result remains 4 PASS / 1 UNKNOWN, PARTIAL, `ove
 
 ## Final review corrections and clean-checkout reproduction
 
-The original candidate `0e36331` completed the enhanced Linux `foundation-compose` job114535463881 in run38161591091: actual configuration preparation, runtime/HTTP task verification, A/D PARTIAL reports, both anchors, offline/online Verifier and tamper rejection all passed. This establishes that candidate's container flow; the final PR head still needs both checks below.
+The earlier candidate `0e36331` completed the enhanced Linux `foundation-compose` job114535463881 in run38161591091; that historical result is retained separately from the current-head gate.
 
 A final independent review reproduced five asynchronous history-switch failures in the actual Vue source: stale report-poll failure stopped a new run; old report/cancel POST completion dereferenced cleared state; old initial load success switched the tab and old load failure displayed its error. The correction captures original run/generation and reuses the existing guarded-update helper. Actual-source reproduction confirms all five failed on the old candidate and pass after correction. Final 21 unit tests, typecheck/build and 11 browser scenario groups passed with exit 0 and no uncaught browser errors (`runtime/task12-final-browser-races.log`). Source is locked for the restarted full gate. The first local full check was interrupted and retained as NOT_FINAL; it is not counted as passing.
 
@@ -69,10 +69,10 @@ A new clean checkout of0e36331, with no copied.env/private runtime, successfully
 
 | Check | Current record |
 |---|---|
-| Full Python suite with 0 skipped, Ruff/Mypy/Schema/TS drift | PENDING final root-run evidence |
-| Final Web type/build/unit/browser checks and real API interaction | PENDING final root-run evidence |
-| Foundry/fuzz/ABI, PostgreSQL/Anvil/Worker/Verifier integration and historical Bundles | PENDING final root-run evidence |
-| Updated required `foundation-quality` and `foundation-compose` on final PR head | PENDING CI |
-| Clean merged main = origin/main, source-content secret review, exact delivery manifest and Release | PENDING final Git/Release evidence |
+| Full Python suite with 0 skipped, Ruff/Mypy/Schema/TS drift | PASS: 1448 passed / 0 skipped / 2 warnings; pytest 1729.30s, full gate 1765.39s; current head `aa539c9` |
+| Final Web type/build/unit/browser checks and real API interaction | PASS: 21 unit / 11 browser groups / typecheck / build; real A PASS, D FAIL/TASK_ID_MISMATCH, PARTIAL/null, CLI hash MATCH |
+| Foundry/fuzz/ABI, PostgreSQL/Anvil/Worker/Verifier integration and historical Bundles | PASS: Foundry 14 / 0 / 0, three ABI checks, current CI Compose and preserved offline historical/UI/Akashi replay |
+| Updated required `foundation-quality` and `foundation-compose` on final PR head | PASS: run `38164569622`, jobs `114544335869` and `114544335700` |
+| Clean merged main = origin/main, source-content secret review, exact delivery manifest and Release | TECHNICAL PASS; merge, synchronized main, final archive and Release remain external delivery steps |
 
-Final completion requires filling these entries with real commands, counts, exit codes, SHA and CI links after passing checks. [COMPETITION_DELIVERY.md](../runbooks/COMPETITION_DELIVERY.md) defines the software Release and separate official-submission gates.
+The software technical gate is complete at tested head `aa539c9`; merge, synchronized `main`, final archive identity and Release publication are separate external Git/Release records. [COMPETITION_DELIVERY.md](../runbooks/COMPETITION_DELIVERY.md) defines the software Release and separate official-submission gates.

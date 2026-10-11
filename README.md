@@ -3,7 +3,7 @@ Multi-source evidence based reputation evaluation platform for Web3 Agents.
 
 面向链上凭证查询、核验与存证 Agent 的任务级证据评价平台。
 
-main 已包含 M0/M1 和后续任务 1–10：三能力任务、四态归因、三维评分、充分度与关键风险、冻结证据包与独立复核、受控故障、HTTPS/MCP 免费只读适配、ERC-8004 身份关联和真实第三方评价闭环。任务 11 正式 v2 对照实验已完成独立 Review 并提交验收；任务 12 前端与任务 13 最终交付仍在进行。未完成最终回归和 required CI 前不发布正式 Release。执行计划见 [PLAN.md](PLAN.md)，实际运行、Review 与交付状态见 [STATUS.md](docs/implementation/STATUS.md)。
+平台已完成 M0/M1 和后续任务 1–13 的技术实现：三能力任务、四态归因、三维评分、充分度与关键风险、冻结证据包与独立复核、受控故障、HTTPS/MCP 免费只读适配、ERC-8004 身份关联、真实第三方评价闭环、正式对照实验、真实 API 前端及部署演示。任务 11 正式 v2 实验已冻结；任务 12 产品和终审修复已验收；任务 13 的部署、文档、源码打包与复现已验证。最终全量测试与 required CI 记录见 [验收记录](docs/testing/TASKS11_13_ACCEPTANCE.md)，版本、合并提交及发布状态以 [PR #12](https://github.com/Ryanjxy123/web3-agent-reputation/pull/12) 和 [GitHub Releases](https://github.com/Ryanjxy123/web3-agent-reputation/releases) 的实际记录为准。执行计划见 [PLAN.md](PLAN.md)，阶段证据见 [STATUS.md](docs/implementation/STATUS.md)。
 
 ## 已有检查
 
