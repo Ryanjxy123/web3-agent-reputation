@@ -28,3 +28,6 @@ docs/testing/evidence/akashi-public-evaluation-2026-10-11/** -text
 docs/testing/evidence/akashi-public-evaluation-2026-10-11/blobs/*.bin -diff
 # The Task 11 publication manifest commits captured inputs, Bundles and results exactly.
 docs/testing/experiments/task11/formal-20261012-three-repeats-v2/** -text whitespace=cr-at-eol
+
+# Preserve real UI evidence and verifier bytes committed by its publication manifest.
+docs/testing/evidence/local-ui-2026-10-12/** -text whitespace=cr-at-eol

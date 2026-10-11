@@ -14,11 +14,12 @@ from reputation_core.reporting import build_report
 from reputation_platform.application.errors import ApplicationError
 from reputation_platform.application.reports import ReportService
 from reputation_platform.infrastructure.db.jobs import JobQueue, LostLease, enqueue
-from reputation_platform.infrastructure.db.tables import jobs, reports, runs, snapshots
+from reputation_platform.infrastructure.db.tables import anchor_jobs, jobs, reports, runs, snapshots
 from reputation_platform.worker.main import Worker
 from reputation_verifier import verify_bundle
-from sqlalchemy import func, select, text, update
+from sqlalchemy import func, insert, select, text, update
 
+from tests.integration.test_identity import AUTH
 from tests.integration.test_verification import complete, flow, identity_chain, prepared
 
 __all__ = ["flow", "identity_chain", "prepared"]
@@ -172,15 +173,71 @@ def test_export_refuses_changed_or_missing_committed_bytes(prepared):
     original = path.read_bytes()
     try:
         path.write_bytes(original + b" ")
+        response = prepared[0][0].get(f"/api/v1/reports/{report.report_id}/evidence/{item.evidence_id}")
+        assert response.status_code == 409 and response.json()["error"]["code"] == "CONTENT_HASH_MISMATCH"
         with pytest.raises(ApplicationError) as failure:
             service.export(report.report_id)
         assert failure.value.code == "CONTENT_HASH_MISMATCH"
         path.unlink()
+        response = prepared[0][0].get(f"/api/v1/reports/{report.report_id}/evidence/{item.evidence_id}")
+        assert response.status_code == 409 and response.json()["error"]["code"] == "MISSING_EVIDENCE"
         with pytest.raises(ApplicationError) as failure:
             service.export(report.report_id)
         assert failure.value.code == "MISSING_EVIDENCE"
     finally:
         path.write_bytes(original)
+
+
+def test_pending_and_failed_anchor_receipts_show_safe_outbox_state(prepared, tmp_path):
+    service, report = freeze(prepared)
+    api = prepared[0][0]
+    path = f"/api/v1/reports/{report.report_id}/anchor"
+    assert api.get(path).json()["status"] == "NOT_REQUESTED"
+    assert api.post(path, headers=AUTH).status_code == 202
+    assert api.get(path).json()["status"] == "QUEUED"
+    transaction_hash = "0x" + "ab" * 32
+    for state in ("SIGNED", "BROADCAST", "FAILED"):
+        with service.db.begin() as connection:
+            connection.execute(update(anchor_jobs).where(anchor_jobs.c.report_fk == report.report_id).values(
+                state=state, signed_tx_hash=transaction_hash, signed_transaction="must-not-export-signed-bytes",
+            ))
+        response = api.get(path)
+        assert response.status_code == 200
+        receipt = response.json()
+        assert receipt["status"] == state and receipt["tx_hash"] == transaction_hash
+        assert receipt["block_number"] is None and receipt["confirmations"] == 0
+        assert "must-not-export-signed-bytes" not in response.text
+        bundle = service.export(report.report_id)
+        with zipfile.ZipFile(io.BytesIO(bundle)) as archive:
+            assert strict_json(archive.read("anchor_receipt.json")) == receipt
+            assert hash_bytes(archive.read("report_core.json")) == report.report_hash
+            assert all(b"must-not-export-signed-bytes" not in archive.read(name) for name in archive.namelist())
+        bundle_path = tmp_path / f"{state}.zip"
+        bundle_path.write_bytes(bundle)
+        assert verify_bundle(bundle_path)["status"] == "PASS"
+
+
+def test_evidence_endpoint_rejects_an_existing_member_of_another_report(prepared):
+    service, report = freeze(prepared)
+    extra = service.identity.evidence.prepare_json({"note": "only in the other report", "token": "must-be-redacted"}, "foreign-report-test", report.core.evaluated_at, "test")
+    with service.db.begin() as connection:
+        extra = service.identity.evidence.register(connection, extra)
+        manifest = report.manifest.model_copy(update={"evidence": tuple(sorted(
+            (*report.manifest.evidence, extra), key=lambda item: str(item.evidence_id)
+        ))})
+        core = report.core.model_copy(update={"evidence_manifest_hash": hash_json(manifest.model_dump(mode="json"))})
+        other_report_id = uuid4()
+        connection.execute(insert(reports).values(
+            id=other_report_id, run_fk=report.core.run_id, revision=2,
+            report_hash=hash_json(core.model_dump(mode="json")), previous_report_hash=core.previous_report_hash,
+            core=core.model_dump(mode="json"), manifest=manifest.model_dump(mode="json"),
+        ))
+    api = prepared[0][0]
+    allowed = api.get(f"/api/v1/reports/{other_report_id}/evidence/{extra.evidence_id}")
+    assert allowed.status_code == 200 and allowed.json()["body"]["token"] == "[REDACTED]"
+    denied = api.get(f"/api/v1/reports/{report.report_id}/evidence/{extra.evidence_id}")
+    assert denied.status_code == 404 and denied.json()["error"]["code"] == "NOT_FOUND"
+    assert "only in the other report" not in denied.text
 
 
 def test_report_commit_before_job_ack_is_recovered_without_new_revision(prepared):

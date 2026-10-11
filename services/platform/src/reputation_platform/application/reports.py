@@ -583,24 +583,24 @@ class ReportService:
         report = self.view(report_id)
         context = report.manifest.publication
         with self.db.connect() as connection:
-            body = connection.execute(
-                select(anchor_receipts.c.body)
-                .join(anchor_jobs, anchor_receipts.c.anchor_job_fk == anchor_jobs.c.id)
+            row = connection.execute(
+                select(anchor_jobs.c.state, anchor_jobs.c.signed_tx_hash, anchor_receipts.c.body)
+                .outerjoin(anchor_receipts, anchor_receipts.c.anchor_job_fk == anchor_jobs.c.id)
                 .where(anchor_jobs.c.report_fk == report_id)
                 .order_by(anchor_receipts.c.created_at.desc())
                 .limit(1)
-            ).scalar_one_or_none()
+            ).mappings().first()
         return (
-            AnchorReceipt.model_validate(body)
-            if body
+            AnchorReceipt.model_validate(row["body"])
+            if row and row["body"]
             else AnchorReceipt(
                 report_hash=report.report_hash,
-                status=AnchorStatus.NOT_REQUESTED,
+                status=AnchorStatus(row["state"]) if row else AnchorStatus.NOT_REQUESTED,
                 trusted_chain_key="local-demo",
                 chain_instance_id=context.chain.instance_hash,
                 contract=context.contract,
                 publisher=context.publisher,
-                tx_hash=None,
+                tx_hash=row["signed_tx_hash"] if row else None,
                 sequence=None,
                 block_number=None,
                 block_hash=None,

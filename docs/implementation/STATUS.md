@@ -29,6 +29,9 @@
 | FOLLOWUP-08 | DONE | 正式HTTPS/MCP只读适配、安全DNS socket pin、限频/配额/付款停止与CAS审计完成；真实免费调用、301项定向验证、独立Review修复及985项完整Foundation CI通过 |
 | FOLLOWUP-09 | DONE | 固定块公共身份/端点关联、最终真实重验与独立Review通过；完整1279项通过，最终head CI成功，PR#10合并为1897a74并核对main一致 |
 | FOLLOWUP-10 | DONE | 正式公共只读Worker/证据/报告/独立Verifier、Review/修复、真实闭环及本地完整1409项/0skip验收通过；最终head CI和Git交付按本节门槛执行，实际结果以PR#11/Git历史为准 |
+| FOLLOWUP-11 | ACCEPTED_LOCAL | 12场景×3真实对照/完整冻结/独立Review通过，ba1b148；最终CI/Release待完成 |
+| FOLLOWUP-12 | ACCEPTED_LOCAL | 真实Vue产品/API联调、21unit/7browser/build、Review修复通过；最终回归待完成 |
+| FOLLOWUP-13 | IN_PROGRESS | 部署/文档/打包/重复A/D演示已准备，最终全量/CI/合并/Release待完成 |
 | LOCAL-PG-JUNCTION | DONE | Windows PostgreSQL 改用 D:\web3-runtime 目录联接；R: 已移除，初始化、重启、数据完整性及13项定向测试通过 |
 
 ## 2026-10-12 / 任务11阶段验收（任务12/13与最终发布仍进行中）
@@ -40,6 +43,16 @@
 - Limits：受控重复不估计生产普遍性或显著性；无独立错误只读业务fixture；间歇服务用failure_every=1稳定选错，不估计故障概率；RPC计数不含Agent子进程；历史风险字段保持原格式。
 - Prerequisites included with Task11：为保持实际执行源码可追溯，同提交包含实验运行时已存在的最小产品读API/生成DTO、fixture独立ledger路径和相关API测试/ADR。Task12页面单独验收和提交。读API用UUID keyset分页、manifest member/hash限定证据，写接口token/grant不变。API定向最终8 passed/0skip（50.06s）；首轮错误端口变量6pass/1fail记录NOT_PASS保留。Ruff/Mypy70/74Schema通过。
 - Gate：任务11阶段实验/定向/独立Review/修复/重测/冻结通过，可逻辑提交；任务12真实页面联调与最后Review、任务13部署/全量回归/required CI/PR/合并/Release尚未全部验收，不能声称正式发布。旧提前全量进程已停止，NOT_PASS记录保留；不复用历史1409项作为本轮最终结果。
+
+## 2026-10-12 / 任务12阶段验收（最终全量与Release待完成）
+
+- Task11 Git：阶段实现/冻结/独立Review提交 `ba1b148`；尚未push/PR/合并，不把阶段通过当最终发布。
+- Frontend：真实Agent列表/注册/刷新、Owner/ERC-8004/来源/声明/历史快照、绑定/公共只读关联；三能力/固定公共免费只读套件授权启动，内存token+payload-bound idempotency、2秒轮询及报告作业失败终止；三维分/实际样本数/覆盖/充分度/关键风险、PARTIAL/null/UNKNOWN/N/A、同Agent可比范围限制；manifest内任务输入/响应/链证据、Bundle下载和实际anchor状态；独立CLI JSON本地导入、摘要归因及offline/live/失败信息分开。
+- Review/fixes：清理切换Agent/报告后的旧anchor/证据/Verifier归因；报告失败与网络错误停止轮询；绑定只标历史核验非当前授权；补样本实际数量非仅bp。真实原件16KiB+hex撑宽页面，min-width0修复后实际页面width=1360并加browser回归。GET anchor先前无confirmed回执一律NOT_REQUESTED，改为单次原子outbox/receipt读取：QUEUED/SIGNED/BROADCAST/FAILED如实，不导出signed bytes；manifest内他报告成员拒绝、CAS篡改/丢失409回归。
+- Tests：前端21 unit、build/vue-tsc和7 browser groups通过；browser自行启停Vite并固定Playwright版本。读API初次最终8 passed/0skip（50.06s）；最后13项report/API组合中12通过，pending测试两处测试变量/参数错误修正后单项1 passed/0skip（19.43s）。原失败记录保留，不降低断言；最终全量仍须重新完整执行。跨模块独立Review无剩余阻断。
+- Real UI：真实API→独立Worker→HTTP A/D→Anvil→核验/报告/manifest证据→下载Bundle→实际独立CLI JSON导入通过；A PASS，D成功receipt但FAIL/TASK_ID_MISMATCH，均PARTIAL/null/UNANCHORED。A先前UI启动完成后HMR重置，最终加载原Run；D过期绑定HTTP409按既有双签名与新grant续期后重试成功，无绕过。二份原ZIP独立CLI exit0；1360px真实证据布局/摘要MATCH/无未捕获异常复核通过。公开原件/截图/CLI结果与摘要清单见`docs/testing/evidence/local-ui-2026-10-12`；私有token/context/密钥不公开。
+- Source freeze：仅`application/reports.py`是在Task11 capture后变化的执行源码，改变安全的pending receipt投影，不改变原未anchor实验/核验/评分/统计；原82文件exact snapshot与所有正式数据保持不动，实验README明确差异与跨OS重放换行范围。
+- Gate：任务12实现→定向→独立Review→修复→重测→真实UI联调→阶段验收通过，进入Task13；全量/required CI/最终main/Release仍待完成。
 
 ## 2026-10-11 / 本轮任务10正式公共只读评价（本地阶段验收完成）
 

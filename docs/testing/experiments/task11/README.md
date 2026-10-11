@@ -23,8 +23,11 @@ The accepted formal result is frozen in `formal-20261012-three-repeats-v2/`. It 
 
 ```powershell
 . ./scripts/tools.ps1
-uv run --all-packages python scripts/task11_comparison.py analyse --output docs/testing/experiments/task11/formal-20261012-three-repeats-v2
+uv run --all-packages python -c "import shutil; shutil.copytree('docs/testing/experiments/task11/formal-20261012-three-repeats-v2', 'runtime/task11-replay')"
+uv run --all-packages python scripts/task11_comparison.py analyse --output runtime/task11-replay
 ```
+
+The replay directory must be new. Analyse the copy so the published freeze remains unchanged. Generated text line endings follow the host OS; compare JSON values/CSV rows when replaying across operating systems, while `publication-manifest.json` continues to commit the original captured bytes.
 
 The actual capture command was:
 
@@ -35,7 +38,7 @@ $env:FIXTURE_PORT_D='23102'
 uv run --env-file .env --all-packages python scripts/task11_comparison.py capture --output runtime/task11/formal-20261012-three-repeats-v2 --repetitions 3
 ```
 
-Capture recorded 36 passed tasks in 461.04 seconds, exit code 0, and no source change during capture. It recorded commit `76b411af797e480b0b8c117a5d06b78ebcfccd24` with `git_dirty=true`: the exact authorized experiment, API prerequisite and ledger changes were uncommitted at capture time. The 82-file source manifest matches the final workspace byte-for-byte, and `source-snapshot.zip` preserves precisely those listed files. Its SHA-256 is `378d373ecd0a2089af862eae72bfeefcb03f4636b3e038048984cb8cd9a0dd3d`; the canonical source-manifest SHA-256 is `6510212a16ec181677ad6031d2be6f4e170fdf9cc65083da551196c25984c650`. Source line-ending normalization on another checkout can change file hashes without changing behavior; use the exact snapshot bytes when comparing captured source hashes. Captured artifacts use Git `-text` to preserve their byte hashes.
+Capture recorded 36 passed tasks in 461.04 seconds, exit code 0, and no source change during capture. It recorded commit `76b411af797e480b0b8c117a5d06b78ebcfccd24` with `git_dirty=true`: the exact authorized experiment, API prerequisite and ledger changes were uncommitted at capture time. At Task 11 acceptance, the 82-file source manifest matched the capture workspace byte-for-byte, and `source-snapshot.zip` preserves precisely those listed files. The later Task 12 read-only receipt projection correction changes `services/platform/src/reputation_platform/application/reports.py` to expose safe pending/failed outbox states; it leaves unrequested capture Bundles, task verification, frozen scoring and all retained results unchanged. Final checkout source hashes therefore must not be substituted for the original capture manifest; the exact captured source snapshot remains authoritative. Its SHA-256 is `378d373ecd0a2089af862eae72bfeefcb03f4636b3e038048984cb8cd9a0dd3d`; the canonical source-manifest SHA-256 is `6510212a16ec181677ad6031d2be6f4e170fdf9cc65083da551196c25984c650`. Source line-ending normalization on another checkout can change file hashes without changing behavior; use the exact snapshot bytes when comparing captured source hashes. Captured artifacts use Git `-text` to preserve their byte hashes.
 
 Main known-error Recall is online 0.200, receipt 0.000 and proposed 1.000 on each method's predeclared applicable scope; on common write tasks it is 0.000/0.000/1.000. Proposed outcomes are 6 PASS, 15 FAIL, 12 UNKNOWN and 3 N/A; the 12 UNKNOWN cases remain evidence gaps, and no single-slot report is promoted to a sufficient overall reputation score. Independent Bundle outcome/reason consistency is 36/36, risk consistency 33/33, with 3 legacy N/A reports explicitly lacking risk assessments. These are controlled-case results; they do not establish production accuracy.
 

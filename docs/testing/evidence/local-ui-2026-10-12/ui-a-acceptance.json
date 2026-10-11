@@ -1,0 +1,17 @@
+{
+  "run_id": "32023341-0e01-4bcf-86b6-f1b944af19b5",
+  "source": "real API, independent Worker, controlled HTTP Agent and Anvil",
+  "ui_operation": "authorized start followed by terminal report reload",
+  "report_hash": "0x459066bb3866084dfa4086e4ff915b68000ee40c9333b789d33dfd64c7d8e495",
+  "independent_cli_exit_code": 0,
+  "business_outcome": "PASS",
+  "business_reason": null,
+  "offline_consistency": "PASS",
+  "anchor_check": "NOT_CHECKED",
+  "reported_anchor": "NOT_REQUESTED",
+  "evaluation_state": "PARTIAL",
+  "overall_score_bp": null,
+  "runtime_page_errors": [],
+  "viewport_width": 1360,
+  "page_width_after_evidence_and_cli_import": 1360
+}
