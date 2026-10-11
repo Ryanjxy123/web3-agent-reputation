@@ -38,7 +38,7 @@
 - Directed：核心、Reader、安全出口/适配、契约和历史PoC定向541 passed/0skip（16.33s），新增真实公开原件重算1 passed/0skip；真实PostgreSQL公共/受控身份及适配证据24 passed/0skip（63.21s），合计566；Web2/build、Foundry14/256fuzz、Ruff/Mypy59、CLI Mypy、61Schema/TS/ABI通过。首轮uv未在PATH/错误测试文件名导致NOT_RUN已纠正，没有记为通过；过程中并发编辑的lint输出也保留失败，稳定代码再检查通过。
 - Review/fixes：独立实际复现并修复发送后落库前重复公共读取（持久发起ledger，恢复UNKNOWN无重发）、失败新读保留旧PASS（当前关联失效）、网络故障误归解析失败、ABI URI/畸形RPC额外字段编码凭据漏脱敏、缺注册原文仍PASS、OpenAPI GET输入和顶层/path付款漏检。所有问题补回归/重测，最后受控回归和独立复审无剩余可行动发现。
 - Live：修复后最终run2退出0，10次免费身份只读全部200（无业务请求）；固定块52451849/hash0x6e8fc723ddaa8096f44749ab9a45a4bc1c117049866ae0f7f204c22d1bf18e6f，Owner与历史一致。20CAS、10DNS、ABI/raw SHA256、元数据/OpenAPI/hash、双端点关联及IPpin审计全PASS；注册/端点PASS，executor/businessUNKNOWN。35原件逐字节公开于docs/testing/evidence/akashi-identity-2026-10-11，manifest/6源文件hash无变化；after-review/final_acceptance=true。全本轮20真实身份请求，无支付/签名/主网写入；run1仅pre-review NOT_FINAL材料保留runtime，没有用其冒充最终通过。
-- Git/next：实现和验收原件准备提交；完整check.py、PR/CI与合并待核验。本阶段仅身份关联，任务10未开始，不能描述为公开Agent完整评价闭环。
+- Git/next：实现cd4238fa1235d1db390aa14e596271ab7c5ba881已推，PR#10已创建。首轮完整check.py因unit/integration同名test_public_identity发生collection error，exit2（不是通过）；集成文件改名test_public_identity_ingest后全部1279项收集退出0，测试逻辑/断言不变。修复提交后重新运行完整检查/最终CI，结果待核验。本阶段仅身份关联，任务10未开始，不能描述为公开Agent完整评价闭环。
 
 ## 2026-10-11 / 本轮任务8正式只读适配
 
