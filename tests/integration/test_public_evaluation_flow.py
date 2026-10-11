@@ -271,8 +271,10 @@ def test_public_offline_execution_verification_freeze_and_bundle(flow, tmp_path,
 
 
 @pytest.mark.parametrize("deny", ["revoke", "disabled", "cancel"])
-def test_public_denial_before_socket_settles_without_queries(flow, deny):
+@pytest.mark.chain
+def test_public_denial_before_socket_settles_without_queries(flow, deny, identity_chain):
     api, identity, responder, factory, _ = flow
+    identity._deployment = identity_chain[0]
     run_id, grants, _ = create_run(flow)
     if deny == "revoke":
         for grant in grants:
