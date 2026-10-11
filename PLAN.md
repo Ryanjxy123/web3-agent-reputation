@@ -1,8 +1,8 @@
 # 从零构造执行计划（ExecPlan）
 
-当前授权范围（2026-10-10）：仅后续任务6→阶段Review/修复→任务7免费只读PoC→跨模块Review及完整回归/PR/CI。基于已核实main `68ee882`，不开展任务8–10；任务6受控异常独立预期见 `docs/testing/CONTROLLED_SCENARIOS.md`，RPC边界/历史兼容决策见 ADR0017，实际完成状态以 STATUS 为准。任务6–7已完成最终本地回归、Foundation CI及PR #7合并后的同步与分支清理。
+当前授权范围（2026-10-11）：续接main `ededc90`，依次任务8→Review/修复/验收→任务9→Review/修复/验收→任务10；优先完整交付8，资源不足则先提交与交接当前阶段。第三方只允许免费只读，无付款/签名/主网写入。任务8设计ADR0019，实际进度以STATUS为准；不展开11–13。
 
-阶段进度：任务6受控异常和任务7Akashi免费只读PoC均实现、测试、Review修复并重验（DONE）；保留历史版本与policy-v1。真实第三方正例及ERC8004注册存在分别确认，局部未发现保持UNKNOWN。完整回归与最终PR head的Foundation CI已通过；PR #7已合并，停止本轮，不开展任务8–10。
+阶段进度：任务1–8已完成；8正式HTTPS/MCP出口与适配器/CAS、真实免费只读调用、301项定向验证、独立Review修复重验和稳定代码985项完整Foundation CI均通过。验收文档最新head CI/PR同步按AGENTS完成，本机完整运行详情以STATUS列明产物为准。任务9/10尚未开始，保留评分/充分度/身份绑定与历史证据规则。下一会话从9的ERC-8004只读身份关联正式实施，详见STATUS交接。
 
 版本：foundation-v1.1，2026-10-03。状态：M0 基础验收完成（原生 Windows + Linux Compose CI）；M0-07 公网 OpenAPI 403 单列；M1-01 至 M1-08 已完成，M0+M1 最终验收通过。
 
