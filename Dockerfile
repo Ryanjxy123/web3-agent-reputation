@@ -3,7 +3,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 UV_LINK_MODE=copy UV_PYTHON_DOW
 RUN pip install --no-cache-dir uv==0.9.3
 WORKDIR /app
 COPY . /app
-RUN uv sync --locked --all-packages --no-dev && useradd --uid 10001 --create-home reputation && mkdir -p /app/artifacts/evidence && chown -R reputation:reputation /app
+RUN uv sync --locked --all-packages --no-dev && useradd --uid 10001 --create-home reputation && mkdir -p /app/artifacts/evidence /app/artifacts/fixtures && chown -R reputation:reputation /app
 USER 10001:10001
 ENV PATH="/app/.venv/bin:$PATH" REPUTATION_ROOT=/app
 CMD ["uvicorn", "reputation_platform.api.app:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000", "--no-access-log"]

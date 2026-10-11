@@ -3,20 +3,19 @@
 本文件定义目标，不代表测试已执行。实际状态只见STATUS与run records。人工打勾必须有命令、退出码、记录文件、commit。
 
 ## 1. 分层命令契约
-下列为Codex应实现的目标入口，除标注已提供者外，不能当现成命令使用。
+下列为当前实际入口；运行前先按 LOCAL_RUNTIME 配置工具、数据库、Anvil、API/worker 与 A/D。表格不表示这些命令已在当前 commit 执行通过。
 | 命令 | 内容 | 首次阶段 |
 |---|---|---|
 | `python scripts/check_bootstrap.py` | 已提供：JSON与评分参考离线测试 | 当前包 |
 | `python scripts/git_doctor.py` | 已提供：只读Git诊断，无远程写入 | 当前包 |
-| `uv run reputation doctor` | 工具、配置、链指纹/部署/服务检查 | M0/M1 |
-| `uv run reputation migrate` | 单Alembic head真实迁移 | M0 |
-| `uv run reputation deploy-local` | 显式部署，输出受信runtime | M1 |
-| `uv run reputation seed` | 幂等注册/ledger/真值准备 | M1 |
-| `uv run reputation demo --suite minimal` | 正常+无关tx+篡改 | M1 |
-| `uv run reputation demo --suite full` | A–H及完整20/10/10测试 | M2 |
-| `uv run reputation test --suite all` | 真正core/合约/DB/安全/E2E，不是仅reference | M4 |
-| `uv run --package reputation-verifier reputation-verify BUNDLE --offline` | 不连接API/DB的包复核 | M1 |
-| `uv run --package reputation-verifier reputation-verify BUNDLE --trust-config FILE` | 受信链配置的在线复核 | M1 |
+| `uv run --all-packages reputation doctor` | 工具/包检查；runtime_checks=NOT_RUN，不检查链或服务 | M0/M1 |
+| `uv run --env-file .env --all-packages reputation migrate` | 单Alembic head真实迁移 | M0 |
+| `uv run --env-file .env --all-packages reputation deploy-local [--runtime-dir runtime/INSTANCE]` | 显式本地部署，输出受信runtime | M1 |
+| `uv run --env-file .env --all-packages reputation seed [--runtime-dir runtime/INSTANCE]` | 幂等注册/ledger/真值准备 | M1 |
+| `uv run --env-file .env --all-packages python scripts/smoke_verification.py`，然后 `smoke_reports.py`、`smoke_m1.py` | A/D真实任务、报告、双报告anchor、独立复核、篡改拒绝 | M1 |
+| `uv run --env-file .env --all-packages python scripts/check.py` | 完整Python/真实DB/链/安全、Web、Foundry与生成漂移；禁止skip | M4 |
+| `uv run --all-packages reputation-verify BUNDLE` | 不连接API/DB的包复核；链anchor为NOT_CHECKED | M1 |
+| `uv run --all-packages reputation-verify BUNDLE --rpc-url TRUSTED_RPC` | 使用操作者指定可信RPC核对链状态 | M1 |
 
 测试目录命名跟架构一致；若CLI实际名变更，必须一次性同步README/脚本/CI/本文件，禁止口头约定。
 
@@ -64,4 +63,4 @@ T-UI：UNKNOWN非0；Q非概率；源标签；旧版警告；三步复核分别�
 {"schema_version":"test-run-v1","commit":"ACTUAL_COMMIT","dirty":false,"suite":"minimal","environment_file":"environment.json","results_file":"results.json","status":"NOT_RUN","commands":[],"limitations":[]}
 ```
 ACTUAL_COMMIT由程序读取；本示例不是实际结果。正式报告应包含总数/通过/失败/跳过/阻塞、源数据和真实耗时；关键测试skip时gate不能PASS。
-参考评分测试不等于链/网络/安全测试；本包交付时未执行任何用户仓库集成验收。
+参考评分测试不等于链/网络/安全测试；最新实际执行记录见 STATUS 与 [任务 11–13 验收记录](../testing/TASKS11_13_ACCEPTANCE.md)，未执行项目不得记为通过。

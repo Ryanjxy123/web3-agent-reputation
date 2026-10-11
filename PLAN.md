@@ -95,3 +95,5 @@
 2026-10-12 任务11阶段验收：12独立场景×3次真实v2采集36passed/0skip（461.04s），7指标测试与独立Review通过；源码/原件/分析/图表完整冻结。适用集Recall为Online0.2/Receipt0/Proposed1；UNKNOWN/N/A和局限保持，评分规则不改。实际运行时已有的最小读API/DTO和fixture ledger作为源码追溯前提同批提交，Task12页面另验收。当前继续12最后Review/真实UI、13部署/完整回归/PR/required CI/合并/Release；未完成门槛不记正式交付，详见STATUS。
 
 2026-10-12 任务12阶段验收：真实Vue/API/Worker/A-D/Anvil/报告/证据下载/独立CLI导入闭环通过，21unit/build/7browser及读API/report定向通过。最后Review修复pending anchor误标与长hex溢出，历史冻结不改。Task11提交ba1b148；继续Task13与稳定代码完整回归/required CI/PR/合并/Release，不提前宣称完成。
+
+2026-10-12 任务13实现/Review与定向14项、原生真实重复A/D/双anchor/Verifier通过，历史9+UI2 Bundle/109测试回归通过。CODE_VERSION/CAS/fixture卷/RPC/打包/文档已修复；正式赛事/匿名/第一方许可未知如实披露，不新增阻塞。进入稳定代码最终scripts/check.py/required quality+完整Compose CI/PR/合并/clean main/Release；最终验收未通过不标DONE。

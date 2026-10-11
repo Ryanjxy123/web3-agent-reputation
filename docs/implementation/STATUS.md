@@ -54,6 +54,16 @@
 - Source freeze：仅`application/reports.py`是在Task11 capture后变化的执行源码，改变安全的pending receipt投影，不改变原未anchor实验/核验/评分/统计；原82文件exact snapshot与所有正式数据保持不动，实验README明确差异与跨OS重放换行范围。
 - Gate：任务12实现→定向→独立Review→修复→重测→真实UI联调→阶段验收通过，进入Task13；全量/required CI/最终main/Release仍待完成。
 
+## 2026-10-12 / 任务13实现与Review（最终门槛待运行）
+
+- Git：任务11提交ba1b148、任务12提交6e774d2，阶段实现/Review/针对性/真实联调已通过；本节准备任务13逻辑提交，最终全量/CI/合并/Release未完成。
+- Implementation：共享CAS卷且API可追加binding证据；actual CODE_VERSION强制；各服务只挂载所需配置，A/D独立可写持久ledger。prepare_compose_runtime真实验证部署/seed/发布者与固定端点，只复制4个配置重写内部RPC，保留host原件与旧目录。package_delivery基于指定Git commit归档、逐文件SHA/bytes/notice/lock清单，拒绝私密/runtime路径与覆盖旧输出，不自动声称匿名/许可/验收。
+- Directed：package与真实Anvil/Compose准备14 passed/0skip（12.72s）、Ruff/Mypy/Compose config/文档链接与fence通过。repeat原生隔离PG/Anvil/API/Worker/A-D/Web smoke退出0：runtime/auth/webproxy→A PASS/D FAIL/TASK_ID_MISMATCH→两份PARTIAL/null报告→A/D双锚定→独立offline/可信RPC复核→篡改拒绝。日志见TASKS11_13_ACCEPTANCE.md。只签本地合成测试链，不付款/主网写入。
+- Review/fixes：Compose image无Git须显式source版本；API/Worker同CAS且API不可仅ro；fixture配置与ledger分离/各自卷；host/container RPC与secret挂载隔离；smoke原旧SEMANTIC_MISMATCH总原因更新为当前固定TASK_ID_MISMATCH同时保持request/hash具体断言；重复演示必须发布D的旧FAIL报告避免previous head阻塞。旧失败原件保留。文档去除不存在的demo/test/Verifier参数；Chromium安装进入实际check/CI。
+- History：当前独立CLI重放9个原始历史Bundle+2个真实UI Bundle全部exit0，原件SHA前后不变；109相关Verifier/publication tests通过（38.34s）。Akashi历史4PASS/1UNKNOWN、PARTIAL/null/executorUNKNOWN/UNANCHORED与302原件hash不变；本輪不重复公网请求，未声称当前公网状态。正式36次实验重判/分析一致性已确认。
+- Security/delivery：分阶段staged源码与ZIP成员匹配现有token/DB凭据/实际本地private keys无命中；截图token已mask。77 Python/168 Web依赖元数据及2notice已盘点，不赋第一方license。官方赛事名/规则/截止/匿名模板无原件为UNVERIFIED；软件Release可在技术/CI通过后披露限制发布，官方参赛提交须另核实；不虚构合规。
+- Final gates：本机Linux Docker因既有WSL问题NOT_RUN，不破坏原环境；增强foundation-compose将完整build/deploy/seed/start/A-D/双anchor/Verifier。稳定实现后开始scripts/check.py全量（FAIL_ON_SKIP=1），随后required CI/PR/合并/clean main/exact archive/Release；未通过前不标FOLLOWUP13 DONE。
+
 ## 2026-10-11 / 本轮任务10正式公共只读评价（本地阶段验收完成）
 
 - Baseline：任务9最终文档head13343622b41c2aa1947963e8be41c2f525cb991b的CI38116332399 quality/Compose均SUCCESS，PR#10按授权squash合并为1897a7408550116e0294c8c4eff25b580eb5c482。已fetch/prune、安全同步main=origin/main、核对合并树等于最终PR树、工作树干净，仅清理任务9本地/远程分支；随后建立feat/public-readonly-evaluation，未并行开展不同阶段。
