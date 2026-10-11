@@ -28,10 +28,10 @@
 | FOLLOWUP-07 | DONE | Akashi真实免费HTTP/MCP只读正例、独立Base事件核验、随机局部查询/非法输入/重复/注册存在检查通过；Review修复后重验；最终本地回归与 Foundation CI 通过 |
 | FOLLOWUP-08 | DONE | 正式HTTPS/MCP只读适配、安全DNS socket pin、限频/配额/付款停止与CAS审计完成；真实免费调用、301项定向验证、独立Review修复及985项完整Foundation CI通过 |
 | FOLLOWUP-09 | DONE | 固定块公共身份/端点关联、最终真实重验与独立Review通过；完整1279项通过，最终head CI成功，PR#10合并为1897a74并核对main一致 |
-| FOLLOWUP-10 | IN_PROGRESS | 正式公共只读模型、Worker/证据/报告/独立Verifier已实现，定向/独立Review/真实闭环通过；完整check.py与最终Git/CI交付进行中 |
+| FOLLOWUP-10 | DONE | 正式公共只读Worker/证据/报告/独立Verifier、Review/修复、真实闭环及本地完整1409项/0skip验收通过；最终head CI和Git交付按本节门槛执行，实际结果以PR#11/Git历史为准 |
 | LOCAL-PG-JUNCTION | DONE | Windows PostgreSQL 改用 D:\web3-runtime 目录联接；R: 已移除，初始化、重启、数据完整性及13项定向测试通过 |
 
-## 2026-10-11 / 本轮任务10正式公共只读评价（最终回归中）
+## 2026-10-11 / 本轮任务10正式公共只读评价（本地阶段验收完成）
 
 - Baseline：任务9最终文档head13343622b41c2aa1947963e8be41c2f525cb991b的CI38116332399 quality/Compose均SUCCESS，PR#10按授权squash合并为1897a7408550116e0294c8c4eff25b580eb5c482。已fetch/prune、安全同步main=origin/main、核对合并树等于最终PR树、工作树干净，仅清理任务9本地/远程分支；随后建立feat/public-readonly-evaluation，未并行开展不同阶段。
 - Design/implementation：显式公共Task/Facts/Slot/Plan/Grant/Input、新rule7/ReportCore1.6分支，复用Worker/PG/CAS/Observation/评分/Bundle；公共executor=None，旧EIP-712受控规则1–6不变。固定5槽免费只读查询与独立Base历史证据；样本不足保持PARTIAL/overall=null。完整机制与兼容性见ADR0021；迁移不改历史，存在executor-null公共行时downgrade明确拒绝。
@@ -41,7 +41,9 @@
 - Live：正式CLI `scripts/public_readonly_evaluation_smoke.py --allow-public-readonly --operator-dns-over-tls` 首次成功15:18后，仅恢复延迟从等待时间改为None；逆向该补丁hash严格匹配旧manifest。最终执行源码重新真实验收于runtime/task10-live-final-20261011-1540退出0，真实API→evaluate/verify/report Worker→冻结Bundle。66次网络响应（56 Base RPC、6 HTTP、4 MCP；64x200/1x202/1x400），实际独立Base canonical交易/回执/12确认和锁定Anchored事件核对；4 PASS、1 UNKNOWN、0 FAIL。ReportCore1.6.0、Run/report PARTIAL、overall_score_bp=null；executor UNKNOWN，未请求本地anchor，publication LOCAL_ANVIL/UNANCHORED。独立Bundle离线PASS、assessment/task_count MATCH；随机hash未查到不证明全球不存在。付款/签名/主网写入均0。
 - Published evidence：最终run的脱敏acceptance、66响应审计、229CAS、66DNS、Bundle、source-manifest和progress/run-context保留于docs/testing/evidence/akashi-public-evaluation-2026-10-11；publication-manifest对302文件逐字节承诺，Git禁止证据换行转换。最终manifest所有执行平台/core/verifier源码与交付一致，仅run启动后迁移downgrade名称修复和PG历史保护测试两个文件不同；README明确说明，不重写真实源清单。旧成功/失败材料和前次公开副本保留runtime，隔离本地数据库保留，不提交凭据、token、private key或链状态。公开原件与ZIP、待提交变更静默匹配现有7项敏感值均0匹配。
 - CI isolation failure/fix：代码提交0de08e4368965c234fcbe7f65872cca2a7e76e66已push并创建Draft PR#11，Foundation run38122561336 Compose SUCCESS、quality FAILURE：1406 passed/3 failed/0skip/2warnings（1343.72s）。唯一失败是公共revoke/disabled/cancel三个测试遗漏deployment fixture，本机已有runtime配置掩盖了依赖。测试显式复用真实identity_chain并标注chain，所有零调用/五观测/完整CAS断言保持；LOCAL_CHAIN_CONFIG故意指向不存在文件时3 passed（11.93s），不改生产代码或安全门槛。原失败日志runtime/task10-code-ci-complete.log与-result.json保留NOT_PASS；最终CI待重跑，不用本机旧配置的成功代替干净环境验收。
-- Git/next：分支feat/public-readonly-evaluation，代码/脱敏证据/ADR/runbook已完成；当前待完整check.py实际退出与最终CI、按AGENTS条件合并同步main并仅清理本任务分支。不开展11–13；外网默认关闭，离线复核不证明采集者诚实或实时主网状态，评分/充分度门槛不变。
+- Local final：完整check.py于2026-10-11T08:22:08Z实际退出0；Python1409 passed/0skip/2warnings（2189.57s），Web类型生成/build/2tests、Foundry14/0skip/256fuzz、Ruff、Mypy69、71Schema/OpenAPI/TS无漂移及三ABI全部通过。原件runtime/task10-full-check-reviewed.log和-result.json。本机运行开始的实现及测试树对应随后提交0de08e4，执行期间仅增加上述3个测试的显式fixture和文档；最终fixture在不存在本地配置时另测3 passed，生产源码完全相同。最终干净Linux/full CI必须再对最新head全量运行，不把旧head或本机现存配置当该CI成功。
+- History/final audit：当前Verifier对四份实际历史A/D ZIP离线重放均PASS，旧assessment明确NOT_AVAILABLE_LEGACY_REPORT、anchor NOT_CHECKED，记录runtime/task10-historical-bundle-replay.json。最终302文件清单/303 Git blobs逐字节一致；源清单仅迁移与测试两处逻辑差异，domain.py与safe_http.py在Git内只规范CRLF为LF，README说明完整。全部358变更与314 ZIP成员静默匹配当前7项敏感值0命中，无付款/签名/主网写入，独立代码及证据Review无剩余阻断。
+- Gate/Git/next：任务10实际实现→定向→独立Review→修复重测→真实闭环→本地完整阶段验收完成。实现0de08e4和fixture隔离修复c8f6dd4已push，Draft PR#11 base=main/head=feat/public-readonly-evaluation。最终验收文档提交后继续等待最新head所有Foundation checks成功，转Ready并按AGENTS条件合并，fetch同步main=origin/main、核对合并树，再仅清理本任务分支；CI run/最终head/合并SHA以PR#11和Git历史为准，旧失败run不计成功。本轮8→9→10实现与验收顺序完成，不开展11–13。外网默认关闭；公开少样本仍PARTIAL/overall=null、executor UNKNOWN、本地未anchor；离线复核不证明采集者诚实或实时主网状态，评分/充分度门槛不变。
 
 ## 2026-10-11 / 本轮任务9受限公开身份接入
 

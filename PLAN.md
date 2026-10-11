@@ -2,7 +2,7 @@
 
 当前授权范围（2026-10-11）：续接main `ededc90`，依次任务8→Review/修复/验收→任务9→Review/修复/验收→任务10；优先完整交付8，资源不足则先提交与交接当前阶段。第三方只允许免费只读，无付款/签名/主网写入。任务8设计ADR0019，实际进度以STATUS为准；不展开11–13。
 
-阶段进度：任务1–9已完成。任务8 PR#9合并并核对main一致，本机与CI完整检查通过；任务9稳定00bcb43本机与Foundation CI完整1279项/0skip通过，最终文档head1334362的CI38116332399 quality/Compose均成功，PR#10合并为1897a74。任务10在feat/public-readonly-evaluation完成公共模型/Worker/证据/报告/独立Verifier，定向测试及独立Review修复通过；正式Akashi HTTP/MCP+Base只读闭环66响应，4PASS/1UNKNOWN、ReportCore1.6/PARTIAL/overall=null、executor UNKNOWN，离线Bundle PASS/MATCH，本地publication UNANCHORED。完整check.py及最终Git/CI交付进行中，不将无退出码的旧日志计为通过。保留评分/充分度/身份绑定与历史证据规则，不展开11–13，详情见STATUS/ADR0021。
+阶段进度：任务1–10实现与本地阶段验收完成。任务8 PR#9合并并核对main一致，本机与CI完整检查通过；任务9稳定00bcb43本机与Foundation CI完整1279项/0skip通过，最终文档head1334362的CI38116332399 quality/Compose均成功，PR#10合并为1897a74。任务10在feat/public-readonly-evaluation完成公共模型/Worker/证据/报告/独立Verifier，定向与独立Review修复、真实Akashi HTTP/MCP+Base66响应通过；4PASS/1UNKNOWN、ReportCore1.6/PARTIAL/overall=null、executor UNKNOWN、离线Bundle PASS/MATCH、本地publication UNANCHORED。本机完整check.py退出0：1409Python/0skip、Web2、Foundry14/256fuzz、Ruff/Mypy69/71Schema/TS/ABI全通过；干净CI发现3个测试遗漏deployment fixture，已补显式真实fixture，在不存在配置路径下3passed，未改生产逻辑或断言。实现0de08e4/修复c8f6dd4已推送、Draft PR#11；最终文档head全部CI成功才按AGENTS合并/同步main/清理本任务分支，真实CI与合并SHA以PR/Git历史为准。旧失败/无退出码日志不计通过，评分/充分度/身份绑定与历史规则不变；本轮到10停止，不展开11–13，详情见STATUS/ADR0021。
 
 版本：foundation-v1.1，2026-10-03。状态：M0 基础验收完成（原生 Windows + Linux Compose CI）；M0-07 公网 OpenAPI 403 单列；M1-01 至 M1-08 已完成，M0+M1 最终验收通过。
 
