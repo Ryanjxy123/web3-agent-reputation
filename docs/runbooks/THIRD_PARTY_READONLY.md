@@ -25,4 +25,6 @@ uv run --all-packages python scripts/akashi_readonly_adapter.py --allow-public-r
 
 本轮第一次系统 DNS 运行退出 1，5 次意图均因 PUBLIC_IP_REQUIRED 拒绝，未得到第三方响应。第二次可信 DNS 运行 HTTP/MCP 正例规范化一致，但非法输入前发生一次 ConnectError，退出 1，未自动重试，失败证据保留。第三次完整运行退出 0：HTTP 200/200/200/400，MCP 200/202/200/200；共 8 次尝试，正例/重复/MCP 归一一致，无 402、付款或主网写入。
 
-完整原材料位于 `runtime/task8-live-20261011-{1,2,3}`；公开脱敏的成功运行与原始 body hash 见 `docs/testing/evidence/akashi-formal-2026-10-11`。这些是任务 8 真实协议证据，不能当作新链上核验、ERC-8004 身份验证或正式计分结果；任务 7 的历史链核验没有被本次调用替代。
+最后一次在最终源代码上重验的run4同样退出0、8次请求全部符合上述状态，公开材料来自run4。完整原材料位于 `runtime/task8-live-20261011-{1,2,3,4}`；公开脱敏的成功运行与原始 body hash 见 `docs/testing/evidence/akashi-formal-2026-10-11`。整轮29次意图、23份实际响应，5次IP拒绝/1次ConnectError全部保留，无自动重试、付款或402。
+
+这些是任务 8 真实协议证据，不能当作新链上核验、ERC-8004 身份验证或正式计分结果；任务 7 的历史链核验没有被本次调用替代。301项定向验证及稳定代码d8297bb的完整Foundation CI（Python985/0skip、Web2、Foundry14/256fuzz、Schema/TS/ABI/Ruff/Mypy）通过，当前代码重放4份真实历史A/D Bundle全部PASS。
