@@ -97,3 +97,5 @@
 2026-10-12 任务12阶段验收：真实Vue/API/Worker/A-D/Anvil/报告/证据下载/独立CLI导入闭环通过，21unit/build/7browser及读API/report定向通过。最后Review修复pending anchor误标与长hex溢出，历史冻结不改。Task11提交ba1b148；继续Task13与稳定代码完整回归/required CI/PR/合并/Release，不提前宣称完成。
 
 2026-10-12 任务13实现/Review与定向14项、原生真实重复A/D/双anchor/Verifier通过，历史9+UI2 Bundle/109测试回归通过。CODE_VERSION/CAS/fixture卷/RPC/打包/文档已修复；正式赛事/匿名/第一方许可未知如实披露，不新增阻塞。进入稳定代码最终scripts/check.py/required quality+完整Compose CI/PR/合并/clean main/Release；最终验收未通过不标DONE。
+
+最终Review补正：复现并修复跨选择stale report/cancel/load/poll，21unit/type/build/11browser通过；raw Git blob精确打包（git archive有EOL转换），10package tests通过；旧本地全量中断NOT_FINAL。新稳定candidate重新全量/CI，旧Compose成功只为对应head事实。clean checkout离线实验/公共Bundle与911-file exact package已实际复现，不使用旧candidate结果冒充最终head。

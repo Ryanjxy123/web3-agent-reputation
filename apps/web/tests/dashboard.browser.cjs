@@ -170,12 +170,124 @@ async function run() {
     await page.getByRole('button', { name: '查看', exact: true }).last().click();
     assert.equal(await page.getByText('CLI 顶层状态', { exact: true }).count(), 0, 'changing report must clear the imported CLI result');
     assert.equal(await page.getByRole('heading', { name: '冻结任务输入与原始证据' }).count(), 0, 'changing report must clear the previous task evidence');
+
+    await page.getByRole('button', { name: '任务评价', exact: true }).click();
+    await page.getByLabel('Run UUID').fill('run-a');
+    await page.getByRole('button', { name: '加载 / 刷新', exact: true }).click();
+    await page.getByText('PARTIAL', { exact: true }).waitFor();
+    let releaseReportStart;
+    const delayedReportStart = new Promise(resolve => { releaseReportStart = resolve; });
+    await page.route('**/api/v1/evaluations/run-a/report', async route => {
+      if (route.request().method() !== 'POST') return route.fallback();
+      await delayedReportStart;
+      await route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify({ job_id: 'job-report', status_url: '/api/v1/jobs/job-report', status: 'QUEUED' }) });
+    });
+    const pendingReportStart = page.waitForRequest(request => new URL(request.url()).pathname === '/api/v1/evaluations/run-a/report' && request.method() === 'POST');
+    await page.getByRole('button', { name: '生成冻结报告', exact: true }).click();
+    await pendingReportStart;
+    await page.getByRole('button', { name: '历史对比', exact: true }).click();
+    await page.getByRole('button', { name: '查看', exact: true }).first().click();
+    await page.getByText(reportHash, { exact: true }).waitFor();
+    const staleReportAccepted = page.waitForResponse(response => new URL(response.url()).pathname === '/api/v1/evaluations/run-a/report' && response.request().method() === 'POST');
+    releaseReportStart();
+    await staleReportAccepted;
+    await page.getByRole('status').filter({ hasText: '正在请求平台…' }).waitFor({ state: 'hidden' });
+    assert.equal(await page.getByRole('alert').count(), 0, 'a report request completed after a history switch must not dereference the cleared evaluation');
+    assert.equal(await page.getByText('报告生成任务已排队。', { exact: true }).count(), 0, 'the stale report request must not claim it queued a report in the newly selected context');
+    assert.equal(await page.getByText(reportHash, { exact: true }).count(), 1, 'the selected historical report must survive the old report request completion');
+    console.log('PASS: delayed report POST completion preserves the selected historical report');
+
+    await page.route('**/api/v1/evaluations/run-c', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ run_id: 'run-c', status: 'RUNNING', stage: 'EXECUTING', planned: 2, settled: 0, unknown: 0, latest_report_id: null, cancel_requested: false }) }));
+    let releaseCancellation;
+    const delayedCancellation = new Promise(resolve => { releaseCancellation = resolve; });
+    await page.route('**/api/v1/evaluations/run-c/cancel', async route => {
+      await delayedCancellation;
+      await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ run_id: 'run-c', status: 'RUNNING', stage: 'EXECUTING', planned: 2, settled: 0, unknown: 0, latest_report_id: null, cancel_requested: true }) });
+    });
+    await page.getByRole('button', { name: '任务评价', exact: true }).click();
+    await page.getByLabel('Run UUID').fill('run-c');
+    await page.getByRole('button', { name: '加载 / 刷新', exact: true }).click();
+    await page.getByText('RUNNING', { exact: true }).waitFor();
+    const pendingCancellation = page.waitForRequest(request => new URL(request.url()).pathname === '/api/v1/evaluations/run-c/cancel');
+    await page.getByRole('button', { name: '取消评价', exact: true }).click();
+    await pendingCancellation;
+    await page.getByRole('button', { name: '历史对比', exact: true }).click();
+    await page.getByRole('button', { name: '查看', exact: true }).first().click();
+    await page.getByText(reportHash, { exact: true }).waitFor();
+    const staleCancellationAccepted = page.waitForResponse(response => new URL(response.url()).pathname === '/api/v1/evaluations/run-c/cancel');
+    releaseCancellation();
+    await staleCancellationAccepted;
+    await page.getByRole('status').filter({ hasText: '正在请求平台…' }).waitFor({ state: 'hidden' });
+    assert.equal(await page.getByRole('alert').count(), 0, 'a cancellation completed after a history switch must not dereference the cleared evaluation');
+    assert.equal(await page.getByText('取消请求已提交；已发生的任务和证据保留。', { exact: true }).count(), 0, 'the stale cancellation must not display its message in the historical report context');
+    assert.equal(await page.getByText(reportHash, { exact: true }).count(), 1, 'the selected historical report must survive the old cancellation completion');
+    console.log('PASS: delayed cancellation completion preserves the selected historical report');
+
+    for (const staleOutcome of ['success', 'failure']) {
+      const staleRunId = `run-history-${staleOutcome}`;
+      let releaseRunLoad;
+      const delayedRunLoad = new Promise(resolve => { releaseRunLoad = resolve; });
+      await page.route(`**/api/v1/evaluations/${staleRunId}`, async route => {
+        await delayedRunLoad;
+        const body = staleOutcome === 'success'
+          ? { run_id: staleRunId, status: 'CANCELLED', stage: 'DONE', planned: 2, settled: 2, unknown: 0, latest_report_id: null, cancel_requested: true }
+          : { error: { message: 'stale initial run load failed' } };
+        await route.fulfill({ status: staleOutcome === 'success' ? 200 : 500, contentType: 'application/json', body: JSON.stringify(body) });
+      });
+      await page.getByRole('button', { name: '任务评价', exact: true }).click();
+      await page.getByLabel('Run UUID').fill(staleRunId);
+      const pendingRunLoad = page.waitForRequest(request => new URL(request.url()).pathname === `/api/v1/evaluations/${staleRunId}`);
+      await page.getByRole('button', { name: '加载 / 刷新', exact: true }).click();
+      await pendingRunLoad;
+      await page.getByRole('button', { name: '历史对比', exact: true }).click();
+      await page.getByRole('button', { name: '查看', exact: true }).first().click();
+      await page.getByText(reportHash, { exact: true }).waitFor();
+      const staleRunLoaded = page.waitForResponse(response => new URL(response.url()).pathname === `/api/v1/evaluations/${staleRunId}`);
+      releaseRunLoad();
+      await staleRunLoaded;
+      await page.getByRole('status').filter({ hasText: '正在请求平台…' }).waitFor({ state: 'hidden' });
+      assert.equal(await page.getByRole('alert').count(), 0, `an initial run ${staleOutcome} after a history switch must not display a stale error`);
+      await page.getByRole('heading', { name: '冻结报告与任务证据', exact: true }).waitFor();
+      assert.equal(await page.getByText(reportHash, { exact: true }).count(), 1, `an initial run ${staleOutcome} must preserve the selected historical report and evidence tab`);
+    }
+    console.log('PASS: delayed initial run success/failure preserves the selected historical report and tab');
     await page.getByRole('button', { name: 'Agent 与身份', exact: true }).click();
     await page.getByRole('button', { name: 'Agent #2' }).click();
     await page.getByText('UNVERIFIED', { exact: true }).waitFor();
     await page.getByRole('button', { name: '声誉与证据', exact: true }).click();
     await page.getByText('尚未选择冻结报告。', { exact: true }).waitFor();
     console.log('PASS: report and Agent switches clear old report, task evidence and imported verifier attribution');
+
+    await page.route('**/api/v1/jobs/job-report', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ id: 'job-report', state: 'RUNNING', reason_code: null }) }));
+    await page.getByRole('button', { name: '任务评价', exact: true }).click();
+    await page.getByLabel('Run UUID').fill('run-a');
+    await page.getByRole('button', { name: '加载 / 刷新', exact: true }).click();
+    await page.getByText('PARTIAL', { exact: true }).waitFor();
+    await page.getByRole('button', { name: '生成冻结报告', exact: true }).click();
+    await page.getByRole('status').filter({ hasText: '报告生成任务已排队。' }).waitFor();
+    let releaseOldReportPoll;
+    const oldReportPoll = new Promise(resolve => { releaseOldReportPoll = resolve; });
+    await page.route('**/api/v1/evaluations/run-a', async route => {
+      await oldReportPoll;
+      await route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: { message: 'stale Run A report poll failed' } }) });
+    });
+    let runBReads = 0;
+    await page.route('**/api/v1/evaluations/run-b', route => {
+      runBReads += 1;
+      return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ run_id: 'run-b', status: runBReads === 1 ? 'RUNNING' : 'PARTIAL', stage: runBReads === 1 ? 'EXECUTING' : 'DONE', planned: 2, settled: runBReads === 1 ? 0 : 2, unknown: 1, latest_report_id: null, cancel_requested: false }) });
+    });
+    await page.waitForRequest(request => new URL(request.url()).pathname === '/api/v1/evaluations/run-a');
+    await page.getByLabel('Run UUID').fill('run-b');
+    await page.getByRole('button', { name: '加载 / 刷新', exact: true }).click();
+    await page.getByText('RUNNING', { exact: true }).waitFor();
+    await page.getByRole('status').filter({ hasText: '正在请求平台…' }).waitFor({ state: 'hidden' });
+    const oldReportFailure = page.waitForResponse(response => new URL(response.url()).pathname === '/api/v1/evaluations/run-a' && response.status() === 500);
+    releaseOldReportPoll();
+    await oldReportFailure;
+    await page.getByText('PARTIAL', { exact: true }).waitFor({ timeout: 10000 });
+    assert.ok(runBReads >= 2, 'a stale report-poll failure must not stop the newly selected run polling');
+    assert.equal(await page.getByRole('alert').filter({ hasText: 'stale Run A report poll failed' }).count(), 0, 'an old report poll must not display its failure for the new run');
+    console.log('PASS: delayed old report-poll failure leaves the new run polling and notices intact');
     assert.deepEqual(errors, [], 'browser runtime must have no uncaught errors');
   } finally {
     await browser?.close();

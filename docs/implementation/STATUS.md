@@ -30,7 +30,7 @@
 | FOLLOWUP-09 | DONE | 固定块公共身份/端点关联、最终真实重验与独立Review通过；完整1279项通过，最终head CI成功，PR#10合并为1897a74并核对main一致 |
 | FOLLOWUP-10 | DONE | 正式公共只读Worker/证据/报告/独立Verifier、Review/修复、真实闭环及本地完整1409项/0skip验收通过；最终head CI和Git交付按本节门槛执行，实际结果以PR#11/Git历史为准 |
 | FOLLOWUP-11 | ACCEPTED_LOCAL | 12场景×3真实对照/完整冻结/独立Review通过，ba1b148；最终CI/Release待完成 |
-| FOLLOWUP-12 | ACCEPTED_LOCAL | 真实Vue产品/API联调、21unit/7browser/build、Review修复通过；最终回归待完成 |
+| FOLLOWUP-12 | ACCEPTED_LOCAL | 真实Vue产品/API联调、21unit/11browser/build、终审修复通过；最终回归待完成 |
 | FOLLOWUP-13 | IN_PROGRESS | 部署/文档/打包/重复A/D演示已准备，最终全量/CI/合并/Release待完成 |
 | LOCAL-PG-JUNCTION | DONE | Windows PostgreSQL 改用 D:\web3-runtime 目录联接；R: 已移除，初始化、重启、数据完整性及13项定向测试通过 |
 
@@ -63,6 +63,14 @@
 - History：当前独立CLI重放9个原始历史Bundle+2个真实UI Bundle全部exit0，原件SHA前后不变；109相关Verifier/publication tests通过（38.34s）。Akashi历史4PASS/1UNKNOWN、PARTIAL/null/executorUNKNOWN/UNANCHORED与302原件hash不变；本輪不重复公网请求，未声称当前公网状态。正式36次实验重判/分析一致性已确认。
 - Security/delivery：分阶段staged源码与ZIP成员匹配现有token/DB凭据/实际本地private keys无命中；截图token已mask。77 Python/168 Web依赖元数据及2notice已盘点，不赋第一方license。官方赛事名/规则/截止/匿名模板无原件为UNVERIFIED；软件Release可在技术/CI通过后披露限制发布，官方参赛提交须另核实；不虚构合规。
 - Final gates：本机Linux Docker因既有WSL问题NOT_RUN，不破坏原环境；增强foundation-compose将完整build/deploy/seed/start/A-D/双anchor/Verifier。稳定实现后开始scripts/check.py全量（FAIL_ON_SKIP=1），随后required CI/PR/合并/clean main/exact archive/Release；未通过前不标FOLLOWUP13 DONE。
+
+## 2026-10-12 / 最终Review修复与重验
+
+- Final candidate `0e36331` 已push并创建Draft PR#12；增强foundation-compose在CI run38161591091的job114535463881已实际SUCCESS，日志包含COMPOSE_RUNTIME_PREPARED/LIVE_RUNTIME_PASS/真实A PASS-D TASK_ID_MISMATCH/报告/双anchor/offline-online/tamper通过。该旧candidate结果不能代替最新head required checks。
+- 独立finalReview复现报告poll旧失败会停止新Run、report/cancel POST返回后读已清理Run，以及旧load成功/失败覆盖新历史选择。修复使用已有updateIfCurrent与捕获run/generation，VM真实源码回归证明五条旧路径失败/新路径通过；最终21unit/type/build与11组browser通过、exit0、无未捕获异常，日志runtime/task12-final-browser-races.log。源码已锁定；无新业务规则。
+- 打包完整性实际发现git archive换行转换：旧candidate .dockerignore/tool.ps1输出与Git blob不同。改用一次ls-tree/cat-file batch读取raw blob生成固定日期/权限ZIP，10package tests通过（8.68s），含CRLF属性/重复byte/unsupported mode；新输出对旧candidate911/911逐文件exact Git bytes核对通过。文档同改，不放宽exact-byte断言。
+- Clean reproduction：全新候选checkout `0e36331`无.env/private runtime，uv locked sync、pnpm frozen install/build、DB/operator/RPC/config unset离线Task11重算JSON/CSV/report/chart一致；152实验/8UI/302Akashi原件与82source snapshot hash全match，checkout干净。三公共Bundle独立复核维持原四态/状态。完整tracked/40ZIP7039members凭据字段扫描0真实命中，仅12明确测试字面量；root额外7950source/ZIP扫描唯一PRIVATE KEY marker是负例测试，无实际key bytes。
+- 原本本地完整check在上述finalReview前启动，明确中断为INTERRUPTED_NOT_FINAL；仅杀已确认的该check进程树，未动demo/开发数据库。日志/结果保留`runtime/tasks11-13-full-check-final*`，不得计为通过。修复后稳定candidate需重新执行全量与最新headCI；最终Git/Release未完成。
 
 ## 2026-10-11 / 本轮任务10正式公共只读评价（本地阶段验收完成）
 

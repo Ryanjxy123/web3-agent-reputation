@@ -160,23 +160,27 @@ async function refreshRun(id: string, generation: number, current?: EvaluationRu
   }
   if (generation !== runGeneration) return null;
   if (awaitingReport) {
-    pollTimer = setTimeout(() => { refreshRun(id, generation).catch(cause => { notice(cause); stopPolling(); }); }, 2000);
+    pollTimer = setTimeout(() => { refreshRun(id, generation).catch(cause => {
+      if (generation === runGeneration) { notice(cause); stopPolling(); }
+    }); }, 2000);
   }
   return run;
 }
 async function loadEvaluation(id = lookupRunId.value) { return action(async () => {
   if (!id.trim()) throw new Error('请输入 Run UUID。');
   const generation = clearRunContext(); lookupRunId.value = id.trim();
-  const loaded = await refreshRun(id.trim(), generation); activeTab.value = 'evaluation';
-  if (loaded && !terminalStatuses.has(loaded.status)) {
-    pollAbort = new AbortController();
-    const signal = pollAbort.signal;
-    pollTimer = setTimeout(() => {
-      pollEvaluation(id.trim(), { signal, onUpdate: async run => { await refreshRun(id.trim(), generation, run); } }).catch(cause => {
-        if (!signal.aborted) { notice(cause); stopPolling(); }
-      });
-    }, 2000);
-  }
+  await updateIfCurrent(refreshRun(id.trim(), generation), () => generation === runGeneration, loaded => {
+    activeTab.value = 'evaluation';
+    if (loaded && !terminalStatuses.has(loaded.status)) {
+      pollAbort = new AbortController();
+      const signal = pollAbort.signal;
+      pollTimer = setTimeout(() => {
+        pollEvaluation(id.trim(), { signal, onUpdate: async run => { await refreshRun(id.trim(), generation, run); } }).catch(cause => {
+          if (!signal.aborted) { notice(cause); stopPolling(); }
+        });
+      }, 2000);
+    }
+  });
 }); }
 async function startEvaluation() { await action(async () => {
   requireOperator();
@@ -188,14 +192,21 @@ async function startEvaluation() { await action(async () => {
 }); }
 async function cancelEvaluation() { await action(async () => {
   requireOperator(); if (!evaluation.value) return;
-  await requestJson<EvaluationRun>(`/api/v1/evaluations/${evaluation.value.run_id}/cancel`, { method: 'POST', token: operatorToken.value, body: { reason: 'Cancelled from local operator dashboard' } });
-  await loadEvaluation(evaluation.value.run_id); message.value = '取消请求已提交；已发生的任务和证据保留。';
+  const id = evaluation.value.run_id; const generation = runGeneration;
+  const isCurrent = () => generation === runGeneration && evaluation.value?.run_id === id;
+  await updateIfCurrent(requestJson<EvaluationRun>(`/api/v1/evaluations/${id}/cancel`, { method: 'POST', token: operatorToken.value, body: { reason: 'Cancelled from local operator dashboard' } }), isCurrent, () => {});
+  if (!isCurrent()) return;
+  const reloadGeneration = runGeneration + 1;
+  if (await loadEvaluation(id) && runGeneration === reloadGeneration && evaluation.value?.run_id === id) message.value = '取消请求已提交；已发生的任务和证据保留。';
 }); }
 async function requestReport() { await action(async () => {
   requireOperator(); if (!evaluation.value) return;
-  acceptedReportJob = await requestJson<AcceptedJob>(`/api/v1/evaluations/${evaluation.value.run_id}/report`, { method: 'POST', token: operatorToken.value });
-  reportJob.value = null; missingReportAttempts = 0;
-  awaitingReport = true; stopPolling(); await refreshRun(evaluation.value.run_id, runGeneration); message.value = '报告生成任务已排队。';
+  const id = evaluation.value.run_id; const generation = runGeneration;
+  const isCurrent = () => generation === runGeneration && evaluation.value?.run_id === id;
+  await updateIfCurrent(requestJson<AcceptedJob>(`/api/v1/evaluations/${id}/report`, { method: 'POST', token: operatorToken.value }), isCurrent,
+    accepted => { acceptedReportJob = accepted; reportJob.value = null; missingReportAttempts = 0; awaitingReport = true; stopPolling(); });
+  if (!isCurrent()) return;
+  await updateIfCurrent(refreshRun(id, generation), isCurrent, () => { message.value = '报告生成任务已排队。'; });
 }); }
 async function selectReport(item: ReportView) {
   const generation = clearRunContext(); report.value = item;

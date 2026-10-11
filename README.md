@@ -55,7 +55,7 @@ API、独立 worker、前端、本地部署/seed/A/D 服务的启动命令见 [�
 
 完成本地核验后运行 `uv run --env-file .env --all-packages python scripts/smoke_reports.py`，再运行 `uv run --env-file .env --all-packages python scripts/smoke_m1.py` 完成本地报告锚定和独立复核。独立 CLI 为 `uv run --all-packages reputation-verify <bundle.zip> [--rpc-url <trusted-rpc>]`；不提供 RPC 时链上状态为 `NOT_CHECKED`，离线通过只证明冻结包内部一致性。两份 smoke 报告的 overall_score_bp 均为 null。
 
-免费第三方流程见 [公共只读评价](docs/runbooks/PUBLIC_READONLY_EVALUATION.md)。正式交付需按 [比赛交付检查](docs/runbooks/COMPETITION_DELIVERY.md) 核对官方规则、最终测试记录、许可与匿名要求。`scripts/package_delivery.py` 使用 `git archive` 导出指定 commit 的公共源码和 SHA-256/许可清单，排除本地未提交 runtime；生成包不代表已通过验收或已发布 Release。
+免费第三方流程见 [公共只读评价](docs/runbooks/PUBLIC_READONLY_EVALUATION.md)。正式交付需按 [比赛交付检查](docs/runbooks/COMPETITION_DELIVERY.md) 核对官方规则、最终测试记录、许可与匿名要求。`scripts/package_delivery.py` 直接读取指定 commit 的 Git blob，导出保持原始字节的公共源码和 SHA-256/许可清单，排除本地未提交 runtime；生成包不代表已通过验收或已发布 Release。
 
 ## 正式对照实验
 

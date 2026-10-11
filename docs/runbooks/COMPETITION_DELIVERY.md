@@ -23,7 +23,7 @@
 
 ## 3. 指定 commit 的源码交付包
 
-`scripts/package_delivery.py` 使用 `git archive` 导出指定 commit 的已跟踪文件，不复制工作树、.env、runtime 或本地数据库。若该 commit 跟踪了禁止的秘密/runtime 路径，脚本在生成输出前拒绝。它不判断 CI、安全验收或匿名是否通过；清单明确标为 `NOT_ASSERTED` / `NOT_REVIEWED`。
+`scripts/package_delivery.py` 从指定 commit 的 Git blob 直接导出已跟踪文件，保持提交中的原始字节；不复制工作树、.env、runtime 或本地数据库，也不应用工作区换行转换。若该 commit 跟踪了禁止的秘密/runtime 路径、符号链接或子模块，脚本在生成输出前拒绝。它不判断 CI、安全验收或匿名是否通过；清单明确标为 `NOT_ASSERTED` / `NOT_REVIEWED`。
 
 正式候选应先提交已验收改动，核对工作树干净，再导出目标 commit：
 
@@ -35,7 +35,7 @@ $output = "runtime/delivery-{0}" -f $commit.Substring(0, 12)
 uv run --all-packages python scripts/package_delivery.py --ref $commit --output $output
 ```
 
-输出目录必须不存在，脚本不覆盖旧包。产物是 `source.zip`、逐文件 SHA-256/字节数与实际 commit 的 `manifest.json`、以及 `licenses.json`。相同 commit 的源码字节来自 Git 对象；未提交修改和忽略文件不会改变包。公开证据 ZIP 只来自已经审过并跟踪的脱敏文件。
+输出目录必须不存在，脚本不覆盖旧包。产物是 `source.zip`、逐文件 SHA-256/字节数与实际 commit 的 `manifest.json`、以及 `licenses.json`。ZIP 使用固定时间戳，保留普通文件的执行权限；相同 commit 的源码字节来自 Git 对象，未提交修改、忽略文件及 LF/CRLF 配置不会改变包。公开证据 ZIP 只来自已经审过并跟踪的脱敏文件。
 
 禁止路径检查不能替代内容审查：发布前仍须检查跟踪的源码、报告、图像和 ZIP 内是否含凭据或未脱敏信息。不要因为文件已提交就假定可以公开。
 

@@ -2,6 +2,7 @@
 
 import argparse
 import hashlib
+import io
 import json
 import subprocess
 import zipfile
@@ -13,14 +14,16 @@ BLOCKED_DIRS = {".git", "runtime", "secrets", "artifacts", "node_modules", ".ven
 BLOCKED_SUFFIXES = {".key", ".pem", ".sqlite", ".sqlite3", ".db"}
 
 
-def git(root: Path, *arguments: str) -> bytes:
-    return subprocess.check_output(["git", "-C", str(root), *arguments])
+def git(root: Path, *arguments: str, input_data: bytes | None = None) -> bytes:
+    return subprocess.check_output(["git", "-C", str(root), *arguments], input=input_data)
 
 
 def package(root: Path, ref: str, output: Path) -> dict:
     commit = git(root, "rev-parse", "--verify", "--end-of-options", ref + "^{commit}").decode().strip()
-    paths = git(root, "ls-tree", "-rz", "--name-only", commit).decode().split("\0")[:-1]
-    for name in paths:
+    entries = []
+    for entry in git(root, "ls-tree", "-rz", "--full-tree", commit).decode().split("\0")[:-1]:
+        metadata, name = entry.split("\t", 1)
+        mode, kind, object_id = metadata.split()
         path = PurePosixPath(name)
         lowered_parts = {part.lower() for part in path.parts}
         lowered_name = path.name.lower()
@@ -31,17 +34,32 @@ def package(root: Path, ref: str, output: Path) -> dict:
             or lowered_name in {"setup-secrets.json", "publisher-secret.json"}
         ):
             raise ValueError(f"Ref contains a prohibited delivery path: {name}")
+        if kind != "blob" or mode not in {"100644", "100755"}:
+            raise ValueError(f"Ref contains an unsupported delivery mode: {mode} {name}")
+        entries.append((name, mode, object_id))
     if output.exists():
         raise FileExistsError("Delivery output must not already exist")
+    entries.sort()
+    blobs = io.BytesIO(git(
+        root, "cat-file", "--batch",
+        input_data="".join(object_id + "\n" for _, _, object_id in entries).encode(),
+    ))
     output.mkdir(parents=True)
     archive = output / "source.zip"
-    git(root, "archive", "--format=zip", "--output=" + str(archive.resolve()), commit)
-    with zipfile.ZipFile(archive) as source:
-        files: list[dict[str, Any]] = [
-            {"path": name, "byte_count": len(data), "sha256": hashlib.sha256(data).hexdigest()}
-            for name in sorted(source.namelist()) if not name.endswith("/")
-            for data in [source.read(name)]
-        ]
+    files: list[dict[str, Any]] = []
+    with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as source:
+        for name, mode, object_id in entries:
+            actual_id, kind, size = blobs.readline().decode().split()
+            data = blobs.read(int(size))
+            if actual_id != object_id or kind != "blob" or len(data) != int(size) or blobs.read(1) != b"\n":
+                raise ValueError(f"Git blob response differs for: {name}")
+            # Git archive applies checkout EOL attributes; raw blobs preserve the committed bytes.
+            member = zipfile.ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))
+            member.create_system = 3
+            member.external_attr = int(mode, 8) << 16
+            member.compress_type = zipfile.ZIP_DEFLATED
+            source.writestr(member, data)
+            files.append({"path": name, "byte_count": len(data), "sha256": hashlib.sha256(data).hexdigest()})
     manifest = {
         "schema_version": "delivery-source-v1",
         "commit": commit,
