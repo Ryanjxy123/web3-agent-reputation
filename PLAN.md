@@ -1,6 +1,8 @@
 # 从零构造执行计划（ExecPlan）
 
-当前授权范围（2026-10-11）：续接main `ededc90`，依次任务8→Review/修复/验收→任务9→Review/修复/验收→任务10；优先完整交付8，资源不足则先提交与交接当前阶段。第三方只允许免费只读，无付款/签名/主网写入。任务8设计ADR0019，实际进度以STATUS为准；不展开11–13。
+当前授权范围（2026-10-12）：基于已核实 main 76b411a，在 feat/tasks-11-13-delivery 按任务 11→Review/修复/验收/提交→12→Review/修复/验收/提交→13→综合回归/PR/required CI/合并/Release 连续推进。任务 11 正式 v2 实验已冻结，任务 12 产品与终审修复已验收，任务 13 部署/文档/打包/复现已验证；最终技术门槛结果见 STATUS/验收记录，最终 Git/Release 身份以 PR #12 与实际发布记录为准。历史测试或初始 unsupported 实验不计本轮最终通过。最新 checkpoint 见 docs/implementation/STATUS.md。
+
+历史授权范围（2026-10-11）：续接main `ededc90`，依次任务8→Review/修复/验收→任务9→Review/修复/验收→任务10；优先完整交付8，资源不足则先提交与交接当前阶段。第三方只允许免费只读，无付款/签名/主网写入。任务8设计ADR0019，实际进度以STATUS为准；不展开11–13。
 
 阶段进度：任务1–10实现与本地阶段验收完成。任务8 PR#9合并并核对main一致，本机与CI完整检查通过；任务9稳定00bcb43本机与Foundation CI完整1279项/0skip通过，最终文档head1334362的CI38116332399 quality/Compose均成功，PR#10合并为1897a74。任务10在feat/public-readonly-evaluation完成公共模型/Worker/证据/报告/独立Verifier，定向与独立Review修复、真实Akashi HTTP/MCP+Base66响应通过；4PASS/1UNKNOWN、ReportCore1.6/PARTIAL/overall=null、executor UNKNOWN、离线Bundle PASS/MATCH、本地publication UNANCHORED。本机完整check.py退出0：1409Python/0skip、Web2、Foundry14/256fuzz、Ruff/Mypy69/71Schema/TS/ABI全通过；干净CI发现3个测试遗漏deployment fixture，已补显式真实fixture，在不存在配置路径下3passed，未改生产逻辑或断言。实现0de08e4/修复c8f6dd4已推送、Draft PR#11；最终文档head全部CI成功才按AGENTS合并/同步main/清理本任务分支，真实CI与合并SHA以PR/Git历史为准。旧失败/无退出码日志不计通过，评分/充分度/身份绑定与历史规则不变；本轮到10停止，不展开11–13，详情见STATUS/ADR0021。
 
@@ -88,3 +90,12 @@
 
 
 2026-10-10 最新main复查：328a712已合并PR#5的任务4/5。本轮任务4评分复查通过，再在任务5/跨模块Review复现并修复RPC日志误风险、UNKNOWN冻结恢复及正式Run状态。新规则5/@5/ReportCore1.4保留旧规则4/1.3原语义；评分和充分度参数不变，设计见ADR0016。稳定单元/reference396项、真实PostgreSQL/Anvil定向4项通过；稳定代码1b54cdf完整check.py退出0：Python507/0skip（1714.92s）、Web2、Foundry14/256fuzz、Ruff/Mypy53/57Schema/TS/ABI均通过。代码CI run38041353658的quality/Compose均SUCCESS（Python507/0skip）；四个实际历史ZIP重放通过。首次同名收集失败、本地数据库/工具进程中断均保留NOT_PASS记录，恢复后完整重跑，未降低门槛。PR#6最终文档提交后核对最新head检查再按授权合并、同步main和清理本任务分支，结果以PR/Git历史为准。完整需求审计及跨模块Review无剩余阻断，详细证据和限制见STATUS；本轮任务4/5验收完成，停止，不进入任务6。
+
+
+2026-10-12 任务11阶段验收：12独立场景×3次真实v2采集36passed/0skip（461.04s），7指标测试与独立Review通过；源码/原件/分析/图表完整冻结。适用集Recall为Online0.2/Receipt0/Proposed1；UNKNOWN/N/A和局限保持，评分规则不改。实际运行时已有的最小读API/DTO和fixture ledger作为源码追溯前提同批提交，Task12页面另验收。当前继续12最后Review/真实UI、13部署/完整回归/PR/required CI/合并/Release；未完成门槛不记正式交付，详见STATUS。
+
+2026-10-12 任务12阶段验收：真实Vue/API/Worker/A-D/Anvil/报告/证据下载/独立CLI导入闭环通过，21unit/build/7browser及读API/report定向通过。最后Review修复pending anchor误标与长hex溢出，历史冻结不改。Task11提交ba1b148；继续Task13与稳定代码完整回归/required CI/PR/合并/Release，不提前宣称完成。
+
+2026-10-12 任务13实现/Review与定向14项、原生真实重复A/D/双anchor/Verifier通过，历史9+UI2 Bundle/109测试回归通过。CODE_VERSION/CAS/fixture卷/RPC/打包/文档已修复；正式赛事/匿名/第一方许可未知如实披露，不新增阻塞。进入稳定代码最终scripts/check.py/required quality+完整Compose CI/PR/合并/clean main/Release；最终验收未通过不标DONE。
+
+2026-10-12 最终交接：任务 11 正式实验、任务 12 真实产品及任务 13 部署/交付软件已完成实施、独立 Review、修复和复现。已测试实现基线为 `aa539c9d9162e6bc54e641d4f0713608433e4dad`；全量 1448 Python/0 skipped、完整 gate 1765.39s 与 required CI run38164569622 均通过。旧中断全量不计通过。最终文档 head CI、合并/main 同步、针对发布 commit 的包/manifest 及 Release 由 PR #12/Git/Release 外部记录标识；不修改冻结实验与评分。官方赛事、匿名和许可要求仍按 COMPETITION_DELIVERY 核实。

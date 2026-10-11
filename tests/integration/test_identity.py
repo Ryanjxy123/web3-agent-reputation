@@ -133,6 +133,7 @@ def verify(flow, snapshot, body):
 
 def test_real_dual_signatures_evidence_and_single_use_nonce(flow):
     agent_id, snapshot, _ = capture(flow)
+    assert flow[0].get(f"/api/v1/agents/{agent_id}/snapshots").json() == {"items": [snapshot], "next_cursor": None}
     request = signed(flow, challenge(flow, snapshot))
     result = verify(flow, snapshot, request)
     assert result.status_code == 200, result.text

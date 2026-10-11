@@ -19,6 +19,7 @@ def main() -> int:
         ["git", "diff", "--exit-code", "--", "packages/schemas/generated", "apps/web/src/api/generated"],
         ["pnpm", "--dir", "apps/web", "build"],
         ["pnpm", "--dir", "apps/web", "test"],
+        ["pnpm", "--dir", "apps/web", "test:browser"],
         ["forge", "test", "--root", "contracts"],
         ["uv", "run", "--all-packages", "python", "scripts/generate_abis.py", "--check"],
     ]

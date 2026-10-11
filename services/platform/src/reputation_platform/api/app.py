@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from typing import Literal
 from uuid import UUID, uuid4
 
-from fastapi import Depends, FastAPI, Header, Request, Response
+from fastapi import Depends, FastAPI, Header, Query, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -15,8 +15,10 @@ from reputation_core.models import (
     AcceptedJob,
     AccessGrantCreate,
     AgentCreate,
+    AgentPage,
     AgentSnapshot,
     AgentView,
+    AnchorReceipt,
     ApiError,
     BindingChallengeRequest,
     BindingChallengeView,
@@ -26,6 +28,7 @@ from reputation_core.models import (
     ErrorDetail,
     EvaluationCreate,
     EvaluationRun,
+    EvidencePacket,
     ExecutorBinding,
     GrantView,
     JobView,
@@ -35,8 +38,10 @@ from reputation_core.models import (
     ReasonRequest,
     RecordVerificationResult,
     RefreshRequest,
+    ReportPage,
     ReportView,
     RunPlan,
+    SnapshotPage,
 )
 from reputation_core.models.public_evaluation import (
     PublicReadonlyEvaluationCreate,
@@ -180,6 +185,10 @@ def create_app(
         response.status_code = 201 if created else 200
         return identity.agent(new_id)
 
+    @app.get("/api/v1/agents", response_model=AgentPage)
+    def list_agents(limit: int = Query(20, ge=1, le=100), cursor: UUID | None = None):
+        return identity.agents(limit, cursor)
+
     @app.get("/api/v1/agents/{agent_id}", response_model=AgentView)
     def get_agent(agent_id: UUID):
         return identity.agent(agent_id)
@@ -191,6 +200,10 @@ def create_app(
     @app.get("/api/v1/snapshots/{snapshot_id}", response_model=AgentSnapshot)
     def get_snapshot(snapshot_id: UUID):
         return identity.snapshot(snapshot_id)
+
+    @app.get("/api/v1/agents/{agent_id}/snapshots", response_model=SnapshotPage)
+    def get_agent_snapshots(agent_id: UUID, limit: int = Query(20, ge=1, le=100), cursor: UUID | None = None):
+        return identity.snapshot_history(agent_id, limit, cursor)
 
     @app.get(
         "/api/v1/snapshots/{snapshot_id}/readonly-association",
@@ -318,6 +331,18 @@ def create_app(
     @app.get("/api/v1/reports/{report_id}", response_model=ReportView)
     def get_report(report_id: UUID):
         return reporting.view(report_id)
+
+    @app.get("/api/v1/reports/{report_id}/anchor", response_model=AnchorReceipt)
+    def get_report_anchor(report_id: UUID):
+        return reporting.anchor_receipt(report_id)
+
+    @app.get("/api/v1/reports/{report_id}/evidence/{evidence_id}", response_model=EvidencePacket)
+    def get_report_evidence(report_id: UUID, evidence_id: UUID):
+        return reporting.evidence_packet(report_id, evidence_id)
+
+    @app.get("/api/v1/agents/{agent_id}/reports", response_model=ReportPage)
+    def get_agent_reports(agent_id: UUID, limit: int = Query(20, ge=1, le=100), cursor: UUID | None = None):
+        return reporting.for_agent(agent_id, limit, cursor)
 
     @app.post("/api/v1/reports/{report_id}/anchor", response_model=AcceptedJob, status_code=202)
     def anchor_report(report_id: UUID, actor: str = Depends(operator)):

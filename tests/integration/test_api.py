@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 import pytest
 from fastapi.testclient import TestClient
 from reputation_platform.api.app import create_app
@@ -25,6 +27,10 @@ def test_health_auth_and_unverified_registration(db):
         assert created.json()["status"] == "UNVERIFIED"
         repeated = client.post("/api/v1/agents", json=body, headers=auth)
         assert repeated.status_code == 200 and repeated.json()["id"] == created.json()["id"]
+        listed = client.get("/api/v1/agents")
+        assert listed.status_code == 200
+        assert [item["id"] for item in listed.json()["items"]] == [created.json()["id"]]
+        assert listed.json()["next_cursor"] is None
         result = client.get("/api/v1/agents/" + created.json()["id"])
         assert result.json()["agent_ref"]["agent_id"] == agent().agent_id
     with db.connect() as connection:
@@ -69,3 +75,20 @@ def test_controlled_identity_retains_its_source_label(db):
         response = client.get(f"/api/v1/agents/{identifier}")
     assert response.status_code == 200
     assert response.json()["source_type"] == "controlled"
+
+
+def test_agent_pages_are_bounded_and_have_no_overlap(db):
+    with TestClient(create_app(db, TOKEN)) as client:
+        for number in range(1, 4):
+            ref = agent().model_dump() | {"agent_id": str(number)}
+            assert client.post("/api/v1/agents", json={"agent_ref": ref}, headers={
+                "Authorization": "Bearer " + TOKEN
+            }).status_code == 201
+        first = client.get("/api/v1/agents?limit=2").json()
+        assert len(first["items"]) == 2 and first["next_cursor"] == first["items"][-1]["id"]
+        second = client.get("/api/v1/agents", params={"limit": 2, "cursor": first["next_cursor"]}).json()
+        assert len(second["items"]) == 1 and second["next_cursor"] is None
+        assert {item["id"] for item in first["items"]}.isdisjoint(item["id"] for item in second["items"])
+        assert client.get("/api/v1/agents?limit=101").status_code == 422
+        assert client.get("/api/v1/agents?limit=0").status_code == 422
+        assert client.get("/api/v1/agents", params={"cursor": str(uuid4())}).status_code == 404

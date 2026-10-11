@@ -1,6 +1,6 @@
 # 真实进度与会话交接
 
-更新时间：2026-10-11；环境：用户 Windows 正式项目工作目录。
+更新时间：2026-10-12；环境：用户 Windows 正式项目工作目录。
 
 | Task ID | Status | 实施结果 |
 |---|---|---|
@@ -29,7 +29,56 @@
 | FOLLOWUP-08 | DONE | 正式HTTPS/MCP只读适配、安全DNS socket pin、限频/配额/付款停止与CAS审计完成；真实免费调用、301项定向验证、独立Review修复及985项完整Foundation CI通过 |
 | FOLLOWUP-09 | DONE | 固定块公共身份/端点关联、最终真实重验与独立Review通过；完整1279项通过，最终head CI成功，PR#10合并为1897a74并核对main一致 |
 | FOLLOWUP-10 | DONE | 正式公共只读Worker/证据/报告/独立Verifier、Review/修复、真实闭环及本地完整1409项/0skip验收通过；最终head CI和Git交付按本节门槛执行，实际结果以PR#11/Git历史为准 |
+| FOLLOWUP-11 | DONE | 正式 v2 的 12 场景×3 次真实对照、原件/源码冻结、独立 Review 与离线重算通过；实验结论和范围不变 |
+| FOLLOWUP-12 | DONE | 真实 Vue/API 产品、21 unit/11 browser/typecheck/build、A/D 证据与 CLI MATCH 联调、异步选择终审修复通过 |
+| FOLLOWUP-13 | ACCEPTED_TECHNICAL | 部署/重复 A-D 双锚定演示、文档/打包/独立检出复现及最终技术门槛通过；合并、main 同步与 Release 状态以外部记录为准 |
 | LOCAL-PG-JUNCTION | DONE | Windows PostgreSQL 改用 D:\web3-runtime 目录联接；R: 已移除，初始化、重启、数据完整性及13项定向测试通过 |
+
+## 2026-10-12 / 最终技术验收与交付记录
+
+- Tested source：实现基线 `aa539c9d9162e6bc54e641d4f0713608433e4dad`；任务 11 的精确实验源码和正式 v2 原件保持冻结。五条异步切换回归已修复；21 unit、typecheck/build、11 browser groups 全部通过，无未捕获异常；未修改评分或充分度规则。
+- Final local gate：`scripts/check.py` 在该 SHA exit 0，Python **1448 passed / 0 skipped / 2 warnings**，pytest 1729.30s，完整 gate 1765.39s；Ruff、Mypy 70 源文件、74 Schema、TS drift、Web build/21 unit/11 browser、Foundry 14/0/0、三 ABI 均通过。结果见 `runtime/tasks11-13-full-check-reviewed.log` 与 `runtime/tasks11-13-full-check-reviewed-result.json`，`source_changed=[]`。
+- Current CI：run `38164569622` 在同一 head 的 `foundation-quality` job `114544335869` 与 `foundation-compose` job `114544335700` 均 SUCCESS。Quality 为 18/18 步骤成功、1448 passed/0 skipped/2 warnings；Compose 真实 A/D、报告、双锚定、离线/在线复核和篡改拒绝均通过。日志与 metadata 保存在 `runtime/task13-quality-ci-aa539c-reviewed-job.log/.json` 与 `runtime/task13-compose-ci-aa539c9-reviewed-job.log/.json`。
+- Reproduction/package：独立检出、锁定安装、冻结重放和 911/911 raw Git blob 包核对通过；40 ZIP/7039 成员无真实凭据。`aa539c9` 的最终发布包须在实际合并 commit 上重新生成，不能沿用旧基线包哈希。
+- Git/Release：PR #12 当前 base `main`、head `aa539c9`、CLEAN/MERGEABLE，无 required reviewer decision；合并、main 同步、最终包和 Release 仍以外部 Git/Release 记录为准。早期中断和旧 candidate 结果保留且不计入本门禁。
+
+## 2026-10-12 / 任务11阶段验收（任务12/13与最终发布仍进行中）
+
+- Baseline：main=origin/main=`76b411af797e480b0b8c117a5d06b78ebcfccd24`，工作分支 `feat/tasks-11-13-delivery`；用户授权继续11→12→13与最终回归/PR/CI/合并/Release。此前历史停止范围已由本轮要求替代。
+- Task11 implementation：独立Ground Truth配置，复用真实PostgreSQL/HTTP Agent/Anvil/Worker/既有核验与评分，12场景×3次。正式v2 capture36 passed/0skip（461.04s）、exit0、source_changed=[]；离线analyse和克隆路径analyse exit0；指标边界7测试通过。完整原件与82文件exact源码ZIP冻结于`docs/testing/experiments/task11/formal-20261012-three-repeats-v2`。没有修改评分、充分度或风险版本。
+- Results：Proposed6PASS/15FAIL/12UNKNOWN/3N/A；各方法适用集已知错误Recall为Online0.2/Receipt0/Proposed1，common writes为0/0/1；ProposedP/R/F1均1，关键风险9/9；Bundle结果/原因36/36，风险33/33，3份旧N/A报告明确无风险字段。正常写共享管道实测执行2567.532±52.378ms、链核验347.637±47.471ms、报告2807.448±173.974ms。不能把这些开销当独立基线benchmark。
+- Review/fixes：拒绝初始手写判定/计时；真实旧30次和首轮36次保留runtime且不计最终。修复UNKNOWN弃权与Recall分母、receipt只读范围、方法范围预声明、实际HTTP/RPC请求计量、旧N/A风险不可比较、源码hash与原件完整性。首轮36次capture后源文件变化，因此重新采集v2而不改旧数据。独立Review与manifest/源码ZIP/重算/脱敏核查见实验README和REVIEW。
+- Limits：受控重复不估计生产普遍性或显著性；无独立错误只读业务fixture；间歇服务用failure_every=1稳定选错，不估计故障概率；RPC计数不含Agent子进程；历史风险字段保持原格式。
+- Prerequisites included with Task11：为保持实际执行源码可追溯，同提交包含实验运行时已存在的最小产品读API/生成DTO、fixture独立ledger路径和相关API测试/ADR。Task12页面单独验收和提交。读API用UUID keyset分页、manifest member/hash限定证据，写接口token/grant不变。API定向最终8 passed/0skip（50.06s）；首轮错误端口变量6pass/1fail记录NOT_PASS保留。Ruff/Mypy70/74Schema通过。
+- Gate：任务11阶段实验/定向/独立Review/修复/重测/冻结通过，可逻辑提交；任务12真实页面联调与最后Review、任务13部署/全量回归/required CI/PR/合并/Release尚未全部验收，不能声称正式发布。旧提前全量进程已停止，NOT_PASS记录保留；不复用历史1409项作为本轮最终结果。
+
+## 2026-10-12 / 任务12阶段验收（最终全量与Release待完成）
+
+- Task11 Git：阶段实现/冻结/独立Review提交 `ba1b148`；尚未push/PR/合并，不把阶段通过当最终发布。
+- Frontend：真实Agent列表/注册/刷新、Owner/ERC-8004/来源/声明/历史快照、绑定/公共只读关联；三能力/固定公共免费只读套件授权启动，内存token+payload-bound idempotency、2秒轮询及报告作业失败终止；三维分/实际样本数/覆盖/充分度/关键风险、PARTIAL/null/UNKNOWN/N/A、同Agent可比范围限制；manifest内任务输入/响应/链证据、Bundle下载和实际anchor状态；独立CLI JSON本地导入、摘要归因及offline/live/失败信息分开。
+- Review/fixes：清理切换Agent/报告后的旧anchor/证据/Verifier归因；报告失败与网络错误停止轮询；绑定只标历史核验非当前授权；补样本实际数量非仅bp。真实原件16KiB+hex撑宽页面，min-width0修复后实际页面width=1360并加browser回归。GET anchor先前无confirmed回执一律NOT_REQUESTED，改为单次原子outbox/receipt读取：QUEUED/SIGNED/BROADCAST/FAILED如实，不导出signed bytes；manifest内他报告成员拒绝、CAS篡改/丢失409回归。
+- Tests：前端21 unit、build/vue-tsc和7 browser groups通过；browser自行启停Vite并固定Playwright版本。读API初次最终8 passed/0skip（50.06s）；最后13项report/API组合中12通过，pending测试两处测试变量/参数错误修正后单项1 passed/0skip（19.43s）。原失败记录保留，不降低断言；最终全量仍须重新完整执行。跨模块独立Review无剩余阻断。
+- Real UI：真实API→独立Worker→HTTP A/D→Anvil→核验/报告/manifest证据→下载Bundle→实际独立CLI JSON导入通过；A PASS，D成功receipt但FAIL/TASK_ID_MISMATCH，均PARTIAL/null/UNANCHORED。A先前UI启动完成后HMR重置，最终加载原Run；D过期绑定HTTP409按既有双签名与新grant续期后重试成功，无绕过。二份原ZIP独立CLI exit0；1360px真实证据布局/摘要MATCH/无未捕获异常复核通过。公开原件/截图/CLI结果与摘要清单见`docs/testing/evidence/local-ui-2026-10-12`；私有token/context/密钥不公开。
+- Source freeze：仅`application/reports.py`是在Task11 capture后变化的执行源码，改变安全的pending receipt投影，不改变原未anchor实验/核验/评分/统计；原82文件exact snapshot与所有正式数据保持不动，实验README明确差异与跨OS重放换行范围。
+- Gate：任务12实现→定向→独立Review→修复→重测→真实UI联调→阶段验收通过，进入Task13；全量/required CI/最终main/Release仍待完成。
+
+## 2026-10-12 / 任务13实现与Review（最终门槛待运行）
+
+- Git：任务11提交ba1b148、任务12提交6e774d2，阶段实现/Review/针对性/真实联调已通过；本节准备任务13逻辑提交，最终全量/CI/合并/Release未完成。
+- Implementation：共享CAS卷且API可追加binding证据；actual CODE_VERSION强制；各服务只挂载所需配置，A/D独立可写持久ledger。prepare_compose_runtime真实验证部署/seed/发布者与固定端点，只复制4个配置重写内部RPC，保留host原件与旧目录。package_delivery基于指定Git commit归档、逐文件SHA/bytes/notice/lock清单，拒绝私密/runtime路径与覆盖旧输出，不自动声称匿名/许可/验收。
+- Directed：package与真实Anvil/Compose准备14 passed/0skip（12.72s）、Ruff/Mypy/Compose config/文档链接与fence通过。repeat原生隔离PG/Anvil/API/Worker/A-D/Web smoke退出0：runtime/auth/webproxy→A PASS/D FAIL/TASK_ID_MISMATCH→两份PARTIAL/null报告→A/D双锚定→独立offline/可信RPC复核→篡改拒绝。日志见TASKS11_13_ACCEPTANCE.md。只签本地合成测试链，不付款/主网写入。
+- Review/fixes：Compose image无Git须显式source版本；API/Worker同CAS且API不可仅ro；fixture配置与ledger分离/各自卷；host/container RPC与secret挂载隔离；smoke原旧SEMANTIC_MISMATCH总原因更新为当前固定TASK_ID_MISMATCH同时保持request/hash具体断言；重复演示必须发布D的旧FAIL报告避免previous head阻塞。旧失败原件保留。文档去除不存在的demo/test/Verifier参数；Chromium安装进入实际check/CI。
+- History：当前独立CLI重放9个原始历史Bundle+2个真实UI Bundle全部exit0，原件SHA前后不变；109相关Verifier/publication tests通过（38.34s）。Akashi历史4PASS/1UNKNOWN、PARTIAL/null/executorUNKNOWN/UNANCHORED与302原件hash不变；本輪不重复公网请求，未声称当前公网状态。正式36次实验重判/分析一致性已确认。
+- Security/delivery：分阶段staged源码与ZIP成员匹配现有token/DB凭据/实际本地private keys无命中；截图token已mask。77 Python/168 Web依赖元数据及2notice已盘点，不赋第一方license。官方赛事名/规则/截止/匿名模板无原件为UNVERIFIED；软件Release可在技术/CI通过后披露限制发布，官方参赛提交须另核实；不虚构合规。
+- Final gates：本机Linux Docker因既有WSL问题NOT_RUN，不破坏原环境；增强foundation-compose将完整build/deploy/seed/start/A-D/双anchor/Verifier。稳定实现后开始scripts/check.py全量（FAIL_ON_SKIP=1），随后required CI/PR/合并/clean main/exact archive/Release；未通过前不标FOLLOWUP13 DONE。
+
+## 2026-10-12 / 最终Review修复与重验
+
+- Final candidate `0e36331` 已push并创建Draft PR#12；增强foundation-compose在CI run38161591091的job114535463881已实际SUCCESS，日志包含COMPOSE_RUNTIME_PREPARED/LIVE_RUNTIME_PASS/真实A PASS-D TASK_ID_MISMATCH/报告/双anchor/offline-online/tamper通过。该旧candidate结果不能代替最新head required checks。
+- 独立finalReview复现报告poll旧失败会停止新Run、report/cancel POST返回后读已清理Run，以及旧load成功/失败覆盖新历史选择。修复使用已有updateIfCurrent与捕获run/generation，VM真实源码回归证明五条旧路径失败/新路径通过；最终21unit/type/build与11组browser通过、exit0、无未捕获异常，日志runtime/task12-final-browser-races.log。源码已锁定；无新业务规则。
+- 打包完整性实际发现git archive换行转换：旧candidate .dockerignore/tool.ps1输出与Git blob不同。改用一次ls-tree/cat-file batch读取raw blob生成固定日期/权限ZIP，10package tests通过（8.68s），含CRLF属性/重复byte/unsupported mode；新输出对旧candidate911/911逐文件exact Git bytes核对通过。文档同改，不放宽exact-byte断言。
+- Clean reproduction：全新候选checkout `0e36331`无.env/private runtime，uv locked sync、pnpm frozen install/build、DB/operator/RPC/config unset离线Task11重算JSON/CSV/report/chart一致；152实验/8UI/302Akashi原件与82source snapshot hash全match，checkout干净。三公共Bundle独立复核维持原四态/状态。完整tracked/40ZIP7039members凭据字段扫描0真实命中，仅12明确测试字面量；root额外7950source/ZIP扫描唯一PRIVATE KEY marker是负例测试，无实际key bytes。
+- 原本本地完整check在上述finalReview前启动，明确中断为INTERRUPTED_NOT_FINAL；仅杀已确认的该check进程树，未动demo/开发数据库。日志/结果保留`runtime/tasks11-13-full-check-final*`，不得计为通过。修复后稳定candidate需重新执行全量与最新headCI；最终Git/Release未完成。
 
 ## 2026-10-11 / 本轮任务10正式公共只读评价（本地阶段验收完成）
 

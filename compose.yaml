@@ -34,7 +34,10 @@ services:
       OPERATOR_TOKEN: ${OPERATOR_TOKEN:?Run scripts/init_local.py first}
       PUBLIC_ACCESS_ENABLED: "false"
       LOCAL_CHAIN_CONFIG: /app/runtime/local-chain/deployment.json
-    volumes: [./runtime/local-chain:/app/runtime/local-chain:ro]
+      EVIDENCE_ROOT: /app/artifacts/evidence
+    volumes:
+      - ${COMPOSE_RUNTIME_DIR:-./runtime/compose-chain}/deployment.json:/app/runtime/local-chain/deployment.json:ro
+      - evidence-data:/app/artifacts/evidence
     ports: ["127.0.0.1:8000:8000"]
     networks: [control, ingress]
     depends_on:
@@ -55,13 +58,20 @@ services:
       PUBLIC_ACCESS_ENABLED: "false"
       LOCAL_CHAIN_CONFIG: /app/runtime/local-chain/deployment.json
       PUBLISHER_SECRET_PATH: /app/runtime/local-chain/publisher-secret.json
+      EVIDENCE_ROOT: /app/artifacts/evidence
+      CODE_VERSION: ${CODE_VERSION:?Set CODE_VERSION to the exact source commit before building}
     volumes:
       - evidence-data:/app/artifacts/evidence
-      - ./runtime/local-chain:/app/runtime/local-chain:ro
+      - ${COMPOSE_RUNTIME_DIR:-./runtime/compose-chain}/deployment.json:/app/runtime/local-chain/deployment.json:ro
+      - ${COMPOSE_RUNTIME_DIR:-./runtime/compose-chain}/publisher-secret.json:/app/runtime/local-chain/publisher-secret.json:ro
     networks: [control, demo]
     depends_on:
       migrate:
         condition: service_completed_successfully
+      fixture-a:
+        condition: service_healthy
+      fixture-d:
+        condition: service_healthy
 
   anvil:
     image: ghcr.io/foundry-rs/foundry:v1.8.4@sha256:f69e1b8d1dda17d89227a4d0513b1d86f93ece430dea8d87aaea643da3607d3e
@@ -69,6 +79,11 @@ services:
     command: ["--host", "0.0.0.0", "--chain-id", "31337", "--silent"]
     ports: ["127.0.0.1:8545:8545"]
     networks: [demo, ingress]
+    healthcheck:
+      test: ["CMD", "cast", "chain-id", "--rpc-url", "http://127.0.0.1:8545"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
 
   web:
     build:
@@ -89,11 +104,19 @@ services:
     command: ["uvicorn", "fixture_agents.service:create_app", "--factory", "--host", "0.0.0.0", "--port", "9101", "--no-access-log"]
     environment:
       FIXTURE_CONFIG: /app/runtime/local-chain/fixture-a.json
-    volumes: [./runtime/local-chain:/app/runtime/local-chain:ro]
+      FIXTURE_LEDGER_PATH: /app/artifacts/fixtures/tasks.sqlite3
+    volumes:
+      - ${COMPOSE_RUNTIME_DIR:-./runtime/compose-chain}/fixture-a.json:/app/runtime/local-chain/fixture-a.json:ro
+      - fixture-a-data:/app/artifacts/fixtures
     networks: [demo]
     depends_on:
       anvil:
-        condition: service_started
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9101/health')"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
 
   fixture-d:
     image: reputation-platform:local
@@ -101,11 +124,19 @@ services:
     command: ["uvicorn", "fixture_agents.service:create_app", "--factory", "--host", "0.0.0.0", "--port", "9102", "--no-access-log"]
     environment:
       FIXTURE_CONFIG: /app/runtime/local-chain/fixture-d.json
-    volumes: [./runtime/local-chain:/app/runtime/local-chain:ro]
+      FIXTURE_LEDGER_PATH: /app/artifacts/fixtures/tasks.sqlite3
+    volumes:
+      - ${COMPOSE_RUNTIME_DIR:-./runtime/compose-chain}/fixture-d.json:/app/runtime/local-chain/fixture-d.json:ro
+      - fixture-d-data:/app/artifacts/fixtures
     networks: [demo]
     depends_on:
       anvil:
-        condition: service_started
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9102/health')"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
 
 networks:
   ingress:
@@ -117,3 +148,5 @@ networks:
 volumes:
   postgres-data:
   evidence-data:
+  fixture-a-data:
+  fixture-d-data:

@@ -62,7 +62,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** List Agents */
+        get: operations["list_agents_api_v1_agents_get"];
         put?: never;
         /** Add Agent */
         post: operations["add_agent_api_v1_agents_post"];
@@ -100,6 +101,40 @@ export interface paths {
         put?: never;
         /** Refresh */
         post: operations["refresh_api_v1_agents__agent_id__refresh_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agents/{agent_id}/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Agent Reports */
+        get: operations["get_agent_reports_api_v1_agents__agent_id__reports_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agents/{agent_id}/snapshots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Agent Snapshots */
+        get: operations["get_agent_snapshots_api_v1_agents__agent_id__snapshots_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -318,7 +353,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** Get Report Anchor */
+        get: operations["get_report_anchor_api_v1_reports__report_id__anchor_get"];
         put?: never;
         /** Anchor Report */
         post: operations["anchor_report_api_v1_reports__report_id__anchor_post"];
@@ -337,6 +373,23 @@ export interface paths {
         };
         /** Export Report */
         get: operations["export_report_api_v1_reports__report_id__bundle_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/{report_id}/evidence/{evidence_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Report Evidence */
+        get: operations["get_report_evidence_api_v1_reports__report_id__evidence__evidence_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -587,6 +640,16 @@ export interface components {
         /** AgentCreate */
         AgentCreate: {
             agent_ref: components["schemas"]["AgentRef"];
+        };
+        /** AgentPage */
+        AgentPage: {
+            /** Items */
+            items: components["schemas"]["AgentView"][];
+            /**
+             * Next Cursor
+             * @default null
+             */
+            next_cursor: string | null;
         };
         /** AgentRef */
         AgentRef: {
@@ -2109,6 +2172,16 @@ export interface components {
              */
             task_success_rate_bp: number | null;
         };
+        /** ReportPage */
+        ReportPage: {
+            /** Items */
+            items: components["schemas"]["ReportView"][];
+            /**
+             * Next Cursor
+             * @default null
+             */
+            next_cursor: string | null;
+        };
         /** ReportTaskResult */
         ReportTaskResult: {
             /**
@@ -2331,6 +2404,16 @@ export interface components {
              * @enum {string}
              */
             source_type: "controlled" | "public_registry" | "replay";
+        };
+        /** SnapshotPage */
+        SnapshotPage: {
+            /** Items */
+            items: components["schemas"]["AgentSnapshot"][];
+            /**
+             * Next Cursor
+             * @default null
+             */
+            next_cursor: string | null;
         };
         /** TaskEnvelope */
         TaskEnvelope: {
@@ -2615,6 +2698,38 @@ export interface operations {
             };
         };
     };
+    list_agents_api_v1_agents_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     add_agent_api_v1_agents_post: {
         parameters: {
             query?: never;
@@ -2719,6 +2834,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AcceptedJob"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_agent_reports_api_v1_agents__agent_id__reports_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string | null;
+            };
+            header?: never;
+            path: {
+                agent_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_agent_snapshots_api_v1_agents__agent_id__snapshots_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string | null;
+            };
+            header?: never;
+            path: {
+                agent_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SnapshotPage"];
                 };
             };
             /** @description Validation Error */
@@ -3149,6 +3332,37 @@ export interface operations {
             };
         };
     };
+    get_report_anchor_api_v1_reports__report_id__anchor_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                report_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnchorReceipt"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     anchor_report_api_v1_reports__report_id__anchor_post: {
         parameters: {
             query?: never;
@@ -3198,6 +3412,38 @@ export interface operations {
                 };
                 content: {
                     "application/zip": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_report_evidence_api_v1_reports__report_id__evidence__evidence_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                report_id: string;
+                evidence_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvidencePacket"];
                 };
             };
             /** @description Validation Error */

@@ -33,7 +33,7 @@ def main() -> None:
                 assert result["task_link"]["verified_tx_hash"]
             else:
                 assert sample == "d"
-                assert result["outcome"] == "FAIL" and result["reason_code"] == "SEMANTIC_MISMATCH"
+                assert result["outcome"] == "FAIL" and result["reason_code"] == "TASK_ID_MISMATCH"
                 assert rules["record.request"]["reason_code"] == "TASK_ID_MISMATCH"
                 assert rules["record.hash"]["reason_code"] == "RECORD_HASH_MISMATCH"
                 assert result["task_link"]["verified_tx_hash"] is None
@@ -42,7 +42,7 @@ def main() -> None:
         json.dumps(results, indent=2) + "\n", encoding="utf-8"
     )
     print(
-        "VERIFICATION_SMOKE_PASS: A PASS; D real successful receipt rejected as SEMANTIC_MISMATCH"
+        "VERIFICATION_SMOKE_PASS: A PASS; D real successful receipt rejected as TASK_ID_MISMATCH"
     )
 
 

@@ -50,24 +50,46 @@ jobs:
           version: 'v1.8.4'
       - run: uv sync --locked --all-packages
       - run: pnpm --dir apps/web install --frozen-lockfile
+      - run: pnpm --dir apps/web exec playwright install --with-deps chromium
       - run: uv run --all-packages python scripts/check.py
 
   compose:
     name: foundation-compose
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    env:
+      CODE_VERSION: ${{ github.sha }}
+      LOCAL_RUNTIME_DIR: runtime/compose-host
+      FIXTURE_HOST_A: fixture-a
+      FIXTURE_HOST_D: fixture-d
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          version: '0.9.3'
+          python-version: '3.12.4'
+      - uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09 # v1
+        with:
+          version: 'v1.8.4'
+      - run: uv sync --locked --all-packages
       - run: python3 scripts/init_local.py
       - run: docker compose config --quiet
-      - run: docker compose up --build -d
+      - run: docker compose build
+      - run: docker compose up -d --wait anvil
+      - run: forge build --root contracts
+      - run: uv run --env-file .env --all-packages reputation deploy-local --runtime-dir runtime/compose-host
+      - run: uv run --env-file .env --all-packages reputation seed --runtime-dir runtime/compose-host
+      - run: uv run --all-packages python scripts/prepare_compose_runtime.py --source runtime/compose-host
+      - run: docker compose up -d --wait
       - run: python3 scripts/smoke_runtime.py
-      - run: docker compose exec -T worker reputation worker --once
+      - run: uv run --env-file .env --all-packages python scripts/smoke_verification.py
+      - run: uv run --env-file .env --all-packages python scripts/smoke_reports.py
+      - run: uv run --env-file .env --all-packages python scripts/smoke_m1.py
       - if: failure()
         run: |
           docker compose ps -a
-          docker compose logs --no-color --tail 60 api web worker
+          docker compose logs --no-color --tail 60 api web worker fixture-a fixture-d anvil
       - if: always()
         run: docker compose down
