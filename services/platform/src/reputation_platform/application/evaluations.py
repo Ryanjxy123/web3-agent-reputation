@@ -26,6 +26,7 @@ from reputation_core.models import (
     RunPlan,
     TaskEnvelope,
 )
+from reputation_core.models.public_evaluation import PublicReadonlyGrant, PublicReadonlyGrantView
 from requests.exceptions import RequestException
 from sqlalchemy import Connection, Engine, func, insert, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -116,7 +117,7 @@ class EvaluationService:
             )
         return GrantView(grant=grant, revoked=False)
 
-    def grant(self, grant_id: UUID) -> GrantView:
+    def grant(self, grant_id: UUID) -> GrantView | PublicReadonlyGrantView:
         with self.db.connect() as connection:
             row = connection.execute(
                 select(access_grants.c.body).where(access_grants.c.id == grant_id)
@@ -126,9 +127,11 @@ class EvaluationService:
             ).first()
         if row is None:
             raise ApplicationError(404, "NOT_FOUND", "Grant does not exist.")
+        if row.get("schema_version") == "public-readonly-grant-v1":
+            return PublicReadonlyGrantView(grant=PublicReadonlyGrant.model_validate(row), revoked=revoked is not None)
         return GrantView(grant=AccessGrant.model_validate(row), revoked=revoked is not None)
 
-    def revoke(self, grant_id: UUID, reason: str, actor: str) -> GrantView:
+    def revoke(self, grant_id: UUID, reason: str, actor: str) -> GrantView | PublicReadonlyGrantView:
         self.grant(grant_id)
         with self.db.begin() as connection:
             connection.execute(
@@ -156,7 +159,8 @@ class EvaluationService:
         revoked = connection.execute(
             select(grant_revocations.c.id).where(grant_revocations.c.grant_fk == grant_id)
         ).first()
-        if row is None or revoked is not None or row["expires_at"] <= now:
+        if (row is None or revoked is not None or row["expires_at"] <= now
+                or row["body"].get("schema_version") == "public-readonly-grant-v1"):
             raise ApplicationError(
                 409, "ACCESS_NOT_GRANTED", "Grant is absent, revoked or expired."
             )

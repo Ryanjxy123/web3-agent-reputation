@@ -38,6 +38,12 @@ from reputation_core.models import (
     ReportView,
     RunPlan,
 )
+from reputation_core.models.public_evaluation import (
+    PublicReadonlyEvaluationCreate,
+    PublicReadonlyGrantCreate,
+    PublicReadonlyGrantView,
+    PublicReadonlyRunPlan,
+)
 from sqlalchemy import Engine, select, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import SQLAlchemyError
@@ -46,12 +52,13 @@ from reputation_platform.application.anchor import AnchorService
 from reputation_platform.application.errors import ApplicationError as ApiProblem
 from reputation_platform.application.evaluations import EvaluationService
 from reputation_platform.application.identity import IdentityService
+from reputation_platform.application.public_evaluations import PublicReadonlyEvaluationService
 from reputation_platform.application.reports import ReportService
 from reputation_platform.application.verification import VerificationService
 from reputation_platform.infrastructure.db.connection import engine
 from reputation_platform.infrastructure.db.tables import agents, audit_logs, jobs
 
-SCHEMA_HEAD = "6aa7efd8cbc4"
+SCHEMA_HEAD = "c8f041b2965e"
 
 
 def create_app(
@@ -65,6 +72,7 @@ def create_app(
     database = db or engine()
     identity = IdentityService(database, deployment)
     evaluations = EvaluationService(database, identity)
+    public_evaluations = PublicReadonlyEvaluationService(database, identity)
     verification = VerificationService(database, identity)
     reporting = ReportService(database, identity)
     anchoring = AnchorService(database, identity)
@@ -184,7 +192,10 @@ def create_app(
     def get_snapshot(snapshot_id: UUID):
         return identity.snapshot(snapshot_id)
 
-    @app.get("/api/v1/snapshots/{snapshot_id}/readonly-association", response_model=ReadonlyIdentityAssociation)
+    @app.get(
+        "/api/v1/snapshots/{snapshot_id}/readonly-association",
+        response_model=ReadonlyIdentityAssociation,
+    )
     def get_readonly_association(
         snapshot_id: UUID,
         protocol: Literal["akashi-http-readonly-v1", "akashi-mcp-readonly-v1"],
@@ -239,11 +250,22 @@ def create_app(
     def create_grant(body: AccessGrantCreate, actor: str = Depends(operator)):
         return evaluations.create_grant(body, actor)
 
-    @app.get("/api/v1/access-grants/{grant_id}", response_model=GrantView)
+    @app.post(
+        "/api/v1/public-readonly/access-grants",
+        response_model=PublicReadonlyGrantView,
+        status_code=201,
+    )
+    def create_public_grant(body: PublicReadonlyGrantCreate, actor: str = Depends(operator)):
+        return public_evaluations.create_grant(body, actor)
+
+    @app.get("/api/v1/access-grants/{grant_id}", response_model=GrantView | PublicReadonlyGrantView)
     def get_grant(grant_id: UUID, actor: str = Depends(operator)):
         return evaluations.grant(grant_id)
 
-    @app.post("/api/v1/access-grants/{grant_id}/revoke", response_model=GrantView)
+    @app.post(
+        "/api/v1/access-grants/{grant_id}/revoke",
+        response_model=GrantView | PublicReadonlyGrantView,
+    )
     def revoke_grant(grant_id: UUID, body: ReasonRequest, actor: str = Depends(operator)):
         return evaluations.revoke(grant_id, body.reason, actor)
 
@@ -255,6 +277,16 @@ def create_app(
     ):
         return evaluations.create(body, idempotency_key, actor)
 
+    @app.post(
+        "/api/v1/public-readonly/evaluations", response_model=AcceptedEvaluation, status_code=202
+    )
+    def create_public_evaluation(
+        body: PublicReadonlyEvaluationCreate,
+        idempotency_key: str = Header(default=""),
+        actor: str = Depends(operator),
+    ):
+        return public_evaluations.create(body, idempotency_key, actor)
+
     @app.get("/api/v1/evaluations/{run_id}", response_model=EvaluationRun)
     def get_evaluation(run_id: UUID):
         return evaluations.view(run_id)
@@ -263,7 +295,7 @@ def create_app(
     def get_observations(run_id: UUID):
         return evaluations.observations(run_id)
 
-    @app.get("/api/v1/evaluations/{run_id}/plan", response_model=RunPlan)
+    @app.get("/api/v1/evaluations/{run_id}/plan", response_model=RunPlan | PublicReadonlyRunPlan)
     def get_plan(run_id: UUID):
         return evaluations.row(run_id)["plan"]
 

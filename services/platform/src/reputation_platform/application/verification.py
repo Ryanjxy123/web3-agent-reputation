@@ -46,12 +46,17 @@ from .identity import IdentityService
 
 
 class VerificationService:
-    def __init__(self, db: Engine, identity: IdentityService | None = None):
+    def __init__(self, db: Engine, identity: IdentityService | None = None, *, client_factory=None):
         self.db, self.identity = db, identity or IdentityService(db)
+        self.client_factory = client_factory
 
     def inputs(self, run_id: UUID, slot_id: UUID | None = None) -> RecordVerificationInput:
         with self.db.connect() as connection:
             row = connection.execute(select(runs).where(runs.c.id == run_id)).mappings().one()
+            if row["plan"].get("suite_id") == "public-readonly-v1":
+                from .public_verification import PublicReadonlyVerificationService
+                return PublicReadonlyVerificationService(self.db, self.identity,
+                    client_factory=self.client_factory).inputs(run_id, slot_id)
             plan = RunPlan.model_validate(row["plan"])
             if slot_id is None and len(plan.slots) != 1:
                 raise ApplicationError(
@@ -239,6 +244,13 @@ class VerificationService:
         if lease.run_id is None:
             raise ApplicationError(422, "RUN_REQUIRED", "Verification requires a frozen run.")
         run_id = lease.run_id
+        with self.db.connect() as connection:
+            public = connection.execute(select(runs.c.plan).where(runs.c.id == run_id)).scalar_one().get("suite_id") == "public-readonly-v1"
+        if public:
+            from .public_verification import PublicReadonlyVerificationService
+            await PublicReadonlyVerificationService(self.db, self.identity,
+                client_factory=self.client_factory).verify(lease, queue)
+            return
         def context():
             with self.db.connect() as connection:
                 plan = RunPlan.model_validate(

@@ -201,11 +201,23 @@ task_links = table(
     "task_links",
     fk("slot_fk", "case_slots.id"),
     Column("chain_instance_id", String(66), nullable=False),
-    Column("executor", String(42), nullable=False),
+    Column("executor", String(42), nullable=True),
     Column("request_id", String(66), nullable=False),
     body(),
     UniqueConstraint("chain_instance_id", "executor", "request_id"),
+    CheckConstraint(
+        "executor IS NOT NULL OR COALESCE(("
+        "body->'task_link'->>'completion_kind' = 'readonly-query' AND "
+        "body->'task_link'->>'capability_id' = 'verify_record' AND "
+        "body->'task_link'->'executor' = 'null'::jsonb AND "
+        "body->'task_link'->'candidate_tx_hash' = 'null'::jsonb AND "
+        "body->'task_link'->'verified_tx_hash' = 'null'::jsonb AND "
+        "body->'task_link'->'log_index' = 'null'::jsonb), false)",
+        name="public_readonly_executor",
+    ),
 )
+Index("uq_task_links_public_request", task_links.c.chain_instance_id, task_links.c.request_id,
+      unique=True, postgresql_where=task_links.c.executor.is_(None))
 evidence_blobs = table(
     "evidence_blobs",
     Column("blob_hash", String(66), nullable=False, unique=True),

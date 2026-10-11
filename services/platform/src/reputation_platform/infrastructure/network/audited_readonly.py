@@ -3,7 +3,7 @@
 import asyncio
 import hashlib
 import re
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from copy import deepcopy
 from datetime import UTC, datetime
 from typing import Any
@@ -64,6 +64,7 @@ async def audited_readonly_request(
     method: str, origin: str, path: str, payload: dict | None,
     records: list[EvidenceRecord], headers: dict[str, str] | None = None,
     response_redactor: Callable[[dict], dict] | None = None,
+    register_record: Callable[[EvidenceRecord], Awaitable[EvidenceRecord]] | None = None,
 ) -> HttpObservation:
     if not client.is_public_readonly:
         raise NetworkPolicyError("PUBLIC_READONLY_REQUIRED")
@@ -77,19 +78,30 @@ async def audited_readonly_request(
             client.stop_public_readonly("PUBLIC_EVIDENCE_SAVE_FAILED")
             raise EvidencePersistenceError("PUBLIC_EVIDENCE_SAVE_FAILED") from None
 
+    async def register(record: EvidenceRecord) -> EvidenceRecord:
+        if register_record is None:
+            return record
+        try:
+            return await register_record(record)
+        except Exception as exc:
+            if exc.__class__.__name__ == "LostLease":
+                raise
+            client.stop_public_readonly("PUBLIC_EVIDENCE_REGISTER_FAILED")
+            raise EvidencePersistenceError("PUBLIC_EVIDENCE_REGISTER_FAILED") from None
+
     started = _timestamp()
     intent = {"protocol": protocol, "capability_id": capability_id,
               "method": method, "origin": origin,
               "path": path, "request_json": payload, "started_at": started}
     # A durable intent is required before every network attempt, including discovery.
-    records.append(await save(intent, "public-readonly-intent", started))
+    intent_record = await save(intent, "public-readonly-intent", started)
+    records.append(await register(intent_record))
     try:
         response = await client.request(method, origin, path, json=payload, headers=headers)
     except (NetworkPolicyError, httpx.HTTPError, TimeoutError) as exc:
         error = str(exc) if isinstance(exc, NetworkPolicyError) else type(exc).__name__
-        records.append(await save(
-            {**intent, "error": error}, "public-readonly-response", _timestamp(),
-        ))
+        error_record = await save({**intent, "error": error}, "public-readonly-response", _timestamp())
+        records.append(await register(error_record))
         raise
     parsed = None
     try:
@@ -113,9 +125,8 @@ async def audited_readonly_request(
             "body_bytes": len(response.body), "audit": response.audit,
         },
     }
-    records.append(await save(
-        response_evidence, "public-readonly-response", _timestamp(),
-    ))
+    response_record = await save(response_evidence, "public-readonly-response", _timestamp())
+    records.append(await register(response_record))
     if response.audit.get("payment_required") or response.status == 402:
         client.stop_public_readonly("PAYMENT_REQUIRED")
     return response

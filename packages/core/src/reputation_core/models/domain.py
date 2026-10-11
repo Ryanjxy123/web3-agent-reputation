@@ -442,7 +442,7 @@ class AssertionResult(Model):
     assertion_id: UUID4
     slot_id: UUID4
     rule_id: Version
-    rule_version: Literal["1", "2", "3", "4", "5", "6"]
+    rule_version: Literal["1", "2", "3", "4", "5", "6", "7"]
     outcome: Outcome
     reason_code: Reason | None
     expected: JsonValue
@@ -463,11 +463,11 @@ class AssertionResult(Model):
 
 class TaskLink(Model):
     capability_id: Capability = "anchor_record"
-    completion_kind: Literal["execution", "rejection"] = "execution"
+    completion_kind: Literal["execution", "rejection", "readonly-query"] = "execution"
     request_id: Challenge
     candidate_tx_hash: Hash32 | None
     verified_tx_hash: Hash32 | None
-    executor: NonzeroAddress
+    executor: NonzeroAddress | None
     block_number: UInt256 | None
     block_hash: Hash32 | None
     log_index: Count | None
@@ -475,6 +475,16 @@ class TaskLink(Model):
 
     @model_validator(mode="after")
     def verified(self) -> Self:
+        if self.completion_kind == "readonly-query":
+            if (self.capability_id != "verify_record" or self.executor is not None
+                    or any(value is not None for value in (
+                        self.candidate_tx_hash, self.verified_tx_hash, self.log_index))
+                    or self.match_status == Outcome.PASS
+                    and (self.block_number is None or self.block_hash is None)):
+                raise ValueError("readonly-query cannot claim execution or an executor")
+            return self
+        if self.executor is None:
+            raise ValueError("controlled execution and rejection require an executor")
         if self.completion_kind == "rejection":
             if any(value is not None for value in (
                 self.candidate_tx_hash, self.verified_tx_hash,
@@ -593,7 +603,7 @@ class ReportTaskResult(Model):
     capability_id: Capability
     outcome: Outcome
     reason_code: Reason | None
-    rule_version: Literal["1", "2", "3", "4", "5", "6"]
+    rule_version: Literal["1", "2", "3", "4", "5", "6", "7"]
     input_evidence_id: UUID4
 
     @model_validator(mode="after")
@@ -615,10 +625,10 @@ class TaskOutcomeCounts(Model):
     def outcome_keys(self, handler):
         value = handler(self)
         return {
-            "PASS": value["pass_count"],
-            "FAIL": value["fail_count"],
-            "UNKNOWN": value["unknown_count"],
-            "NOT_APPLICABLE": value["not_applicable_count"],
+            "PASS": value.get("pass_count", value.get("PASS")),
+            "FAIL": value.get("fail_count", value.get("FAIL")),
+            "UNKNOWN": value.get("unknown_count", value.get("UNKNOWN")),
+            "NOT_APPLICABLE": value.get("not_applicable_count", value.get("NOT_APPLICABLE")),
         }
 
 
@@ -652,7 +662,7 @@ class RiskAssessment(Model):
 
 
 class ReportCore(Model):
-    schema_version: Literal["1.0.0", "1.1.0", "1.2.0", "1.3.0", "1.4.0", "1.5.0"] = "1.0.0"
+    schema_version: Literal["1.0.0", "1.1.0", "1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0"] = "1.0.0"
     agent_ref: AgentRef
     agent_key_hash: Hash32
     snapshot_hash: Hash32
@@ -684,13 +694,13 @@ class ReportCore(Model):
         if self.schema_version == "1.0.0":
             value.pop("task_results", None)
             value.pop("task_counts", None)
-        if self.schema_version not in {"1.2.0", "1.3.0", "1.4.0", "1.5.0"}:
+        if self.schema_version not in {"1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0"}:
             value.pop("scoring_rule_version", None)
-        if self.schema_version not in {"1.3.0", "1.4.0", "1.5.0"}:
+        if self.schema_version not in {"1.3.0", "1.4.0", "1.5.0", "1.6.0"}:
             value.pop("assessment_rule_version", None)
             value.pop("evidence_sufficiency", None)
             value.pop("risk_assessment", None)
-        if self.schema_version not in {"1.2.0", "1.3.0", "1.4.0", "1.5.0"}:
+        if self.schema_version not in {"1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0"}:
             value.pop("task_success_rate_bp", None)
         return value
 
@@ -700,16 +710,16 @@ class ReportCore(Model):
             raise ValueError("invalid report observation window")
         if self.profile != self.scores.profile or self.policy_version != self.scores.policy_version:
             raise ValueError("report and scores disagree")
-        if (self.schema_version in {"1.2.0", "1.3.0", "1.4.0", "1.5.0"}) != (self.scoring_rule_version is not None):
+        if (self.schema_version in {"1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0"}) != (self.scoring_rule_version is not None):
             raise ValueError("formal report requires an explicit scoring rule version")
-        if self.schema_version not in {"1.2.0", "1.3.0", "1.4.0", "1.5.0"} and self.task_success_rate_bp is not None:
+        if self.schema_version not in {"1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0"} and self.task_success_rate_bp is not None:
             raise ValueError("legacy report cannot carry formal task success rate")
         assessment_fields = (
             self.assessment_rule_version, self.evidence_sufficiency, self.risk_assessment
         )
         if (
-            self.schema_version in {"1.3.0", "1.4.0", "1.5.0"} and any(value is None for value in assessment_fields)
-            or self.schema_version not in {"1.3.0", "1.4.0", "1.5.0"} and any(value is not None for value in assessment_fields)
+            self.schema_version in {"1.3.0", "1.4.0", "1.5.0", "1.6.0"} and any(value is None for value in assessment_fields)
+            or self.schema_version not in {"1.3.0", "1.4.0", "1.5.0", "1.6.0"} and any(value is not None for value in assessment_fields)
         ):
             raise ValueError("formal assessment fields require report schema 1.3.0, 1.4.0 or 1.5.0")
         if self.schema_version == "1.0.0":
@@ -728,8 +738,10 @@ class ReportCore(Model):
         }:
             raise ValueError("task result counts disagree")
         versions = {item.slot_id: item.rule_version for item in self.task_results}
-        if self.schema_version in {"1.2.0", "1.3.0", "1.4.0", "1.5.0"}:
-            expected_rule = {"1.2.0": "3", "1.3.0": "4", "1.4.0": "5", "1.5.0": "6"}[self.schema_version]
+        if self.schema_version != "1.6.0" and "7" in versions.values():
+            raise ValueError("public rule 7 requires report schema 1.6.0")
+        if self.schema_version in {"1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0"}:
+            expected_rule = {"1.2.0": "3", "1.3.0": "4", "1.4.0": "5", "1.5.0": "6", "1.6.0": "7"}[self.schema_version]
             if any(version != expected_rule for version in versions.values()):
                 raise ValueError(f"formal report requires task rule version {expected_rule}")
             decided = expected[Outcome.PASS] + expected[Outcome.FAIL]
@@ -745,7 +757,7 @@ class ReportCore(Model):
             for assertion in self.assertions
         ):
             raise ValueError("task assertion rules do not match reported slots")
-        if self.schema_version in {"1.3.0", "1.4.0", "1.5.0"}:
+        if self.schema_version in {"1.3.0", "1.4.0", "1.5.0", "1.6.0"}:
             assert self.evidence_sufficiency is not None and self.risk_assessment is not None
             sufficient = self.evidence_sufficiency
             if (

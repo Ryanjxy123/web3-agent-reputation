@@ -260,6 +260,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public-readonly/access-grants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Public Grant */
+        post: operations["create_public_grant_api_v1_public_readonly_access_grants_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public-readonly/evaluations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Public Evaluation */
+        post: operations["create_public_evaluation_api_v1_public_readonly_evaluations_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reports/{report_id}": {
         parameters: {
             query?: never;
@@ -696,7 +730,7 @@ export interface components {
              * Rule Version
              * @enum {string}
              */
-            rule_version: "1" | "2" | "3" | "4" | "5" | "6";
+            rule_version: "1" | "2" | "3" | "4" | "5" | "6" | "7";
             /**
              * Slot Id
              * Format: uuid4
@@ -1106,6 +1140,11 @@ export interface components {
              */
             schema_version: "evidence-manifest-v1";
         };
+        /** EvidencePacket */
+        EvidencePacket: {
+            body: components["schemas"]["JsonValue"];
+            record: components["schemas"]["EvidenceRecord"];
+        };
         /** EvidenceRecord */
         EvidenceRecord: {
             /** Blob Hash */
@@ -1420,6 +1459,346 @@ export interface components {
             /** Source Hashes */
             source_hashes: string[];
         };
+        /** PublicReadonlyCaseSlot */
+        PublicReadonlyCaseSlot: {
+            /**
+             * Capability Id
+             * @default verify_record
+             * @constant
+             */
+            capability_id: "verify_record";
+            /**
+             * Case Kind
+             * @enum {string}
+             */
+            case_kind: "positive" | "negative";
+            expected: components["schemas"]["PublicReadonlyExpectedFacts"];
+            expected_outcome: components["schemas"]["Outcome"];
+            /**
+             * Grant Id
+             * Format: uuid4
+             */
+            grant_id: string;
+            purpose: components["schemas"]["Purpose"];
+            /**
+             * Required Class
+             * @enum {string}
+             */
+            required_class: "match" | "not_found" | "invalid_format";
+            /**
+             * Slot Id
+             * Format: uuid4
+             */
+            slot_id: string;
+            /** Slot Key */
+            slot_key: string;
+            task: components["schemas"]["PublicReadonlyTask"];
+        };
+        /** PublicReadonlyEvaluationCreate */
+        PublicReadonlyEvaluationCreate: {
+            /**
+             * Capability Id
+             * @default verify_record
+             * @constant
+             */
+            capability_id: "verify_record";
+            /** Grant Ids */
+            grant_ids: string[];
+            /**
+             * Policy Version
+             * @default policy-v1
+             * @constant
+             */
+            policy_version: "policy-v1";
+            /**
+             * Profile
+             * @default record-read-v1
+             * @constant
+             */
+            profile: "record-read-v1";
+            /** Review Version */
+            review_version: number;
+            /**
+             * Snapshot Id
+             * Format: uuid4
+             */
+            snapshot_id: string;
+            /**
+             * Suite Id
+             * @default public-readonly-v1
+             * @constant
+             */
+            suite_id: "public-readonly-v1";
+        };
+        /** PublicReadonlyExpectedFacts */
+        PublicReadonlyExpectedFacts: {
+            agent_ref: components["schemas"]["AgentRef"];
+            /**
+             * Confirmation Depth
+             * @default 12
+             * @constant
+             */
+            confirmation_depth: 12;
+            /** Deadline */
+            deadline: string;
+            /**
+             * Endpoint Id
+             * @enum {string}
+             */
+            endpoint_id: "akashi-http" | "akashi-mcp";
+            execution_chain: components["schemas"]["ChainIdentity"];
+            /** Pre Dispatch Block */
+            pre_dispatch_block: string;
+            /** Pre Dispatch Block Hash */
+            pre_dispatch_block_hash: string;
+            /**
+             * Protocol
+             * @enum {string}
+             */
+            protocol: "akashi-http-readonly-v1" | "akashi-mcp-readonly-v1";
+            /** Query */
+            query: {
+                [key: string]: string;
+            };
+            /** Request Id */
+            request_id: string;
+            /** Snapshot Hash */
+            snapshot_hash: string;
+            /** Window Start */
+            window_start: string;
+        };
+        /** PublicReadonlyGrant */
+        PublicReadonlyGrant: {
+            /**
+             * Capabilities
+             * @default [
+             *       "verify_record"
+             *     ]
+             */
+            capabilities: "verify_record"[];
+            /** Chain Instances */
+            chain_instances: string[];
+            /**
+             * Concurrency
+             * @default 1
+             * @constant
+             */
+            concurrency: 1;
+            /** Consent Ref */
+            consent_ref: string;
+            /**
+             * Contract Allowlist
+             * @default []
+             */
+            contract_allowlist: string[];
+            /** Endpoint Ids */
+            endpoint_ids: ("akashi-http" | "akashi-mcp")[];
+            /** Expires At */
+            expires_at: string;
+            /**
+             * Grant Id
+             * Format: uuid4
+             */
+            grant_id: string;
+            /**
+             * Interval Ms
+             * @default 1000
+             */
+            interval_ms: number;
+            /** Max Tasks */
+            max_tasks: number;
+            /** Methods */
+            methods: ("GET" | "POST")[];
+            /** Operator */
+            operator: string;
+            /** Paths */
+            paths: ("/proof" | "/mcp")[];
+            /**
+             * Protocol
+             * @enum {string}
+             */
+            protocol: "akashi-http-readonly-v1" | "akashi-mcp-readonly-v1";
+            /**
+             * Schema Version
+             * @default public-readonly-grant-v1
+             * @constant
+             */
+            schema_version: "public-readonly-grant-v1";
+            /** Snapshot Hash */
+            snapshot_hash: string;
+        };
+        /** PublicReadonlyGrantCreate */
+        PublicReadonlyGrantCreate: {
+            /** Consent Ref */
+            consent_ref: string;
+            /**
+             * Endpoint Id
+             * @enum {string}
+             */
+            endpoint_id: "akashi-http" | "akashi-mcp";
+            /** Expires At */
+            expires_at: string;
+            /**
+             * Interval Ms
+             * @default 1000
+             */
+            interval_ms: number;
+            /** Max Tasks */
+            max_tasks: number;
+            /**
+             * Snapshot Id
+             * Format: uuid4
+             */
+            snapshot_id: string;
+        };
+        /** PublicReadonlyGrantView */
+        PublicReadonlyGrantView: {
+            grant: components["schemas"]["PublicReadonlyGrant"];
+            /** Revoked */
+            revoked: boolean;
+        };
+        /** PublicReadonlyRunPlan */
+        PublicReadonlyRunPlan: {
+            /**
+             * Confirmed Capabilities
+             * @default [
+             *       "verify_record"
+             *     ]
+             */
+            confirmed_capabilities: "verify_record"[];
+            /**
+             * Planning Evidence Refs
+             * @default []
+             */
+            planning_evidence_refs: string[];
+            /** Planning Time */
+            planning_time: string;
+            /** Policy Hash */
+            policy_hash: string;
+            /**
+             * Policy Version
+             * @default policy-v1
+             * @constant
+             */
+            policy_version: "policy-v1";
+            /**
+             * Profile
+             * @default record-read-v1
+             * @constant
+             */
+            profile: "record-read-v1";
+            /** Review Version */
+            review_version: number;
+            /**
+             * Run Id
+             * Format: uuid4
+             */
+            run_id: string;
+            /**
+             * Schema Version
+             * @default public-readonly-plan-v1
+             * @constant
+             */
+            schema_version: "public-readonly-plan-v1";
+            /** Slots */
+            slots: components["schemas"]["PublicReadonlyCaseSlot"][];
+            /** Snapshot Hash */
+            snapshot_hash: string;
+            /**
+             * Suite Id
+             * @default public-readonly-v1
+             * @constant
+             */
+            suite_id: "public-readonly-v1";
+            /**
+             * Template Version
+             * @default public-readonly@1
+             * @constant
+             */
+            template_version: "public-readonly@1";
+        };
+        /** PublicReadonlyTask */
+        PublicReadonlyTask: {
+            /**
+             * Capability Id
+             * @default verify_record
+             * @constant
+             */
+            capability_id: "verify_record";
+            /**
+             * Chain Id
+             * @default 8453
+             * @constant
+             */
+            chain_id: "8453";
+            /** Chain Instance Id */
+            chain_instance_id: string;
+            /** Deadline */
+            deadline: string;
+            /**
+             * Endpoint Id
+             * @enum {string}
+             */
+            endpoint_id: "akashi-http" | "akashi-mcp";
+            /**
+             * Protocol
+             * @enum {string}
+             */
+            protocol: "akashi-http-readonly-v1" | "akashi-mcp-readonly-v1";
+            /** Query */
+            query: {
+                [key: string]: string;
+            };
+            /** Read Block Hash */
+            read_block_hash: string;
+            /** Read Block Number */
+            read_block_number: string;
+            /** Request Id */
+            request_id: string;
+            /** Snapshot Hash */
+            snapshot_hash: string;
+        };
+        /** PublicReadonlyVerificationInput */
+        PublicReadonlyVerificationInput: {
+            /** Agent Evidence Refs */
+            agent_evidence_refs: string[];
+            association: components["schemas"]["ReadonlyIdentityAssociation"];
+            /** Business Evidence Refs */
+            business_evidence_refs: string[];
+            /** Dispatch Payload Hash */
+            dispatch_payload_hash: string | null;
+            /** Dispatch Started At */
+            dispatch_started_at: string | null;
+            execution_reason: components["schemas"]["Reason"] | null;
+            grant: components["schemas"]["PublicReadonlyGrant"] | null;
+            /** Identity Evidence Refs */
+            identity_evidence_refs: string[];
+            /** Intent Persisted At */
+            intent_persisted_at: string;
+            /** Observed At */
+            observed_at: string;
+            /** Packets */
+            packets: components["schemas"]["EvidencePacket"][];
+            /** Platform Instance Id */
+            platform_instance_id: string;
+            review: components["schemas"]["ClaimReview"];
+            /** Review Version */
+            review_version: number;
+            /**
+             * Rule Version
+             * @default 7
+             * @constant
+             */
+            rule_version: "7";
+            /**
+             * Schema Version
+             * @default public-readonly-verification-input-v1
+             * @constant
+             */
+            schema_version: "public-readonly-verification-input-v1";
+            slot: components["schemas"]["PublicReadonlyCaseSlot"];
+            snapshot: components["schemas"]["AgentSnapshot"];
+        };
         /** PublicRegistrationMetadata */
         PublicRegistrationMetadata: {
             /**
@@ -1708,7 +2087,7 @@ export interface components {
              * @default 1.0.0
              * @enum {string}
              */
-            schema_version: "1.0.0" | "1.1.0" | "1.2.0" | "1.3.0" | "1.4.0" | "1.5.0";
+            schema_version: "1.0.0" | "1.1.0" | "1.2.0" | "1.3.0" | "1.4.0" | "1.5.0" | "1.6.0";
             scores: components["schemas"]["ScoreResult"];
             /**
              * Scoring Rule Version
@@ -1748,7 +2127,7 @@ export interface components {
              * Rule Version
              * @enum {string}
              */
-            rule_version: "1" | "2" | "3" | "4" | "5" | "6";
+            rule_version: "1" | "2" | "3" | "4" | "5" | "6" | "7";
             /**
              * Slot Id
              * Format: uuid4
@@ -2032,9 +2411,9 @@ export interface components {
              * @default execution
              * @enum {string}
              */
-            completion_kind: "execution" | "rejection";
+            completion_kind: "execution" | "rejection" | "readonly-query";
             /** Executor */
-            executor: string;
+            executor: string | null;
             /** Log Index */
             log_index: number | null;
             match_status: components["schemas"]["Outcome"];
@@ -2187,7 +2566,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["GrantView"];
+                    "application/json": components["schemas"]["GrantView"] | components["schemas"]["PublicReadonlyGrantView"];
                 };
             };
             /** @description Validation Error */
@@ -2222,7 +2601,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["GrantView"];
+                    "application/json": components["schemas"]["GrantView"] | components["schemas"]["PublicReadonlyGrantView"];
                 };
             };
             /** @description Validation Error */
@@ -2533,7 +2912,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RunPlan"];
+                    "application/json": components["schemas"]["RunPlan"] | components["schemas"]["PublicReadonlyRunPlan"];
                 };
             };
             /** @description Validation Error */
@@ -2658,6 +3037,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JobView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_public_grant_api_v1_public_readonly_access_grants_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublicReadonlyGrantCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicReadonlyGrantView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_public_evaluation_api_v1_public_readonly_evaluations_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "idempotency-key"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublicReadonlyEvaluationCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcceptedEvaluation"];
                 };
             };
             /** @description Validation Error */

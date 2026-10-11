@@ -9,7 +9,8 @@ from uuid import UUID, uuid4
 
 from reputation_core.case_templates import mutated_payload
 from reputation_core.evidence import hash_json
-from reputation_core.models import RunPlan
+from reputation_core.models import CaseSlot, RunPlan
+from reputation_core.models.public_evaluation import PublicReadonlyRunPlan
 from sqlalchemy import Connection, Engine, and_, func, or_, select, update
 from sqlalchemy.dialects.postgresql import insert
 
@@ -75,7 +76,7 @@ def persist_plan(
     actor: str,
     idempotency_key: str,
     payload_hash: str,
-    plan: RunPlan,
+    plan: RunPlan | PublicReadonlyRunPlan,
 ) -> tuple[UUID, bool]:
     with db.begin() if isinstance(db, Engine) else nullcontext(db) as connection:
         inserted = connection.execute(
@@ -124,7 +125,7 @@ def persist_plan(
                         "request_id": slot.task.request_id,
                         "payload_hash": hash_json(
                             mutated_payload(slot)
-                            if plan.template_version in {"capabilities@3", "capabilities@4", "capabilities@5", "capabilities@6"}
+                            if isinstance(slot, CaseSlot) and plan.template_version in {"capabilities@3", "capabilities@4", "capabilities@5", "capabilities@6"}
                             else slot.task.model_dump(mode="json")
                         ),
                     },

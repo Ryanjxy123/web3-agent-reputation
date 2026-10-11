@@ -1,0 +1,1 @@
+{"additionalProperties":false,"properties":{"job_id":{"format":"uuid4","title":"Job Id","type":"string"},"status":{"const":"QUEUED","default":"QUEUED","title":"Status","type":"string"},"status_url":{"pattern":"^/api/v1/[a-z/-]+[0-9a-f-]+$","title":"Status Url","type":"string"}},"required":["job_id","status_url"],"title":"AcceptedJob","type":"object"}

@@ -698,6 +698,17 @@ def verify_bundle(
     if set(files) - allowed:
         _fail("UNCOMMITTED_FILE", "Bundle contains a file absent from the manifest.")
 
+    plan_selector = _json(aliases, "run_plan.json")
+    if core_data.get("schema_version") == "1.6.0" or (
+        isinstance(plan_selector, dict) and plan_selector.get("suite_id") == "public-readonly-v1"
+    ):
+        from .public_bundle import verify_public_bundle
+
+        return verify_public_bundle(
+            core_data, manifest, receipt, aliases, files, report_hash=report_hash,
+            manifest_hash=manifest_hash, rpc_url=rpc_url,
+        )
+
     try:
         from reputation_core.models import ReportTaskResult
 

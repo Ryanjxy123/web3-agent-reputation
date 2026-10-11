@@ -27,9 +27,20 @@
 | FOLLOWUP-06 | DONE | A/D 新故障模式、独立预期及真实单槽位评分/充分度/风险/复核通过；Review 修复 RPC envelope 与只读 ABI 边界，规则6/报告1.5；最终本地回归与 Foundation CI 通过 |
 | FOLLOWUP-07 | DONE | Akashi真实免费HTTP/MCP只读正例、独立Base事件核验、随机局部查询/非法输入/重复/注册存在检查通过；Review修复后重验；最终本地回归与 Foundation CI 通过 |
 | FOLLOWUP-08 | DONE | 正式HTTPS/MCP只读适配、安全DNS socket pin、限频/配额/付款停止与CAS审计完成；真实免费调用、301项定向验证、独立Review修复及985项完整Foundation CI通过 |
-| FOLLOWUP-09 | DONE | 固定块公共身份/端点关联、最终真实重验与独立Review通过；报告续租测试修复后本机/CI完整1279项通过，PR#10最终文档head checks/合并待核验 |
-| FOLLOWUP-10 | NOT_STARTED | 依赖任务9：正式Worker/评价/Bundle/独立Verifier闭环，保持充分度与绑定规则 |
+| FOLLOWUP-09 | DONE | 固定块公共身份/端点关联、最终真实重验与独立Review通过；完整1279项通过，最终head CI成功，PR#10合并为1897a74并核对main一致 |
+| FOLLOWUP-10 | IN_PROGRESS | 正式公共只读模型、Worker/证据/报告/独立Verifier已实现，定向/独立Review/真实闭环通过；完整check.py与最终Git/CI交付进行中 |
 | LOCAL-PG-JUNCTION | DONE | Windows PostgreSQL 改用 D:\web3-runtime 目录联接；R: 已移除，初始化、重启、数据完整性及13项定向测试通过 |
+
+## 2026-10-11 / 本轮任务10正式公共只读评价（最终回归中）
+
+- Baseline：任务9最终文档head13343622b41c2aa1947963e8be41c2f525cb991b的CI38116332399 quality/Compose均SUCCESS，PR#10按授权squash合并为1897a7408550116e0294c8c4eff25b580eb5c482。已fetch/prune、安全同步main=origin/main、核对合并树等于最终PR树、工作树干净，仅清理任务9本地/远程分支；随后建立feat/public-readonly-evaluation，未并行开展不同阶段。
+- Design/implementation：显式公共Task/Facts/Slot/Plan/Grant/Input、新rule7/ReportCore1.6分支，复用Worker/PG/CAS/Observation/评分/Bundle；公共executor=None，旧EIP-712受控规则1–6不变。固定5槽免费只读查询与独立Base历史证据；样本不足保持PARTIAL/overall=null。完整机制与兼容性见ADR0021；迁移不改历史，存在executor-null公共行时downgrade明确拒绝。
+- Egress/evidence：固定Akashi HTTP/MCP及Base历史tx/receipt/必要block白名单，DNS全部公网验证后pin数字IP，socket前核对当前快照、授权/撤销/取消/deadline与租约。跨Worker advisory lock串行、至少1秒间隔、64请求配额；付款/未知副作用/协议故障停止共享出口，无自动重试。每intent/response写CAS并注册后才继续；恢复保留原件及真实尝试时间/响应状态，已发出但响应不完整为UNKNOWN/DISPATCH_UNCERTAIN、无声称latency、无补发。
+- Review/fixes：独立Review修复OpenAPI付款字段存在性、身份原件不足越界、拒绝/服务故障误计业务结果、恢复原件丢失/latency以及publication.platform_instance_id篡改。CLI首次evaluate和report阶段失败材料保留runtime；前者修复任务9身份21条引用兼容（持久start ledger+20原件），后者修复TaskOutcomeCounts按别名序列化KeyError。均补回归；最终有针对性Review108 passed/0skip，无剩余可行动阻断。
+- Directed/regression：公共平台/出口202 passed，公共PostgreSQL/Anvil11 passed，恢复定向1 passed（11.77s），核心459 passed，Bundle29 passed；全树Ruff、Mypy69源文件、71Schema/OpenAPI和TS生成检查通过，Web构建/2测试通过。首个有退出码的完整check发现迁移downgrade约束名被命名规则重复加前缀，实际PG复现1 failed；改用op.f固定已展开名称，空库真实roundtrip1 passed（2.60s），现有公共5行拒降级/数据保留/无schema漂移和最终恢复组合2 passed（89.36s），独立SQL/边界Review通过。原完整进程在确认失败后主动停止exit1，日志runtime/task10-full-check-final.log和-result.json，明确NOT_PASS。稳定代码完整重跑正在运行，日志runtime/task10-full-check-reviewed.log和-result.json；没有退出码的更早检查不计通过，也不复用任务9结果。
+- Live：正式CLI `scripts/public_readonly_evaluation_smoke.py --allow-public-readonly --operator-dns-over-tls` 首次成功15:18后，仅恢复延迟从等待时间改为None；逆向该补丁hash严格匹配旧manifest。最终执行源码重新真实验收于runtime/task10-live-final-20261011-1540退出0，真实API→evaluate/verify/report Worker→冻结Bundle。66次网络响应（56 Base RPC、6 HTTP、4 MCP；64x200/1x202/1x400），实际独立Base canonical交易/回执/12确认和锁定Anchored事件核对；4 PASS、1 UNKNOWN、0 FAIL。ReportCore1.6.0、Run/report PARTIAL、overall_score_bp=null；executor UNKNOWN，未请求本地anchor，publication LOCAL_ANVIL/UNANCHORED。独立Bundle离线PASS、assessment/task_count MATCH；随机hash未查到不证明全球不存在。付款/签名/主网写入均0。
+- Published evidence：最终run的脱敏acceptance、66响应审计、229CAS、66DNS、Bundle、source-manifest和progress/run-context保留于docs/testing/evidence/akashi-public-evaluation-2026-10-11；publication-manifest对302文件逐字节承诺，Git禁止证据换行转换。最终manifest所有执行平台/core/verifier源码与交付一致，仅run启动后迁移downgrade名称修复和PG历史保护测试两个文件不同；README明确说明，不重写真实源清单。旧成功/失败材料和前次公开副本保留runtime，隔离本地数据库保留，不提交凭据、token、private key或链状态。公开原件与ZIP、待提交变更静默匹配现有7项敏感值均0匹配。
+- Git/next：分支feat/public-readonly-evaluation，代码/脱敏证据/ADR/runbook已完成；当前待完整check.py实际退出与最终CI、按AGENTS条件合并同步main并仅清理本任务分支。不开展11–13；外网默认关闭，离线复核不证明采集者诚实或实时主网状态，评分/充分度门槛不变。
 
 ## 2026-10-11 / 本轮任务9受限公开身份接入
 

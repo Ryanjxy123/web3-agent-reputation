@@ -649,7 +649,8 @@
               "3",
               "4",
               "5",
-              "6"
+              "6",
+              "7"
             ],
             "title": "Rule Version",
             "type": "string"
@@ -1703,6 +1704,23 @@
         "title": "EvidenceManifest",
         "type": "object"
       },
+      "EvidencePacket": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "$ref": "#/components/schemas/JsonValue"
+          },
+          "record": {
+            "$ref": "#/components/schemas/EvidenceRecord"
+          }
+        },
+        "required": [
+          "record",
+          "body"
+        ],
+        "title": "EvidencePacket",
+        "type": "object"
+      },
       "EvidenceRecord": {
         "additionalProperties": false,
         "properties": {
@@ -2592,6 +2610,754 @@
         "title": "PublicIdentityRead",
         "type": "object"
       },
+      "PublicReadonlyCaseSlot": {
+        "additionalProperties": false,
+        "properties": {
+          "capability_id": {
+            "const": "verify_record",
+            "default": "verify_record",
+            "title": "Capability Id",
+            "type": "string"
+          },
+          "case_kind": {
+            "enum": [
+              "positive",
+              "negative"
+            ],
+            "title": "Case Kind",
+            "type": "string"
+          },
+          "expected": {
+            "$ref": "#/components/schemas/PublicReadonlyExpectedFacts"
+          },
+          "expected_outcome": {
+            "$ref": "#/components/schemas/Outcome"
+          },
+          "grant_id": {
+            "format": "uuid4",
+            "title": "Grant Id",
+            "type": "string"
+          },
+          "purpose": {
+            "$ref": "#/components/schemas/Purpose"
+          },
+          "required_class": {
+            "enum": [
+              "match",
+              "not_found",
+              "invalid_format"
+            ],
+            "title": "Required Class",
+            "type": "string"
+          },
+          "slot_id": {
+            "format": "uuid4",
+            "title": "Slot Id",
+            "type": "string"
+          },
+          "slot_key": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Slot Key",
+            "type": "string"
+          },
+          "task": {
+            "$ref": "#/components/schemas/PublicReadonlyTask"
+          }
+        },
+        "required": [
+          "slot_id",
+          "slot_key",
+          "purpose",
+          "case_kind",
+          "required_class",
+          "expected_outcome",
+          "task",
+          "expected",
+          "grant_id"
+        ],
+        "title": "PublicReadonlyCaseSlot",
+        "type": "object"
+      },
+      "PublicReadonlyEvaluationCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "capability_id": {
+            "const": "verify_record",
+            "default": "verify_record",
+            "title": "Capability Id",
+            "type": "string"
+          },
+          "grant_ids": {
+            "items": {
+              "format": "uuid4",
+              "type": "string"
+            },
+            "maxItems": 2,
+            "minItems": 2,
+            "title": "Grant Ids",
+            "type": "array"
+          },
+          "policy_version": {
+            "const": "policy-v1",
+            "default": "policy-v1",
+            "title": "Policy Version",
+            "type": "string"
+          },
+          "profile": {
+            "const": "record-read-v1",
+            "default": "record-read-v1",
+            "title": "Profile",
+            "type": "string"
+          },
+          "review_version": {
+            "minimum": 1,
+            "title": "Review Version",
+            "type": "integer"
+          },
+          "snapshot_id": {
+            "format": "uuid4",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "suite_id": {
+            "const": "public-readonly-v1",
+            "default": "public-readonly-v1",
+            "title": "Suite Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "snapshot_id",
+          "review_version",
+          "grant_ids"
+        ],
+        "title": "PublicReadonlyEvaluationCreate",
+        "type": "object"
+      },
+      "PublicReadonlyExpectedFacts": {
+        "additionalProperties": false,
+        "properties": {
+          "agent_ref": {
+            "$ref": "#/components/schemas/AgentRef"
+          },
+          "confirmation_depth": {
+            "const": 12,
+            "default": 12,
+            "title": "Confirmation Depth",
+            "type": "integer"
+          },
+          "deadline": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+            "title": "Deadline",
+            "type": "string"
+          },
+          "endpoint_id": {
+            "enum": [
+              "akashi-http",
+              "akashi-mcp"
+            ],
+            "title": "Endpoint Id",
+            "type": "string"
+          },
+          "execution_chain": {
+            "$ref": "#/components/schemas/ChainIdentity"
+          },
+          "pre_dispatch_block": {
+            "pattern": "^(0|[1-9][0-9]{0,77})$",
+            "title": "Pre Dispatch Block",
+            "type": "string"
+          },
+          "pre_dispatch_block_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Pre Dispatch Block Hash",
+            "type": "string"
+          },
+          "protocol": {
+            "enum": [
+              "akashi-http-readonly-v1",
+              "akashi-mcp-readonly-v1"
+            ],
+            "title": "Protocol",
+            "type": "string"
+          },
+          "query": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Query",
+            "type": "object"
+          },
+          "request_id": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "snapshot_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Snapshot Hash",
+            "type": "string"
+          },
+          "window_start": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+            "title": "Window Start",
+            "type": "string"
+          }
+        },
+        "required": [
+          "agent_ref",
+          "snapshot_hash",
+          "execution_chain",
+          "request_id",
+          "window_start",
+          "deadline",
+          "pre_dispatch_block",
+          "pre_dispatch_block_hash",
+          "protocol",
+          "endpoint_id",
+          "query"
+        ],
+        "title": "PublicReadonlyExpectedFacts",
+        "type": "object"
+      },
+      "PublicReadonlyGrant": {
+        "additionalProperties": false,
+        "properties": {
+          "capabilities": {
+            "default": [
+              "verify_record"
+            ],
+            "items": {
+              "const": "verify_record",
+              "type": "string"
+            },
+            "title": "Capabilities",
+            "type": "array"
+          },
+          "chain_instances": {
+            "items": {
+              "pattern": "^0x[0-9a-f]{64}$",
+              "type": "string"
+            },
+            "maxItems": 1,
+            "minItems": 1,
+            "title": "Chain Instances",
+            "type": "array"
+          },
+          "concurrency": {
+            "const": 1,
+            "default": 1,
+            "title": "Concurrency",
+            "type": "integer"
+          },
+          "consent_ref": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Consent Ref",
+            "type": "string"
+          },
+          "contract_allowlist": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Contract Allowlist",
+            "type": "array"
+          },
+          "endpoint_ids": {
+            "items": {
+              "enum": [
+                "akashi-http",
+                "akashi-mcp"
+              ],
+              "type": "string"
+            },
+            "title": "Endpoint Ids",
+            "type": "array"
+          },
+          "expires_at": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "grant_id": {
+            "format": "uuid4",
+            "title": "Grant Id",
+            "type": "string"
+          },
+          "interval_ms": {
+            "default": 1000,
+            "maximum": 60000,
+            "minimum": 1000,
+            "title": "Interval Ms",
+            "type": "integer"
+          },
+          "max_tasks": {
+            "maximum": 5,
+            "minimum": 1,
+            "title": "Max Tasks",
+            "type": "integer"
+          },
+          "methods": {
+            "items": {
+              "enum": [
+                "GET",
+                "POST"
+              ],
+              "type": "string"
+            },
+            "title": "Methods",
+            "type": "array"
+          },
+          "operator": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Operator",
+            "type": "string"
+          },
+          "paths": {
+            "items": {
+              "enum": [
+                "/proof",
+                "/mcp"
+              ],
+              "type": "string"
+            },
+            "title": "Paths",
+            "type": "array"
+          },
+          "protocol": {
+            "enum": [
+              "akashi-http-readonly-v1",
+              "akashi-mcp-readonly-v1"
+            ],
+            "title": "Protocol",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "public-readonly-grant-v1",
+            "default": "public-readonly-grant-v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "snapshot_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Snapshot Hash",
+            "type": "string"
+          }
+        },
+        "required": [
+          "protocol",
+          "grant_id",
+          "snapshot_hash",
+          "endpoint_ids",
+          "methods",
+          "paths",
+          "chain_instances",
+          "max_tasks",
+          "expires_at",
+          "operator",
+          "consent_ref"
+        ],
+        "title": "PublicReadonlyGrant",
+        "type": "object"
+      },
+      "PublicReadonlyGrantCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "consent_ref": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Consent Ref",
+            "type": "string"
+          },
+          "endpoint_id": {
+            "enum": [
+              "akashi-http",
+              "akashi-mcp"
+            ],
+            "title": "Endpoint Id",
+            "type": "string"
+          },
+          "expires_at": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "interval_ms": {
+            "default": 1000,
+            "maximum": 60000,
+            "minimum": 1000,
+            "title": "Interval Ms",
+            "type": "integer"
+          },
+          "max_tasks": {
+            "maximum": 5,
+            "minimum": 1,
+            "title": "Max Tasks",
+            "type": "integer"
+          },
+          "snapshot_id": {
+            "format": "uuid4",
+            "title": "Snapshot Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "snapshot_id",
+          "endpoint_id",
+          "max_tasks",
+          "expires_at",
+          "consent_ref"
+        ],
+        "title": "PublicReadonlyGrantCreate",
+        "type": "object"
+      },
+      "PublicReadonlyGrantView": {
+        "additionalProperties": false,
+        "properties": {
+          "grant": {
+            "$ref": "#/components/schemas/PublicReadonlyGrant"
+          },
+          "revoked": {
+            "title": "Revoked",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "grant",
+          "revoked"
+        ],
+        "title": "PublicReadonlyGrantView",
+        "type": "object"
+      },
+      "PublicReadonlyRunPlan": {
+        "additionalProperties": false,
+        "properties": {
+          "confirmed_capabilities": {
+            "default": [
+              "verify_record"
+            ],
+            "items": {
+              "const": "verify_record",
+              "type": "string"
+            },
+            "title": "Confirmed Capabilities",
+            "type": "array"
+          },
+          "planning_evidence_refs": {
+            "default": [],
+            "items": {
+              "format": "uuid4",
+              "type": "string"
+            },
+            "title": "Planning Evidence Refs",
+            "type": "array"
+          },
+          "planning_time": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+            "title": "Planning Time",
+            "type": "string"
+          },
+          "policy_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Policy Hash",
+            "type": "string"
+          },
+          "policy_version": {
+            "const": "policy-v1",
+            "default": "policy-v1",
+            "title": "Policy Version",
+            "type": "string"
+          },
+          "profile": {
+            "const": "record-read-v1",
+            "default": "record-read-v1",
+            "title": "Profile",
+            "type": "string"
+          },
+          "review_version": {
+            "minimum": 1,
+            "title": "Review Version",
+            "type": "integer"
+          },
+          "run_id": {
+            "format": "uuid4",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "public-readonly-plan-v1",
+            "default": "public-readonly-plan-v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "slots": {
+            "items": {
+              "$ref": "#/components/schemas/PublicReadonlyCaseSlot"
+            },
+            "maxItems": 5,
+            "minItems": 1,
+            "title": "Slots",
+            "type": "array"
+          },
+          "snapshot_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Snapshot Hash",
+            "type": "string"
+          },
+          "suite_id": {
+            "const": "public-readonly-v1",
+            "default": "public-readonly-v1",
+            "title": "Suite Id",
+            "type": "string"
+          },
+          "template_version": {
+            "const": "public-readonly@1",
+            "default": "public-readonly@1",
+            "title": "Template Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "snapshot_hash",
+          "review_version",
+          "policy_hash",
+          "planning_time",
+          "slots"
+        ],
+        "title": "PublicReadonlyRunPlan",
+        "type": "object"
+      },
+      "PublicReadonlyTask": {
+        "additionalProperties": false,
+        "properties": {
+          "capability_id": {
+            "const": "verify_record",
+            "default": "verify_record",
+            "title": "Capability Id",
+            "type": "string"
+          },
+          "chain_id": {
+            "const": "8453",
+            "default": "8453",
+            "title": "Chain Id",
+            "type": "string"
+          },
+          "chain_instance_id": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Chain Instance Id",
+            "type": "string"
+          },
+          "deadline": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+            "title": "Deadline",
+            "type": "string"
+          },
+          "endpoint_id": {
+            "enum": [
+              "akashi-http",
+              "akashi-mcp"
+            ],
+            "title": "Endpoint Id",
+            "type": "string"
+          },
+          "protocol": {
+            "enum": [
+              "akashi-http-readonly-v1",
+              "akashi-mcp-readonly-v1"
+            ],
+            "title": "Protocol",
+            "type": "string"
+          },
+          "query": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Query",
+            "type": "object"
+          },
+          "read_block_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Read Block Hash",
+            "type": "string"
+          },
+          "read_block_number": {
+            "pattern": "^(0|[1-9][0-9]{0,77})$",
+            "title": "Read Block Number",
+            "type": "string"
+          },
+          "request_id": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "snapshot_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Snapshot Hash",
+            "type": "string"
+          }
+        },
+        "required": [
+          "protocol",
+          "request_id",
+          "snapshot_hash",
+          "chain_instance_id",
+          "endpoint_id",
+          "query",
+          "read_block_number",
+          "read_block_hash",
+          "deadline"
+        ],
+        "title": "PublicReadonlyTask",
+        "type": "object"
+      },
+      "PublicReadonlyVerificationInput": {
+        "additionalProperties": false,
+        "properties": {
+          "agent_evidence_refs": {
+            "items": {
+              "format": "uuid4",
+              "type": "string"
+            },
+            "title": "Agent Evidence Refs",
+            "type": "array"
+          },
+          "association": {
+            "$ref": "#/components/schemas/ReadonlyIdentityAssociation"
+          },
+          "business_evidence_refs": {
+            "items": {
+              "format": "uuid4",
+              "type": "string"
+            },
+            "title": "Business Evidence Refs",
+            "type": "array"
+          },
+          "dispatch_payload_hash": {
+            "anyOf": [
+              {
+                "pattern": "^0x[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dispatch Payload Hash"
+          },
+          "dispatch_started_at": {
+            "anyOf": [
+              {
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dispatch Started At"
+          },
+          "execution_reason": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Reason"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "grant": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PublicReadonlyGrant"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "identity_evidence_refs": {
+            "items": {
+              "format": "uuid4",
+              "type": "string"
+            },
+            "title": "Identity Evidence Refs",
+            "type": "array"
+          },
+          "intent_persisted_at": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+            "title": "Intent Persisted At",
+            "type": "string"
+          },
+          "observed_at": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+            "title": "Observed At",
+            "type": "string"
+          },
+          "packets": {
+            "items": {
+              "$ref": "#/components/schemas/EvidencePacket"
+            },
+            "maxItems": 100,
+            "title": "Packets",
+            "type": "array"
+          },
+          "platform_instance_id": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Platform Instance Id",
+            "type": "string"
+          },
+          "review": {
+            "$ref": "#/components/schemas/ClaimReview"
+          },
+          "review_version": {
+            "minimum": 1,
+            "title": "Review Version",
+            "type": "integer"
+          },
+          "rule_version": {
+            "const": "7",
+            "default": "7",
+            "title": "Rule Version",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "public-readonly-verification-input-v1",
+            "default": "public-readonly-verification-input-v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "slot": {
+            "$ref": "#/components/schemas/PublicReadonlyCaseSlot"
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/AgentSnapshot"
+          }
+        },
+        "required": [
+          "slot",
+          "snapshot",
+          "review",
+          "review_version",
+          "platform_instance_id",
+          "grant",
+          "intent_persisted_at",
+          "dispatch_started_at",
+          "dispatch_payload_hash",
+          "execution_reason",
+          "observed_at",
+          "association",
+          "packets",
+          "identity_evidence_refs",
+          "agent_evidence_refs",
+          "business_evidence_refs"
+        ],
+        "title": "PublicReadonlyVerificationInput",
+        "type": "object"
+      },
       "PublicRegistrationMetadata": {
         "additionalProperties": false,
         "properties": {
@@ -3401,7 +4167,8 @@
               "1.2.0",
               "1.3.0",
               "1.4.0",
-              "1.5.0"
+              "1.5.0",
+              "1.6.0"
             ],
             "title": "Schema Version",
             "type": "string"
@@ -3520,7 +4287,8 @@
               "3",
               "4",
               "5",
-              "6"
+              "6",
+              "7"
             ],
             "title": "Rule Version",
             "type": "string"
@@ -4286,14 +5054,22 @@
             "default": "execution",
             "enum": [
               "execution",
-              "rejection"
+              "rejection",
+              "readonly-query"
             ],
             "title": "Completion Kind",
             "type": "string"
           },
           "executor": {
-            "title": "Executor",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Executor"
           },
           "log_index": {
             "anyOf": [
@@ -4652,7 +5428,15 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GrantView"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/GrantView"
+                    },
+                    {
+                      "$ref": "#/components/schemas/PublicReadonlyGrantView"
+                    }
+                  ],
+                  "title": "Response Get Grant Api V1 Access Grants  Grant Id  Get"
                 }
               }
             },
@@ -4707,7 +5491,15 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GrantView"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/GrantView"
+                    },
+                    {
+                      "$ref": "#/components/schemas/PublicReadonlyGrantView"
+                    }
+                  ],
+                  "title": "Response Revoke Grant Api V1 Access Grants  Grant Id  Revoke Post"
                 }
               }
             },
@@ -5149,7 +5941,15 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RunPlan"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/RunPlan"
+                    },
+                    {
+                      "$ref": "#/components/schemas/PublicReadonlyRunPlan"
+                    }
+                  ],
+                  "title": "Response Get Plan Api V1 Evaluations  Run Id  Plan Get"
                 }
               }
             },
@@ -5346,6 +6146,104 @@
           }
         ],
         "summary": "Get Job"
+      }
+    },
+    "/api/v1/public-readonly/access-grants": {
+      "post": {
+        "operationId": "create_public_grant_api_v1_public_readonly_access_grants_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicReadonlyGrantCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicReadonlyGrantView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Public Grant"
+      }
+    },
+    "/api/v1/public-readonly/evaluations": {
+      "post": {
+        "operationId": "create_public_evaluation_api_v1_public_readonly_evaluations_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicReadonlyEvaluationCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcceptedEvaluation"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Public Evaluation"
       }
     },
     "/api/v1/reports/{report_id}": {

@@ -1,0 +1,1 @@
+{"additionalProperties":false,"properties":{"evidence_id":{"format":"uuid4","title":"Evidence Id","type":"string"},"path":{"pattern":"^(?:[a-z][a-z0-9_-]*\\.json|schemas/[A-Za-z][A-Za-z0-9]*\\.schema\\.json)$","title":"Path","type":"string"}},"required":["path","evidence_id"],"title":"ManifestDocument","type":"object"}

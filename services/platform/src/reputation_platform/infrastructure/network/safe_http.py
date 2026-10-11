@@ -12,6 +12,7 @@ from urllib.parse import parse_qsl, urlsplit
 import httpcore
 import httpx
 from reputation_core.evidence import strict_json
+from reputation_core.public_verifier import payment_requested as payment_requested
 
 from reputation_platform.configuration import controlled_fixture_ports
 
@@ -20,6 +21,7 @@ PUBLIC_ORIGIN = "https://anchor.akashi-notari.com"
 PUBLIC_RPC_ORIGIN = "https://mainnet.base.org"
 PUBLIC_REQUEST_QUOTA = 64
 PUBLIC_REQUEST_INTERVAL = 1.0
+AKASHI_PROOF_TX = "0xd01d3e019906321b7d410538aebb696dec806df1099756ec85ac7b2da91df7fc"
 Resolver = Callable[[str], Iterable[str] | Awaitable[Iterable[str]]]
 POC_ORIGINS = frozenset({
     "https://raw.githubusercontent.com", "https://api.github.com",
@@ -165,7 +167,7 @@ def _readonly_request_allowed(method: str, origin: str, path: str, body: dict | 
 
 
 def _public_readonly_request_allowed(
-    method: str, origin: str, path: str, body: dict | None,
+    method: str, origin: str, path: str, body: dict | None, *, business_reads: bool = False,
 ) -> bool:
     if not _readonly_request_allowed(method, origin, path, body):
         return False
@@ -184,6 +186,10 @@ def _public_readonly_request_allowed(
         return parameters[0].lower() == POC_IDENTITY_REGISTRY and _quantity(parameters[1])
     if operation == "eth_call":
         return _quantity(parameters[1])
+    if business_reads and operation in {"eth_getTransactionByHash", "eth_getTransactionReceipt"}:
+        return parameters == [AKASHI_PROOF_TX]
+    if business_reads and operation == "eth_getBlockByHash":
+        return _hash32(parameters[0])
     return False
 
 
@@ -268,31 +274,6 @@ def decode_public_json(observation: HttpObservation) -> dict:
     return value
 
 
-def payment_requested(value) -> bool:
-    if isinstance(value, dict):
-        if any(value.get(key) for key in (
-            "payment_required", "paymentRequired", "requires_payment", "requiresPayment",
-            "paymentRequirements", "x402Version",
-        )):
-            return True
-        # Ignore unrelated paid tools, but a payment requirement on our selected tool stops access.
-        for key, child in value.items():
-            if key == "tools":
-                if isinstance(child, list) and any(
-                    isinstance(tool, dict) and tool.get("name") == "find_proof"
-                    and payment_requested(tool) for tool in child
-                ):
-                    return True
-            elif payment_requested(child):
-                return True
-        return False
-    if isinstance(value, list):
-        return any(payment_requested(child) for child in value)
-    return isinstance(value, str) and re.search(
-        r"\b(?:payment[ _]required|requires? payment)\b", value, re.IGNORECASE,
-    ) is not None
-
-
 async def _resolve_public(host: str) -> Iterable[str]:
     addresses = await asyncio.get_running_loop().getaddrinfo(
         host, 443, type=socket.SOCK_STREAM,
@@ -360,6 +341,9 @@ class SafeHttpClient:
     _request_count: int
     _next_request_at: float
     _public_stopped: str | None
+    _business_reads: bool
+    _before_public_request: Callable[[str, str, str, dict | None], Awaitable[None]] | None
+    _public_interval: float
 
     def __init__(
         self, allowed_origins: frozenset[str], *, transport: httpx.AsyncBaseTransport | None = None
@@ -402,10 +386,18 @@ class SafeHttpClient:
     @classmethod
     def public_readonly(
         cls, *, enabled: bool = False, transport: httpx.AsyncBaseTransport | None = None,
-        resolver: Resolver | None = None,
+        resolver: Resolver | None = None, business_reads: bool = False,
+        before_request: Callable[[str, str, str, dict | None], Awaitable[None]] | None = None,
+        interval_ms: int | None = None,
     ) -> "SafeHttpClient":
         if enabled is not True:
             raise NetworkPolicyError("PUBLIC_READONLY_DISABLED")
+        if type(business_reads) is not bool:
+            raise NetworkPolicyError("INVALID_PUBLIC_BUSINESS_SCOPE")
+        if interval_ms is not None and (
+            type(interval_ms) is not int or not 1000 <= interval_ms <= 60000
+        ):
+            raise NetworkPolicyError("INVALID_PUBLIC_REQUEST_INTERVAL")
         backend = _PinnedBackend()
         instance = cls.readonly_poc(transport=transport or _PinnedTransport(backend))
         instance.origins = frozenset({PUBLIC_ORIGIN, PUBLIC_RPC_ORIGIN})
@@ -416,6 +408,11 @@ class SafeHttpClient:
         instance._request_count = 0
         instance._next_request_at = 0.0
         instance._public_stopped = None
+        instance._business_reads = business_reads
+        instance._before_public_request = before_request
+        instance._public_interval = (
+            PUBLIC_REQUEST_INTERVAL if interval_ms is None else interval_ms / 1000
+        )
         return instance
 
     @property
@@ -425,6 +422,10 @@ class SafeHttpClient:
     def stop_public_readonly(self, reason: str) -> None:
         if self._public:
             self._public_stopped = reason
+
+    @property
+    def public_stop_reason(self) -> str | None:
+        return self._public_stopped if self._public else None
 
     async def close(self) -> None:
         await self.client.aclose()
@@ -459,7 +460,7 @@ class SafeHttpClient:
                     method, origin, path, json=json, request_id=request_id, headers=headers,
                 )
             finally:
-                self._next_request_at = loop.time() + PUBLIC_REQUEST_INTERVAL
+                self._next_request_at = loop.time() + self._public_interval
 
     async def _request(
         self, method: str, origin: str, path: str, *, json: dict | None = None,
@@ -484,7 +485,9 @@ class SafeHttpClient:
         if self._readonly:
             allowed = _readonly_request_allowed(method, origin, path, json) and request_id is None
         if self._public:
-            allowed = allowed and _public_readonly_request_allowed(method, origin, path, json)
+            allowed = allowed and _public_readonly_request_allowed(
+                method, origin, path, json, business_reads=self._business_reads,
+            )
         if not allowed:
             raise NetworkPolicyError("METHOD_OR_PATH_NOT_ALLOWED")
         request_headers = {"Accept-Encoding": "identity"}
@@ -505,7 +508,7 @@ class SafeHttpClient:
         if self._readonly:
             self.client.cookies.clear()
         audit = {}
-        async with asyncio.timeout(20 if self._readonly else 15):
+        async with asyncio.timeout(20 if self._readonly else 15) as network_timeout:
             if self._public:
                 hostname = urlsplit(origin).hostname
                 assert hostname is not None
@@ -522,6 +525,17 @@ class SafeHttpClient:
                     "body_not_read": False,
                     "payment_required": False,
                 }
+                if self._before_public_request is not None:
+                    # Authorization pacing is outside the unchanged DNS/HTTP time budget.
+                    loop = asyncio.get_running_loop()
+                    remaining = (network_timeout.when() or loop.time()) - loop.time()
+                    network_timeout.reschedule(None)
+                    try:
+                        await self._before_public_request(method, origin, path, json)
+                    finally:
+                        network_timeout.reschedule(loop.time() + remaining)
+                if self._public_stopped or self._payment_required:
+                    raise NetworkPolicyError(self._public_stopped or "PAYMENT_REQUIRED")
             async with self.client.stream(
                 method, origin + path, json=json, headers=request_headers
             ) as response:
