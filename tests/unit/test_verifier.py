@@ -599,6 +599,7 @@ def rewrite_bundle(
     document_change=None,
     evidence_change=None,
     manifest_change=None,
+    receipt_change=None,
 ):
     with ZipFile(path) as archive:
         files = {name: archive.read(name) for name in archive.namelist()}
@@ -644,6 +645,8 @@ def rewrite_bundle(
     core_bytes = canonical_bytes(core)
     receipt = strict_json(files["anchor_receipt.json"])
     receipt["report_hash"] = hash_json(core)
+    if receipt_change:
+        receipt_change(receipt)
     files.update(
         {
             "evidence_manifest.json": manifest_bytes,
@@ -656,12 +659,107 @@ def rewrite_bundle(
             archive.writestr(name, data)
 
 
+@pytest.mark.parametrize("report_schema_version", ["1.0.0", "1.5.0"])
+@pytest.mark.parametrize("status", ["NOT_REQUESTED", "CONFIRMING", "FAILED"])
+@pytest.mark.parametrize(("field", "replacement"), [
+    ("publisher", "0x" + "aa" * 20),
+    ("contract", "0x" + "aa" * 20),
+    ("chain_instance_id", "0x" + "aa" * 32),
+    ("trusted_chain_key", "unrelated-chain"),
+])
+def test_verifier_rejects_receipt_identity_mismatch(
+    tmp_path, report_schema_version, status, field, replacement,
+):
+    path, _, _, _ = make_bundle(
+        tmp_path, rule_version="1", legacy_index=report_schema_version == "1.0.0",
+        formal=report_schema_version == "1.5.0",
+        report_schema_version="1.5.0" if report_schema_version == "1.5.0" else None,
+    )
+    assert verify_bundle(str(path))["offline"] == "PASS"
+    changed = tmp_path / "changed-receipt.zip"
+    rewrite_bundle(
+        path, changed, receipt_change=lambda receipt: receipt.update(
+            status=status, **{field: replacement},
+        ),
+    )
+    with pytest.raises(VerificationError) as failure:
+        verify_bundle(str(changed))
+    assert failure.value.code == "EVIDENCE_INCONSISTENT"
+
+
+@pytest.mark.parametrize("report_schema_version", ["1.0.0", "1.5.0"])
+@pytest.mark.parametrize("field", ["platform_instance_id", "previous_report_hash"])
+def test_verifier_rejects_publication_context_mismatch_after_rehash(
+    tmp_path, report_schema_version, field,
+):
+    path, _, _, _ = make_bundle(
+        tmp_path, rule_version="1", legacy_index=report_schema_version == "1.0.0",
+        formal=report_schema_version == "1.5.0",
+        report_schema_version="1.5.0" if report_schema_version == "1.5.0" else None,
+    )
+    changed = tmp_path / "changed-publication.zip"
+    rewrite_bundle(path, changed, manifest_change=lambda manifest: manifest["publication"].update(
+        **{field: "0x" + "aa" * 32},
+    ))
+    with pytest.raises(VerificationError) as failure:
+        verify_bundle(str(changed))
+    assert failure.value.code == "EVIDENCE_INCONSISTENT"
+
+
+@pytest.mark.parametrize("field", ["executor", "agent_id", "owner"])
+def test_verifier_rejects_frozen_task_identity_change_after_rehash(tmp_path, field):
+    path, _, freeze_id, _ = make_bundle(tmp_path, formal=True, report_schema_version="1.5.0")
+    changed = tmp_path / "changed-task-identity.zip"
+
+    def change_identity(value):
+        if field == "owner":
+            value["snapshot"]["core"]["owner"] = "0x" + "aa" * 20
+        elif field == "agent_id":
+            value["slot"]["expected"]["agent_ref"]["agent_id"] = "7"
+        else:
+            value["slot"]["expected"]["executor"] = "0x" + "aa" * 20
+
+    rewrite_bundle(path, changed, evidence_change={freeze_id: change_identity})
+    with pytest.raises(VerificationError) as failure:
+        verify_bundle(str(changed))
+    assert failure.value.code == "EVIDENCE_INCONSISTENT"
+
+
+@pytest.mark.parametrize("target", ["cas", "manifest", "report"])
+def test_verifier_rejects_changed_committed_bytes(tmp_path, target):
+    path, _, _, _ = make_bundle(tmp_path, formal=True, report_schema_version="1.5.0")
+    with ZipFile(path) as archive:
+        files = {name: archive.read(name) for name in archive.namelist()}
+    manifest = strict_json(files["evidence_manifest.json"])
+    if target == "cas":
+        files[manifest["evidence"][0]["path"]] = b"{}"
+    elif target == "manifest":
+        manifest["publication"]["publisher"] = "0x" + "aa" * 20
+        files["evidence_manifest.json"] = canonical_bytes(manifest)
+    else:
+        core = strict_json(files["report_core.json"])
+        core["agent_key_hash"] = "0x" + "aa" * 32
+        files["report_core.json"] = canonical_bytes(core)
+    changed = tmp_path / "changed-commitment.zip"
+    with ZipFile(changed, "w") as archive:
+        for name, data in sorted(files.items()):
+            archive.writestr(name, data)
+    with pytest.raises(VerificationError) as failure:
+        verify_bundle(str(changed))
+    assert failure.value.code == "CONTENT_HASH_MISMATCH"
+
+
 def test_verifier_replays_new_task_result_and_returns_recomputed_counts(tmp_path):
     path, _, _, _ = make_bundle(tmp_path)
 
     result = verify_bundle(str(path))
 
     assert result["offline"] == "PASS"
+    assert isinstance(result["limitations"], list)
+    assert any("Offline PASS" in item and "not original authenticity" in item
+               for item in result["limitations"])
+    assert any("does not authenticate historical Registry" in item and "endpoints" in item
+               for item in result["limitations"])
     assert result["task_counts"] == {"PASS": 1, "FAIL": 0, "UNKNOWN": 0, "NOT_APPLICABLE": 0}
     assert result["task_count_comparison"] == "MATCH"
     assert result["task_results"][0]["outcome"] == "PASS"

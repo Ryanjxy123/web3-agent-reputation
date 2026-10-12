@@ -148,3 +148,5 @@ uv run --env-file .env --all-packages python scripts/smoke_execution.py
 每个发布者/Agent/链/合约同一时间只允许一个尚未接入链头的新冻结报告。已有未发布报告时应继续处理原报告；不要反复创建新 run 绕过 previous 约束。RPC 不可读会阻止安全冻结并保留平台错误；链上证据变更需新评价，旧报告不能改写。
 
 报告文件、Schema 和原始证据从冻结 CAS 导出，不会因后续修改项目 Schema 文件而改变旧 ZIP。代码版本来自实际 Git SHA，未提交改动标 -dirty；无 Git 的部署需设置真实 CODE_VERSION。anchor_receipt 不在 report_core 摘要中。导出成功仅证明文件承诺已生成，不代表独立 verifier 或链上锚定已通过。
+
+独立 Verifier 会拒绝回执身份、报告 previous、任务平台与已承诺发布上下文的矛盾，包括未发布和历史版本；不改写旧证据。返回的 `limitations` 说明：离线 PASS 是材料/规则一致性，任务 `live_chain CONFIRMED` 核查执行链事实但未重新认证历史 Registry Owner/端点/HTTP 原件，`anchor CONFIRMED` 核查报告摘要发布。RPC 必须由操作者提供；没有 RPC 为 NOT_CHECKED，不将离线一致性当作身份真实性，详情见 ADR0025。

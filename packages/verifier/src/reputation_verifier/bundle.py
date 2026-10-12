@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 import zipfile
+from collections.abc import Iterable
 from pathlib import PurePosixPath
 from typing import Any, NoReturn
 from uuid import UUID
@@ -19,6 +20,7 @@ from reputation_core.models import (
     Outcome,
     Reason,
     RecordVerificationInput,
+    ReportCore,
     RunPlan,
 )
 from reputation_core.record_verifier import preserve_rpc_unknown, verify_record
@@ -39,6 +41,12 @@ MAX_BUNDLE = 64 * 1024 * 1024
 MAX_MEMBER = 16 * 1024 * 1024
 MAX_RATIO = 200
 HEX32 = re.compile(r"^0x[0-9a-f]{64}$")
+VERIFICATION_LIMITATIONS = (
+    "Offline PASS proves committed material and rule consistency, not original authenticity.",
+    "Task live_chain checks execution-chain facts; it does not authenticate historical Registry "
+    "ownership, endpoints, or HTTP originals.",
+    "Anchor CONFIRMED proves publication of the report digest, not authenticity of its originals.",
+)
 ANCHOR_ABI = [
     {
         "inputs": [
@@ -420,6 +428,25 @@ def _verify_task_documents(
     return inputs, observations, policy
 
 
+def _verify_publication_context(
+    manifest: EvidenceManifest,
+    receipt: AnchorReceipt,
+    core: ReportCore,
+    platform_instance_ids: Iterable[str],
+) -> None:
+    publication = manifest.publication
+    # The receipt is outside the report commitment, so it cannot replace committed identities.
+    if (
+        receipt.trusted_chain_key != publication.trusted_chain_key
+        or receipt.chain_instance_id != publication.chain.instance_hash
+        or receipt.contract != publication.contract
+        or receipt.publisher != publication.publisher
+        or core.previous_report_hash != publication.previous_report_hash
+        or any(identifier != publication.platform_instance_id for identifier in platform_instance_ids)
+    ):
+        _fail("EVIDENCE_INCONSISTENT", "Task, report, receipt and publication context disagree.")
+
+
 def _verify_anchor(
     rpc_url: str, manifest: EvidenceManifest, receipt: AnchorReceipt, report_hash: str, core
 ) -> dict[str, Any]:
@@ -652,8 +679,6 @@ def verify_bundle(
     if not isinstance(core_data, dict):
         _fail("SCHEMA_ERROR", "Report core must be an object.")
     try:
-        from reputation_core.models import ReportCore
-
         manifest = EvidenceManifest.model_validate(manifest_data)
         receipt = AnchorReceipt.model_validate(receipt_data)
     except ValueError as exc:
@@ -761,6 +786,9 @@ def verify_bundle(
             expected_version,
             evaluated_at=core.evaluated_at,
             require_http_refs=verification.get("schema_version") == "task-replay-v1",
+        )
+        _verify_publication_context(
+            manifest, receipt, core, (data.platform_instance_id for data in inputs)
         )
         referenced_ids = set(plan.planning_evidence_refs)
         for task_input in inputs:
@@ -883,6 +911,7 @@ def verify_bundle(
     return {
         "status": "PASS",
         "offline": "PASS",
+        "limitations": list(VERIFICATION_LIMITATIONS),
         "report_hash": report_hash,
         "task_results": replayed_tasks,
         "task_counts": {outcome.value: computed_counts[outcome] for outcome in Outcome},

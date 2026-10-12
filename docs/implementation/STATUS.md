@@ -4,8 +4,8 @@
 
 | Task ID | Status | 实施结果 |
 |---|---|---|
-| SEC-1 | ACCEPTED_TECHNICAL | 已从 SEC-2 main 复用 22245d9；解析绕过和历史读取隔离修复、合成回归及独立 Review 通过；本机历史盘点/43 份 Bundle 通过，最终 Git/CI/main 以 PR 权威终态为准 |
-| SEC-3-IDENTITY | NOT_STARTED | SEC-1 达到验收后再修复 AUD-EVAL-001 回执/发布上下文身份关联；不采用其他审计记录中的同名编号扩大范围 |
+| SEC-1 | DONE | PR #14 正常合并为 2a59220；最新 head quality/Compose 均 SUCCESS，完整1561 Python/0skip；main 同步并核对测试源码一致，本机历史盘点与读取隔离完成 |
+| SEC-3-IDENTITY | ACCEPTED_TECHNICAL | AUD-EVAL-001 修复、独立 Review/218项定向、17项真实集成与43份历史Bundle通过；最终本地全量及PR/CI/main门禁继续完成 |
 | SEC-2-VITE | ACCEPTED_TECHNICAL | Vite 7.3.2 修复及独立 Review 通过；实现 head 的完整 foundation-quality / foundation-compose 均 SUCCESS；最终文档 head CI、合并及 main 同步身份以 PR #13 权威终态和本节交接记录为准 |
 | M0-01 | DONE | 已克隆私有仓库、保留 main 历史、创建功能分支、安全安装启动基线并合并 README；36 项参考测试通过 |
 | M0-02 | DONE | 四包 uv workspace、真实锁、Vue 构建、Foundry 编译与测试通过 |
@@ -37,6 +37,15 @@
 | FOLLOWUP-13 | ACCEPTED_TECHNICAL | 部署/重复 A-D 双锚定演示、文档/打包/独立检出复现及最终技术门槛通过；合并、main 同步与 Release 状态以外部记录为准 |
 | LOCAL-PG-JUNCTION | DONE | Windows PostgreSQL 改用 D:\web3-runtime 目录联接；R: 已移除，初始化、重启、数据完整性及13项定向测试通过 |
 
+## 2026-10-12 / SEC-3 独立 Verifier 身份完整性
+
+- Baseline/scope：SEC-1 达到阶段验收并通过 PR #14 正常 squash 合并后，main=origin/main=`2a5922088a7ae9b5a2e9585999f19f3ea1e0db4d`，工作区干净；建立 `fix/sec3-verifier-identity`。本次 SEC-3 仅指 AUD-EVAL-001，不混入其他审计记录的同名 ZIP 问题。
+- Reproduction：修复前的新增单测28项全部 DID NOT RAISE（1.0/1.5，四回执身份字段×三非确认状态，另平台/previous重算），exit 1。真实 PostgreSQL/HTTP/Anvil A/D 报告发布后，两个测试原件离线 PASS/Anchor NOT_CHECKED、在线 PASS/Anchor CONFIRMED；四字段×离线/在线×A/D 共16次错误接受，两个测试失败，74.83s。不是哈希断言改弱或 mock 正例。
+- Fix：复用公共1.6已有语义，共享 helper 检查 receipt publisher/contract/chain_instance_id/trusted_chain_key 与 publication、core.previous 与 publication.previous、全部 input.platform 与 publication.platform；在任务/Anchor RPC 与未确认回执/无RPC早退前拒绝矛盾。结果新增 limitations，明确离线材料一致性、执行链事实与报告摘要发布三种边界。Agent/Owner/executor/任务现有摘要、EIP-712签名、槽位、交易/事件和报告重算不重复实现、不削弱。详情 ADR0025。
+- History：43份原件（1.0×4、1.1×5、1.5×33、1.6×1）全部按原版本 PASS，SHA-256 与 SEC-1 基线完全相同；修复前1.0/1.5共12次矛盾错误 PASS，修复后1.0/1.5/1.6共18项均 EVIDENCE_INCONSISTENT。另15项 AgentRef、Owner/executor、签名域、Snapshot、request/hash、报告 agent_key 变异在重算承诺后全部拒绝，原因不是 CONTENT_HASH_MISMATCH。旧1.0任务/评价摘要仍 NOT_AVAILABLE_LEGACY_REPORT，未升级 VERIFIED。记录在忽略的 runtime/sec3。
+- Review/tests：独立 SEC-3 与 SEC-1/SEC-2 跨模块审查未发现可行动阻塞；独立 verifier/public Bundle/公开隔离/identity-egress 选择218 passed/0skip（57.91s，exit0）。最终 verifier/public Bundle两文件136 passed（55.12s），另3项CAS/manifest/ReportCore原始字节篡改均拒绝（1.59s）；真实PG/HTTP/Anvil A/D新Anchor+原报告+保存执行者/目标/事件/request/hash/链变异+实际错误执行者/目标交易6 passed（195.99s），公共5槽位冻结/报告/Bundle全文件11 passed（165.74s），全部exit0/0skip。覆盖原件offline/online边界、RPC_UNAVAILABLE与错误链CHAIN_INSTANCE_MISMATCH，原件SHA不变。Ruff/Mypy70/Schema74/diff check通过；最终完整 scripts/check.py/CI 待完成，不沿用SEC-1結果冒充本轮全量。
+- Limits：离线不认证原件；任务RPC不重新认证历史Registry Owner/端点/HTTP；公共1.6业务证据仍离线重放，Anchor可信本地链另查。原始Bundle/Schema/DB/签名/不可变证据无升级、迁移或改写，无新依赖。未执行公网主动测评、生产数据删除/凭据轮换。最终质量门禁与Git交付继续完成。
+
 ## 2026-10-12 / SEC-1 收尾与历史读取隔离
 
 - Baseline/Git：fetch 后 main=origin/main=`5d7fdbb8eedd31dd67547c1218fc9bed6e501f98`，工作区干净；Git ancestry、差异及真实源码证明 22245d9 尚未进入 main。基于该 main 创建 `fix/sec1-closure` 并 cherry-pick 为 `d5c47a1`；仅 PLAN/STATUS 冲突，保留双方历史记录，SEC-2 Vite 7.3.2/锁及测试未回退。既有忽略的 docs/audit 原件不提交、不改写。
@@ -46,7 +55,8 @@
 - Tests：原过滤及相关真实 PostgreSQL/Anvil 选择执行 463 passed，另 2 项因并发测试共用端口而 fixture 启动失败（不计通过）；改用独立 29201/29202 后该两项及 API/identity 23 passed/0 skipped。Ruff/Mypy 70/74 Schema 检查通过。最终新采集 parser/Reader/CAS/HTTP 390 passed/0 skipped（49.98s）；独立最后 helper/parser/Reader/CAS 326 passed/0 skipped（46.76s），深层 JSON 拒绝 helper 16 passed。新增历史读取隔离/公共流程最终选择与 CI 门禁结果见后续追加记录。
 - Review：独立审查确认并修复控制字符、反斜杠、嵌套 JSON 和 camelCase 读取路径，8 个原绕过在 parser/collector/公开门禁全部拒绝，安全已脱敏 raw JSON 正常返回。历史读取反例先运行并实际失败（5 个旧接口返回 200；另1端口错误不作为复现），随后修复测试，不改安全断言。最后独立复审没有剩余可行动 SEC-1 阻塞；真实 PostgreSQL/Anvil 5 个正常/历史 A-D 报告及1个转义 CAS 用例通过。
 - Final local gate：最后 helper/历史快照直接/列表/关联/源 CAS、正常 API 与公共5槽位冻结/Bundle 选择 **31 passed / 0 skipped / 2 warnings**（128.90s，exit 0；该进程收集时 helper 为15项，新增深层 helper 另16项全通过）。最终 Ruff/Mypy70/Schema74 与 diff check exit 0。隔离仅阻止公开披露，不改写原件；已脱敏占位与普通文本不误拦截。
-- Limits/next：没有生产数据删除/迁移/凭据轮换或第三方网络测试。SEC-1 阶段提交、PR/required CI/main 门禁完成后再开展 SEC-3；后者指 evaluation-findings AUD-EVAL-001，非其他审计文件的 ZIP 异常问题。最终整体 scripts/check.py/CI 仍须执行，不沿用旧轮结果。
+- Delivery：阶段提交 d5c47a1/132294c；PR #14 最新head132294c的CI run38226539976，foundation-quality（job114735328894）与foundation-compose（job114735328297）均SUCCESS。完整 scripts/check.py：1561 Python passed/0skip、Ruff/Mypy70/Schema74/TS drift、Web typecheck/build/21unit/5Vite集成/11browser groups、Foundry14/256fuzz/ABI3均通过；Compose实际LIVE_RUNTIME/IDENTITY/DISPATCH/VERIFICATION/REPORT/M1_ACCEPTANCE标记全通过。独立Git/CI门禁通过，2026-10-12T09:25:53Z正常合并为2a5922088a7ae9b5a2e9585999f19f3ea1e0db4d；本地main与origin/main一致、干净，合并源码与已测试head零差异。只删除本任务fix/sec1-closure分支，保留原fix/url-credentials及无关分支。
+- Limits/next：没有生产数据删除/迁移/凭据轮换或第三方网络测试，未发现支持真实轮换的本机存量证据；其他部署/备份/下载副本未盘点。SEC-1阶段已完成，继续上方SEC-3及最终整体回归。本机Docker Linux engine不可用，Compose以真实CI结果为准；GitHub私仓rules API受套餐403限制，未绕过保护，按明确两检查和正常merge门禁执行。
 
 ## 2026-10-12 / SEC-1 URL 凭据泄漏原始本地修复（历史记录）
 

@@ -131,6 +131,7 @@ def test_public_bundle_replays_originals_scores_and_unrequested_local_anchor(tmp
     path, _, _, data = make_public_bundle(tmp_path, protocol=protocol)
     result = verify_bundle(str(path))
     assert result["offline"] == "PASS" and result["task_counts"]["PASS"] == 1
+    assert isinstance(result["limitations"], list) and result["limitations"]
     assert result["assessment_comparison"] == "MATCH"
     assert result["publication"] == "LOCAL_ANVIL" and result["publication_status"] == "UNANCHORED"
     assert result["anchor"]["status"] == "NOT_CHECKED"

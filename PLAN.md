@@ -2,6 +2,8 @@
 
 本轮授权范围（2026-10-12）：基于最新 main，依次完成 SEC-1 整合/历史数据隔离/独立 Review，再完成 SEC-3 独立 Verifier 身份完整性修复/独立 Review，随后执行完整回归、PR、required CI、合并及 main 同步。复用 22245d9，不改写不可变证据，不进行外部攻击或生产凭据操作；不展开 EXP-1/OPS-1。
 
+本轮进度：SEC-1已通过PR #14、最新head完整quality/Compose CI并正常合并为2a59220，本地main已同步/核对干净。SEC-3在fix/sec3-verifier-identity先用单测及真实A/D Anchor复现AUD-EVAL-001，再复用公共1.6一致性校验修复受控1.0–1.5；独立跨模块Review/218项定向、17项真实PG/Anvil集成和43份历史Bundle/哈希完整性已通过。身份/任务已有签名与规则约束保留，输出明确三种复核可信边界，见ADR0025/STATUS；提交阶段成果后继续最终scripts/check.py与PR/CI正常合并，不扩大范围。
+
 历史 SEC-2 授权与验收记录：
 
 本轮授权范围（2026-10-12）：仅修复用户指定的 SEC-2 Vite WebSocket 与 HTTP 资源访问控制不一致。在 `fix/vite-ws-access` 基于核实的 main `82dcb85` 精确升级 Vite 至首个修复版本 7.3.2，使用本地合成文件验证访问边界、异常输入、正常开发/HMR/API 代理及构建，完成独立 Review 与 Git 门禁。开发和当前 Compose 交付运行均在范围内，设计见 ADR0023，实际结果见 STATUS；不开展其他安全审计。上一轮 SEC-1 提交保留在 `fix/url-credentials`，本任务不混入其源码变更。以下任务11–13授权与结果为历史记录。

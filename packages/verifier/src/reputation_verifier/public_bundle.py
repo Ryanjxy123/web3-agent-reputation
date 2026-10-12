@@ -19,7 +19,14 @@ from reputation_core.models.public_evaluation import (
 from reputation_core.public_reporting import build_public_readonly_report
 from reputation_core.public_verifier import public_observation, verify_public_readonly
 
-from .bundle import VerificationError, _fail, _json, _verify_anchor
+from .bundle import (
+    VERIFICATION_LIMITATIONS,
+    VerificationError,
+    _fail,
+    _json,
+    _verify_anchor,
+    _verify_publication_context,
+)
 
 
 def _packets(
@@ -61,14 +68,7 @@ def verify_public_bundle(
         core = ReportCore.model_validate(core_data)
         if hash_json(core.model_dump(mode="json")) != report_hash:
             _fail("CONTENT_HASH_MISMATCH", "Public report is not in canonical wire form.")
-        if (
-            manifest.publication.chain.chain_id != "31337"
-            or receipt.trusted_chain_key != "local-demo"
-            or receipt.chain_instance_id != manifest.publication.chain.instance_hash
-            or receipt.contract != manifest.publication.contract
-            or receipt.publisher != manifest.publication.publisher
-            or core.previous_report_hash != manifest.publication.previous_report_hash
-        ):
+        if manifest.publication.chain.chain_id != "31337":
             _fail("EVIDENCE_INCONSISTENT", "Public business evidence and local publication disagree.")
         index = _json(aliases, "verification.json")
         if not isinstance(index, dict) or set(index) != {"schema_version", "tasks"} or (
@@ -129,8 +129,9 @@ def verify_public_bundle(
         entries = [by_slot[slot.slot_id] for slot in plan.slots]
         inputs = tuple(entry[0] for entry in entries)
         input_ids = tuple(entry[1] for entry in entries)
-        if any(data.platform_instance_id != manifest.publication.platform_instance_id for data in inputs):
-            _fail("EVIDENCE_INCONSISTENT", "Public inputs and publication platform differ.")
+        _verify_publication_context(
+            manifest, receipt, core, (data.platform_instance_id for data in inputs)
+        )
         results = tuple(entry[2] for entry in entries)
         for slot, data in zip(plan.slots, inputs, strict=True):
             if data.slot != slot:
@@ -192,6 +193,7 @@ def verify_public_bundle(
     anchor = _verify_anchor(rpc_url or "", manifest, receipt, report_hash, core)
     return {
         "status": "PASS", "offline": "PASS", "report_hash": report_hash,
+        "limitations": list(VERIFICATION_LIMITATIONS),
         "task_results": [{
             "slot_id": str(data.slot.slot_id), "capability_id": "verify_record",
             "outcome": result.outcome, "reason_code": result.reason_code, "rule_version": "7",
