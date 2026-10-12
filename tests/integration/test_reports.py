@@ -12,17 +12,21 @@ import pytest
 from reputation_core.evidence import canonical_bytes, hash_bytes, hash_json, strict_json
 from reputation_core.models import Observation, RecordVerificationInput, RunPlan
 from reputation_core.reporting import build_report
+from reputation_platform.application.anchor import AnchorService
 from reputation_platform.application.errors import ApplicationError
 from reputation_platform.application.reports import ReportService
 from reputation_platform.infrastructure import evidence_store
 from reputation_platform.infrastructure.db.jobs import JobQueue, LostLease, enqueue
 from reputation_platform.infrastructure.db.tables import anchor_jobs, jobs, reports, runs, snapshots
 from reputation_platform.worker.main import Worker
-from reputation_verifier import verify_bundle
+from reputation_verifier import VerificationError, verify_bundle
 from sqlalchemy import func, insert, select, text, update
+from web3.types import RPCEndpoint
 
+from tests.integration.test_fixture_agents import anvil_node
 from tests.integration.test_identity import AUTH
 from tests.integration.test_verification import complete, flow, identity_chain, prepared
+from tests.unit.test_verifier import rewrite_bundle
 
 __all__ = ["flow", "identity_chain", "prepared"]
 pytestmark = [pytest.mark.chain, pytest.mark.postgres]
@@ -37,6 +41,61 @@ def freeze(prepared):
     with flow[1].db.connect() as connection:
         identifier = connection.execute(select(reports.c.id)).scalar_one()
     return service, service.view(identifier)
+
+
+@pytest.mark.parametrize("prepared", ["a", "d"], indirect=True)
+def test_real_confirmed_anchor_rejects_receipt_identity_tampering(prepared, monkeypatch, tmp_path):
+    service, report = freeze(prepared)
+    flow_value = prepared[0]
+    secret = tmp_path / "publisher-secret.json"
+    secret.write_text(json.dumps({"private_key": flow_value[3]["evaluator"]}), encoding="utf-8")
+    monkeypatch.setenv("PUBLISHER_SECRET_PATH", str(secret))
+    anchor = AnchorService(service.db, flow_value[1])
+    anchor.request(report.report_id, "sec3-local-test-operator")
+    worker = Worker(service.db, {"anchor": anchor.publish})
+    assert asyncio.run(worker.run_once())
+    original = tmp_path / "confirmed.zip"
+    original.write_bytes(service.export(report.report_id))
+    original_hash = hash_bytes(original.read_bytes())
+    offline = verify_bundle(str(original))
+    assert offline["offline"] == "PASS" and offline["anchor"]["status"] == "NOT_CHECKED"
+    online = verify_bundle(str(original), rpc_url=flow_value[5].rpc_url)
+    assert online["offline"] == "PASS" and online["anchor"]["status"] == "CONFIRMED"
+    assert online["task_results"][0]["live_chain"]["status"] == "CONFIRMED"
+    assert online["limitations"] == offline["limitations"]
+    assert any("Task live_chain" in item and "does not authenticate historical Registry" in item
+               for item in online["limitations"])
+    assert any("Anchor CONFIRMED" in item and "report digest" in item
+               and "not authenticity" in item for item in online["limitations"])
+    with pytest.raises(VerificationError) as unavailable:
+        verify_bundle(str(original), rpc_url="http://127.0.0.1:1")
+    assert unavailable.value.code == "RPC_UNAVAILABLE"
+    with anvil_node() as (wrong_rpc, wrong_web3):
+        reply = wrong_web3.provider.make_request(RPCEndpoint("anvil_setChainId"), [1])
+        assert "error" not in reply and wrong_web3.eth.chain_id == 1
+        with pytest.raises(VerificationError) as wrong_chain:
+            verify_bundle(str(original), rpc_url=wrong_rpc)
+        assert wrong_chain.value.code == "CHAIN_INSTANCE_MISMATCH"
+    accepted = []
+    for field, replacement in (
+        ("publisher", "0x" + "aa" * 20),
+        ("contract", "0x" + "aa" * 20),
+        ("chain_instance_id", "0x" + "aa" * 32),
+        ("trusted_chain_key", "unrelated-chain"),
+    ):
+        changed = tmp_path / f"changed-{field}.zip"
+        rewrite_bundle(original, changed, receipt_change=lambda receipt: receipt.update(
+            **{field: replacement},
+        ))
+        for mode, rpc_url in (("offline", None), ("online", flow_value[5].rpc_url)):
+            try:
+                verify_bundle(str(changed), rpc_url=rpc_url)
+            except VerificationError as failure:
+                assert failure.code == "EVIDENCE_INCONSISTENT"
+            else:
+                accepted.append((field, mode))
+    assert hash_bytes(original.read_bytes()) == original_hash
+    assert not accepted, f"Verifier accepted contradictory anchor identities: {accepted}"
 
 
 @pytest.mark.parametrize("prepared", ["a", "d"], indirect=True)

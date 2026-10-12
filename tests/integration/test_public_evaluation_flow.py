@@ -243,6 +243,9 @@ def test_public_offline_execution_verification_freeze_and_bundle(flow, tmp_path,
     destination.write_bytes(bundle)
     verified = verify_bundle(str(destination))
     assert verified["offline"] == "PASS" and verified["assessment_comparison"] == "MATCH"
+    assert any("not original authenticity" in item for item in verified["limitations"])
+    assert all(item["live_chain"]["status"] == "NOT_CHECKED" for item in verified["task_results"])
+    assert verified["anchor"]["status"] == "NOT_CHECKED"
     with identity.db.connect() as connection:
         assert len(list(connection.scalars(select(task_links.c.id)))) == 5
         requests = list(

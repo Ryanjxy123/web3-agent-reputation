@@ -13,3 +13,5 @@ ZIP 不解压到文件系统；拒绝路径穿越、重复成员、符号链接�
 ## 兼容与限制
 
 无需数据库迁移；M0 的 outbox/receipt 表已存在。发布密钥只从本地 runtime secret 读取，signed transaction 永不进入 bundle。`local-demo` 只证明本地 Anvil 语义，不代表公网最终性。
+
+SEC-3 的回执/发布上下文一致性与离线、任务链、Anchor 的证明边界见 [ADR0025](0025-verifier-publication-identity.md)。回执未进入摘要不意味着其身份可与已承诺 publication 矛盾；所有原版本均拒绝这种不一致。
