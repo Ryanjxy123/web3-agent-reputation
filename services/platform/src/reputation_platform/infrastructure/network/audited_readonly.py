@@ -2,7 +2,6 @@
 
 import asyncio
 import hashlib
-import re
 from collections.abc import Awaitable, Callable
 from copy import deepcopy
 from datetime import UTC, datetime
@@ -47,11 +46,6 @@ def evidence_json(value: Any) -> Any:
         return result
     if isinstance(value, list):
         return [evidence_json(child) for child in value]
-    if isinstance(value, str) and re.search(
-        r'(?i)bearer\s|(?:authorization|cookie|api[_-]?key|access[_-]?token|token|password|'
-        r'secret|private[_-]?key)["\x27]?\s*[:=]|-----BEGIN .*PRIVATE KEY', value,
-    ):
-        return "[REDACTED]"
     return value
 
 

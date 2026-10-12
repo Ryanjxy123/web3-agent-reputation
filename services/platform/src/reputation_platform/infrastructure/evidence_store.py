@@ -6,6 +6,7 @@ from uuid import uuid4
 
 from reputation_core.evidence import canonical_bytes, hash_bytes
 from reputation_core.models import EvidenceRecord
+from reputation_core.public_identity import contains_sensitive_text
 from sqlalchemy import Connection, select
 from sqlalchemy.dialects.postgresql import insert
 
@@ -34,9 +35,12 @@ def redact(value):
         return {
             key: "[REDACTED]" if key.lower() in SECRET_FIELDS else redact(child)
             for key, child in value.items()
+            if not contains_sensitive_text(key)
         }
     if isinstance(value, list):
         return [redact(child) for child in value]
+    if isinstance(value, str) and contains_sensitive_text(value):
+        return "[REDACTED]"
     return value
 
 

@@ -1,12 +1,13 @@
 """Public snapshots reuse real PostgreSQL, fenced ingest jobs and immutable history."""
 
 import asyncio
+import json
 from uuid import UUID
 
 import httpx
 import pytest
 from fastapi.testclient import TestClient
-from reputation_core.models import Outcome
+from reputation_core.models import EvidenceRecord, Outcome
 from reputation_platform.adapters.registries.erc8004 import AKASHI_REF, Erc8004RegistryReader
 from reputation_platform.api.app import create_app
 from reputation_platform.application.errors import ApplicationError
@@ -157,3 +158,29 @@ def test_crash_after_public_response_recovers_unknown_without_resend(public_flow
     job = api.get(f"/api/v1/jobs/{job_id}", headers=AUTH).json()
     assert job["snapshot_id"] is None
     assert job["public_identity"]["registration_reason"] == "DISPATCH_UNCERTAIN"
+
+
+def test_url_credentials_never_reach_new_snapshot_or_public_response(public_flow):
+    api, service, responder, agent_id = public_flow
+    first = capture(public_flow)
+    safe_snapshot = api.get(f"/api/v1/snapshots/{first['snapshot_id']}")
+    assert safe_snapshot.status_code == 200
+    secret = "AUDIT_FAKE_CREDENTIAL_ONLY"
+    metadata = json.loads(responder.registration)
+    metadata["description"] = (
+        f"Connection example https://audit-user:{secret}@anchor.akashi-notari.com/mcp"
+    )
+    responder.registration = json.dumps(metadata).encode()
+    second = capture(public_flow)
+    assert second["snapshot_id"] is None
+    assert second["public_identity"]["metadata_outcome"] == "UNKNOWN"
+    assert secret not in json.dumps(second)
+    assert api.get(f"/api/v1/snapshots/{first['snapshot_id']}").json() == safe_snapshot.json()
+    history = api.get(f"/api/v1/agents/{agent_id}/snapshots")
+    assert history.status_code == 200 and secret not in history.text
+    assert len(history.json()["items"]) == 1
+    with service.db.connect() as connection:
+        bodies = connection.execute(select(evidence_blobs.c.body)).scalars().all()
+    assert all(secret not in json.dumps(body) for body in bodies)
+    assert all(secret.encode() not in service.evidence.read(EvidenceRecord.model_validate(body))
+               for body in bodies)

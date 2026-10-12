@@ -35,6 +35,27 @@
 | FOLLOWUP-13 | ACCEPTED_TECHNICAL | 部署/重复 A-D 双锚定演示、文档/打包/独立检出复现及最终技术门槛通过；合并、main 同步与 Release 状态以外部记录为准 |
 | LOCAL-PG-JUNCTION | DONE | Windows PostgreSQL 改用 D:\web3-runtime 目录联接；R: 已移除，初始化、重启、数据完整性及13项定向测试通过 |
 
+## 2026-10-12 / SEC-1 URL 凭据泄漏修复
+
+- Scope：依据 `docs/audit/security-findings.md` 的 SEC-1，只修复第三方注册元数据 URL userinfo 进入 CAS/公开快照的问题；不改变认证、CAS 地址/hash、快照 DTO 或身份架构。
+- Implementation：共享敏感文本判定现在识别嵌入任意 URI scheme 的 userinfo；`EvidenceStore` 和公共只读证据路径在保留原文前统一脱敏，注册元数据解析同时拒绝该输入，防止 `SnapshotCore` 和未认证快照 API 接收凭据。
+- Regression：最终稳定代码相关单元/集成回归 **448 passed / 0 skipped / 2 warnings**（190.39s，exit 0），包含真实 PostgreSQL 公共 Worker/API、公共 5 槽位 freeze/export/独立 Verifier 和真实本地 Anvil 的 A/D Bundle；本地受控身份/双签名/认证另 **16 passed / 0 skipped / 2 warnings**（45.93s，exit 0）。全树 Ruff、Mypy 70 files、74 generated schemas 均 exit 0；两个既有上游弃用警告保留。仅使用本地合成凭据、MockTransport 和测试数据，没有第三方网络请求。
+- Review：独立复审发现并修复中文紧邻 URL、其他 scheme、敏感 JSON 键名和初版 scheme 匹配的回溯问题；最终匹配 authority，覆盖用户名-only、percent userinfo、协议相对引用及 MCP 嵌套 JSON。回归确认脱敏后 `raw_body_utf8` 不保留、CAS bytes 不含哨兵、含凭据的新读不会创建快照，既有安全快照/历史和 Bundle 仍正常读取/复核；复审无剩余可行动代码问题。审计目录原脚本仍是旧漏洞反例，未用其旧断言作为修复通过标准。
+- History/limits：CAS 与快照为只追加历史，未改写旧记录；若真实历史 blob 已含凭据，需负责人按保留 hash 的隔离/撤下/重建方案处置。本轮未读取或处理真实秘密，未做外部网络或攻击性测试。
+- Git/stop：基线 `82dcb85`（本地 main=origin/main 与 v0.1.0）；工作分支 `fix/url-credentials`，仅提交本次源码、回归与说明，既有未跟踪 `docs/audit/` 保留且不纳入提交。本轮不 push/PR/发布，不执行远端访问；本轮停止，不开展 SEC-2/SEC-3。全量 `scripts/check.py`、Web、Foundry 和 Compose/CI 未重跑，不复用旧全量结果冒充本轮验收。
+
+实际命令（均 exit 0，使用项目现有工具，无安装）：
+
+```powershell
+. ./scripts/tools.ps1
+uv run --env-file .env --all-packages pytest -q tests/unit/test_evidence_store.py tests/unit/test_public_identity.py tests/unit/test_erc8004_reader.py tests/unit/test_identity_egress.py tests/unit/test_public_adapter.py tests/unit/test_public_identity_published.py tests/unit/test_public_readonly_bundle.py tests/unit/test_verifier.py tests/integration/test_public_identity_ingest.py tests/integration/test_public_adapter_evidence.py tests/integration/test_public_evaluation_flow.py::test_public_offline_execution_verification_freeze_and_bundle tests/integration/test_reports.py::test_real_report_recomputes_partial_and_exports_identical_bytes
+uv run --env-file .env --all-packages pytest -q tests/integration/test_identity.py
+uv run --all-packages ruff check packages services fixtures/agents tests scripts
+uv run --all-packages mypy -p reputation_core -p reputation_platform -p reputation_verifier -p fixture_agents
+uv run --all-packages python scripts/generate_schemas.py --check
+
+```
+
 ## 2026-10-12 / SEC-2 Vite WebSocket 资源访问修复
 
 - Scope/baseline：本轮 SEC-2 按用户指定，指 Vite WebSocket 与 HTTP 资源访问控制不一致；不开展其他安全审计。重新 fetch 后 main=origin/main=`82dcb85772a14e25021ac209f07dbb86d33e4a45`；从该基线建立 `fix/vite-ws-access`。上一轮 SEC-1 提交 `22245d9` 留在 `fix/url-credentials`，既有未跟踪 `docs/audit/` 保留且不提交。

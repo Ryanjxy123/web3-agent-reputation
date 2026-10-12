@@ -127,11 +127,27 @@ def test_sensitive_metadata_keys_never_escape_parser(key):
 @pytest.mark.parametrize("description", [
     "Authorization: Bearer credential-secret", "privateKey=credential-secret",
     "-----BEGIN RSA PRIVATE KEY-----", "cookie: session-private",
+    "Connection example https://audit-user:credential-secret@anchor.akashi-notari.com/mcp",
 ])
 def test_embedded_credentials_are_rejected(description):
     with pytest.raises(ValueError, match="PUBLIC_METADATA_SENSITIVE"):
         parse_registration_metadata(registration_raw(
             lambda value: value.update({"description": description})), REF)
+
+
+@pytest.mark.parametrize("url", [
+    "访问https://audit-user:credential-secret@example.invalid/path",
+    "https://credential-secret@example.invalid/path",
+    "sftp://audit-user:credential-secret@example.invalid/path",
+    "//audit-user:credential-secret@example.invalid/path",
+    "https://audit-user:credential%2Dsecret@example.invalid/path",
+])
+@pytest.mark.parametrize("field", ["name", "description", "key"])
+def test_url_userinfo_in_text_or_keys_is_rejected(url, field):
+    raw = registration_raw(lambda value: value.update({url if field == "key" else field: url}))
+    with pytest.raises(ValueError, match="PUBLIC_METADATA_SENSITIVE") as error:
+        parse_registration_metadata(raw, REF)
+    assert "credential" not in str(error.value)
 
 
 @pytest.mark.parametrize("url", [

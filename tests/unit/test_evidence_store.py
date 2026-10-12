@@ -8,10 +8,13 @@ def test_redacted_saved_bytes_are_the_hash_input_and_tampering_is_detected(tmp_p
     document = {
         "Authorization": "Bearer never-persist-this",
         "nested": [{"private_key": "not-a-real-key", "public": 1}],
+        "description": "访问https://test-user:TEST_ONLY_URL_PASSWORD@example.invalid/path",
+        "//TEST_ONLY_URL_USER@example.invalid/path": "omitted credential key",
     }
     record = store.prepare_json(document, "test", "2026-10-02T12:00:00.000Z", "test")
     stored = store.read(record)
     assert b"never-persist-this" not in stored and b"not-a-real-key" not in stored
+    assert b"TEST_ONLY_URL_PASSWORD" not in stored and b"TEST_ONLY_URL_USER" not in stored
     assert strict_json(stored)["nested"][0] == {"private_key": "[REDACTED]", "public": 1}
     assert record.blob_hash == hash_bytes(stored)
     again = store.prepare_json(document, "test", "2026-10-02T12:00:00.000Z", "test")

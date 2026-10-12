@@ -30,6 +30,11 @@ _SENSITIVE_TEXT = re.compile(
     r'(?i)bearer\s|(?:authorization|cookie|api[_-]?key|access[_-]?token|token|password|'
     r'secret|private[_-]?key)["\x27]?\s*[:=]|-----BEGIN .*PRIVATE KEY'
 )
+_URL_USERINFO = re.compile(r'//[^/@\s?#]+@')
+
+
+def contains_sensitive_text(value: str) -> bool:
+    return bool(_SENSITIVE_TEXT.search(value) or _URL_USERINFO.search(value))
 
 
 def _json_document(raw: bytes) -> dict[str, Any]:
@@ -49,12 +54,12 @@ def _json_document(raw: bytes) -> dict[str, Any]:
         if isinstance(node, dict):
             for key, child in node.items():
                 if (key.lower().replace("_", "").replace("-", "") in _SECRET_KEYS
-                        or _SENSITIVE_TEXT.search(key)):
+                        or contains_sensitive_text(key)):
                     raise ValueError("PUBLIC_METADATA_SENSITIVE")
                 stack.append((child, depth + 1))
         elif isinstance(node, list):
             stack.extend((child, depth + 1) for child in node)
-        elif isinstance(node, str) and _SENSITIVE_TEXT.search(node):
+        elif isinstance(node, str) and contains_sensitive_text(node):
             raise ValueError("PUBLIC_METADATA_SENSITIVE")
     return value
 

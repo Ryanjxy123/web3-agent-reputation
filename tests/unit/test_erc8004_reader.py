@@ -156,6 +156,36 @@ async def test_sensitive_registration_is_not_saved_or_trusted(reader_factory):
         await reader.client.close()
 
 
+@pytest.mark.parametrize("field", ["endpoint", "description", "key"])
+async def test_url_credentials_are_redacted_before_evidence_or_snapshot(reader_factory, field):
+    responder = RegistryResponder()
+    metadata = json.loads(responder.registration)
+    secret = "AUDIT_FAKE_CREDENTIAL_ONLY"
+    url = f"https://audit-user:{secret}@anchor.akashi-notari.com/mcp"
+    if field == "endpoint":
+        metadata["services"][1]["endpoint"] = url
+    elif field == "description":
+        metadata["description"] = "Connection example " + url
+    else:
+        metadata[url] = "public value"
+    responder.registration = json.dumps(metadata).encode()
+    reader = reader_factory(responder)
+    try:
+        result = await reader.read(AKASHI_REF)
+        assert result.core is None and result.identity.metadata_outcome == Outcome.UNKNOWN
+        assert all(secret.encode() not in reader.evidence.read(record) for record in result.evidence)
+        metadata_response = next(
+            value for record in result.evidence
+            if (value := strict_json(reader.evidence.read(record))).get("path")
+            == "/.well-known/agent-registration.json" and "response" in value
+        )
+        assert metadata_response["response"]["raw_body_utf8"] is None
+        assert not metadata_response["response"]["raw_body_retained"]
+        assert result.metadata_raw is None and result.identity.metadata is None
+    finally:
+        await reader.client.close()
+
+
 async def test_evidence_failure_stops_before_network(reader_factory, monkeypatch):
     responder = RegistryResponder()
     reader = reader_factory(responder)
