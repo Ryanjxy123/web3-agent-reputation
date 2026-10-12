@@ -157,11 +157,15 @@ async def test_sensitive_registration_is_not_saved_or_trusted(reader_factory):
 
 
 @pytest.mark.parametrize("field", ["endpoint", "description", "key"])
-async def test_url_credentials_are_redacted_before_evidence_or_snapshot(reader_factory, field):
+@pytest.mark.parametrize("control", ["", "\t", "\n", "\r"])
+@pytest.mark.parametrize("authority", ["//", "\\\\", "/\\", "\\/"])
+async def test_url_credentials_are_redacted_before_evidence_or_snapshot(
+    reader_factory, field, control, authority,
+):
     responder = RegistryResponder()
     metadata = json.loads(responder.registration)
     secret = "AUDIT_FAKE_CREDENTIAL_ONLY"
-    url = f"https://audit-user:{secret}@anchor.akashi-notari.com/mcp"
+    url = f"https:{authority}audit-user:{secret}{control}@anchor.akashi-notari.com/mcp"
     if field == "endpoint":
         metadata["services"][1]["endpoint"] = url
     elif field == "description":

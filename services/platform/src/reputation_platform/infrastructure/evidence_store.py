@@ -28,6 +28,9 @@ SECRET_FIELDS = {
     "signed_raw",
     "signed_transaction",
 }
+SECRET_NAMES = {key.replace("_", "").replace("-", "") for key in SECRET_FIELDS} | {
+    "refreshtoken", "clientsecret", "mcpsessionid", "sessionid",
+}
 
 
 def redact(value):

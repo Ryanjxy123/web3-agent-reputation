@@ -56,7 +56,7 @@ from reputation_platform.infrastructure.db.tables import (
 from reputation_platform.infrastructure.evidence_store import EvidenceStore
 from reputation_platform.infrastructure.network.safe_http import SafeHttpClient
 
-from .errors import ApplicationError
+from .errors import ApplicationError, require_public_safe
 
 
 class IdentityService:
@@ -282,6 +282,7 @@ class IdentityService:
 
     def readonly_association(self, snapshot_id: UUID, protocol: str) -> ReadonlyIdentityAssociation:
         snapshot = self.snapshot(snapshot_id)
+        require_public_safe(snapshot.model_dump(mode="json"))
         with self.db.begin() as connection:
             try:
                 self.require_current(connection, snapshot_id)
@@ -296,6 +297,7 @@ class IdentityService:
         openapi_raw = metadata_raw = None
         for record in records:
             value = strict_json(self.evidence.read(record))
+            require_public_safe(value)
             if (value.get("origin") == "https://anchor.akashi-notari.com"
                     and value.get("path") == "/openapi.json" and "response" in value):
                 raw = value["response"].get("raw_body_utf8")

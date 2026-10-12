@@ -141,6 +141,14 @@ def test_embedded_credentials_are_rejected(description):
     "sftp://audit-user:credential-secret@example.invalid/path",
     "//audit-user:credential-secret@example.invalid/path",
     "https://audit-user:credential%2Dsecret@example.invalid/path",
+    "https://audit-user:credential\t-secret@example.invalid/path",
+    "https://audit-user:credential\n-secret@example.invalid/path",
+    "https://audit-user:credential\r-secret@example.invalid/path",
+    r"https:\\audit-user:credential-secret@example.invalid/path",
+    r"https:/\audit-user:credential-secret@example.invalid/path",
+    r"https:\/audit-user:credential-secret@example.invalid/path",
+    r'{"url":"https:\u002f\u002faudit-user:credential-secret\u0040example.invalid/path"}',
+    r'{"url":"safe","url":"https:\u002f\u002faudit-user:credential-secret\u0040example.invalid/path"}',
 ])
 @pytest.mark.parametrize("field", ["name", "description", "key"])
 def test_url_userinfo_in_text_or_keys_is_rejected(url, field):
