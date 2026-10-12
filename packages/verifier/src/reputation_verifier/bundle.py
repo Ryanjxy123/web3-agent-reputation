@@ -6,6 +6,7 @@ import json
 import re
 import zipfile
 from collections.abc import Iterable
+from io import BytesIO
 from pathlib import PurePosixPath
 from typing import Any, NoReturn
 from uuid import UUID
@@ -102,7 +103,7 @@ def _fail(code: str, message: str) -> NoReturn:
     raise VerificationError(code, message)
 
 
-def _read_zip(path: str) -> dict[str, bytes]:
+def _read_zip(path: str | BytesIO) -> dict[str, bytes]:
     try:
         with zipfile.ZipFile(path) as archive:
             infos = archive.infolist()
@@ -667,7 +668,7 @@ def _live_task_check(
 
 
 def verify_bundle(
-    path: str,
+    path: str | BytesIO,
     *,
     rpc_url: str | None = None,
     task_rpc_url: str | None = None,

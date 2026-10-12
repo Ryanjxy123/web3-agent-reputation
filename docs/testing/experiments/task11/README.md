@@ -2,12 +2,12 @@
 
 The plan in `fixtures/experiments/task11_cases.json` contains scenario configuration and independent intended Ground Truth only. No measured outcomes, verifier verdicts, timings, or request counts are checked in as synthetic experimental results.
 
-Run after the other PostgreSQL/Anvil tests finish, using the same environment setup as the existing integration suite:
+Run after the other PostgreSQL/Anvil tests finish, using the same environment setup as the existing integration suite. For a new capture, set `$TrustedCaptureDigest` to the digest printed at successful capture, retained in an independent review record:
 
 ```powershell
 . ./scripts/tools.ps1
 uv run --env-file .env --all-packages python scripts/task11_comparison.py capture --output runtime/task11-run --repetitions 3
-uv run --env-file .env --all-packages python scripts/task11_comparison.py analyse --output runtime/task11-run
+uv run --env-file .env --all-packages python scripts/task11_comparison.py analyse --output runtime/task11-run --analysis-output runtime/task11-recomputed --trusted-manifest-sha256 $TrustedCaptureDigest
 uv run --env-file .env --all-packages pytest tests/unit/test_task11_comparison.py -q
 ```
 
@@ -15,7 +15,9 @@ Capture reuses `prepared`, `flow`, `controlled_run`, and `advance` from the exis
 
 `captures/<case>-<repetition>` retains the frozen verification input, Bundle ZIP, computed independent verifier output, and a trace containing Worker timings, actual `SafeHttpClient.request` attempts, platform `HTTPProvider.make_request` calls by stage/method, and separately persisted attempts/observations. Captures are written before asserting Ground Truth, so a failed run leaves its evidence available. Capture requires a new or empty output directory and never overwrites prior evidence. The frozen plan hash, source manifest, Git commit/dirty flag, OS/CPU/architecture, Python/Anvil/PostgreSQL versions and dependency lock hash are retained; changes to hashed sources during capture invalidate completion.
 
-Offline analysis validates completion, the exact case×repeat set and plan/source/input/Bundle hashes, re-executes `verify_record` with the actual input evidence UUID, and runs `verify_bundle`. It writes raw JSON, summary JSON, per-task CSV, a report and SVG under `analysis`. No result is taken from the scenario label. Binary metrics exclude unknown Ground Truth; UNKNOWN predictions are abstentions, and a false negative requires predicted PASS. Main Recall includes all known errors, including abstentions; F1 is its harmonic mean with Precision. Conditional Recall and missed-known-error counts remain separate. Precision is zero when known samples exist but there are no predicted failures; empty/undefined denominators remain null. Receipt evaluation is N/A for read tasks. Both each method's applicable set and the common write-task intersection are reported with explicit denominators. Undeclared N/A uses rule 2/report 1.1: task outcome/reason are replayed, while absent legacy risk assessments are explicitly excluded from risk-consistency counts.
+Offline analysis first validates the publication against an independently trusted SHA256, every listed artifact including trace/Worker results, and the exact frozen source ZIP against the source manifest. The default trusted digest is the reviewed formal v2 publication, `145fc0af0ae16039bea4d199338579a7e41f11dbacb22e79b439a44d8fee168f`. New capture creates a source ZIP and publication manifest before its in-process analysis; subsequent offline replay requires that digest retained independently at capture/review time. Recomputing a digest from edited input is not authentication. Unsealed historical inputs are rejected for formal statistics; their evidence may still be diagnosed with the standalone Verifier. Format validity and matching committed bytes do not prove honest original execution or timing.
+
+Analysis also validates completion, the exact case×repeat set, unique run/slot/request IDs, plan/input/Bundle consistency, finite nonnegative milliseconds and integer attempt counts, aware ordered timestamps and recorded trace lengths. Monotonic stage timings are bounded by the capture interval with 1 second clock tolerance, not equated to HTTP wall-clock latency. Settled observations without HTTP may retain null latency. It re-executes `verify_record` and `verify_bundle`, and rejects mismatching Worker outcomes/reasons/available risk assessments. Results are written only to a new or empty `--analysis-output` directory outside the retained input. No result is taken from the scenario label. Binary metrics exclude unknown Ground Truth; UNKNOWN predictions are abstentions, and a false negative requires predicted PASS. Main Recall includes all known errors, including abstentions; F1 is its harmonic mean with Precision. Conditional Recall and missed-known-error counts remain separate. Precision is zero when known samples exist but there are no predicted failures; empty/undefined denominators remain null. Receipt evaluation is N/A for read tasks. Both each method's applicable set and the common write-task intersection are reported with explicit denominators. Undeclared N/A uses rule 2/report 1.1: task outcome/reason are replayed, while absent legacy risk assessments are explicitly excluded from risk-consistency counts.
 
 Resource figures are actual shared-pipeline observations, with repeat count, per-case min/max and standard deviation. They are not separate baseline benchmarks. RPC instrumentation covers the platform process; the controlled Agent subprocess's RPC traffic is outside that count. The intermittent fixture selects one deterministic service-error slot with `failure_every=1`; this does not estimate an intermittent failure probability. The matrix has no distinct wrong-business-read fixture: read coverage demonstrates normal read PASS and receipt N/A, while write mismatch cases cover business inconsistency. Read-task detection should not be generalised until that fixture is added. Local controlled cases do not establish production prevalence or statistical significance. Actual experiment acceptance requires a successful capture run and review of its retained results.
 
@@ -23,11 +25,10 @@ The accepted formal result is frozen in `formal-20261012-three-repeats-v2/`. It 
 
 ```powershell
 . ./scripts/tools.ps1
-uv run --all-packages python -c "import shutil; shutil.copytree('docs/testing/experiments/task11/formal-20261012-three-repeats-v2', 'runtime/task11-replay')"
-uv run --all-packages python scripts/task11_comparison.py analyse --output runtime/task11-replay
+uv run --all-packages python scripts/task11_comparison.py analyse --output docs/testing/experiments/task11/formal-20261012-three-repeats-v2 --analysis-output runtime/task11-replay-analysis
 ```
 
-The replay directory must be new. Analyse the copy so the published freeze remains unchanged. Generated text line endings follow the host OS; compare JSON values/CSV rows when replaying across operating systems, while `publication-manifest.json` continues to commit the original captured bytes.
+The analysis directory must be new or empty; the published freeze is read only. Generated text line endings follow the host OS; compare JSON values/CSV rows when replaying across operating systems, while `publication-manifest.json` continues to commit the original captured bytes. New JSON/report outputs add explicit integrity/trust information; all historical metrics and rows remain unchanged.
 
 The actual capture command was:
 
