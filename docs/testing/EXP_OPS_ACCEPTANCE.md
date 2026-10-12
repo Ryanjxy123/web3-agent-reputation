@@ -30,4 +30,6 @@
 
 跨模块独立 Review 已完成：评分/充分度/报告/执行/复核与 SEC-1/2/3 边界保持；Verifier 仅扩参数类型以接受同一份内存 ZIP，历史语义未升级。43 份历史 Bundle（4×1.0、5×1.1、33×1.5、1×1.6）全部离线 PASS，Path/BytesIO 两入口结果完全一致，原 SHA256 不变；旧 1.0 仍为 NOT_AVAILABLE_LEGACY_REPORT、Anchor NOT_CHECKED。独立 Verifier/公共 Bundle/HTTP/读取隔离单元回归 234 passed/0skip（64.61s），exit0。
 
-最终完整 Python/PostgreSQL/Anvil/API/Worker/Web/Foundry/ABI 门禁和 GitHub required checks 待阶段验收提交后运行，未执行项不计通过。本机 Docker Linux engine 的已有限制由实际 Linux foundation-compose 验证，不以本地配置解析替代容器验收。
+稳定阶段提交 `bb0c0e69a675ee75eca6ddb73f426a0de6bf9201` 在独立测试端口 30611/30612 上运行 `uv run --env-file .env --all-packages python runtime/exp-ops/run-full-check.py`，包装器只保存日志/源码摘要并调用原 `scripts/check.py`。FAIL_ON_SKIP=1，2026-10-12T13:33:40Z–14:52:52Z，exit0/PASS（4752.406s），前后 `source_changed=[]`。完整 Python 1701 passed/0skip（4678.51s），比基线1597增加104项（EXP92+OPS12）；Ruff、Mypy70、74 Schema、生成TS无漂移、Web类型/构建、21单元/5 Vite集成/11浏览器组、Foundry14/0failed/0skip/256fuzz、ABI3全部通过。两条既有上游弃用警告未隐藏。完整日志与摘要保存在忽略的 runtime/exp-ops，未提交配置、数据库或个人环境数据。后续交付记录只改文档，源码/测试与本受测提交一致。
+
+PR #16：<https://github.com/Ryanjxy123/web3-agent-reputation/pull/16>。最新 head 的 foundation-quality/foundation-compose 和 mergeCommit 以该 PR 的权威终态为准；必须两项 CI 成功、无冲突和 required reviewer approval 后才正常合并。当前已推送两项阶段提交并建立 PR，最终 CI/合并由此门禁决定，不能将已结束的旧 head 或本地结果替代最新 head CI。本机 Docker Linux engine 不可用，只由实际 Linux foundation-compose 验证容器闭环，不把本地配置解析描述为 Compose 通过。合并后核对 main/origin/main 和受测源码、工作区及本任务分支清理，不改历史 Release。范围内无已知可行动 P0/P1 阻断；最终比赛交付验收由后续授权任务执行，本轮不扩展。
