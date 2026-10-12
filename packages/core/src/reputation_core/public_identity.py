@@ -1,6 +1,7 @@
 """Deterministic parsing and limited endpoint association, never a control proof."""
 
 import ipaddress
+import json
 import re
 from typing import Any, cast
 from urllib.parse import urlsplit
@@ -30,6 +31,27 @@ _SENSITIVE_TEXT = re.compile(
     r'(?i)bearer\s|(?:authorization|cookie|api[_-]?key|access[_-]?token|token|password|'
     r'secret|private[_-]?key)["\x27]?\s*[:=]|-----BEGIN .*PRIVATE KEY'
 )
+_URL_USERINFO = re.compile(r'//[^/@\s?#]+@')
+
+
+def contains_sensitive_text(value: str) -> bool:
+    pending: list[Any] = [value]
+    while pending:
+        node = pending.pop()
+        if isinstance(node, (list, tuple)):
+            pending.extend(node)
+        elif isinstance(node, str):
+            # URL parsers discard controls; browsers normalize authority backslashes.
+            url_text = node.translate(str.maketrans("", "", "\t\r\n")).replace("\\", "/")
+            if _SENSITIVE_TEXT.search(node) or _URL_USERINFO.search(url_text):
+                return True
+            if node.lstrip().startswith(("{", "[", '"')):
+                try:
+                    # Detect escaped nested JSON credentials, including duplicate keys.
+                    pending.append(json.loads(node, object_pairs_hook=list, parse_int=lambda _: None))
+                except (ValueError, RecursionError):
+                    pass
+    return False
 
 
 def _json_document(raw: bytes) -> dict[str, Any]:
@@ -49,12 +71,12 @@ def _json_document(raw: bytes) -> dict[str, Any]:
         if isinstance(node, dict):
             for key, child in node.items():
                 if (key.lower().replace("_", "").replace("-", "") in _SECRET_KEYS
-                        or _SENSITIVE_TEXT.search(key)):
+                        or contains_sensitive_text(key)):
                     raise ValueError("PUBLIC_METADATA_SENSITIVE")
                 stack.append((child, depth + 1))
         elif isinstance(node, list):
             stack.extend((child, depth + 1) for child in node)
-        elif isinstance(node, str) and _SENSITIVE_TEXT.search(node):
+        elif isinstance(node, str) and contains_sensitive_text(node):
             raise ValueError("PUBLIC_METADATA_SENSITIVE")
     return value
 

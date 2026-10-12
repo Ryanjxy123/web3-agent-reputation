@@ -49,7 +49,7 @@ from reputation_platform.infrastructure.db.tables import (
     snapshots,
 )
 
-from .errors import ApplicationError
+from .errors import ApplicationError, require_public_safe
 from .identity import IdentityService
 from .local_deploy import contract_abi, local_web3, verify_deployment
 from .verification import VerificationService
@@ -613,7 +613,9 @@ class ReportService:
         record = next((item for item in report.manifest.evidence if item.evidence_id == evidence_id), None)
         if record is None:
             raise ApplicationError(404, "NOT_FOUND", "Evidence is not part of this report.")
-        return EvidencePacket(record=record, body=strict_json(self.read_evidence(record)))
+        packet = EvidencePacket(record=record, body=strict_json(self.read_evidence(record)))
+        require_public_safe(packet.model_dump(mode="json"))
+        return packet
 
     def export(self, report_id: UUID) -> bytes:
         report = self.view(report_id)
@@ -630,6 +632,9 @@ class ReportService:
             files[document.path] = by_id[document.evidence_id]
         receipt = self.anchor_receipt(report_id)
         files["anchor_receipt.json"] = canonical_bytes(receipt.model_dump(mode="json"))
+        for path, data in files.items():
+            if path != "FORMAT.md":
+                require_public_safe(strict_json(data))
         if sum(len(value) for value in files.values()) > 64 * 1024 * 1024:
             raise ApplicationError(
                 413, "BUNDLE_TOO_LARGE", "Evidence bundle exceeds the export limit."

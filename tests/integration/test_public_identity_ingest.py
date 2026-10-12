@@ -1,21 +1,24 @@
 """Public snapshots reuse real PostgreSQL, fenced ingest jobs and immutable history."""
 
 import asyncio
-from uuid import UUID
+import json
+from uuid import UUID, uuid4
 
 import httpx
 import pytest
 from fastapi.testclient import TestClient
-from reputation_core.models import Outcome
+from reputation_core.evidence import hash_json
+from reputation_core.models import AgentSnapshot, EvidenceRecord, Outcome
 from reputation_platform.adapters.registries.erc8004 import AKASHI_REF, Erc8004RegistryReader
 from reputation_platform.api.app import create_app
 from reputation_platform.application.errors import ApplicationError
+from reputation_platform.infrastructure import evidence_store
 from reputation_platform.infrastructure.db.jobs import JobQueue
 from reputation_platform.infrastructure.db.tables import bindings, evidence_blobs, jobs, snapshots
 from reputation_platform.infrastructure.evidence_store import EvidenceStore
 from reputation_platform.infrastructure.network.safe_http import SafeHttpClient
 from reputation_platform.worker.main import Worker
-from sqlalchemy import func, select, update
+from sqlalchemy import func, insert, select, update
 
 from tests.unit.test_erc8004_reader import ROOT, RegistryResponder
 
@@ -157,3 +160,113 @@ def test_crash_after_public_response_recovers_unknown_without_resend(public_flow
     job = api.get(f"/api/v1/jobs/{job_id}", headers=AUTH).json()
     assert job["snapshot_id"] is None
     assert job["public_identity"]["registration_reason"] == "DISPATCH_UNCERTAIN"
+
+
+def test_url_credentials_never_reach_new_snapshot_or_public_response(public_flow):
+    api, service, responder, agent_id = public_flow
+    first = capture(public_flow)
+    safe_snapshot = api.get(f"/api/v1/snapshots/{first['snapshot_id']}")
+    assert safe_snapshot.status_code == 200
+    secret = "AUDIT_FAKE_CREDENTIAL_ONLY"
+    metadata = json.loads(responder.registration)
+    metadata["description"] = (
+        f"Connection example https://audit-user:{secret}@anchor.akashi-notari.com/mcp"
+    )
+    responder.registration = json.dumps(metadata).encode()
+    second = capture(public_flow)
+    assert second["snapshot_id"] is None
+    assert second["public_identity"]["metadata_outcome"] == "UNKNOWN"
+    assert secret not in json.dumps(second)
+    assert api.get(f"/api/v1/snapshots/{first['snapshot_id']}").json() == safe_snapshot.json()
+    history = api.get(f"/api/v1/agents/{agent_id}/snapshots")
+    assert history.status_code == 200 and secret not in history.text
+    assert len(history.json()["items"]) == 1
+    with service.db.connect() as connection:
+        bodies = connection.execute(select(evidence_blobs.c.body)).scalars().all()
+    assert all(secret not in json.dumps(body) for body in bodies)
+    assert all(secret.encode() not in service.evidence.read(EvidenceRecord.model_validate(body))
+               for body in bodies)
+
+
+@pytest.mark.parametrize("location", ["nested_value", "dictionary_key", "public_identity"])
+def test_historical_sensitive_snapshot_public_reads_fail_closed(public_flow, location):
+    api, service, _, agent_id = public_flow
+    first = capture(public_flow)
+    safe = api.get(f"/api/v1/snapshots/{first['snapshot_id']}").json()
+    historical = json.loads(json.dumps(safe))
+    secret = "HISTORICAL_SYNTHETIC_CREDENTIAL_ONLY"
+    url = f"https://audit-user:{secret}@anchor.akashi-notari.com/mcp"
+    historical["snapshot_id"] = str(uuid4())
+    if location == "nested_value":
+        historical["core"]["normalized_metadata"]["legacy"] = {"examples": [url]}
+    elif location == "dictionary_key":
+        historical["core"]["normalized_metadata"][url] = "historical example"
+    else:
+        historical["public_identity"]["metadata"]["description"] = url
+    historical["core"]["metadata_hash"] = hash_json(historical["core"]["normalized_metadata"])
+    historical["snapshot_hash"] = hash_json({
+        "core": historical["core"], "public_identity": historical["public_identity"],
+    })
+    AgentSnapshot.model_validate(historical)
+    identifier = UUID(historical["snapshot_id"])
+    # Append a synthetic legacy revision; never overwrite an immutable captured snapshot.
+    with service.db.begin() as connection:
+        connection.execute(insert(snapshots).values(
+            id=identifier, agent_fk=UUID(agent_id), snapshot_hash=historical["snapshot_hash"],
+            body=historical,
+        ))
+    for path, params in (
+        (f"/api/v1/snapshots/{identifier}", {}),
+        (f"/api/v1/agents/{agent_id}/snapshots", {}),
+        (f"/api/v1/snapshots/{identifier}/readonly-association",
+         {"protocol": "akashi-mcp-readonly-v1"}),
+    ):
+        response = api.get(path, params=params)
+        assert response.status_code == 403
+        assert response.json()["error"]["code"] == "HISTORICAL_EVIDENCE_RESTRICTED"
+        assert secret not in response.text
+    assert api.get(f"/api/v1/snapshots/{first['snapshot_id']}").json() == safe
+    older = api.get(f"/api/v1/agents/{agent_id}/snapshots", params={"cursor": str(identifier)})
+    assert older.status_code == 200 and older.json()["items"] == [safe]
+    with service.db.connect() as connection:
+        stored = connection.execute(select(snapshots.c.body, snapshots.c.snapshot_hash).where(
+            snapshots.c.id == identifier,
+        )).one()
+    assert stored.body == historical and stored.snapshot_hash == historical["snapshot_hash"]
+    assert service.snapshot(identifier).model_dump(mode="json") == historical
+
+
+def test_historical_sensitive_cas_association_is_restricted(public_flow, monkeypatch):
+    api, service, _, agent_id = public_flow
+    first = capture(public_flow)
+    historical = api.get(f"/api/v1/snapshots/{first['snapshot_id']}").json()
+    secret = "HISTORICAL_CAS_SYNTHETIC_CREDENTIAL_ONLY"
+    content = {"legacy": [{"example": f"https://audit-user:{secret}@example.com"}]}
+    with monkeypatch.context() as legacy:
+        legacy.setattr(evidence_store, "redact", lambda value: value)
+        extra = service.evidence.prepare_json(
+            content, "legacy-synthetic", historical["core"]["captured_at"], "test",
+        )
+    original_bytes = service.evidence.read(extra)
+    historical["snapshot_id"] = str(uuid4())
+    historical["core"]["normalized_metadata"]["legacy_cas_hash"] = extra.blob_hash
+    historical["core"]["metadata_hash"] = hash_json(historical["core"]["normalized_metadata"])
+    historical["snapshot_hash"] = hash_json({
+        "core": historical["core"], "public_identity": historical["public_identity"],
+    })
+    identifier = UUID(historical["snapshot_id"])
+    with service.db.begin() as connection:
+        extra = service.evidence.register(connection, extra)
+        historical["evidence_refs"].append(str(extra.evidence_id))
+        connection.execute(insert(snapshots).values(
+            id=identifier, agent_fk=UUID(agent_id), snapshot_hash=historical["snapshot_hash"],
+            body=historical,
+        ))
+    assert api.get(f"/api/v1/snapshots/{identifier}").status_code == 200
+    response = api.get(f"/api/v1/snapshots/{identifier}/readonly-association",
+                       params={"protocol": "akashi-mcp-readonly-v1"})
+    assert response.status_code == 403
+    assert response.json()["error"]["code"] == "HISTORICAL_EVIDENCE_RESTRICTED"
+    assert secret not in response.text
+    assert service.evidence.read(extra) == original_bytes
+    assert service.snapshot(identifier).model_dump(mode="json") == historical

@@ -2,7 +2,6 @@
 
 import asyncio
 import hashlib
-import re
 from collections.abc import Awaitable, Callable
 from copy import deepcopy
 from datetime import UTC, datetime
@@ -12,7 +11,7 @@ import httpx
 from reputation_core.evidence import canonical_bytes, strict_json
 from reputation_core.models import EvidenceRecord
 
-from reputation_platform.infrastructure.evidence_store import SECRET_FIELDS, EvidenceStore, redact
+from reputation_platform.infrastructure.evidence_store import SECRET_NAMES, EvidenceStore, redact
 from reputation_platform.infrastructure.network.safe_http import (
     HttpObservation,
     NetworkPolicyError,
@@ -29,11 +28,8 @@ def evidence_json(value: Any) -> Any:
     """Redact credentials inside MCP text JSON as well as structured JSON."""
     value = redact(value)
     if isinstance(value, dict):
-        secret_names = {key.replace("_", "").replace("-", "") for key in SECRET_FIELDS} | {
-            "refreshtoken", "clientsecret", "mcpsessionid", "sessionid",
-        }
         result = {
-            key: "[REDACTED]" if key.lower().replace("_", "").replace("-", "") in secret_names
+            key: "[REDACTED]" if key.lower().replace("_", "").replace("-", "") in SECRET_NAMES
             else evidence_json(child) for key, child in value.items()
         }
         if result.get("type") == "text" and isinstance(result.get("text"), str):
@@ -47,11 +43,6 @@ def evidence_json(value: Any) -> Any:
         return result
     if isinstance(value, list):
         return [evidence_json(child) for child in value]
-    if isinstance(value, str) and re.search(
-        r'(?i)bearer\s|(?:authorization|cookie|api[_-]?key|access[_-]?token|token|password|'
-        r'secret|private[_-]?key)["\x27]?\s*[:=]|-----BEGIN .*PRIVATE KEY', value,
-    ):
-        return "[REDACTED]"
     return value
 
 

@@ -1,5 +1,9 @@
 # 从零构造执行计划（ExecPlan）
 
+本轮授权范围（2026-10-12）：基于最新 main，依次完成 SEC-1 整合/历史数据隔离/独立 Review，再完成 SEC-3 独立 Verifier 身份完整性修复/独立 Review，随后执行完整回归、PR、required CI、合并及 main 同步。复用 22245d9，不改写不可变证据，不进行外部攻击或生产凭据操作；不展开 EXP-1/OPS-1。
+
+历史 SEC-2 授权与验收记录：
+
 本轮授权范围（2026-10-12）：仅修复用户指定的 SEC-2 Vite WebSocket 与 HTTP 资源访问控制不一致。在 `fix/vite-ws-access` 基于核实的 main `82dcb85` 精确升级 Vite 至首个修复版本 7.3.2，使用本地合成文件验证访问边界、异常输入、正常开发/HMR/API 代理及构建，完成独立 Review 与 Git 门禁。开发和当前 Compose 交付运行均在范围内，设计见 ADR0023，实际结果见 STATUS；不开展其他安全审计。上一轮 SEC-1 提交保留在 `fix/url-credentials`，本任务不混入其源码变更。以下任务11–13授权与结果为历史记录。
 
 SEC-2 Git 流程已获明确授权：实现 `5a0510b` 推送任务分支并创建 PR #13，等待 foundation-quality / foundation-compose 等当前 head required checks 全通过后按仓库规则合并；随后同步 main、核对一致性和干净工作区并记录最终状态。仅提交本轮变更，不直接推 main、不绕过检查；最终身份及 CI 结果以 STATUS 和 PR #13 记录为准。
@@ -13,6 +17,10 @@ SEC-2 实现验收已通过：`5a0510b` 的 CI run `38210482851` 中 quality/Com
 阶段进度：任务1–10实现与本地阶段验收完成。任务8 PR#9合并并核对main一致，本机与CI完整检查通过；任务9稳定00bcb43本机与Foundation CI完整1279项/0skip通过，最终文档head1334362的CI38116332399 quality/Compose均成功，PR#10合并为1897a74。任务10在feat/public-readonly-evaluation完成公共模型/Worker/证据/报告/独立Verifier，定向与独立Review修复、真实Akashi HTTP/MCP+Base66响应通过；4PASS/1UNKNOWN、ReportCore1.6/PARTIAL/overall=null、executor UNKNOWN、离线Bundle PASS/MATCH、本地publication UNANCHORED。本机完整check.py退出0：1409Python/0skip、Web2、Foundry14/256fuzz、Ruff/Mypy69/71Schema/TS/ABI全通过；干净CI发现3个测试遗漏deployment fixture，已补显式真实fixture，在不存在配置路径下3passed，未改生产逻辑或断言。实现0de08e4/修复c8f6dd4已推送、Draft PR#11；最终文档head全部CI成功才按AGENTS合并/同步main/清理本任务分支，真实CI与合并SHA以PR/Git历史为准。旧失败/无退出码日志不计通过，评分/充分度/身份绑定与历史规则不变；本轮到10停止，不展开11–13，详情见STATUS/ADR0021。
 
 版本：foundation-v1.1，2026-10-03。状态：M0 基础验收完成（原生 Windows + Linux Compose CI）；M0-07 公网 OpenAPI 403 单列；M1-01 至 M1-08 已完成，M0+M1 最终验收通过。
+
+## 2026-10-12 / SEC-1 原始本地修复（历史记录）
+
+已按审计记录完成 URL userinfo 的公共证据脱敏与注册元数据拒绝；相关 CAS、Agent Snapshot、公开快照 API 回归及代码审查通过。身份认证、证据哈希、历史只追加机制和 ERC-8004/Bundle 流程未改；历史 CAS 不改写，真实历史秘密需单独隔离或撤下。该修复完成后停止本轮，不扩展到其他审计问题。
 
 ## 1. 最终要交付的系统
 对同类凭证业务 Agent 固定身份与声明快照，执行合规测试，将返回结果与独立链上观测关联，生成三维证据评价，并以报告摘要存证和独立复核支撑审计。

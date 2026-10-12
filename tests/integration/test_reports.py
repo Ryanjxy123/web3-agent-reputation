@@ -2,6 +2,7 @@
 
 import asyncio
 import io
+import json
 import zipfile
 from concurrent.futures import ThreadPoolExecutor
 from threading import Event
@@ -13,6 +14,7 @@ from reputation_core.models import Observation, RecordVerificationInput, RunPlan
 from reputation_core.reporting import build_report
 from reputation_platform.application.errors import ApplicationError
 from reputation_platform.application.reports import ReportService
+from reputation_platform.infrastructure import evidence_store
 from reputation_platform.infrastructure.db.jobs import JobQueue, LostLease, enqueue
 from reputation_platform.infrastructure.db.tables import anchor_jobs, jobs, reports, runs, snapshots
 from reputation_platform.worker.main import Worker
@@ -186,6 +188,78 @@ def test_export_refuses_changed_or_missing_committed_bytes(prepared):
         assert failure.value.code == "MISSING_EVIDENCE"
     finally:
         path.write_bytes(original)
+
+
+@pytest.mark.parametrize("location", ["cas_url", "cas_escaped_url", "cas_secret_field", "manifest_source"])
+def test_historical_sensitive_report_evidence_and_bundle_are_restricted(prepared, monkeypatch, location):
+    service, report = freeze(prepared)
+    api = prepared[0][0]
+    safe_bundle = service.export(report.report_id)
+    secret = "HISTORICAL_REPORT_SYNTHETIC_CREDENTIAL_ONLY"
+    url = f"https://audit-user:{secret}@example.com/legacy"
+    if location == "cas_url":
+        content = {"nested": [{"example": url}]}
+    elif location == "cas_escaped_url":
+        content = {"response": {"raw_body_utf8": json.dumps({"example": url}).replace("/", r"\/")}}
+    elif location == "cas_secret_field":
+        content = {"token": secret}
+    else:
+        content = {"note": "historical safe CAS with sensitive record metadata"}
+    # Only this synthetic append simulates the pre-fix collector; original CAS stays intact.
+    with monkeypatch.context() as legacy:
+        legacy.setattr(evidence_store, "redact", lambda value: value)
+        extra = service.identity.evidence.prepare_json(
+            content, url if location == "manifest_source" else "legacy-synthetic",
+            report.core.evaluated_at, "test",
+        )
+    original_bytes = service.identity.evidence.read(extra)
+    with service.db.begin() as connection:
+        extra = service.identity.evidence.register(connection, extra)
+        manifest = report.manifest.model_copy(update={"evidence": tuple(sorted(
+            (*report.manifest.evidence, extra), key=lambda item: str(item.evidence_id),
+        ))})
+        core = report.core.model_copy(update={
+            "evidence_manifest_hash": hash_json(manifest.model_dump(mode="json")),
+        })
+        identifier = uuid4()
+        report_body = core.model_dump(mode="json")
+        manifest_body = manifest.model_dump(mode="json")
+        digest = hash_json(report_body)
+        connection.execute(insert(reports).values(
+            id=identifier, run_fk=report.core.run_id, revision=2,
+            report_hash=digest, previous_report_hash=core.previous_report_hash,
+            core=report_body, manifest=manifest_body,
+        ))
+    packet_path = f"/api/v1/reports/{identifier}/evidence/{extra.evidence_id}"
+    for path in (packet_path, f"/api/v1/reports/{identifier}/bundle"):
+        response = api.get(path)
+        assert response.status_code == 403
+        assert response.json()["error"]["code"] == "HISTORICAL_EVIDENCE_RESTRICTED"
+        assert secret not in response.text
+    with pytest.raises(ApplicationError) as failure:
+        service.export(identifier)
+    assert failure.value.code == "HISTORICAL_EVIDENCE_RESTRICTED"
+    if location == "manifest_source":
+        with service.db.connect() as connection:
+            agent_id = connection.execute(select(snapshots.c.agent_fk).where(
+                snapshots.c.id == UUID(prepared[1]["snapshot_id"]),
+            )).scalar_one()
+        for path in (f"/api/v1/reports/{identifier}", f"/api/v1/agents/{agent_id}/reports"):
+            response = api.get(path)
+            assert response.status_code == 403
+            assert response.json()["error"]["code"] == "HISTORICAL_EVIDENCE_RESTRICTED"
+            assert secret not in response.text
+    assert service.identity.evidence.read(extra) == original_bytes
+    assert hash_bytes(original_bytes) == extra.blob_hash
+    assert service.view(identifier).report_hash == digest
+    with service.db.connect() as connection:
+        stored = connection.execute(select(reports.c.core, reports.c.manifest).where(
+            reports.c.id == identifier,
+        )).one()
+    assert stored.core == report_body and stored.manifest == manifest_body
+    assert service.export(report.report_id) == safe_bundle
+    safe = api.get(f"/api/v1/reports/{report.report_id}/bundle")
+    assert safe.status_code == 200 and safe.content == safe_bundle
 
 
 def test_pending_and_failed_anchor_receipts_show_safe_outbox_state(prepared, tmp_path):

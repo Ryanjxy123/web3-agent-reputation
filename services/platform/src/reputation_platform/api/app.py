@@ -55,6 +55,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from reputation_platform.application.anchor import AnchorService
 from reputation_platform.application.errors import ApplicationError as ApiProblem
+from reputation_platform.application.errors import require_public_safe
 from reputation_platform.application.evaluations import EvaluationService
 from reputation_platform.application.identity import IdentityService
 from reputation_platform.application.public_evaluations import PublicReadonlyEvaluationService
@@ -64,6 +65,12 @@ from reputation_platform.infrastructure.db.connection import engine
 from reputation_platform.infrastructure.db.tables import agents, audit_logs, jobs
 
 SCHEMA_HEAD = "c8f041b2965e"
+
+
+class PublicJSONResponse(JSONResponse):
+    def render(self, content) -> bytes:
+        require_public_safe(content)
+        return super().render(content)
 
 
 def create_app(
@@ -88,7 +95,10 @@ def create_app(
         if db is None:
             database.dispose()
 
-    app = FastAPI(title="Web3 Agent Reputation", version="1.0.0", lifespan=lifespan)
+    app = FastAPI(
+        title="Web3 Agent Reputation", version="1.0.0", lifespan=lifespan,
+        default_response_class=PublicJSONResponse,
+    )
     app.state.db = database
     app.state.identity = identity
     app.state.evaluations = evaluations

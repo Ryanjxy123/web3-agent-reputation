@@ -21,3 +21,9 @@ ReadonlyIdentityAssociation 将注册、端点、执行者和业务四个状态�
 Endpoint 增加两个静态只读协议，原 controlled-http-v1 仍必须 POST；新增共享 DTO 生成 Schema/OpenAPI/TS，无 DB 迁移。公共请求沿用任务8的 DNS 全量校验、数字 IP pin、原 Host/TLS/SNI、串行/配额、超时/大小限制和零自动重试。抽取共用请求审计避免重复实现，任务8协议回归必须通过。
 
 定向测试覆盖真实历史原件重放、恶意元数据/端点/凭据、RPC/ABI 畸形、固定块/reorg、Owner/URI/端点与版本变化、CAS/哈希篡改、UNKNOWN、只追加/租约恢复和写入门槛。真实只读验收与独立 Review、实际测试数字见 STATUS。正式任务执行、评分、Bundle 和独立 Verifier 接入属于任务10，本 ADR 不宣称完整评价闭环。
+
+## 2026-10-12：SEC-1 凭据过滤修正
+
+注册元数据的键名、描述、名称及嵌套字符串统一检查 URL authority 中的 userinfo（用户名/密码），包括任意 scheme、协议相对引用和 percent 编码的 userinfo。含凭据的键省略，含凭据的字符串整段替换；公共响应 JSON 变化即不保留原 body。共享判定在 EvidenceStore 规范化及哈希之前执行，注册解析另行拒绝原输入；Reader 输出元数据 UNKNOWN，不构造含凭据快照。只检查本地数据，不访问其中的 URL。
+
+这是既有 credentials-v1 防泄漏约束的修正，不新增 DTO、Schema、DB 迁移或认证机制。安全输入的字节与哈希不变，已存 CAS 的 read/hash 校验和旧报告规则保持原样。历史敏感材料不在原位脱敏、重算或替换；需要隔离公开入口及其副本，保留受控原件和原 hash，再采集安全的新版本，具体流程见 [身份运行说明](../runbooks/PUBLIC_READONLY_IDENTITY.md)。

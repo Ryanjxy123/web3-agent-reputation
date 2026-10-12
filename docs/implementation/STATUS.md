@@ -4,6 +4,8 @@
 
 | Task ID | Status | 实施结果 |
 |---|---|---|
+| SEC-1 | ACCEPTED_TECHNICAL | 已从 SEC-2 main 复用 22245d9；解析绕过和历史读取隔离修复、合成回归及独立 Review 通过；本机历史盘点/43 份 Bundle 通过，最终 Git/CI/main 以 PR 权威终态为准 |
+| SEC-3-IDENTITY | NOT_STARTED | SEC-1 达到验收后再修复 AUD-EVAL-001 回执/发布上下文身份关联；不采用其他审计记录中的同名编号扩大范围 |
 | SEC-2-VITE | ACCEPTED_TECHNICAL | Vite 7.3.2 修复及独立 Review 通过；实现 head 的完整 foundation-quality / foundation-compose 均 SUCCESS；最终文档 head CI、合并及 main 同步身份以 PR #13 权威终态和本节交接记录为准 |
 | M0-01 | DONE | 已克隆私有仓库、保留 main 历史、创建功能分支、安全安装启动基线并合并 README；36 项参考测试通过 |
 | M0-02 | DONE | 四包 uv workspace、真实锁、Vue 构建、Foundry 编译与测试通过 |
@@ -34,6 +36,38 @@
 | FOLLOWUP-12 | DONE | 真实 Vue/API 产品、21 unit/11 browser/typecheck/build、A/D 证据与 CLI MATCH 联调、异步选择终审修复通过 |
 | FOLLOWUP-13 | ACCEPTED_TECHNICAL | 部署/重复 A-D 双锚定演示、文档/打包/独立检出复现及最终技术门槛通过；合并、main 同步与 Release 状态以外部记录为准 |
 | LOCAL-PG-JUNCTION | DONE | Windows PostgreSQL 改用 D:\web3-runtime 目录联接；R: 已移除，初始化、重启、数据完整性及13项定向测试通过 |
+
+## 2026-10-12 / SEC-1 收尾与历史读取隔离
+
+- Baseline/Git：fetch 后 main=origin/main=`5d7fdbb8eedd31dd67547c1218fc9bed6e501f98`，工作区干净；Git ancestry、差异及真实源码证明 22245d9 尚未进入 main。基于该 main 创建 `fix/sec1-closure` 并 cherry-pick 为 `d5c47a1`；仅 PLAN/STATUS 冲突，保留双方历史记录，SEC-2 Vite 7.3.2/锁及测试未回退。既有忽略的 docs/audit 原件不提交、不改写。
+- Fix：复用原采集前过滤；独立 Review 复现 TAB/LF/CR 和浏览器 authority 反斜杠绕过，检测副本统一规范化，补 parser/Reader/CAS 合成回归。历史公开 JSON/只读关联原件/证据 packet/Bundle 导出增加 403 `HISTORICAL_EVIDENCE_RESTRICTED`，嵌套 JSON 原文转义和既有 camelCase 凭据字段也检查；共享现有判定/字段集，没有新增依赖、DTO 或迁移。详情 ADR0024。
+- History：只读盘点本机 runtime/docs/testing 的 1,784 JSON、2,111 CAS、484 Bundle/66,743 成员；其中发布的 docs/testing 为 216 JSON、265 CAS、39 Bundle/6,957 成员。对解析的嵌套 JSON、raw_body_utf8、转义及控制字符检查，URL userinfo 命中/错误均 0。本机 15 个非模板数据库中 14 个项目库各 69 个文本/JSON 列全量只读检查，命中/错误均 0；测试临时库可能随执行变化，最终报告在忽略的 runtime/sec1/history-inventory.json。没有发现支持真实凭据轮换的存量证据；不据此断言其他环境/备份/已下载副本安全。
+- Integrity/compatibility：43 份已发布/本机历史 A/D/public Bundle 按原版本离线重放均 PASS，逐份 SHA-256 前后不变（runtime/sec1/historical-replay.json）。没有修改原 Snapshot/CAS/报告/链上 hash；私有原件可继续按原规则复核。API/Worker 当前未运行，不需要重启旧服务；其他部署必须应用修复并重启。
+- Tests：原过滤及相关真实 PostgreSQL/Anvil 选择执行 463 passed，另 2 项因并发测试共用端口而 fixture 启动失败（不计通过）；改用独立 29201/29202 后该两项及 API/identity 23 passed/0 skipped。Ruff/Mypy 70/74 Schema 检查通过。最终新采集 parser/Reader/CAS/HTTP 390 passed/0 skipped（49.98s）；独立最后 helper/parser/Reader/CAS 326 passed/0 skipped（46.76s），深层 JSON 拒绝 helper 16 passed。新增历史读取隔离/公共流程最终选择与 CI 门禁结果见后续追加记录。
+- Review：独立审查确认并修复控制字符、反斜杠、嵌套 JSON 和 camelCase 读取路径，8 个原绕过在 parser/collector/公开门禁全部拒绝，安全已脱敏 raw JSON 正常返回。历史读取反例先运行并实际失败（5 个旧接口返回 200；另1端口错误不作为复现），随后修复测试，不改安全断言。最后独立复审没有剩余可行动 SEC-1 阻塞；真实 PostgreSQL/Anvil 5 个正常/历史 A-D 报告及1个转义 CAS 用例通过。
+- Final local gate：最后 helper/历史快照直接/列表/关联/源 CAS、正常 API 与公共5槽位冻结/Bundle 选择 **31 passed / 0 skipped / 2 warnings**（128.90s，exit 0；该进程收集时 helper 为15项，新增深层 helper 另16项全通过）。最终 Ruff/Mypy70/Schema74 与 diff check exit 0。隔离仅阻止公开披露，不改写原件；已脱敏占位与普通文本不误拦截。
+- Limits/next：没有生产数据删除/迁移/凭据轮换或第三方网络测试。SEC-1 阶段提交、PR/required CI/main 门禁完成后再开展 SEC-3；后者指 evaluation-findings AUD-EVAL-001，非其他审计文件的 ZIP 异常问题。最终整体 scripts/check.py/CI 仍须执行，不沿用旧轮结果。
+
+## 2026-10-12 / SEC-1 URL 凭据泄漏原始本地修复（历史记录）
+
+- Scope：依据 `docs/audit/security-findings.md` 的 SEC-1，只修复第三方注册元数据 URL userinfo 进入 CAS/公开快照的问题；不改变认证、CAS 地址/hash、快照 DTO 或身份架构。
+- Implementation：共享敏感文本判定现在识别嵌入任意 URI scheme 的 userinfo；`EvidenceStore` 和公共只读证据路径在保留原文前统一脱敏，注册元数据解析同时拒绝该输入，防止 `SnapshotCore` 和未认证快照 API 接收凭据。
+- Regression：最终稳定代码相关单元/集成回归 **448 passed / 0 skipped / 2 warnings**（190.39s，exit 0），包含真实 PostgreSQL 公共 Worker/API、公共 5 槽位 freeze/export/独立 Verifier 和真实本地 Anvil 的 A/D Bundle；本地受控身份/双签名/认证另 **16 passed / 0 skipped / 2 warnings**（45.93s，exit 0）。全树 Ruff、Mypy 70 files、74 generated schemas 均 exit 0；两个既有上游弃用警告保留。仅使用本地合成凭据、MockTransport 和测试数据，没有第三方网络请求。
+- Review：独立复审发现并修复中文紧邻 URL、其他 scheme、敏感 JSON 键名和初版 scheme 匹配的回溯问题；最终匹配 authority，覆盖用户名-only、percent userinfo、协议相对引用及 MCP 嵌套 JSON。回归确认脱敏后 `raw_body_utf8` 不保留、CAS bytes 不含哨兵、含凭据的新读不会创建快照，既有安全快照/历史和 Bundle 仍正常读取/复核；复审无剩余可行动代码问题。审计目录原脚本仍是旧漏洞反例，未用其旧断言作为修复通过标准。
+- History/limits：CAS 与快照为只追加历史，未改写旧记录；若真实历史 blob 已含凭据，需负责人按保留 hash 的隔离/撤下/重建方案处置。本轮未读取或处理真实秘密，未做外部网络或攻击性测试。
+- Git/stop：基线 `82dcb85`（本地 main=origin/main 与 v0.1.0）；工作分支 `fix/url-credentials`，仅提交本次源码、回归与说明，既有未跟踪 `docs/audit/` 保留且不纳入提交。本轮不 push/PR/发布，不执行远端访问；本轮停止，不开展 SEC-2/SEC-3。全量 `scripts/check.py`、Web、Foundry 和 Compose/CI 未重跑，不复用旧全量结果冒充本轮验收。
+
+实际命令（均 exit 0，使用项目现有工具，无安装）：
+
+```powershell
+. ./scripts/tools.ps1
+uv run --env-file .env --all-packages pytest -q tests/unit/test_evidence_store.py tests/unit/test_public_identity.py tests/unit/test_erc8004_reader.py tests/unit/test_identity_egress.py tests/unit/test_public_adapter.py tests/unit/test_public_identity_published.py tests/unit/test_public_readonly_bundle.py tests/unit/test_verifier.py tests/integration/test_public_identity_ingest.py tests/integration/test_public_adapter_evidence.py tests/integration/test_public_evaluation_flow.py::test_public_offline_execution_verification_freeze_and_bundle tests/integration/test_reports.py::test_real_report_recomputes_partial_and_exports_identical_bytes
+uv run --env-file .env --all-packages pytest -q tests/integration/test_identity.py
+uv run --all-packages ruff check packages services fixtures/agents tests scripts
+uv run --all-packages mypy -p reputation_core -p reputation_platform -p reputation_verifier -p fixture_agents
+uv run --all-packages python scripts/generate_schemas.py --check
+
+```
 
 ## 2026-10-12 / SEC-2 Vite WebSocket 资源访问修复
 
