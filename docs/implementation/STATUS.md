@@ -5,7 +5,7 @@
 | Task ID | Status | 实施结果 |
 |---|---|---|
 | EXP-1 | ACCEPTED_STAGE | 真实副本复现/固定可信 publication 与同次字节快照修复；99项定向（92新增+7既有）/0skip、独立 Review/修复/重验通过；152原件/82源码/36重放及全部历史指标一致，CLI trace篡改明确exit1且无输出；阶段提交后进入OPS-1，整体回归/CI尚待执行 |
-| OPS-1 | PENDING | 按授权顺序在 EXP-1 阶段验收/提交后开始，尚未声称修复或验收 |
+| OPS-1 | ACCEPTED_STAGE | EXP提交93fdb88后真实PG/API/Worker复现64请求永久耗尽；独立有限ingest client/finally关闭+PG共享origin锁/持久节流，64/幂等恢复/fencing保留；12新增真实集成、168相关回归通过，Review锁取消/完成审计失败两项已修复重验；跨模块Review、234单元及43历史Bundle通过，完整门禁/CI待执行 |
 | SEC-1 | DONE | PR #14 正常合并为 2a59220；最新 head quality/Compose 均 SUCCESS，完整1561 Python/0skip；main 同步并核对测试源码一致，本机历史盘点与读取隔离完成 |
 | SEC-3-IDENTITY | ACCEPTED_TECHNICAL | AUD-EVAL-001修复、独立Review/定向/17项真实集成/43份历史Bundle及最终本地完整1597 Python/0skip门禁通过；PR最新head两项CI与main交付以任务PR权威终态为准 |
 | SEC-2-VITE | ACCEPTED_TECHNICAL | Vite 7.3.2 修复及独立 Review 通过；实现 head 的完整 foundation-quality / foundation-compose 均 SUCCESS；最终文档 head CI、合并及 main 同步身份以 PR #13 权威终态和本节交接记录为准 |

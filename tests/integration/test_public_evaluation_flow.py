@@ -11,7 +11,7 @@ import pytest
 from fastapi.testclient import TestClient
 from reputation_core.evidence import canonical_bytes, strict_json
 from reputation_core.models import Outcome
-from reputation_platform.adapters.registries.erc8004 import AKASHI_REF, Erc8004RegistryReader
+from reputation_platform.adapters.registries.erc8004 import AKASHI_REF
 from reputation_platform.api.app import create_app
 from reputation_platform.application.execution import ExecutionService
 from reputation_platform.application.public_execution import PublicReadonlyEgress
@@ -120,8 +120,7 @@ def flow(db, tmp_path, monkeypatch):
             transport=httpx.MockTransport(responder), resolver=lambda _: ["1.1.1.1"], **kwargs
         )
 
-    client = factory(enabled=True)
-    identity._public_reader = Erc8004RegistryReader(ROOT, client, identity.evidence)
+    identity.client_factory = factory
     with TestClient(app) as api:
         agent = api.post(
             "/api/v1/agents", json={"agent_ref": AKASHI_REF.model_dump()}, headers=AUTH
@@ -145,7 +144,6 @@ def flow(db, tmp_path, monkeypatch):
         responder.requests.clear()
         responder.times.clear()
         yield api, identity, responder, factory, snapshot_id
-    asyncio.run(client.close())
 
 
 def create_run(flow, key="public-run"):
@@ -250,9 +248,15 @@ def test_public_offline_execution_verification_freeze_and_bundle(flow, tmp_path,
         assert len(list(connection.scalars(select(task_links.c.id)))) == 5
         requests = list(
             connection.scalars(
-                select(audit_logs.c.body).where(audit_logs.c.action == "public.egress")
+                select(audit_logs.c.body).where(
+                    audit_logs.c.action == "public.egress", audit_logs.c.target == run_id
+                )
             )
         )
+        identity_requests = list(connection.scalars(select(audit_logs.c.body).where(
+            audit_logs.c.action == "public.egress", audit_logs.c.body["phase"].astext == "identity"
+        )))
+    assert len(identity_requests) == 10
     assert len(requests) == len(responder.requests) == 56
     assert all(request["method"] in {"GET", "POST"} for request in requests)
     assert {request["origin"] for request in requests} == {

@@ -264,7 +264,7 @@ def create_app(
         return {
             "id": str(row["id"]),
             "state": row["state"],
-            "reason_code": row["last_error"],
+            "reason_code": row["last_error"] or row["payload"].get("public_read_stop_reason"),
             "snapshot_id": row["payload"].get("snapshot_id"),
             "public_identity": row["payload"].get("public_identity"),
         }

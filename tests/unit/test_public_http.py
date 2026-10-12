@@ -174,6 +174,7 @@ async def test_attempt_quota_includes_transport_failures_and_does_not_retry(monk
                 await client.request("GET", AGENT, PATH)
         with pytest.raises(NetworkPolicyError, match="REQUEST_QUOTA_EXCEEDED"):
             await client.request("GET", AGENT, PATH)
+        assert client.public_stop_reason == "REQUEST_QUOTA_EXCEEDED"
         assert len(calls) == 2
     finally:
         await client.close()

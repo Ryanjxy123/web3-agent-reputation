@@ -19,6 +19,8 @@ uv run --all-packages python scripts/akashi_identity_smoke.py --allow-public-rea
 
 每轮正常路径10次请求，串行且每次完成后至少1秒，无自动重试。输出目录必须不存在；失败保留全部已保存 CAS 和 UNKNOWN 结果，不覆盖旧材料。系统 DNS 返回 fake-IP/私网会被阻断，应由操作者修正可信 DNS 配置；不禁用 DNS/IP/TLS 校验。Windows 本轮使用与任务8相同的固定 TLS DNS resolver 注入，来源 DNS wire 原件及 TLS 证书 hash 一并保存，不宣称 DNSSEC。
 
+OPS-1 修复后，64 次尝试属于每个获准 ingest 的有限采集会话，不再覆盖 Worker 整个生命周期。作业完成后下一次正常 refresh 自动获得新预算；没有日/小时重置窗口，不需要改数据库或重启服务。当前会话达到上限仍拒绝，JobView.reason_code 显示 REQUEST_QUOTA_EXCEEDED，身份 UNKNOWN 的平台原因另列；这不是用户任务 grant 配额耗尽。PUBLIC_REFRESH_PENDING 表示当前任务未完成，重复/并发请求仍被拒绝。跨会话、Worker 重启及公共评价之间复用数据库 origin 锁和审计，保持至少 1 秒间隔；不能用新客户端绕过频率限制。
+
 正式平台接入复用已有 API/Worker：authenticated `POST /api/v1/agents`（上述 agent_ref）→ `POST /api/v1/agents/{id}/refresh`（`{}`）→ Worker ingest → authenticated `GET /api/v1/jobs/{id}`。JobView.public_identity 分别列出注册和元数据状态；只有成功读取才有 snapshot_id。`GET /api/v1/snapshots/{id}/readonly-association?protocol=akashi-mcp-readonly-v1` 或 `akashi-http-readonly-v1` 返回四个独立状态。HTTP 关联同时检查声明的 OpenAPI 原件。
 
 人工 claims confirm 可以确认静态 verify_record 候选映射，但不能产生 ExecutorBinding。绑定、授权和正式写任务仍受原 EIP-712 安全门槛约束，public current_identity 显式拒绝。agentWallet/Owner 不被推断为 executor。

@@ -3,6 +3,7 @@
 import asyncio
 import os
 import secrets
+from contextlib import AsyncExitStack
 from datetime import UTC, datetime
 from pathlib import Path
 from uuid import UUID, uuid4
@@ -54,6 +55,7 @@ from reputation_platform.infrastructure.db.tables import (
     snapshots,
 )
 from reputation_platform.infrastructure.evidence_store import EvidenceStore
+from reputation_platform.infrastructure.network import safe_http
 from reputation_platform.infrastructure.network.safe_http import SafeHttpClient
 
 from .errors import ApplicationError, require_public_safe
@@ -65,6 +67,7 @@ class IdentityService:
         database: Engine,
         deployment: LocalDeployment | None = None,
         evidence_root: Path | None = None,
+        *, client_factory=None,
     ):
         self.db, self._deployment = database, deployment
         self.root = repo_root()
@@ -72,7 +75,7 @@ class IdentityService:
             evidence_root or Path(os.environ.get("EVIDENCE_ROOT", self.root / "runtime/evidence"))
         )
         self.public_readonly_enabled = os.environ.get("PUBLIC_READONLY_ENABLED") == "1"
-        self._public_reader: Erc8004RegistryReader | None = None
+        self.client_factory = client_factory or SafeHttpClient.public_readonly
 
     def deployment(self) -> LocalDeployment:
         if self._deployment is not None:
@@ -177,7 +180,8 @@ class IdentityService:
                     jobs.c.state.in_(["QUEUED", "LEASED", "RETRY_WAIT"]),
                 )).scalar_one_or_none()
                 if pending is not None:
-                    raise ApplicationError(409, "PUBLIC_REFRESH_PENDING", "Public refresh is already queued.")
+                    raise ApplicationError(409, "PUBLIC_REFRESH_PENDING",
+                                           "Wait for the active refresh to finish; a new refresh has its own finite request budget.")
             current = self.latest(connection, agent_id)
             if request.expected_snapshot_hash is not None and (
                 current is None or current["snapshot_hash"] != request.expected_snapshot_hash
@@ -206,11 +210,10 @@ class IdentityService:
             return
         await asyncio.to_thread(self._ingest, lease, queue)
 
-    async def close_public_client(self) -> None:
-        if self._public_reader is not None:
-            await self._public_reader.client.close()
-
     async def _ingest_public(self, lease, queue, payload, agent):
+        from .public_execution import PublicReadonlyEgress
+
+        stop_reason = None
         if payload.get("public_identity") is not None:
             return
         if not self.public_readonly_enabled:
@@ -240,11 +243,26 @@ class IdentityService:
                     "public_start_evidence": registered.model_dump(mode="json"),
                 }))
             await asyncio.to_thread(queue.fenced, lease, start_read)
-            if self._public_reader is None:
-                self._public_reader = Erc8004RegistryReader(
-                    self.root, SafeHttpClient.public_readonly(enabled=True), self.evidence,
-                )
-            result = await self._public_reader.read(agent.agent_ref)
+            guards = {origin: PublicReadonlyEgress(
+                self.db, self, {"id": lease.job_id}, None, lease=lease, queue=queue,
+                phase="identity", origin=origin,
+            ) for origin in sorted((safe_http.PUBLIC_ORIGIN, safe_http.PUBLIC_RPC_ORIGIN))}
+            for guard in guards.values():
+                guard.interval_ms = int(safe_http.PUBLIC_REQUEST_INTERVAL * 1000)
+
+            async def before_request(method, origin, path, body):
+                await guards[origin](method, origin, path, body)
+
+            client = self.client_factory(enabled=True, before_request=before_request)
+            try:
+                reader = Erc8004RegistryReader(self.root, client, self.evidence)
+                async with AsyncExitStack() as stack:
+                    for guard in guards.values():
+                        await stack.enter_async_context(guard)
+                    result = await reader.read(agent.agent_ref)
+                stop_reason = client.public_stop_reason
+            finally:
+                await client.close()
             result = PublicRegistryReadResult(result.core, result.identity, (start, *result.evidence),
                                               result.openapi_raw, result.metadata_raw)
 
@@ -257,6 +275,8 @@ class IdentityService:
             identity = result.identity.model_dump(mode="json")
             saved_payload = {**payload, "public_read_started": True, "public_identity": identity,
                              "identity_evidence_refs": [str(record.evidence_id) for record in records]}
+            if stop_reason is not None:
+                saved_payload["public_read_stop_reason"] = stop_reason
             if result.core is not None:
                 snapshot = AgentSnapshot(
                     snapshot_id=uuid4(), core=result.core, public_identity=result.identity,

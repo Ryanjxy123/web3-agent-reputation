@@ -16,8 +16,18 @@
 
 ## OPS-1
 
-按授权顺序，EXP-1 阶段提交后开始。当前尚未执行修复或验收。
+按授权顺序，EXP-1 阶段提交 `93fdb88` 后开始。实际复现命令为 `uv run --env-file .env --all-packages pytest -q -s docs/audit/reproductions/test_security_counterexamples.py -k quota_exhaustion_persists_in_real_worker`，exit0，反例成立：真实 PostgreSQL/API/Worker 同一服务的 8 次健康刷新，前 6 次成功，第 7/8 次没有快照，累计 HTTP=64，旧身份成为 UNVERIFIED。
+
+根因是 64 次尝试本属有限采集会话预算，缓存 Reader 却将其延续至 Worker 整个生命周期；既有业务没有日/小时重置窗口。每个获准、尚未开始的新 ingest 创建独立客户端并 finally 关闭，完成后下一次独立刷新自动获得新预算。已开始的不确定作业与已保存结果继续不重发、不重复快照。现有 pending 去重、权限、租约、fencing、付款停止、失败计数、64 次上限及 DNS/TLS/白名单均保留。使用已有 PostgreSQL origin 锁和审计在 socket 前核对状态及持久预算，跨新会话/Worker 重建和公共评价共享至少 1 秒节流。配额耗尽通过既有 JobView.reason_code 明示 REQUEST_QUOTA_EXCEEDED，与身份 UNKNOWN 平台归因和用户 grant 配额分开。
+
+独立 Review 实际发现并修复两项中断边界：取消锁获取后，SQLAlchemy close 归还连接池但未释放 PostgreSQL session advisory lock；完成审计数据库失败后，过早 start 审计可使下一次请求绕过完成后间隔。旧实现分别真实失败，新实现等待后台 SQL 完成并关闭异常 session、保护整个退出清理，在完成审计未成立时持锁等待完整间隔且继续传播原数据库异常。最终独立 Review 无剩余可行动 P0/P1/P2 阻断。
+
+新增真实 PostgreSQL/API/Worker 集成 12 项：恢复文件 8 passed/0skip（最终 32.65s），节流文件 4 passed/0skip（18.06s），均 exit0。覆盖 8 个客户端/8 次健康刷新/80 请求与持久计数、会话预耗后 5 请求耗尽及下一新作业 10 请求恢复、双 API 并发单 pending、开始前 SQL 失败零请求、保存前后重领不重发、取消/失租关闭、服务重建节流、公共 verify RPC 共用锁、锁取消及完成审计失败。数据库/API/Worker 是真实实现，HTTP 使用离线 MockTransport，不声称这 12 项是公网测评。初轮相关既有测试 156 passed/1 failed；原故障注入按“第 2 次 fenced”定位被新增 socket 前审计提前命中，已改为 10 个响应完成后的真实中断边界，原 10 请求/UNKNOWN/不重发断言保持，身份文件 10 passed 重验通过。
+
+扩大的身份/公共评价/HTTP/Registry 回归初轮为 167 passed/1 failed（255.91s）：公共 Bundle 测试曾查询全部 public.egress，却只与 fixture 清空后的评价请求比对，新增初始化身份审计造成 66 对 56。修正为当前 run 的 56 条原断言，并独立要求初始化身份 10 条；独立复核确认没有降低评价/配额/节流标准。修正后完整定向 168 passed/0skip（243.26s）、exit0，涵盖真实 PostgreSQL/Anvil/API/Worker 公共评价/报告/Bundle 路径；Ruff、Mypy70、74 Schema 和 diff 检查通过。
 
 ## 整体回归及交付
 
-最终完整 Python/PostgreSQL/Anvil/API/Worker/Web/Foundry/ABI 门禁和 GitHub required checks 待两项阶段验收后运行，未执行项不计通过。本机 Docker Linux engine 的已有限制由实际 Linux foundation-compose 验证，不以本地配置解析替代容器验收。
+跨模块独立 Review 已完成：评分/充分度/报告/执行/复核与 SEC-1/2/3 边界保持；Verifier 仅扩参数类型以接受同一份内存 ZIP，历史语义未升级。43 份历史 Bundle（4×1.0、5×1.1、33×1.5、1×1.6）全部离线 PASS，Path/BytesIO 两入口结果完全一致，原 SHA256 不变；旧 1.0 仍为 NOT_AVAILABLE_LEGACY_REPORT、Anchor NOT_CHECKED。独立 Verifier/公共 Bundle/HTTP/读取隔离单元回归 234 passed/0skip（64.61s），exit0。
+
+最终完整 Python/PostgreSQL/Anvil/API/Worker/Web/Foundry/ABI 门禁和 GitHub required checks 待阶段验收提交后运行，未执行项不计通过。本机 Docker Linux engine 的已有限制由实际 Linux foundation-compose 验证，不以本地配置解析替代容器验收。
