@@ -1,5 +1,7 @@
 # 从零构造执行计划（ExecPlan）
 
+本轮授权范围（2026-10-12）：仅修复用户指定的 SEC-2 Vite WebSocket 与 HTTP 资源访问控制不一致。在 `fix/vite-ws-access` 基于核实的 main `82dcb85` 精确升级 Vite 至首个修复版本 7.3.2，使用本地合成文件验证访问边界、异常输入、正常开发/HMR/API 代理及构建，完成独立 Review 与 Git 门禁。开发和当前 Compose 交付运行均在范围内，设计见 ADR0023，实际结果见 STATUS；不开展其他安全审计。上一轮 SEC-1 提交保留在 `fix/url-credentials`，本任务不混入其源码变更。以下任务11–13授权与结果为历史记录。
+
 当前授权范围（2026-10-12）：基于已核实 main 76b411a，在 feat/tasks-11-13-delivery 按任务 11→Review/修复/验收/提交→12→Review/修复/验收/提交→13→综合回归/PR/required CI/合并/Release 连续推进。任务 11 正式 v2 实验已冻结，任务 12 产品与终审修复已验收，任务 13 部署/文档/打包/复现已验证；最终技术门槛结果见 STATUS/验收记录，最终 Git/Release 身份以 PR #12 与实际发布记录为准。历史测试或初始 unsupported 实验不计本轮最终通过。最新 checkpoint 见 docs/implementation/STATUS.md。
 
 历史授权范围（2026-10-11）：续接main `ededc90`，依次任务8→Review/修复/验收→任务9→Review/修复/验收→任务10；优先完整交付8，资源不足则先提交与交接当前阶段。第三方只允许免费只读，无付款/签名/主网写入。任务8设计ADR0019，实际进度以STATUS为准；不展开11–13。
