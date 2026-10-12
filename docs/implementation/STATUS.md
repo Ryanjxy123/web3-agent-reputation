@@ -5,7 +5,7 @@
 | Task ID | Status | 实施结果 |
 |---|---|---|
 | SEC-1 | DONE | PR #14 正常合并为 2a59220；最新 head quality/Compose 均 SUCCESS，完整1561 Python/0skip；main 同步并核对测试源码一致，本机历史盘点与读取隔离完成 |
-| SEC-3-IDENTITY | ACCEPTED_TECHNICAL | AUD-EVAL-001 修复、独立 Review/218项定向、17项真实集成与43份历史Bundle通过；最终本地全量及PR/CI/main门禁继续完成 |
+| SEC-3-IDENTITY | ACCEPTED_TECHNICAL | AUD-EVAL-001修复、独立Review/定向/17项真实集成/43份历史Bundle及最终本地完整1597 Python/0skip门禁通过；PR最新head两项CI与main交付以任务PR权威终态为准 |
 | SEC-2-VITE | ACCEPTED_TECHNICAL | Vite 7.3.2 修复及独立 Review 通过；实现 head 的完整 foundation-quality / foundation-compose 均 SUCCESS；最终文档 head CI、合并及 main 同步身份以 PR #13 权威终态和本节交接记录为准 |
 | M0-01 | DONE | 已克隆私有仓库、保留 main 历史、创建功能分支、安全安装启动基线并合并 README；36 项参考测试通过 |
 | M0-02 | DONE | 四包 uv workspace、真实锁、Vue 构建、Foundry 编译与测试通过 |
@@ -43,8 +43,10 @@
 - Reproduction：修复前的新增单测28项全部 DID NOT RAISE（1.0/1.5，四回执身份字段×三非确认状态，另平台/previous重算），exit 1。真实 PostgreSQL/HTTP/Anvil A/D 报告发布后，两个测试原件离线 PASS/Anchor NOT_CHECKED、在线 PASS/Anchor CONFIRMED；四字段×离线/在线×A/D 共16次错误接受，两个测试失败，74.83s。不是哈希断言改弱或 mock 正例。
 - Fix：复用公共1.6已有语义，共享 helper 检查 receipt publisher/contract/chain_instance_id/trusted_chain_key 与 publication、core.previous 与 publication.previous、全部 input.platform 与 publication.platform；在任务/Anchor RPC 与未确认回执/无RPC早退前拒绝矛盾。结果新增 limitations，明确离线材料一致性、执行链事实与报告摘要发布三种边界。Agent/Owner/executor/任务现有摘要、EIP-712签名、槽位、交易/事件和报告重算不重复实现、不削弱。详情 ADR0025。
 - History：43份原件（1.0×4、1.1×5、1.5×33、1.6×1）全部按原版本 PASS，SHA-256 与 SEC-1 基线完全相同；修复前1.0/1.5共12次矛盾错误 PASS，修复后1.0/1.5/1.6共18项均 EVIDENCE_INCONSISTENT。另15项 AgentRef、Owner/executor、签名域、Snapshot、request/hash、报告 agent_key 变异在重算承诺后全部拒绝，原因不是 CONTENT_HASH_MISMATCH。旧1.0任务/评价摘要仍 NOT_AVAILABLE_LEGACY_REPORT，未升级 VERIFIED。记录在忽略的 runtime/sec3。
-- Review/tests：独立 SEC-3 与 SEC-1/SEC-2 跨模块审查未发现可行动阻塞；独立 verifier/public Bundle/公开隔离/identity-egress 选择218 passed/0skip（57.91s，exit0）。最终 verifier/public Bundle两文件136 passed（55.12s），另3项CAS/manifest/ReportCore原始字节篡改均拒绝（1.59s）；真实PG/HTTP/Anvil A/D新Anchor+原报告+保存执行者/目标/事件/request/hash/链变异+实际错误执行者/目标交易6 passed（195.99s），公共5槽位冻结/报告/Bundle全文件11 passed（165.74s），全部exit0/0skip。覆盖原件offline/online边界、RPC_UNAVAILABLE与错误链CHAIN_INSTANCE_MISMATCH，原件SHA不变。Ruff/Mypy70/Schema74/diff check通过；最终完整 scripts/check.py/CI 待完成，不沿用SEC-1結果冒充本轮全量。
-- Limits：离线不认证原件；任务RPC不重新认证历史Registry Owner/端点/HTTP；公共1.6业务证据仍离线重放，Anchor可信本地链另查。原始Bundle/Schema/DB/签名/不可变证据无升级、迁移或改写，无新依赖。未执行公网主动测评、生产数据删除/凭据轮换。最终质量门禁与Git交付继续完成。
+- Review/tests：独立 SEC-3 与 SEC-1/SEC-2 跨模块审查未发现可行动阻塞；独立 verifier/public Bundle/公开隔离/identity-egress 选择218 passed/0skip（57.91s，exit0）。最终 verifier/public Bundle两文件136 passed（55.12s），另3项CAS/manifest/ReportCore原始字节篡改均拒绝（1.59s）；真实PG/HTTP/Anvil A/D新Anchor+原报告+保存执行者/目标/事件/request/hash/链变异+实际错误执行者/目标交易6 passed（195.99s），公共5槽位冻结/报告/Bundle全文件11 passed（165.74s），全部exit0/0skip。覆盖原件offline/online边界、RPC_UNAVAILABLE与错误链CHAIN_INSTANCE_MISMATCH，原件SHA不变。Ruff/Mypy70/Schema74/diff check通过。
+- Final local gate：阶段源码/测试提交`d9f7d0999cd129c428cb993954e59cd9ce914aa5`，在独立30601/30602端口下运行`uv run --env-file .env --all-packages python runtime/sec3/run-full-check.py`包装原`scripts/check.py`，FAIL_ON_SKIP=1，2026-10-12T09:43:01Z–11:00:44Z，exit0/PASS（4663.25s）。1597 Python passed/0skip/2既有warnings（4546.77s）、Ruff/Mypy70/Schema74、生成TS/drift、Vue typecheck/build、21Web unit、5Vite集成/0skip、11browser groups、Foundry14/0failed/0skip/256fuzz、ABI3全部通过。包装器前后源码/测试哈希无变化（source_changed=[]），11份审计原件集合/SHA不变，runtime/.env/docs/audit未跟踪；SEC-1/SEC-2源码、根锁、配置、Compose与合约未回退。日志/摘要在忽略的runtime/sec3-full-check*，本验收补充仅改PLAN/STATUS，源码与已测阶段提交一致。
+- Git gate：基线origin/main再次fetch仍为2a59220。阶段d9f7d09及本验收记录只推送fix/sec3-verifier-identity并创建SEC-3 PR；必须核实最新head的foundation-quality、foundation-compose及其他required检查全部成功、base=main、head为该任务分支、无冲突/required review阻塞，才正常squash合并并同步main。最终CI run、PR、合并SHA、main一致性与分支清理以当前任务PR/Git权威终态及runtime/sec3/final-delivery.json为准，不将其他head或旧轮CI当本次通过，不直接推main或绕过保护。
+- Limits：离线不认证原件；任务RPC不重新认证历史Registry Owner/端点/HTTP；公共1.6业务证据仍离线重放，Anchor可信本地链另查。原始Bundle/Schema/DB/签名/不可变证据无升级、迁移或改写，无新依赖。未执行公网主动测评、生产数据删除/凭据轮换；其他部署/备份/下载副本仍须另查。本机Docker Linux engine不可用，真实Compose门禁由当前PR的foundation-compose验证。范围内无已知可行动P0/P1阻塞，未扩展到EXP-1/OPS-1或大规模审计。
 
 ## 2026-10-12 / SEC-1 收尾与历史读取隔离
 

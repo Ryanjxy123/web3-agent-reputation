@@ -2,7 +2,7 @@
 
 本轮授权范围（2026-10-12）：基于最新 main，依次完成 SEC-1 整合/历史数据隔离/独立 Review，再完成 SEC-3 独立 Verifier 身份完整性修复/独立 Review，随后执行完整回归、PR、required CI、合并及 main 同步。复用 22245d9，不改写不可变证据，不进行外部攻击或生产凭据操作；不展开 EXP-1/OPS-1。
 
-本轮进度：SEC-1已通过PR #14、最新head完整quality/Compose CI并正常合并为2a59220，本地main已同步/核对干净。SEC-3在fix/sec3-verifier-identity先用单测及真实A/D Anchor复现AUD-EVAL-001，再复用公共1.6一致性校验修复受控1.0–1.5；独立跨模块Review/218项定向、17项真实PG/Anvil集成和43份历史Bundle/哈希完整性已通过。身份/任务已有签名与规则约束保留，输出明确三种复核可信边界，见ADR0025/STATUS；提交阶段成果后继续最终scripts/check.py与PR/CI正常合并，不扩大范围。
+本轮进度：SEC-1已通过PR #14、最新head完整quality/Compose CI并正常合并为2a59220，本地main已同步/核对干净。SEC-3在fix/sec3-verifier-identity先用单测及真实A/D Anchor复现AUD-EVAL-001，再复用公共1.6一致性校验修复受控1.0–1.5；独立跨模块Review/218项定向、17项真实PG/Anvil集成和43份历史Bundle/哈希完整性已通过。阶段提交d9f7d09的最终本地scripts/check.py完整通过：1597Python/0skip、Ruff/Mypy70/Schema74/TS drift、Web typecheck/build/21unit/5Vite集成/11browser groups、Foundry14/256fuzz/ABI3，exit0、源码/测试哈希无变化。身份/任务已有签名与规则约束保留，输出明确三种复核可信边界，见ADR0025/STATUS。本验收记录仅改文档；按授权推任务分支/创建PR，最新head两项CI全部成功后正常合并/同步main/只清理本任务分支，最终身份与CI以当前SEC-3 PR及runtime/sec3/final-delivery.json权威终态为准，不扩大范围。
 
 历史 SEC-2 授权与验收记录：
 
