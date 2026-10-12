@@ -1,6 +1,12 @@
 # 从零构造执行计划（ExecPlan）
 
-当前授权范围（2026-10-12）：基于已核实 main 76b411a，在 feat/tasks-11-13-delivery 按任务 11→Review/修复/验收/提交→12→Review/修复/验收/提交→13→综合回归/PR/required CI/合并/Release 连续推进。任务 11 正式 v2 实验已冻结，任务 12 产品与终审修复已验收，任务 13 部署/文档/打包/复现已验证；最终技术门槛结果见 STATUS/验收记录，最终 Git/Release 身份以 PR #12 与实际发布记录为准。历史测试或初始 unsupported 实验不计本轮最终通过。最新 checkpoint 见 docs/implementation/STATUS.md。
+本轮授权范围（2026-10-12）：仅修复用户指定的 SEC-2 Vite WebSocket 与 HTTP 资源访问控制不一致。在 `fix/vite-ws-access` 基于核实的 main `82dcb85` 精确升级 Vite 至首个修复版本 7.3.2，使用本地合成文件验证访问边界、异常输入、正常开发/HMR/API 代理及构建，完成独立 Review 与 Git 门禁。开发和当前 Compose 交付运行均在范围内，设计见 ADR0023，实际结果见 STATUS；不开展其他安全审计。上一轮 SEC-1 提交保留在 `fix/url-credentials`，本任务不混入其源码变更。以下任务11–13授权与结果为历史记录。
+
+SEC-2 Git 流程已获明确授权：实现 `5a0510b` 推送任务分支并创建 PR #13，等待 foundation-quality / foundation-compose 等当前 head required checks 全通过后按仓库规则合并；随后同步 main、核对一致性和干净工作区并记录最终状态。仅提交本轮变更，不直接推 main、不绕过检查；最终身份及 CI 结果以 STATUS 和 PR #13 记录为准。
+
+SEC-2 实现验收已通过：`5a0510b` 的 CI run `38210482851` 中 quality/Compose 均 SUCCESS，完整 1448 Python/21 Web unit/5 新增集成/11 browser groups/Foundry 14、类型检查、构建及真实 Compose A-D/报告/锚定/独立 Verifier 通过，独立审查无剩余问题。最终验收记录作为仅 PLAN/STATUS 的文档提交进入同一 PR，并等待该最新 head 的 required checks 全绿才合并；合并及 main 同步身份以 PR #13 终态和 `runtime/sec2/final-delivery.json` 为准。本轮在 SEC-2 Git 门禁完成后停止，不开展其他安全专项。
+
+历史授权范围（2026-10-12 任务11–13）：基于已核实 main 76b411a，在 feat/tasks-11-13-delivery 按任务 11→Review/修复/验收/提交→12→Review/修复/验收/提交→13→综合回归/PR/required CI/合并/Release 连续推进。任务 11 正式 v2 实验已冻结，任务 12 产品与终审修复已验收，任务 13 部署/文档/打包/复现已验证；最终技术门槛结果见 STATUS/验收记录，最终 Git/Release 身份以 PR #12 与实际发布记录为准。历史测试或初始 unsupported 实验不计本轮最终通过。最新 checkpoint 见 docs/implementation/STATUS.md。
 
 历史授权范围（2026-10-11）：续接main `ededc90`，依次任务8→Review/修复/验收→任务9→Review/修复/验收→任务10；优先完整交付8，资源不足则先提交与交接当前阶段。第三方只允许免费只读，无付款/签名/主网写入。任务8设计ADR0019，实际进度以STATUS为准；不展开11–13。
 

@@ -6,7 +6,7 @@
   "dependency_review": "METADATA_INSPECTED",
   "lock_sha256": {
     "uv.lock": "d33d8b109dd72b5e20aa4fe233d09a08bcc2eb3c77a9d4476e455af52242e39e",
-    "apps/web/pnpm-lock.yaml": "0768bd38fae1936987faf8aca7f27c151b985c55b3df8d59c71723eec98d2858",
+    "apps/web/pnpm-lock.yaml": "455cf392551e276b7eb868bd6af76300a64891da8257f669ef1297097ec5dd77",
     "configs/upstream-lock.json": "c2ce11abdc355dbf794f26e7b39985bae646af0e7abe258634f02b5f4a747e11"
   },
   "python_packages": [
@@ -714,160 +714,160 @@
     },
     {
       "name": "@esbuild/aix-ppc64",
-      "version": "0.25.12",
+      "version": "0.27.7",
       "license": null,
       "metadata_status": "NOT_INSTALLED_ON_THIS_PLATFORM"
     },
     {
       "name": "@esbuild/android-arm",
-      "version": "0.25.12",
+      "version": "0.27.7",
       "license": null,
       "metadata_status": "NOT_INSTALLED_ON_THIS_PLATFORM"
     },
     {
       "name": "@esbuild/android-arm64",
-      "version": "0.25.12",
+      "version": "0.27.7",
       "license": null,
       "metadata_status": "NOT_INSTALLED_ON_THIS_PLATFORM"
     },
     {
       "name": "@esbuild/android-x64",
-      "version": "0.25.12",
+      "version": "0.27.7",
       "license": null,
       "metadata_status": "NOT_INSTALLED_ON_THIS_PLATFORM"
     },
     {
       "name": "@esbuild/darwin-arm64",
-      "version": "0.25.12",
+      "version": "0.27.7",
       "license": null,
       "metadata_status": "NOT_INSTALLED_ON_THIS_PLATFORM"
     },
     {
       "name": "@esbuild/darwin-x64",
-      "version": "0.25.12",
+      "version": "0.27.7",
       "license": null,
       "metadata_status": "NOT_INSTALLED_ON_THIS_PLATFORM"
     },
     {
       "name": "@esbuild/freebsd-arm64",
-      "version": "0.25.12",
+      "version": "0.27.7",
       "license": null,
       "metadata_status": "NOT_INSTALLED_ON_THIS_PLATFORM"
     },
     {
       "name": "@esbuild/freebsd-x64",
-      "version": "0.25.12",
+      "version": "0.27.7",
       "license": null,
       "metadata_status": "NOT_INSTALLED_ON_THIS_PLATFORM"
     },
     {
       "name": "@esbuild/linux-arm",
-      "version": "0.25.12",
+      "version": "0.27.7",
       "license": null,
       "metadata_status": "NOT_INSTALLED_ON_THIS_PLATFORM"
     },
     {
       "name": "@esbuild/linux-arm64",
-      "version": "0.25.12",
+      "version": "0.27.7",
       "license": null,
       "metadata_status": "NOT_INSTALLED_ON_THIS_PLATFORM"
     },
     {
       "name": "@esbuild/linux-ia32",
-      "version": "0.25.12",
+      "version": "0.27.7",
       "license": null,
       "metadata_status": "NOT_INSTALLED_ON_THIS_PLATFORM"
     },
     {
       "name": "@esbuild/linux-loong64",
-      "version": "0.25.12",
+      "version": "0.27.7",
       "license": null,
       "metadata_status": "NOT_INSTALLED_ON_THIS_PLATFORM"
     },
     {
       "name": "@esbuild/linux-mips64el",
-      "version": "0.25.12",
+      "version": "0.27.7",
       "license": null,
       "metadata_status": "NOT_INSTALLED_ON_THIS_PLATFORM"
     },
     {
       "name": "@esbuild/linux-ppc64",
-      "version": "0.25.12",
+      "version": "0.27.7",
       "license": null,
       "metadata_status": "NOT_INSTALLED_ON_THIS_PLATFORM"
     },
     {
       "name": "@esbuild/linux-riscv64",
-      "version": "0.25.12",
+      "version": "0.27.7",
       "license": null,
       "metadata_status": "NOT_INSTALLED_ON_THIS_PLATFORM"
     },
     {
       "name": "@esbuild/linux-s390x",
-      "version": "0.25.12",
+      "version": "0.27.7",
       "license": null,
       "metadata_status": "NOT_INSTALLED_ON_THIS_PLATFORM"
     },
     {
       "name": "@esbuild/linux-x64",
-      "version": "0.25.12",
+      "version": "0.27.7",
       "license": null,
       "metadata_status": "NOT_INSTALLED_ON_THIS_PLATFORM"
     },
     {
       "name": "@esbuild/netbsd-arm64",
-      "version": "0.25.12",
+      "version": "0.27.7",
       "license": null,
       "metadata_status": "NOT_INSTALLED_ON_THIS_PLATFORM"
     },
     {
       "name": "@esbuild/netbsd-x64",
-      "version": "0.25.12",
+      "version": "0.27.7",
       "license": null,
       "metadata_status": "NOT_INSTALLED_ON_THIS_PLATFORM"
     },
     {
       "name": "@esbuild/openbsd-arm64",
-      "version": "0.25.12",
+      "version": "0.27.7",
       "license": null,
       "metadata_status": "NOT_INSTALLED_ON_THIS_PLATFORM"
     },
     {
       "name": "@esbuild/openbsd-x64",
-      "version": "0.25.12",
+      "version": "0.27.7",
       "license": null,
       "metadata_status": "NOT_INSTALLED_ON_THIS_PLATFORM"
     },
     {
       "name": "@esbuild/openharmony-arm64",
-      "version": "0.25.12",
+      "version": "0.27.7",
       "license": null,
       "metadata_status": "NOT_INSTALLED_ON_THIS_PLATFORM"
     },
     {
       "name": "@esbuild/sunos-x64",
-      "version": "0.25.12",
+      "version": "0.27.7",
       "license": null,
       "metadata_status": "NOT_INSTALLED_ON_THIS_PLATFORM"
     },
     {
       "name": "@esbuild/win32-arm64",
-      "version": "0.25.12",
+      "version": "0.27.7",
       "license": null,
       "metadata_status": "NOT_INSTALLED_ON_THIS_PLATFORM"
     },
     {
       "name": "@esbuild/win32-ia32",
-      "version": "0.25.12",
+      "version": "0.27.7",
       "license": null,
       "metadata_status": "NOT_INSTALLED_ON_THIS_PLATFORM"
     },
     {
       "name": "@esbuild/win32-x64",
-      "version": "0.25.12",
+      "version": "0.27.7",
       "license": "MIT",
       "metadata_status": "READ",
-      "metadata_sha256": "5b41ac77d55bf2ae0de680d83a9095904e89523c6ef42460cffd0df5ef5a6947"
+      "metadata_sha256": "095bf1c95a8a9179990600dd94b2ee1857f63fb747674d7dd8a06460a09d4fc8"
     },
     {
       "name": "@jridgewell/sourcemap-codec",
@@ -1393,10 +1393,10 @@
     },
     {
       "name": "esbuild",
-      "version": "0.25.12",
+      "version": "0.27.7",
       "license": "MIT",
       "metadata_status": "READ",
-      "metadata_sha256": "cb7d5b1fe478f8cbaae566a86031b6fdf5f7d444354f35d1cb3cba9adf6d2935"
+      "metadata_sha256": "9ce21c976ffbbb95001f460e9e8af7c6d719f748eb70441e617a14dd0b68a5b8"
     },
     {
       "name": "estree-walker",
@@ -1741,10 +1741,10 @@
     },
     {
       "name": "vite",
-      "version": "7.1.9",
+      "version": "7.3.2",
       "license": "MIT",
       "metadata_status": "READ",
-      "metadata_sha256": "464fdc120688549ad84cbce948eda5eb30060e75ed13fcf67184c1fc8c38207b"
+      "metadata_sha256": "eab9694b74b299161d18b06fad667b6af0076c773f45abce966bc3f1de170269"
     },
     {
       "name": "vite-node",
