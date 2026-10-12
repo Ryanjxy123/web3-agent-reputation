@@ -2,7 +2,7 @@
 
 当前授权范围（2026-10-12）：基于已核实最新 main `60dec2c`，只依次修复 EXP-1 实验完整性与 OPS-1 公共刷新配额恢复。每项实际复现、最小实现、定向测试、独立 Review/自主修复及提交，之后整体回归、PR、required quality/Compose CI、正常合并和 main 同步；不修改冻结原件/历史 Release，不调用付费接口或主网写入。当前分支 `fix/exp1-ops1`，实际进度和待验收结果见 STATUS 及本轮验收记录。
 
-EXP-1 阶段提交 93fdb88、OPS-1 阶段 bb0c0e6 已验收，12 项新增真实 PG 集成及独立 Review 两项锁/审计中断修复通过；跨模块 Review、43 历史 Bundle/234 独立单元通过。稳定 bb0c0e6 完整 check.py exit0：1701 Python/0skip、Web/Vite/浏览器、Foundry/ABI/Schema/TS全部通过，源码摘要无变化；104 新增测试。PR #16 最新 head 的 quality/Compose 与 main 合并终态以该 PR 为准，仅双 CI 全成功后正常合并并同步/清理本任务分支。本轮两项实现/本地验收完成；交付门禁后停止，下一任务为另行授权的比赛最终验收。
+EXP-1 阶段提交 93fdb88、OPS-1 阶段 bb0c0e6 已验收，12 项新增真实 PG 集成及独立 Review 两项锁/审计中断修复通过；跨模块 Review、43 历史 Bundle/234 独立单元通过。稳定 bb0c0e6 完整 check.py exit0：1701 Python/0skip、Web/Vite/浏览器、Foundry/ABI/Schema/TS全部通过，104 新增测试。首轮 c698151 Linux CI 为1700 passed/1 SVG字节失败，Compose成功；SVG writer一行固定CRLF，原件/测试/断言保持，独立模拟旧FAIL/新PASS。此源码修复后的完整验收以PR #16新head quality/Compose为准，旧本地全量不能冒充最终源码重验；仅最新双CI全成功后正常合并并同步/清理本任务分支。最终身份与交付核对见PR及runtime/exp-ops/final-delivery.json；门禁后停止，下一任务为另行授权的比赛最终验收。
 
 本轮授权范围（2026-10-12）：基于最新 main，依次完成 SEC-1 整合/历史数据隔离/独立 Review，再完成 SEC-3 独立 Verifier 身份完整性修复/独立 Review，随后执行完整回归、PR、required CI、合并及 main 同步。复用 22245d9，不改写不可变证据，不进行外部攻击或生产凭据操作；不展开 EXP-1/OPS-1。
 

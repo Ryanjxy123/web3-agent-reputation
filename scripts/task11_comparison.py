@@ -366,7 +366,7 @@ def write_outputs(result: dict[str, Any], output: Path) -> None:
         bar = 0 if rate is None else rate * 150
         chart.append(f'<rect x="{80 + index * 190}" y="{190 - bar}" width="90" height="{bar}" fill="#2563eb"/><text x="{80 + index * 190}" y="{180 - bar}">{display(rate)}</text><text x="{80 + index * 190}" y="215">{method}</text>')
     chart.append('<text x="20" y="240">Generated from captured evidence by scripts/task11_comparison.py</text></svg>')
-    (destination / "metrics.svg").write_text("".join(chart) + "\n", encoding="utf-8")
+    (destination / "metrics.svg").write_text("".join(chart) + "\n", encoding="utf-8", newline="\r\n")
 
 
 def main() -> int:
