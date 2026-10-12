@@ -4,7 +4,7 @@
 
 | Task ID | Status | 实施结果 |
 |---|---|---|
-| SEC-2-VITE | FIXED_LOCAL | Vite 7.3.2 在客户端 WebSocket 读取前拒绝 fetchModule；合成访问边界/异常输入/HMR/API 代理、现有 Web 测试、类型检查、构建与独立 Review 通过；远端门禁与部署限制见本节 |
+| SEC-2-VITE | ACCEPTED_TECHNICAL | Vite 7.3.2 修复及独立 Review 通过；实现 head 的完整 foundation-quality / foundation-compose 均 SUCCESS；最终文档 head CI、合并及 main 同步身份以 PR #13 权威终态和本节交接记录为准 |
 | M0-01 | DONE | 已克隆私有仓库、保留 main 历史、创建功能分支、安全安装启动基线并合并 README；36 项参考测试通过 |
 | M0-02 | DONE | 四包 uv workspace、真实锁、Vue 构建、Foundry 编译与测试通过 |
 | M0-03 | DONE | 共享 DTO、33 份生成契约、TS 类型、确定性哈希及校验测试通过 |
@@ -43,11 +43,13 @@
 - Fix：精确升级 Vite 至 GHSA-p9ff-h696-f583 的首个修复版本 7.3.2，并提交 pnpm 真实锁文件。上游默认 client environment 的 `disableFetchModule` 在资源解析前拒绝 RPC；复用此修复，无本地路径拦截或架构重构。必要的 esbuild / optional 包锁及依赖许可元数据同步；实际安装 Vite/esbuild/Windows binary 仍为 MIT。设计与运行限制见 ADR0023。
 - Regression：新增 `tests/vite-server.integration.mjs`，`pnpm test` 自动执行，既有 `scripts/check.py` / foundation-quality CI 自动覆盖。实际项目配置以临时合成 root/envDir、127.0.0.1 动态端口启动；9 条 allow 外普通文件/allow 内 `.env.synthetic` 和 `.pem` HTTP 访问返回 403，异常编码不泄露内容；22 条路径/编码/非法 URL/未知方法请求分别经无 Origin 与浏览器有效 HMR token 连接逐条拒绝。无效 JSON、null 包及错误消息类型后通道仍活跃；真实浏览器 HMR 更新而不刷新，health/API GET/POST 状态、body 和 header 代理正常。
 - Results：最终 Web 单测 **21 passed**；新增 Node 集成 **5 passed / 0 skipped**（4 个子测试及父测试）；既有浏览器验收 **11 组 PASS**；显式 `vue-tsc --noEmit`、Vite 7.3.2 build、`pnpm install --frozen-lockfile` 均 exit 0。交付打包/工作区相关 Python 回归 **12 passed**（10.77s，exit 0）；锁文件 SHA 与变动包实际元数据校验、`git diff --check` 均通过。
+- Full CI：实现 head `5a0510b700bdfc58cd3d0699957ec22ccabf253c` 的 run `38210482851` 已完成，foundation-quality job `114683290515`、foundation-compose job `114683290334` 均 SUCCESS。Quality 实际完整 `scripts/check.py` 通过：**1448 Python passed / 0 skipped / 2 warnings**（1315.88s）、Ruff、Mypy 70 files、Schema/TS drift、Vue typecheck/build、21 Web unit、5 新增集成 / 0 skipped、11 browser groups、Foundry **14 passed / 0 failed / 0 skipped** 和三份 ABI 检查。Compose 实际使用 Vite 7.3.2 构建并完成 LIVE_RUNTIME/IDENTITY/DISPATCH/VERIFICATION/REPORT/M1_ACCEPTANCE_PASS；失败时才运行的诊断步骤被正常跳过，不是测试 skip。完整日志与 metadata 位于忽略的 `runtime/sec2/ci-38210482851-quality.log`、`ci-38210482851-compose.log`、`ci-38210482851.json`。
 - Review：独立审查核对 client/SSR transport、调用点、部署入口、Windows/Linux 路径、测试非空验证及清理、CI 执行路径，并独立运行新增集成 **5 passed / 0 skipped**；没有剩余可行动 SEC-2 问题。
 - Runtime：确认本机 5173 端口由旧 Vite 7.1.9 进程占用后，只重启该前端进程。新的回环服务日志显示 Vite 7.3.2，正常首页 HTTP=200；日志及 PID 在忽略的 `runtime/sec2/`。其他已启动环境及旧镜像必须自行重启/重建，依赖升级不能更新其已加载代码。
-- Limits：本机 Docker Linux Engine pipe 不存在，Compose 集成为 BLOCKED，不能沿用历史 CI 冒充本次 Compose 通过。本轮不重跑与 Web 变更无关的全量 Python/Foundry/链交易；完整 foundation-quality / foundation-compose 需核对新修复 PR head。浏览器首次执行因缺少 Playwright 1194 失败（不计通过），安装该受控测试依赖后以默认浏览器重跑通过；没有主动测试外部目标。
-- Git：本节与实现同批本地提交，实际 SHA 见 Git 历史；尚未 push/PR/合并。基线 main 的 CI run `38169150615` 已核实 foundation-quality / foundation-compose 均 SUCCESS。新提交的 GitHub CI 必须先推送任务分支并创建 PR 才能触发，已向用户确认此先后顺序；确认前保持本地提交，合并必须等待对应 head 的 required checks 全通过。
-- Next：仅继续本修复的 Git/required CI 门禁；不开展 SEC-1 或其他安全专项。
+- Limits：本机 Docker Linux Engine pipe 不存在，本机 Compose 为 BLOCKED；本次 PR CI 已实际完成新版镜像的 Compose 与完整 quality 验收，不沿用旧 CI 结果。本地未重复运行与 Web 变更无关的全量 Python/Foundry/链交易，完整验证由本次 CI 执行。浏览器首次执行因缺少 Playwright 1194 失败（不计通过），安装该受控测试依赖后以默认浏览器重跑通过；没有主动测试外部目标。已加载旧 Vite 的其他进程及旧镜像仍须重启/重建。
+- Git：用户已明确授权本分支正常 push→PR→required CI 全通过→合并→同步 main。实现 `5a0510b700bdfc58cd3d0699957ec22ccabf253c` 已推至 `origin/fix/vite-ws-access`；PR #13：`https://github.com/Ryanjxy123/web3-agent-reputation/pull/13`，base 为 main，无业务源码扩展。实现 head 的两项 CI 全部 SUCCESS；此次最终验收文档更新仅涉及 PLAN/STATUS，同样必须在其最新 head 的所有 required checks 全通过、无冲突及 required reviewer 阻塞后才按正常规则合并，不直接推 main、不使用 bypass。最终文档 head、CI run、合并 SHA 及 main 同步/clean 状态以 PR #13 权威终态为准；合并后另保存可核对的最终交付记录 `runtime/sec2/final-delivery.json`，避免为记录自身合并 SHA 再新增文档提交。
+- Local preservation：既有未跟踪 `docs/audit/` 的 11 个文件保留原位、逐文件 SHA-256 与字节数前后相同，仅在本仓库 `.git/info/exclude` 添加 `/docs/audit/`，不提交、移动、删除或 stash。原件完整性记录在忽略的 `runtime/sec2/preserved-audit.json`；追加独立 Git/CI 门禁审查记录在 `runtime/sec2/independent-gate-review.md`。
+- Next：本轮代码修复、独立 Review、受控回归及完整实现 CI 已完成；最终文档 head CI / 合并 / main 同步门禁完成后停止本轮，不开展 SEC-1 或其他安全专项。
 
 本轮实际命令（以上最终验收均 exit 0；开发目录为 `apps/web`）：
 
