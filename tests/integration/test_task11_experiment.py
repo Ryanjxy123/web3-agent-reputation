@@ -32,7 +32,10 @@ from tests.integration.test_identity import AUTH, flow, identity_chain
 
 __all__ = ["prepared", "flow", "identity_chain"]
 ROOT = Path(__file__).resolve().parents[2]
-PLAN = json.loads((ROOT / "fixtures/experiments/task11_cases.json").read_text(encoding="utf-8"))
+PLAN_BYTES = (ROOT / "fixtures/experiments/task11_cases.json").read_bytes()
+if os.environ.get("TASK11_PLAN_SHA256") not in (None, hashlib.sha256(PLAN_BYTES).hexdigest()):
+    raise ValueError("Executed experiment plan differs from the frozen capture plan")
+PLAN = json.loads(PLAN_BYTES)
 REPETITIONS = int(os.environ.get("TASK11_REPETITIONS", "1"))
 pytestmark = [pytest.mark.chain, pytest.mark.postgres]
 
@@ -184,7 +187,7 @@ def test_capture_real_task11_case(experiment_prepared, monkeypatch, tmp_path, ca
         "report_schema_version": report.core.schema_version,
         "worker_outcome": str(result.outcome), "worker_reason": result.reason_code,
         "worker_critical_risk": result.critical_conflict,
-        "plan_sha256": os.environ.get("TASK11_PLAN_SHA256", hashlib.sha256((ROOT / "fixtures/experiments/task11_cases.json").read_bytes()).hexdigest()),
+        "plan_sha256": hashlib.sha256(PLAN_BYTES).hexdigest(),
         "source_manifest_sha256": os.environ.get("TASK11_SOURCE_SHA256"),
         "measurements": {**timings, "rpc_attempts": len(rpc_trace),
                          "external_attempts": len(http_trace), "persisted_attempt_count": len(attempt_rows)},

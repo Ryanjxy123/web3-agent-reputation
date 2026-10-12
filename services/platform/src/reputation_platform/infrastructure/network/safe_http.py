@@ -450,6 +450,7 @@ class SafeHttpClient:
             if self._payment_required:
                 raise NetworkPolicyError("PAYMENT_REQUIRED")
             if self._request_count >= PUBLIC_REQUEST_QUOTA:
+                self.stop_public_readonly("REQUEST_QUOTA_EXCEEDED")
                 raise NetworkPolicyError("REQUEST_QUOTA_EXCEEDED")
             self._request_count += 1
             loop = asyncio.get_running_loop()

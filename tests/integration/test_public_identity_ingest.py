@@ -9,7 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 from reputation_core.evidence import hash_json
 from reputation_core.models import AgentSnapshot, EvidenceRecord, Outcome
-from reputation_platform.adapters.registries.erc8004 import AKASHI_REF, Erc8004RegistryReader
+from reputation_platform.adapters.registries.erc8004 import AKASHI_REF
 from reputation_platform.api.app import create_app
 from reputation_platform.application.errors import ApplicationError
 from reputation_platform.infrastructure import evidence_store
@@ -20,7 +20,7 @@ from reputation_platform.infrastructure.network.safe_http import SafeHttpClient
 from reputation_platform.worker.main import Worker
 from sqlalchemy import func, insert, select, update
 
-from tests.unit.test_erc8004_reader import ROOT, RegistryResponder
+from tests.unit.test_erc8004_reader import RegistryResponder
 
 pytestmark = pytest.mark.postgres
 AUTH = {"Authorization": "Bearer public-identity-test-token-at-least-32"}
@@ -35,13 +35,13 @@ def public_flow(db, tmp_path, monkeypatch):
     service = app.state.identity
     service.evidence = EvidenceStore(tmp_path)
     responder = RegistryResponder()
-    client = SafeHttpClient.public_readonly(enabled=True, transport=httpx.MockTransport(responder),
-                                           resolver=lambda host: ["1.1.1.1"])
-    service._public_reader = Erc8004RegistryReader(ROOT, client, service.evidence)
+    def factory(**kwargs):
+        return SafeHttpClient.public_readonly(transport=httpx.MockTransport(responder),
+                                             resolver=lambda host: ["1.1.1.1"], **kwargs)
+    service.client_factory = factory
     with TestClient(app) as api:
         agent = api.post("/api/v1/agents", json={"agent_ref": AKASHI_REF.model_dump()}, headers=AUTH).json()
         yield api, service, responder, agent["id"]
-    asyncio.run(client.close())
 
 
 def capture(flow):
@@ -142,11 +142,11 @@ def test_crash_after_public_response_recovers_unknown_without_resend(public_flow
     lease = queue.claim()
     assert lease is not None
     original = queue.fenced
-    count = 0
+    interrupted_once = False
     def interrupted(lease, operation):
-        nonlocal count
-        count += 1
-        if count == 2:
+        nonlocal interrupted_once
+        if len(responder.requests) == 10 and not interrupted_once:
+            interrupted_once = True
             raise RuntimeError("simulated-crash-after-response")
         return original(lease, operation)
     monkeypatch.setattr(queue, "fenced", interrupted)

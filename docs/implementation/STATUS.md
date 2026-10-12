@@ -4,6 +4,8 @@
 
 | Task ID | Status | 实施结果 |
 |---|---|---|
+| EXP-1 | ACCEPTED_TECHNICAL | 阶段93fdb88：可信publication/同次字节/严格语义修复，99定向（92新增）与独立Review通过；152原件/82源码/36实验核对、CLI篡改exit1；bb0c0e6本地完整1701 Python/0skip，后续Linux发现SVG换行差异，一行固定CRLF并独立复核原字节断言；最终源码全量CI/合并见PR#16及验收记录 |
+| OPS-1 | ACCEPTED_TECHNICAL | 阶段bb0c0e6：真实耗尽复现后独立有限预算+PG共享节流，保留64/幂等恢复/fencing；12新增真实集成/168相关/234独立/43历史Bundle通过，Review锁取消/审计失败两项已修复；bb0c0e6本地完整门禁exit0，最终head两项CI与main交付见PR#16及runtime/exp-ops/final-delivery.json |
 | SEC-1 | DONE | PR #14 正常合并为 2a59220；最新 head quality/Compose 均 SUCCESS，完整1561 Python/0skip；main 同步并核对测试源码一致，本机历史盘点与读取隔离完成 |
 | SEC-3-IDENTITY | ACCEPTED_TECHNICAL | AUD-EVAL-001修复、独立Review/定向/17项真实集成/43份历史Bundle及最终本地完整1597 Python/0skip门禁通过；PR最新head两项CI与main交付以任务PR权威终态为准 |
 | SEC-2-VITE | ACCEPTED_TECHNICAL | Vite 7.3.2 修复及独立 Review 通过；实现 head 的完整 foundation-quality / foundation-compose 均 SUCCESS；最终文档 head CI、合并及 main 同步身份以 PR #13 权威终态和本节交接记录为准 |

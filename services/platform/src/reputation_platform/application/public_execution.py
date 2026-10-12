@@ -21,6 +21,7 @@ from reputation_platform.infrastructure.db.tables import (
     case_slots,
     dispatch_events,
     evidence_blobs,
+    jobs,
     observations,
     runs,
 )
@@ -44,11 +45,11 @@ def failure_reason(exc):
 class PublicReadonlyEgress:
     """A session advisory lock spans I/O, while lease checks use short transactions."""
 
-    def __init__(self, db, identity, row, slot, *, lease=None, queue=None, phase="agent"):
+    def __init__(self, db, identity, row, slot, *, lease=None, queue=None, phase="agent", origin=None):
         self.db, self.identity, self.row, self.slot = db, identity, row, slot
         self.lease, self.queue, self.phase = lease, queue, phase
         self.lock_connection = None
-        self.origin = ORIGIN if phase == "agent" else "https://mainnet.base.org"
+        self.origin = origin or (ORIGIN if phase == "agent" else "https://mainnet.base.org")
         self.interval_ms = 1000
 
     def fenced(self, operation):
@@ -62,6 +63,12 @@ class PublicReadonlyEgress:
             raise ApplicationError(
                 409, "PUBLIC_READONLY_DISABLED", "Public readonly access is disabled."
             )
+        if self.phase == "identity":
+            payload = connection.scalar(select(jobs.c.payload).where(jobs.c.id == self.row["id"]))
+            current = self.identity.latest(connection, UUID(payload["agent_id"]))
+            if (current["snapshot_hash"] if current else None) != payload["expected_snapshot_hash"]:
+                raise ApplicationError(409, "SNAPSHOT_CONFLICT", "Another refresh committed first.")
+            return None
         current = (
             connection.execute(select(runs).where(runs.c.id == self.row["id"]).with_for_update())
             .mappings()
@@ -90,52 +97,76 @@ class PublicReadonlyEgress:
 
     async def __aenter__(self):
         key = int.from_bytes(hashlib.sha256(self.origin.encode()).digest()[:8], "big", signed=True)
-        lock_connection = await asyncio.to_thread(
-            lambda: self.db.connect().execution_options(isolation_level="AUTOCOMMIT")
-        )
-        self.lock_connection = lock_connection
+        self.lock_key = key
+        pending = None
+
+        def try_lock():
+            if self.lock_connection is None:
+                self.lock_connection = self.db.connect().execution_options(isolation_level="AUTOCOMMIT")
+            return self.lock_connection.scalar(select(func.pg_try_advisory_lock(key)))
+
         try:
-            while not await asyncio.to_thread(
-                lambda: lock_connection.scalar(select(func.pg_try_advisory_lock(key)))
-            ):
+            while True:
+                pending = asyncio.create_task(asyncio.to_thread(try_lock))
+                if await asyncio.shield(pending):
+                    return self
                 await asyncio.to_thread(self.fenced, lambda c: self.check(c, datetime.now(UTC)))
                 await asyncio.sleep(0.1)
         except BaseException:
-            await asyncio.to_thread(lock_connection.close)
-            self.lock_connection = None
+            try:
+                if pending is not None:
+                    await asyncio.shield(pending)
+            finally:
+                # Cancellation cannot stop a SQL thread; discard its session after it settles.
+                if self.lock_connection is not None:
+                    await asyncio.to_thread(self.lock_connection.invalidate)
+                    await asyncio.to_thread(self.lock_connection.close)
+                    self.lock_connection = None
             raise
-        self.lock_key = key
-        return self
 
     async def __aexit__(self, *_):
-        try:
-
-            def complete(connection):
-                self.identity.audit(
-                    connection,
-                    "local-worker",
-                    "public.egress.complete",
-                    self.row["id"],
-                    {"origin": self.origin, "phase": self.phase},
-                )
-
+        async def finish():
             try:
-                await asyncio.to_thread(self.fenced, complete)
-            except LostLease:
-                # A stale worker cannot persist completion, so hold the socket lock through the gap.
-                await asyncio.sleep(self.interval_ms / 1000)
-        finally:
-            lock_connection = self.lock_connection
-            if lock_connection is not None:
-                try:
-                    await asyncio.to_thread(
-                        lambda: lock_connection.scalar(
-                            select(func.pg_advisory_unlock(self.lock_key))
-                        )
+
+                def complete(connection):
+                    self.identity.audit(
+                        connection,
+                        "local-worker",
+                        "public.egress.complete",
+                        self.row["id"],
+                        {"origin": self.origin, "phase": self.phase},
                     )
-                finally:
-                    await asyncio.to_thread(lock_connection.close)
-                    self.lock_connection = None
+
+                try:
+                    await asyncio.to_thread(self.fenced, complete)
+                except LostLease:
+                    await asyncio.sleep(self.interval_ms / 1000)
+                except BaseException:
+                    # Without a durable completion, retain the origin lock through the gap.
+                    await asyncio.sleep(self.interval_ms / 1000)
+                    raise
+            finally:
+                lock_connection = self.lock_connection
+                if lock_connection is not None:
+                    try:
+                        await asyncio.to_thread(
+                            lambda: lock_connection.scalar(
+                                select(func.pg_advisory_unlock(self.lock_key))
+                            )
+                        )
+                    except BaseException:
+                        await asyncio.to_thread(lock_connection.invalidate)
+                        raise
+                    finally:
+                        await asyncio.to_thread(lock_connection.close)
+                        self.lock_connection = None
+
+        cleanup = asyncio.create_task(finish())
+        try:
+            await asyncio.shield(cleanup)
+        except asyncio.CancelledError:
+            await cleanup
+            raise
 
     async def __call__(self, method, origin, path, payload):
         def admit(connection):
@@ -162,7 +193,7 @@ class PublicReadonlyEgress:
                     raise ApplicationError(
                         409, "ACCESS_NOT_GRANTED", "Request exceeds the exact public grant."
                     )
-            elif method != "POST" or path != "/":
+            elif self.phase != "identity" and (method != "POST" or path != "/"):
                 raise ApplicationError(
                     409,
                     "ACCESS_NOT_GRANTED",
@@ -174,7 +205,8 @@ class PublicReadonlyEgress:
                     audit_logs.c.body["origin"].astext == origin,
                 )
             )
-            delay = grant.interval_ms / 1000 - (now - last).total_seconds() if last else 0
+            interval_ms = self.interval_ms if self.phase == "identity" else grant.interval_ms
+            delay = interval_ms / 1000 - (now - last).total_seconds() if last else 0
             if delay > 0:
                 return delay
             used = (
@@ -189,6 +221,8 @@ class PublicReadonlyEgress:
                 or 0
             )
             if used >= 64:
+                if self.phase == "identity":
+                    raise NetworkPolicyError("REQUEST_QUOTA_EXCEEDED")
                 raise ApplicationError(
                     409, "ACCESS_NOT_GRANTED", "Finite public request quota is exhausted."
                 )
@@ -202,9 +236,9 @@ class PublicReadonlyEgress:
                     "method": method,
                     "path": path,
                     "request_json": payload,
-                    "slot_id": str(self.slot.slot_id),
+                    "slot_id": str(self.slot.slot_id) if self.slot is not None else None,
                     "phase": self.phase,
-                    "request_id": self.slot.task.request_id,
+                    "request_id": self.slot.task.request_id if self.slot is not None else None,
                 },
             )
             return 0

@@ -13,7 +13,7 @@ from alembic import command
 from alembic.config import Config
 from fastapi.testclient import TestClient
 from reputation_core.evidence import canonical_bytes, strict_json
-from reputation_platform.adapters.registries.erc8004 import AKASHI_REF, Erc8004RegistryReader
+from reputation_platform.adapters.registries.erc8004 import AKASHI_REF
 from reputation_platform.api.app import create_app
 from reputation_platform.application.execution import ExecutionService
 from reputation_platform.application.reports import ReportService
@@ -86,7 +86,6 @@ async def accept(output: Path, *, dns_over_tls: bool = False):
         hide_parameters=True,
     )
     database = None
-    client = None
     original_url = os.environ.get("DATABASE_URL")
     try:
         with admin.connect() as connection:
@@ -113,8 +112,7 @@ async def accept(output: Path, *, dns_over_tls: bool = False):
         app = create_app(database, token)
         identity = app.state.identity
         identity.evidence = EvidenceStore(output)
-        client = public_client(enabled=True)
-        identity._public_reader = Erc8004RegistryReader(ROOT, client, identity.evidence)
+        identity.client_factory = public_client
         execution = ExecutionService(database, identity, client_factory=public_client)
         verification = VerificationService(database, identity, client_factory=public_client)
         reporting = ReportService(database, identity, client_factory=public_client)
@@ -276,8 +274,6 @@ async def accept(output: Path, *, dns_over_tls: bool = False):
             )
     finally:
         save_network_audit(output)
-        if client is not None:
-            await client.close()
         if database is not None:
             database.dispose()
         admin.dispose()

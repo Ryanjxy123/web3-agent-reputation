@@ -109,5 +109,4 @@ async def serve(once: bool = False) -> None:
             if not worked:
                 await asyncio.sleep(1)
     finally:
-        await identity.close_public_client()
         database.dispose()
