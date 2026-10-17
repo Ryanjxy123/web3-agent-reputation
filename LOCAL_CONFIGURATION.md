@@ -21,7 +21,9 @@
 
 仅核实其中非秘密字段：`MODEL_ANALYSIS_PROVIDER=deepseek`、`MODEL_ANALYSIS_MODEL_ID=deepseek-flash`，以及指向上述密钥文件的 `MODEL_ANALYSIS_KEY_FILE`。旧实现曾成功调用固定 `POST https://api.deepseek.com/responses`。这属于 2026-10-17 的历史运行事实，不能承诺该型号、端点和额度在未来一直有效。
 
-该配置还带历史模型启用和预算参数。不要直接加载后运行，更不能把它整份提交到新仓库。新项目当前没有实现配置 loader，`.env.example` 只提供无秘密模板，不表示相关配置已生效。
+该配置还带历史模型启用和预算参数。不要直接加载后运行，更不能把它整份提交到新仓库。新项目当前工具使用显式 CLI，不加载 `.env`；模型网关与环境配置 loader 尚未实现，`.env.example` 只是无秘密模板。
+
+2026-10-18 已只读核对 [DeepSeek 官方文档](https://api-docs.deepseek.com/api/create-response/)，当前文档仍列出 `deepseek-flash` 与 `POST /responses`。本轮没有读取模型密钥、验证带密钥 API 或产生模型请求。新增额度提议与待确认状态集中在 STATUS，不从历史参数推断授权。
 
 ## 历史费用与调用记录
 
