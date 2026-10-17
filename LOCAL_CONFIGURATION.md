@@ -46,3 +46,20 @@
 ## 可移植性
 
 本机路径说明可以随文档提交，秘密文件不随 Git 迁移。新仓库克隆到其他机器后，操作者需通过本地环境或 secret mount 配置自己的文件位置；不能把本机凭证自动上传给 GitHub 或新的部署平台。
+
+## Codex 本机 HTTP 代理（2026-10-18）
+
+用户明确要求先修复反复重连。检查发现 Windows 系统代理已启用 `127.0.0.1:7897`，但 Process/User/Machine 的代理环境变量均为空；桌面日志另有 WebSocket 建连失败。已将以下变量写入当前 Windows 用户环境，并发送环境变更通知：
+
+```text
+HTTP_PROXY=http://127.0.0.1:7897
+HTTPS_PROXY=http://127.0.0.1:7897
+ALL_PROXY=http://127.0.0.1:7897
+NO_PROXY=localhost,127.0.0.1,::1
+```
+
+使用显式代理、`--retry 0` 的 curl 检查：GitHub 仓库 API 返回 HTTP 200 / CONNECT 200；未认证 GET Codex responses 返回 HTTP 405 / CONNECT 200。两次 curl 均退出 0，证明代理路径可用，不代表已验收桌面 WebSocket。环境写入及通知命令退出 0，已回读确认。
+
+正在运行的 Codex 进程不能从子 shell 热继承变量，需完全退出桌面应用后重新启动。重启后用实际消息确认不再反复重连；当前状态为 `RESTART_VERIFICATION_PENDING`，不重复上述 HTTP 检查。当前会话的外网工具命令显式设置代理。这是开发工具配置，不是新项目获准主动评价公网 Agent。
+
+已通过系统 `skill-installer` 安装用户指定仓库的 `skills/productivity/grill-me`，其内容调用同仓 `skills/productivity/grilling`，故一并安装；成功命令均退出 0。安装位置分别为 `C:/Users/yq/.codex/skills/grill-me` 和 `C:/Users/yq/.codex/skills/grilling`。本轮已读取指令使用，后续回合可发现这些 skills。
