@@ -32,12 +32,19 @@ try {
 }
 if ($profiles.Count -eq 0) { throw 'The private profiles.json file has no configured profiles.' }
 foreach ($profile in $profiles) {
-    foreach ($field in @('registration_reference', 'candidate_key', 'policy_id', 'history_run', 'context_run', 'plan_run')) {
+    $requiredProfileFields = @('registration_reference', 'candidate_key', 'policy_id', 'history_run', 'plan_run')
+    switch ([string]$profile.policy_id) {
+        'liquidity-history-v1' { $requiredProfileFields += 'context_run' }
+        'prediction-history-v1' { }
+        default { throw 'A private worker profile uses an unsupported policy.' }
+    }
+    foreach ($field in $requiredProfileFields) {
         if ([string]::IsNullOrWhiteSpace([string]$profile.$field)) {
             throw 'A private worker profile is incomplete.'
         }
     }
-    if ($null -eq $profile.rpc_runs -or @($profile.rpc_runs).Count -eq 0) {
+    if ($profile.policy_id -eq 'liquidity-history-v1' -and
+        ($null -eq $profile.rpc_runs -or @($profile.rpc_runs).Count -eq 0)) {
         throw 'A private worker profile is missing its retained RPC evidence directories.'
     }
 }

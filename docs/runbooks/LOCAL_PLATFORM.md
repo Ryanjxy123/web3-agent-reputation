@@ -148,3 +148,6 @@ uv sync --locked
 随后通过仓库读取与 socket 检查确认启动器自己的 API 已停止，原有两份报告仍保留，该核对也退出 **0**。原件 `worker-and-assets-checks.json`、`launcher-check.json` 均位于 `runtime/local-platform-check-20261018T055831Z-95665164`。早期时间字符串比较错误只属于验收汇总，实际测量与报告没有失败。
 
 目前已有 1 个真实对象完成窄范围三维评分；至少 10 个真实公共 Agent 的目标仍未完成。网站/API/worker/PG 已实现，真实提交到报告保存、历史版本保留、不可适配任务和启动器生命周期均已通过本轮实际验收。浏览器视觉仍为 **BLOCKED**，未声称完成 DOM 交互或桌面/手机视觉验收。
+
+
+2026-10-18 正常启动更新：预测两对象任务完成后，通过常规 `./scripts/start_local_platform.ps1 -EnablePublicReadOnly` 保持网站和worker运行。第一次因启动脚本仍对所有profile强制要求增仓专用context_run/rpc_runs而exit1；将必需字段按已支持policy区分后，仅重试该失败启动，健康检查通过，当前RUNNING于127.0.0.1:7754，并非已退出0。未重新采集或评分，PostgreSQL仍为本项目原实例。
