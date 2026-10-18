@@ -4,6 +4,8 @@
 
 当前以本页开头为准。已有批次新增2135完整88.27与2267完整29.8；完整9个。当前扩普通协议候选；签名调查已收口并暂停实现，视觉BLOCKED，无remote。
 
+2026-10-19 缓存初始化租约修复：2359首次本地缓存构造超过租约窗口，旧执行者未发布，随后由新fence恢复。现已把既有报告核验的15秒等待续约提为`run_with_lease`，用于缓存构造、来源准备和报告核验；租约SQL、fencing及评分规则不变。唯一受影响验证`./.venv/Scripts/python.exe -X utf8 runtime/check_blocking_stage_lease.py` exit0：独立真实PG schema中17.36秒阻塞正常续约、错误fence不执行operation、operation原始TimeoutError透传；1内部job/0 Agent/0 report，schema已按创建记录清理，public schema操作0。原件`runtime/blocking-stage-lease-check-20261018T161504Z-119809cb/result.json`。不重跑既有65秒用例或整套测试，当前活动worker待2359结束后再重载。
+
 ## 本轮V2证据扩展
 
 普通预测窗口扩大已执行结束：2150 report `bc4eb6b3-ea52-4296-bbd0-39acab131e4e`，history `runtime/prediction-auto-history-20261018T145901Z-4f3c0f5c/`。512是上限，官方分页实际200条；10合格、99非支持工具、77严格格式不支持、9索引request为空、其余5条缺唯一题/时序不符/较早重复。全部缺项保留，未凑14。真实批次 `runtime/prediction-auto-batch-20261018T145833Z-77a6b75c/` 最终exit0，1提交/1终态/0在途，平台正常发布PARTIAL。

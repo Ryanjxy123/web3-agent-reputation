@@ -1,11 +1,13 @@
 """PostgreSQL persistence for immutable reports and leased evaluation jobs."""
 
 from dataclasses import dataclass
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 import hashlib
 import json
 from pathlib import Path
 import re
+from typing import TypeVar
 from uuid import UUID, uuid4
 
 import psycopg
@@ -17,6 +19,8 @@ from reputation_core.application import AgentDetail, AgentSummary, EvaluationJob
 from reputation_core.reporting import EvaluationReport
 from reputation_core.scoring import SERVICE_CONTRACT_POLICY_VERSION, ScoringOutcome
 from reputation_platform.settings import PROJECT_ROOT
+
+_T = TypeVar("_T")
 
 
 class LeaseLostError(RuntimeError):
@@ -352,21 +356,30 @@ class Repository:
                 raise LeaseLostError("Evaluation lease is no longer owned by this worker")
         return self._job(row)
 
+    def run_with_lease(self, job_id: str, worker: str, fence: int, operation: Callable[[], _T]) -> _T:
+        """Keep the existing fenced lease alive during one nonterminal blocking stage."""
+        self.renew_job(job_id, worker, fence)
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            pending = executor.submit(operation)
+            while True:
+                try:
+                    value = pending.result(timeout=15)
+                    break
+                except TimeoutError:
+                    if pending.done():
+                        value = pending.result()
+                        break
+                    self.renew_job(job_id, worker, fence)
+        self.renew_job(job_id, worker, fence)
+        return value
+
     def finalize_job(self, job_id: str, worker: str, fence: int, *, status: str, message: str,
                      candidate_key: str | None = None, report_directory: str | Path | None = None) -> EvaluationJob:
         if status not in {"COMPLETE", "NEEDS_INFO", "UNSUPPORTED", "FAILED"}:
             raise ValueError("Finalization requires a terminal job status")
         imported = None
         if status == "COMPLETE" and report_directory is not None:
-            self.renew_job(job_id, worker, fence)
-            with ThreadPoolExecutor(max_workers=1) as executor:
-                verification = executor.submit(self._load_report, report_directory)
-                while True:
-                    try:
-                        imported = verification.result(timeout=15)
-                        break
-                    except TimeoutError:
-                        self.renew_job(job_id, worker, fence)
+            imported = self.run_with_lease(job_id, worker, fence, lambda: self._load_report(report_directory))
         if status == "COMPLETE" and imported is None:
             raise ValueError("Completion requires a newly generated, validated report")
         if status != "COMPLETE" and report_directory is not None:

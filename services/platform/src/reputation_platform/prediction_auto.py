@@ -187,10 +187,12 @@ def evaluate_auto_prediction(repo, job: dict, worker: str, registration: dict, e
              *(root/'runtime').glob('prediction-history-tail-discovery-*'),
              *(root/'runtime').glob('prediction-tail-event-probe-*'),
              *(path for path in (root/'runtime').glob('prediction-auto-history-*') if path != history)]
-    store = _LeasedEvidenceStore(history, reuse, enabled=evidence.enabled, proxy=evidence.proxy,
-        max_requests=1200, parallel_reads=2, root=root, heartbeat=evidence.heartbeat)
+    store = repo.run_with_lease(job['id'], worker, job['fencing_token'], lambda: _LeasedEvidenceStore(
+        history, reuse, enabled=evidence.enabled, proxy=evidence.proxy,
+        max_requests=1200, parallel_reads=2, root=root, heartbeat=evidence.heartbeat))
     try:
-        prepared = prepare_prediction_source(registration, evidence, store)
+        prepared = repo.run_with_lease(job['id'], worker, job['fencing_token'],
+            lambda: prepare_prediction_source(registration, evidence, store))
         if prepared is None:
             return False
         profile, catalog = prepared['profile'], prepared['catalog']
