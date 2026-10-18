@@ -1,0 +1,9 @@
+# ADR-0015：只补缺失的登记日期原件
+
+日期：2026-10-18。现有历史预测报告允许在不改原件的情况下追加登记日期证明；不修改prediction-history-v1、三维权重或取样门槛。
+
+补录包绑定原历史manifest与bundle的路径和SHA，仅允许registration_evidence、registration_time、registration_block三个字段。原RPC响应须重新认证；旧profile下核对唯一ERC-8004 mint、同笔按序ServiceAgentLinked、准确agent/service、原固定快照与确认条件。目录日期或交易哈希只是定位线索，不单独作登记证明。
+
+补录不覆盖身份、快照、计划、任务、已知失败或旧报告。发布前从同一原14任务和已有可用性材料重新计算；新结论追加，原PARTIAL保留。后台按需重新评价取得真实登记原件时，可对缺日期的保留历史自动附加同类补录，不写对象专属规则。
+
+补录字段、归属或时间不匹配时拒绝发布，不能把UNKNOWN直接改为PASS。正常路径用真实报告与PostgreSQL验证，错误身份和时间用现有原件做一次必要失败控制；不重采已有任务或重复旧测试。

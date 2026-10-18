@@ -19,6 +19,7 @@ from reputation_platform.question_translation import load_verified_translations
 
 POLICY = 'docs/adr/0013-automatic-prediction-attachment.md'
 ERRATUM = 'docs/adr/0014-prediction-binding-verification-erratum.md'
+SUPPLEMENT_POLICY = 'docs/adr/0015-registration-date-supplement.md'
 ORIGIN = 'prediction-auto-origin.json'
 
 
@@ -42,7 +43,8 @@ def _qualification_gap(registration: dict, evidence, history: Path, bundle: dict
                    '未形成可自动评价的任务材料，因此不生成预测分；缺少原件或明确市场标识不等于Agent业务失败。')
     assessment = evidence.run/'prediction-qualification-summary.json'
     labels = {'http_status_not_success': '公开原始请求文件未成功读取，具体HTTP状态见保留观测',
-              'Original task lacks an explicit supported market identifier': '原始请求没有明确的受支持市场标识，无法独立对应结算结果'}
+              'Original task lacks an explicit supported market identifier': '原始请求没有明确的受支持市场标识，无法独立对应结算结果',
+              'ReadTimeout': '本次原始请求文件读取超时，尚未取得可核对内容'}
     _save(assessment, {'canonical': registration['canonical'], 'status': 'INSUFFICIENT_EVIDENCE',
         'looked_count': looked, 'qualified_market_count': qualified,
         'reason_counts': [{'reason': reason, 'count': count} for reason, count in reasons.most_common()],
@@ -58,12 +60,23 @@ def _qualification_gap(registration: dict, evidence, history: Path, bundle: dict
 
 def _report(root: Path, origin: dict):
     translations, translation_refs = {}, []
+    supplement_inputs = {}
+    identity_run = root/origin['identity_run'] if origin.get('identity_run') else None
+    if identity_run:
+        from reputation_platform.prediction_registration_supplement import validate_registration_supplement
+
+        supplement_inputs = validate_registration_supplement(root, identity_run, root/origin['history_run'])
     if origin.get('translation_run'):
         translations, translation_refs = load_verified_translations(root / origin['translation_run'])
     report, background, reader = build_prediction_report(
         history_run=root / origin['history_run'], plan_run=root / origin['plan_run'],
         availability_run=root / origin['availability_run'] if origin.get('availability_run') else None,
-        translations=translations, verification_revision=origin.get('verification_revision', 1), root=root)
+        translations=translations, identity_run=identity_run,
+        verification_revision=origin.get('verification_revision', 1), root=root)
+    reader.inputs.update(supplement_inputs)
+    if identity_run:
+        reader.remember(SUPPLEMENT_POLICY)
+        report.scope = '本版补充了ERC-8004登记日期的原始交易证明，历史任务与原分组保持不变。\n' + report.scope
     for item in translation_refs:
         reader.remember(item.path, item.sha256)
     reader.remember(POLICY)
@@ -178,8 +191,14 @@ def evaluate_auto_prediction(repo, job: dict, worker: str, registration: dict, e
         repo.set_job_stage(job['id'], worker, job['fencing_token'], 'COLLECTING',
             '已自动匹配历史预测判据，正在核实不同市场与原始任务；不发起付费预测或链上交易。')
         retained = _retained_history(root, canonical, catalog)
+        identity_run = None
         if retained:
             history, plan_run, bundle, catalog_proof = retained
+            if not bundle['identity'].get('registration_time') and prepared['identity'].get('registration_time'):
+                from reputation_platform.prediction_registration_supplement import write_registration_supplement
+
+                identity_run = _run(root, 'prediction-registration-supplement')
+                write_registration_supplement(root, identity_run, history, prepared['identity'])
         else:
             profile_path = history/'prediction-profile.json'
             _save(profile_path, profile.__dict__)
@@ -242,6 +261,9 @@ def evaluate_auto_prediction(repo, job: dict, worker: str, registration: dict, e
             origin['sources'].append(file_reference(availability/'manifest.json', root))
         if translation:
             origin['sources'].append(file_reference(translation/'materials.json', root))
+        if identity_run:
+            origin['identity_run'] = identity_run.relative_to(root).as_posix()
+            origin['sources'].append(file_reference(identity_run/'manifest.json', root))
         repo.set_job_stage(job['id'], worker, job['fencing_token'], 'VERIFYING',
             '正在从概率原文、市场结算、请求交付和执行控制重建三维结果及中文说明。')
         report, background, reader = _report(root, origin)
