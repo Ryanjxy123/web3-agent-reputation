@@ -1,21 +1,34 @@
 # 新项目当前状态
 
-更新日期：2026-10-18。当前 task_id 为 `GENERIC_EVALUATION_BASELINE`；预测类两对象复用与本轮群体覆盖比较已完成。现有 **33 候选 / 3 个不同完整评分对象 / 4 份报告**：Brain 增仓特例，以及 2198、2235 的历史预测。Vue / FastAPI / worker / 真实 PostgreSQL 已连通；视觉验收 BLOCKED。用户明确普通评分应使用通用项目、无需等待逐对象开发；当前先落实通用标准与按协议自动接入，预测调查保留专项线。DeepSeek 使用现有余额、不设额外次数/金额上限。
+更新日期：2026-10-18。`GENERIC_EVALUATION_BASELINE` 的注册/协议自动接入及缺项报告已完成；下个 task_id 为 `GENERIC_TASK_EVIDENCE`。现有 **34 候选 / 3 个不同完整评分对象 / 8 份报告**：完整对象仍为Brain增仓特例、2198和2235的历史预测。本轮新增4份通用报告，其中Clicks取得可用性80分，另外两维缺证据、无综合分。Vue / FastAPI / worker / 真实 PostgreSQL 已连通；视觉验收 BLOCKED。日常通用项目优先，预测专项不阻断接入；DeepSeek继续使用现有余额。
 
 ## 当前推进顺序
 
 1. 已完成预测类两对象：2198、2235 同政策/代码，各自 14 个不同市场及 10 次新访问，中文报告已发布，综合 89.72/98.71。首个增仓保留特例，现共 3 个完整评分对象。
 2. 群体调查已完成本轮覆盖比较：554 个登记索引与旧 14 对象合并为 567 个身份；复用 149 条声明，审阅 106 种目录业务描述，186 个身份有当前直接功能声明。原文、缺项、多对多映射和选择依据见 [覆盖与投入选择](reference/CAPABILITY_COVERAGE_DECISION_20261018.md)。
-3. 当前 `GENERIC_EVALUATION_BASELINE`：先固定跨对象的通用评价项与证据条件，优先实现按协议自动接入；业务专项有现成规则和证据时自动附加。新对象不等待逐对象开发；缺项出部分报告，三维充分才出综合分。详见 [ADR-0009](docs/adr/0009-generic-evaluation-first.md)。
+3. `GENERIC_EVALUATION_BASELINE` 已实读验证：三个未配置身份自动核验注册并出报告；新增MCP描述文件接入后，Clicks按共用协议取得4个真实工具和10次独立访问，可用性80、功能/交易缺项、无综合分。下一步 `GENERIC_TASK_EVIDENCE`：按已调查的通用接口/历史任务格式接入实际输入输出和可归属交易核验，优先复用已有原件，不为每个对象复制规则。详见 [ADR-0009](docs/adr/0009-generic-evaluation-first.md)。
 4. 预测候选资格调查保留为专项扩展任务，不阻断普通评分接入。通用性在建模前判断，规则按功能复用；不按对象增加专用标准。
 
-评价单位是功能；同一Agent可适用多类，由平台自动匹配，用户不选方案。多个功能/报告不重复计Agent数。当前单任务单policy尚不支持多功能自动编排，属于待实现差距。长期约束见AGENTS。
+评价单位是功能；同一Agent可适用多类，由平台自动匹配，用户不选方案。多个功能/报告不重复计Agent数。通用报告已支持多功能资料及缺项展示；实际多功能任务编排与专项组合仍待实现。长期约束见AGENTS。
 
 ## 通用评价优先（2026-10-18 用户补充）
 
 用户提出日常评分只测通用标准覆盖的项目，不能每次提交都等待适配。已记录 ADR-0009：可用性、声明与实际结果一致性、可归属交易履约使用共享项目；业务深度专项按条件附加。协议/证据适配一次供同类对象复用，未知项保留，其他已有评价照常展示。
 
-当前只完成方向与常读文档更新，通用指标/门槛尚未冻结、通用接入尚未实现；现网站仍只对已有配置自动评价。未改评分代码、已发布分数或权重，工程测试 NOT_RUN，无新增网络或模型请求。下一任务 `GENERIC_EVALUATION_BASELINE`，既有有效工程验证继续复用。
+通用指标与证据条件已固定于 ADR-0010，新增 `service-contract-v1`，三维及30/40/30不变。无预置profile的规范身份已可经API自动采集真实注册、按协议发现资料并发布缺项报告；逐功能记录范围、关联样本和缺证据。已完成3个真实身份的API→worker→PostgreSQL→报告与附件流程，原件见 `runtime/generic-platform-check-20261018T093143Z-c316e720/`：全部链上注册核实，均未取得完整三维分。随后只对新增的MCP描述文件格式做一次受影响实读，未重发其它对象。
+
+当前通用适配器仅支持注册/协议发现及MCP发现接口可用性，尚无实际业务功能或任务交易评分样本，不能声称三维通用执行已全部完成。旧增仓/预测路径继续按既有政策自动匹配；原分数与原件不覆盖。后续任务是复用接口与历史任务格式接入实际功能和交易证据，不按单对象新增标准。
+
+### 本轮真实验证与命令
+
+以下Python命令均使用本目录 `.venv/Scripts/python.exe`；uv实际为 `D:/web3-runtime/tools/uv-env/Scripts/uv.exe`，pnpm构建使用Node22.17.0。
+
+- `python -m unittest discover -s tests -p test_generic_scoring.py -v`：1个必要用例PASS，exit0；含分数、缺项、多功能绑定、重复任务及旧格式兼容。`test_pinned_http.py`同样1个必要用例PASS、exit0；固定已核公网IP并保留原域名TLS/Host，拒绝私网和凭证请求头。两项均未重跑；3份旧报告离线复算分数不变。
+- `uv lock --offline`、`uv sync --frozen --offline`、`python scripts/export_contracts.py`与`python scripts/export_api_contracts.py`均exit0。`pnpm run build`最终类型检查及构建exit0；首次构建发现旧报告默认字段在生成TS中可选，修正后通过，新增占位条目展示修正后只重建受影响前端。没有重跑旧测试套件。
+- `python runtime/check_generic_platform.py` exit0：3次POST202，3个报告GET200，注册证据下载成功，私有附件均404。报告身份为Base45074、BSC49467、Gnosis2340；普通用户未填写profile/RPC。Brain初始化200、通知202，但工具发现TransportError；保持缺项，没有反复探测。
+- MCP远端描述接入：作业 `c891dc87-f630-48d9-aa1e-33e0cc08996e` 已正式COMPLETE，报告 `5b7a2b70-4fe5-47cc-8396-dee2bf5bcdf7` 为PARTIAL。Clicks同一协议发现4个工具，10槽中9PASS、1UNKNOWN、0FAIL，p95为10,734ms，可用性80；UNKNOWN未被当失败扣分，延迟项为0。功能/交易各0样本，无综合分。详细报告见 `runtime/generic-evaluation-20261018T093902Z-e866bab9/report.html`。
+- `python runtime/check_generic_descriptor.py` 的发布与错误身份拒绝已成功；辅助脚本在读取computed scores字段时exit1。未重采样，`python runtime/finish_generic_descriptor_check.py`复用原件完成伪造判分拒绝、附件404、网页与当前JS200，exit0。结果原件 `runtime/generic-descriptor-check-20261018T093900Z-0e4c7f79/result.json`；不把首次辅助脚本错误隐写成全程exit0。
+- 本轮无模型调用、付费业务或链上写入。浏览器视觉验收继续BLOCKED，网页HTTP200不替代视觉验收。当前本机API/worker保持运行于 `http://127.0.0.1:7754/`。
 
 ## 群体覆盖分析完成
 
@@ -23,7 +36,7 @@
 - `build_capability_inventory.py` 复用 14 对象、149 条旧声明与 230 个输入文件，退出 0；错误的关键词分类代码已删除，旧快照不改。当前无标签事实库 `runtime/capability-inventory-20261018T081606Z-faf14f32/`，语义判断单列为带引文的配置。
 - 两份 Codex 逐项语义映射已完成来源核对：106 种目录原文、81 种旧业务原文；合并 186 个身份有当前直接功能声明。目录的泛角色/未来计划不算具体动作，旧工具内部阶段不冒充独立接口；17 段补充说明留待审阅。
 - 一次离线联合计数退出 0：`runtime/capability-coverage-summary-20261018T082645Z-b3787102/`。比较与选择见 [覆盖报告](reference/CAPABILITY_COVERAGE_DECISION_20261018.md)：规划建议的 D 为 92，但最大一项 48 身份共用一种原文；预测有 12 个不同实际 service/Mech，2 个已完整证明，另外 10 个历史充分性未知。预测可作为专项扩展候选；当前主线改为通用项目与自动接入，见 ADR-0009。
-- 本轮资料调查与语义整理未新增 DeepSeek/外部模型 API 请求、评分或工程测试；既有有效验证继续复用。平台目录仍为 33 候选/3 完整对象/4 报告，离线资料池不冒充网站已接入。
+- 该轮资料调查与语义整理未新增 DeepSeek/外部模型 API 请求、评分或工程测试；既有有效验证继续复用。该轮结束时平台为33候选/3完整对象/4报告，离线资料池没有冒充网站已接入。后续通用接入统计见本页开头。
 
 ## 实际实现
 
@@ -37,7 +50,7 @@
 - 本轮新增有来源声明提取、纯规则自动方案选择、历史增仓/披露/三步行为核验及证据派生评分；模型不给分。正式规则、范围和采样先固定，见 ADR-0003～0005。
 - 已生成新增共享类型的 JSON Schema / TS。详细报告包含真实输入、披露输出、独立结果和逐样本判据；首屏用中文解释结论、样本及未覆盖能力。
 - 新增 FastAPI 0.143.3、uvicorn 0.54.0、psycopg 3.3.6，独立安装、导入验证后锁定。Vue 3.5.44 / Vite 8.3.4 / TypeScript 5.9.3 / pnpm 11.25.0 独立锁文件，实际 Node 22.17.0 构建通过。
-- PostgreSQL 17.11 使用本项目独立数据目录、SCRAM 随机密码及 127.0.0.1:55438。主库已导入 33 个候选和 3 个对象的 4 份报告；没有 SQLite/内存替代。API 与 worker 分进程，活动任务去重、数据库租约及 fencing token 防止过时发布。
+- PostgreSQL 17.11 使用本项目独立数据目录、SCRAM 随机密码及 127.0.0.1:55438。当前34候选、8报告，其中3个对象完整评分；没有SQLite/内存替代。API与worker分进程，活动任务去重、数据库租约及fencing token防止过时发布。
 
 ## 本轮真实结果
 
@@ -125,10 +138,10 @@ Base 注册原件 `runtime/base-registration-probe-20261018T062514Z-7cb4f595/`�
 
 ## Git
 
-独立仓库根目录与分支已核实：`D:/xjtu_project/block_chain_new/block_chain_new_new`，`codex/local-platform`。预测发布 `d314beb`、混合政策启动 `f2c933f`、清理矛盾优先级 `c2777c4`、公开语料 `ed0eb5b` 已本地提交；本轮语义映射和选择报告也按逻辑批次提交，实际 hash 以 `git log` 为准。暂存秘密扫描 0 命中，不包含 runtime、虚拟环境或密钥。
+独立仓库根目录与分支已核实：`D:/xjtu_project/block_chain_new/block_chain_new_new`，`codex/local-platform`。本轮共享评分/能力契约 `4385363`、自动注册与协议报告 `5e21b16` 已本地提交；常读文档和交接随独立收尾提交保存，具体hash以git log为准。每批暂存diff检查通过，秘密扫描0命中，不包含runtime、虚拟环境或密钥。旧预测、语料和语义映射提交继续保留，没有改写历史。
 
 新远程 REMOTE_NOT_CONFIGURED；push、PR、部署均 NOT_RUN。未操作父仓库、旧服务、其他分支或共享历史。
 
 既有声明提取共 15 次真实模型请求，留下 14 个对象的 149 条已核来源声明；另有 4 次问题翻译请求、28 题，原响应和 usage 保留。2198 部分声明引用拒绝未重发，4 条中文措辞采用有来源的编辑覆盖，未改变概率或评分。2182 原串行 run 已有意中止，原件保留；两个背景 pilot 不进入正式分母。新增纯概率、自动选方案及原件派生报告各 1 个必要用例、5 项纯链失败控制均已有 exit 0，旧测试不重跑。
 
-预测闭环完成记录：2198可用性98.20/功能75.66/行为100，综合89.72；2235可用性98.61/功能97.81/行为100，综合98.71。各24槽，真实API202→worker→PostgreSQL发布两任务均COMPLETE、worker均exit0；两个新报告实际GET200，公共证据下载逐字节一致。现33候选/3个不同完整评分对象/4份报告。详见docs/runbooks/PREDICTION_REUSE.md；不能声称覆盖所有预测工具、实时推理或任意提供方。
+预测闭环完成记录：2198可用性98.20/功能75.66/行为100，综合89.72；2235可用性98.61/功能97.81/行为100，综合98.71。各24槽，真实API202→worker→PostgreSQL发布两任务均COMPLETE、worker均exit0；两个新报告实际GET200，公共证据下载逐字节一致。当轮主库为33候选/3个不同完整评分对象/4份报告；后续通用接入的当前统计见STATUS。详见docs/runbooks/PREDICTION_REUSE.md；不能声称覆盖所有预测工具、实时推理或任意提供方。

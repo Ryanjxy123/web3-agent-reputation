@@ -2,17 +2,17 @@
 
 日期：2026-10-18。工作目录：`D:/xjtu_project/block_chain_new/block_chain_new_new`。
 
-Vue 网站、FastAPI、独立 worker 与 PostgreSQL 已实现。当前本机已有 9 个候选，同一个已适配对象已有两份完整窄范围报告；新提交的正式任务已自动完成，实际结果见文末。历史采集与离线核验用法见 [MODEL_EVIDENCE_LOOP.md](MODEL_EVIDENCE_LOOP.md)。
+Vue 网站、FastAPI、独立 worker 与 PostgreSQL 已实现。当前候选、不同完整评分对象及报告数量以 [STATUS.md](../../STATUS.md) 为准。已适配专项可复用保留证据；没有预置 profile 的规范注册身份也可自动发现注册资料和协议接口，按实际覆盖生成报告。历史采集与离线核验用法见 [MODEL_EVIDENCE_LOOP.md](MODEL_EVIDENCE_LOOP.md)。
 
 ## 日常启动
 
-本机依赖、前端构建、数据库连接文件和运营 profile 已准备好。普通用户不用填写 RPC、模型密钥或数据库信息，在项目根目录运行：
+本机依赖、前端构建和数据库连接文件已准备好，运营 profile 为可选配置。普通用户不用填写 RPC、模型密钥或数据库信息，在项目根目录运行：
 
 ```powershell
 .\scripts\start_local_platform.ps1
 ```
 
-该命令启动并核实本项目 PostgreSQL，启动本机 API，检查数据库健康后运行前台 worker。默认 **public-off**：已有目录与报告可浏览，新的公开采样不会自动启用；匹配到已支持对象的任务会清楚说明尚未启用新采样，不产生新分数。
+该命令启动并核实本项目 PostgreSQL，启动本机 API，检查数据库健康后运行前台 worker。默认 **public-off**：已有目录与报告可浏览；新提交的规范身份返回 `NEEDS_INFO`，明确说明未启用公开采集，不请求外部服务、不产生新分数。
 
 本次已获授权的免费公共只读评价使用：
 
@@ -39,20 +39,30 @@ Vue 网站、FastAPI、独立 worker 与 PostgreSQL 已实现。当前本机已�
 | PostgreSQL 工具 | `D:/web3-runtime/tools/postgresql-17.11/pgsql/bin` |
 | API 与生产静态网页 | `127.0.0.1:7754` |
 | API/worker 连接配置 | `runtime/platform-config/database-url.txt`，可由运营者环境变量覆盖，不进入公开接口 |
-| 运营 profile | `runtime/platform-config/profiles.json`，引用已适配身份、政策与保留证据目录 |
+| 运营 profile（可选） | `runtime/platform-config/profiles.json`，引用已有专项身份、政策与保留证据目录；缺省时仍可运行通用接入 |
 | 启动日志 / 任务原件 | `runtime/platform-logs` / `runtime/worker-jobs` |
 
 API 首次尝试绑定 8015 时，Windows 返回 `Errno 13`。随后一次原生 `socket.bind(127.0.0.1, 0)` 诊断由系统分配到可用的 7754，API 已在该端口真实启动；没有修改防火墙。当前启动脚本默认 7754，开发代理也已同步；Vite 的 5175 仅保留为开发配置，尚未完成该端口的真实启动验收。
 
-profile 属于运营配置，本机已配置首个历史增仓方案。worker 对已支持对象执行新的 10 点可用性采样，再复用保留的历史交易、状态与上下文独立核验，生成新版本；当前流程不调用模型、不触发资产操作。规范标识尚缺适配资料时返回 `NEEDS_INFO`，无法识别的输入返回 `UNSUPPORTED`，不会冒充已评价或给零分。
+profile 属于可选运营配置，本机已保留首个历史增仓特例和两个预测历史实例。匹配这些配置时，worker 新采 10 点可用性，再复用保留的历史交易、状态与上下文独立核验，生成新版本；复评不调用模型、不触发资产操作。
 
-预测历史的 worker 已完成两个真实对象的正式闭环：2198 综合89.72，2235 综合98.71，分别使用同一代码与各自原件。运营 profile 使用 `policy_id=prediction-history-v1`、`history_run`、`plan_run`，可另给 `identity_run` 身份补充和 `translation_run` 已保存中文材料；这些都是本机保留目录，普通用户不填写。实际命令、真实任务和报告号见 [PREDICTION_REUSE](PREDICTION_REUSE.md)。当前主库33候选、3个不同完整评分对象、4份报告；本机profile为首个增仓特例及两个预测实例。
+开启公共只读后，没有预置 profile 的规范身份走通用路径：核对目录身份、使用操作者可信 RPC 在固定区块读取注册信息，再从登记文档发现服务和协议资料。已适配的 MCP 发现接口可安排独立可用性采样；取得工具列表或 Schema 只说明已发现声明，不代表业务完成或交易履约通过。缺少业务、独立判据或交易证据时，报告分别列出缺项，不计算完整综合分。若目录与链上两类来源均没有取得有效身份依据，则以 `NEEDS_INFO` 结束并保留采集记录；无法识别的输入返回 `UNSUPPORTED`。
+
+预测历史的 worker 已完成两个真实对象的正式闭环：2198 综合89.72，2235 综合98.71，分别使用同一代码与各自原件。运营 profile 使用 `policy_id=prediction-history-v1`、`history_run`、`plan_run`，可另给 `identity_run` 身份补充和 `translation_run` 已保存中文材料；这些都是本机保留目录，普通用户不填写。实际命令、真实任务和报告号见 [PREDICTION_REUSE](PREDICTION_REUSE.md)。该轮完成时主库为33候选、3个不同完整评分对象、4份报告；此处是历史验收记录，当前统计见 STATUS。
 
 该路径先核对自动选出的方案、固定十四个不同市场的7+7分组、真实交付事件中的内容摘要及原始文件/CAR。历史cohort不足或已固定交付缺原件时，以 `NEEDS_INFO` 结束且不发新采样；资料具备后才新采十次公开历史文件访问，再离线生成本次报告。复评不会重新收集历史、发起新预测或调用翻译模型。
 
 作业 `COMPLETE` 表示该轮处理和报告发布结束，报告是否取得完整分数以报告自身 `scores.status` 为准。新采样或独立核验不足时可发布 `PARTIAL` 报告，作业消息明确说明没有完整三维分及综合分；不把流程结束冒充完整评分。每轮仍由数据库租约与fencing token约束续租和发布，历史版本保留。
 
-## 安装、构建与首次导入
+## 本轮通用接入验证
+
+本轮已通过真实 API 提交三个没有预置 profile 的身份：Base #45074、BSC #49467、Gnosis #2340。三者均完成链上注册核验并保存报告，实际结果见 [通用接入验证原件](../../runtime/generic-platform-check-20261018T093143Z-c316e720/result.json)。这些报告的可用性、功能、交易样本均为 **0**，`scores.status=NOT_EVALUATED`，无维度分或综合分；它们证明自动接入与缺项报告路径可用，不增加完整评分对象数量。
+
+随后仅对新增MCP描述文件远端发现格式做了一次受影响的Clicks复评：作业 `c891dc87-f630-48d9-aa1e-33e0cc08996e` 正式发布报告 `5b7a2b70-4fe5-47cc-8396-dee2bf5bcdf7`。真实发现4个工具；发现接口10次新访问为9PASS/1UNKNOWN，p95为10,734ms，可用性80。功能和交易无任务样本，报告PARTIAL、无综合分。见[结果与必要失败控制](../../runtime/generic-descriptor-check-20261018T093900Z-0e4c7f79/result.json)及[详细报告](../../runtime/generic-evaluation-20261018T093902Z-e866bab9/report.html)。复用原件完成错误身份与伪造判分拒绝、私有附件404、网页和当前JS200，未再次发起Agent采样；辅助脚本先前的computed字段读取错误及exit1也保留在结果中。
+
+本轮共享 Schema 生成及前端类型检查、构建已通过。浏览器视觉与 DOM 交互验收仍未完成。
+
+## 安装、构建与历史首次导入
 
 本轮 uv 锁定/依赖安装、前端独立 pnpm 锁定安装与首次构建均已真实退出 0。Python 使用项目 `.venv`，前端实际使用 Node 22.17.0、pnpm 11.25.0；精确依赖见 [前端说明](../../apps/web/README.md)。新机器安装入口为：
 
@@ -70,7 +80,7 @@ uv sync --locked
   --initialize --candidates runtime/admission-report-20261017T182038Z-f504c54e
 ```
 
-主库已实际导入 **5 个候选**，首份报告 ID 为 `251eb31d-973d-4cb1-ba4a-4a735d652ec7`，综合分 **96.67**；三维为 88.89 / 100 / 100，限于报告列明的历史增仓范围。本机已有记录，不需在每次启动时重复导入。
+首次历史导入包含 **5 个候选**，首份报告 ID 为 `251eb31d-973d-4cb1-ba4a-4a735d652ec7`，综合分 **96.67**；三维为 88.89 / 100 / 100，限于报告列明的历史增仓范围。本机已有记录，不需在每次启动时重复导入。
 
 后续离线补记将 Custos、Olas、delu 和 Clicks 的六项事实/缺项整理为新准入快照，没有产生声誉分：
 
@@ -79,11 +89,11 @@ uv sync --locked
 .venv/Scripts/python.exe scripts/import_local_report.py --candidates runtime/admission-report-20261018T063130Z-e7ee947b
 ```
 
-两条实际命令均退出 **0**，前者复用 31 条观测、无外网调用，后者导入 4 个新对象。主库核对为 **9 个候选 / 1 个完整评分对象 / 同一对象 2 份报告**；原件目录中另存 database-import-receipt.json。网站能直接查看这些对象的未决资料与下一步。该日期配置已作为快照输入冻结，后续变化另建版本，不改写已引用原件。
+两条实际命令均退出 **0**，前者复用 31 条观测、无外网调用，后者导入 4 个新对象。当次主库核对为 **9 个候选 / 1 个完整评分对象 / 同一对象 2 份报告**；原件目录中另存 database-import-receipt.json。这是历史快照，网站能直接查看这些对象的未决资料与下一步。该日期配置已作为快照输入冻结，后续变化另建版本，不改写已引用原件。
 
-`runtime` 中的公共采集原件、数据库和私有 profile 均被忽略，不入 Git。新 clone 没有这些采集证据，不能凭空生成上述 seed 报告。应按采集运行手册取得真实原件、生成报告，再由运营者导入并配置对应 profile；普通网站用户只提交注册资料。
+`runtime` 中的公共采集原件、数据库和私有 profile 均被忽略，不入 Git。新 clone 没有这些采集证据，不能凭空生成上述 seed 报告。专项历史评分应按采集运行手册取得真实原件、生成报告，再由运营者导入并配置对应 profile；通用接入不要求预置 profile，普通网站用户只提交注册资料。
 
-## 本轮已执行的验证
+## 历史首次平台验证
 
 实际页面/API 读请求保存于 `runtime/local-platform-check-20261018T055831Z-95665164`。`checks.json` 记录以下 5 个真实 HTTP 入口均为 **200**：
 
@@ -119,7 +129,7 @@ uv sync --locked
 
 上述重建均对应真实源代码问题修复，没有为提交重复测试。浏览器视觉仍 **BLOCKED**，未重复 Chrome 崩溃尝试，未声称已完成浏览器交互 DOM 验收。
 
-## 正式提交与当前交付范围
+## 历史首个专项提交与验收
 
 主库真实 POST `/api/evaluations` 返回 **202**，任务为 `88a22786-55ec-462e-a7e7-d440f215587c`，原始 QUEUED 响应保存于上述检查目录的 `submitted-job.json`。任务从 2026-10-18 **13:58:35+08:00** 提交至 **14:03:45+08:00** 完成，自动经历 QUEUED、RUNNING 与采集/核验/保存报告，最终为 **COMPLETE**。
 
@@ -147,7 +157,7 @@ uv sync --locked
 
 随后通过仓库读取与 socket 检查确认启动器自己的 API 已停止，原有两份报告仍保留，该核对也退出 **0**。原件 `worker-and-assets-checks.json`、`launcher-check.json` 均位于 `runtime/local-platform-check-20261018T055831Z-95665164`。早期时间字符串比较错误只属于验收汇总，实际测量与报告没有失败。
 
-目前已有 1 个真实对象完成窄范围三维评分；至少 10 个真实公共 Agent 的目标仍未完成。网站/API/worker/PG 已实现，真实提交到报告保存、历史版本保留、不可适配任务和启动器生命周期均已通过本轮实际验收。浏览器视觉仍为 **BLOCKED**，未声称完成 DOM 交互或桌面/手机视觉验收。
+该历史轮次有 1 个真实对象完成窄范围三维评分，后续已增加预测实例及通用缺项报告，当前统计以 [STATUS.md](../../STATUS.md) 为准；至少 10 个真实公共 Agent 获得完整评分的目标仍未完成。网站/API/worker/PG 已实现，真实提交到报告保存、历史版本保留、缺项任务和启动器生命周期均有实际验收记录。浏览器视觉仍为 **BLOCKED**，未声称完成 DOM 交互或桌面/手机视觉验收。
 
 
-2026-10-18 正常启动更新：预测两对象任务完成后，通过常规 `./scripts/start_local_platform.ps1 -EnablePublicReadOnly` 保持网站和worker运行。第一次因启动脚本仍对所有profile强制要求增仓专用context_run/rpc_runs而exit1；将必需字段按已支持policy区分后，仅重试该失败启动，健康检查通过，当前RUNNING于127.0.0.1:7754，并非已退出0。未重新采集或评分，PostgreSQL仍为本项目原实例。
+2026-10-18 预测实例完成时的历史启动记录：通过常规 `./scripts/start_local_platform.ps1 -EnablePublicReadOnly` 保持网站和worker运行。第一次因启动脚本仍对所有profile强制要求增仓专用context_run/rpc_runs而exit1；将必需字段按已支持policy区分后，仅重试该失败启动，健康检查通过，当时RUNNING于127.0.0.1:7754，并非已退出0。未重新采集或评分，PostgreSQL仍为本项目原实例。
