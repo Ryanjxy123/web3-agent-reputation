@@ -1,0 +1,18 @@
+{
+  "schema_version": "generic-rpc-v1",
+  "configuration_source": "operator-static-not-metadata",
+  "confirmation_distance": 64,
+  "chains": {
+    "100": {"rpc_url": "https://rpc.gnosischain.com", "authentication": "public"},
+    "56": {
+      "rpc_url": "https://api.zan.top/node/v1/bsc/mainnet",
+      "authentication": "zan",
+      "credential_file": "D:/xjtu_project/block_chain_new/runtime/secrets/base-mainnet-rpc-url.txt"
+    },
+    "8453": {
+      "rpc_url": "https://api.zan.top/node/v1/base/mainnet",
+      "authentication": "zan",
+      "credential_file": "D:/xjtu_project/block_chain_new/runtime/secrets/base-mainnet-rpc-url.txt"
+    }
+  }
+}

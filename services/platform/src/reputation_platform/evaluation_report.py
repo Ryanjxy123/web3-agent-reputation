@@ -100,6 +100,37 @@ def _sample(explanation: SampleExplanation, index: int, *, expanded: bool) -> st
     )
 
 
+def _capabilities(report: EvaluationReport) -> str:
+    samples = {item.sample.sample_id: (index, item) for index, item in enumerate(report.samples, 1)}
+    sections = []
+    for capability in report.capabilities:
+        findings = "".join(
+            f'<li><div class="between"><strong>{_text(item.label)}</strong>{_badge(item.verdict)}</div>'
+            f'<p class="multiline">{_text(item.explanation)}</p></li>' for item in capability.findings
+        ) or '<li>本轮尚无分项发现。</li>'
+        linked = "".join(
+            f'<li><a href="#sample-{samples[key][0]}">样本 {samples[key][0]:02d} · '
+            f'{_text(samples[key][1].title)}</a> {_badge(samples[key][1].sample.verdict)}</li>'
+            for key in capability.sample_ids
+        )
+        linked = f'<ul>{linked}</ul>' if linked else '<p class="muted">本轮没有该功能的实际业务评分样本，当前仅展示资料及缺项。</p>'
+        missing = (_items(capability.missing_evidence) if capability.missing_evidence
+                   else '<p class="muted">本项未另列证据缺口，结论限于上方已测范围。</p>')
+        sections.append(
+            f'<section class="sample-group"><h3>{_text(capability.operation)}</h3>'
+            f'<p class="multiline">{_text(capability.description)}</p>'
+            f'<p class="muted">声明或发现的协议：{_text(capability.protocol)}</p>'
+            f'<h4>本次实际业务判定范围</h4><p class="multiline">'
+            f'{_text(capability.tested_scope or "尚未形成实际业务判定范围。")}</p>'
+            f'<h4>资料与核验发现</h4><ul class="checks">{findings}</ul>'
+            f'<h4>对应的实际任务</h4>{linked}<h4>仍缺哪些证据</h4>{missing}</section>'
+        )
+    body = "".join(sections) or '<p class="muted">本轮尚无可列明的功能范围；资料来源与缺项见报告限制。</p>'
+    return ('<section class="panel"><h2>发现了什么，哪些已有业务证据</h2>'
+            '<p>功能声明、协议发现和实际业务结果分别记录。资料完整或输出格式符合约定，只能支持对应检查；'
+            '业务正确性需要适用的独立判据，交易履约需要任务与真实链上证据绑定。</p>' + body + '</section>')
+
+
 def render_evaluation_report(report: EvaluationReport) -> str:
     """Render supplied real explanations; no demo samples or manual scores."""
     scores = report.scores
@@ -110,17 +141,24 @@ def render_evaluation_report(report: EvaluationReport) -> str:
     unknown = sum(score.unknown for score in dimensions.values())
     failed = sum(score.failed for score in dimensions.values())
     prediction = report.policy_version == 'prediction-history-v1'
+    generic = report.policy_version == 'service-contract-v1'
+    coverage_intro = ""
     if scores.status == "COMPLETE":
         status = "本次范围内已完成评价"
         if prediction:
             finding = (f'七个历史问题的概率已与最终市场结算对应，其中 {scores.functional.failed} 题给最终结果的概率低于中性或输出不合约定；'
                        f'另外七项链上交付中有 {scores.behavioral.failed} 项未通过完整核验。')
+        elif generic:
+            finding = (f'本次 {scores.functional.observed} 个不同任务的功能声明核验有 {scores.functional.passed} 条通过、'
+                       f'{scores.functional.failed} 条未通过；另外 {scores.behavioral.observed} 个任务的真实交易履约核验有 '
+                       f'{scores.behavioral.passed} 条通过、{scores.behavioral.failed} 条未通过。')
         elif scores.functional.failed == 0 and scores.behavioral.failed == 0:
             finding = "本次抽查的增仓结果披露和三步交易均能与链上证据对应。"
         else:
             finding = f"本次有 {scores.functional.failed + scores.behavioral.failed} 条历史任务未通过核验，具体差异在下方逐条说明。"
         if scores.availability.p95_ms is not None and scores.availability.p95_ms > 1000:
-            finding += "记录入口的部分请求耗时较长，可用性分包含这次实际访问体验。"
+            finding += ("本次服务入口的部分请求耗时较长，可用性分包含这次实际访问体验。" if generic
+                        else "记录入口的部分请求耗时较长，可用性分包含这次实际访问体验。")
         conclusion = finding + f"三个维度均达到既定样本要求，综合分为 {scores.overall:.2f} 分。"
     elif scores.status == "PARTIAL":
         status = "部分评价 · 暂无综合分"
@@ -128,6 +166,20 @@ def render_evaluation_report(report: EvaluationReport) -> str:
     else:
         status = "尚未形成评价"
         conclusion = "本次尚无进入评分的实际样本，三项维度和综合分均待评价。"
+        if generic and report.capabilities:
+            status = "已整理功能资料 · 尚无业务评分"
+            conclusion = (f"本次已整理 {len(report.capabilities)} 项功能的资料与协议信息，"
+                          "尚无进入评分的实际业务样本，三项维度和综合分均待评价。")
+    if generic:
+        if report.capabilities:
+            names = '、'.join(item.operation for item in report.capabilities[:3])
+            suffix = f'等 {len(report.capabilities)} 项功能' if len(report.capabilities) > 3 else ''
+            coverage_intro = f'<p>本次已识别：{_text(names + suffix)}。资料与协议发现用于确定可测范围，业务结论对应下方实际任务及独立核验。</p>'
+        missing = list(dict.fromkeys([item for capability in report.capabilities for item in capability.missing_evidence]
+                                    + report.limitations))
+        if missing:
+            suffix = f'。其余 {len(missing) - 2} 项见各功能与报告限制。' if len(missing) > 2 else ''
+            coverage_intro += f'<p>当前缺项：{_text("；".join(missing[:2]) + suffix)}</p>'
     representatives = set()
     for wanted in ((Verdict.PASS,), (Verdict.FAIL, Verdict.UNKNOWN)):
         first = next((index for index, item in enumerate(report.samples, 1) if item.sample.verdict in wanted), None)
@@ -146,7 +198,23 @@ def render_evaluation_report(report: EvaluationReport) -> str:
         "首个通过样本，以及首个未通过或无法判断样本默认展开。其余样本点击标题查看；原始文件和标识收在各自的证据区。"
         if report.samples else "本轮尚无进入判分的样本；取得实际证据后会在这里逐条解释。"
     )
-    if prediction:
+    if generic:
+        functional_method = ('完整功能评分要求七个不同实际任务，核对声明的操作、输入输出绑定、约定格式和明确限制；'
+                             '需要业务正确性判据时，用独立证据核验结果。'
+                             + (f'本轮已有 {scores.functional.observed} 条功能样本，结论见逐条记录。' if scores.functional.observed
+                                else '本轮尚无实际业务调用的功能评分样本。'))
+        functional_threshold = ('只有格式符合约定，不能判定整个业务功能通过；缺少必要判据时保留无法判断。'
+                                '得分为通过任务数 ÷ 确定结论任务数 × 100，需七个确定结论。')
+        behavioral_method = ('完整行为评分要求另外七个不同实际任务，核验任务与链实例、执行者、调用目标和参数、回执、事件及确认状态的完整对应。'
+                             '执行归属需独立证据；注册持有人或收款地址不自动等于执行者，只读功能不虚构执行交易。'
+                             + (f'本轮已有 {scores.behavioral.observed} 条履约样本，结论见逐条记录。' if scores.behavioral.observed
+                                else '本轮尚无可独立核验的交易履约评分样本。'))
+        behavioral_threshold = ('成功回执本身不足以证明任务完成。得分为通过任务数 ÷ 确定结论任务数 × 100，需七个确定结论。')
+        availability_intro = ((f'本轮对已确认适配的MCP tools/list工具发现接口保留 {scores.availability.observed} 个可用性槽位，'
+                               '核对真实请求、协议结果与延迟；结论仅限该发现接口，未外推至具体业务工具。')
+                              if scores.availability.observed else
+                              '本轮尚未形成MCP发现接口的可用性采样，当前仅保留已取得的资料与协议发现。')
+    elif prediction:
         functional_method = ('使用预先固定的七个不同已结算问题，核对原始请求、工具、预测概率与协议最终结果。'
             '单题信用分为 100 × [1 −（给“是”的概率 − 最终是/否结果）²]，七题取平均。'
             '确定且正确为100，确定且相反为0；50/50中性预测为75。这是概率信用分，不是预测准确率。')
@@ -184,12 +252,14 @@ a{{color:#145e83;text-underline-offset:3px;overflow-wrap:anywhere}}a:focus-visib
 </style></head><body><main>
 <header class="hero"><p class="eyebrow">WEB3 AGENT · 基于多源证据的声誉评价</p><p class="status">{status}</p>
 <h1>{_text(report.name)} 的评价报告</h1><p class="conclusion">{_text(conclusion)}</p>
+{coverage_intro}
 <p class="muted identity">注册身份：{_text(report.registration_reference)}<br>报告生成：{_text(_when(report.generated_at))}</p>
 <section class="scope" aria-label="本次评价范围"><h2>这次具体评了什么</h2><p>{_text(report.scope)}</p>
 <p class="muted">样本时间范围：{_text(report.evaluation_window)}</p><p class="muted">评价方式：{_text(report.approach)}</p></section>
 <div class="summary-metrics" aria-label="结果概览"><div class="metric"><strong>{overall}</strong><span>综合分 · 三维证据齐全才计算</span></div>
 <div class="metric"><strong>{len(report.samples)}</strong><span>实际评价样本</span></div><div class="metric"><strong>{unknown}</strong><span>无法判断 · 另有 {failed} 条未通过</span></div></div></header>
 <section class="scores" aria-label="三维评分">{cards}</section>
+{_capabilities(report) if generic else ''}
 <section class="panel"><h2>怎样理解这三个分数</h2><div class="methods">
 <section><h3>服务可用性</h3><p>{_text(availability_intro)}得分由 80% 成功率与 20% 延迟表现组成；成功率的分母仅包括通过和未通过。</p>
 <p class="p95">本次成功响应 p95：{p95}</p><p>p95 表示至少 95% 的成功请求在这一耗时内完成，按样本排序取最近秩。不超过 1000 毫秒时延迟项满分，达到 10000 毫秒为零，中间线性计算。这是本机经既定代理线路的访问体验，包含网络和代理耗时。</p></section>

@@ -23,6 +23,7 @@ class PublicTarget:
     method: str = "GET"
     purpose: MeasurementPurpose = MeasurementPurpose.BACKGROUND
     json_body: dict | None = None
+    headers: dict[str, str] | None = None
 
 
 class SafeHttpClient:
@@ -35,6 +36,7 @@ class SafeHttpClient:
         transport: httpx.BaseTransport | None = None,
         provider_key_file: Path | None = None,
         zan_key_url_file: Path | None = None,
+        pin_public_dns: bool = False,
     ) -> None:
         self.targets = {target.key: target for target in targets}
         if len(self.targets) != len(targets):
@@ -47,6 +49,7 @@ class SafeHttpClient:
                 or parsed.port not in (None, 443)
                 or target.method not in ("GET", "POST")):
                 raise ValueError("Targets must be explicitly scoped HTTPS reads")
+            self._check_public_headers(target)
         self.enabled = enabled
         self.remaining = max_requests
         self.max_body_bytes = max_body_bytes
@@ -56,6 +59,10 @@ class SafeHttpClient:
         self._provider_secret = b""
         self._zan_key_scope = zan_key_url_file is not None
         self._zan_rpc_methods = {}
+        self._pin_public_dns = pin_public_dns
+        self._proxy = proxy
+        if pin_public_dns and transport is not None:
+            raise ValueError("Pinned DNS cannot be combined with a replacement transport")
         if provider_key_file is not None and zan_key_url_file is not None:
             raise ValueError("DeepSeek and ZAN credentials are mutually exclusive")
         if provider_key_file is not None:
@@ -80,17 +87,38 @@ class SafeHttpClient:
                 raise ValueError("ZAN key file must contain one official Base mainnet key URL")
             secret = match.group(1)
             self._provider_secret = secret.encode("utf-8")
-        self.client = httpx.Client(
+        self.client = None if pin_public_dns else httpx.Client(
             proxy=proxy, transport=transport, trust_env=False,
             timeout=timeout_seconds, follow_redirects=False,
             headers={"User-Agent": "Web3Reputation-ReadOnlyFeasibility/0.1"},
         )
 
     def __enter__(self) -> "SafeHttpClient":
+        self._ensure_client()
         return self
 
     def __exit__(self, *_: object) -> None:
-        self.client.close()
+        if self.client is not None:
+            self.client.close()
+
+    def _ensure_client(self) -> None:
+        if self.client is None:
+            from reputation_platform.pinned_http import PinnedHTTPTransport
+
+            self.client = httpx.Client(
+                transport=PinnedHTTPTransport(tuple(target.url for target in self.targets.values()), self._proxy),
+                trust_env=False, timeout=self.timeout_seconds, follow_redirects=False,
+                headers={"User-Agent": "Web3Reputation-ReadOnlyFeasibility/0.1"},
+            )
+
+    @staticmethod
+    def _check_public_headers(target: PublicTarget) -> None:
+        if target.headers is not None and (not isinstance(target.headers, dict) or any(
+            not isinstance(key, str) or key.lower() not in {"accept", "mcp-protocol-version"}
+            or not isinstance(value, str) or "\r" in value or "\n" in value
+            for key, value in target.headers.items()
+        )):
+            raise ValueError("Public request headers only permit Accept and MCP-Protocol-Version")
 
     @staticmethod
     def _check_zan_target(target: PublicTarget) -> None:
@@ -119,6 +147,7 @@ class SafeHttpClient:
         if not self.enabled:
             raise PermissionError("Public reads are disabled")
         target = self.targets[key]
+        self._check_public_headers(target)
         if self._zan_key_scope:
             self._check_zan_target(target)
             if target.json_body["method"] != self._zan_rpc_methods[key]:
@@ -134,11 +163,13 @@ class SafeHttpClient:
         body = bytearray()
         outcome = Verdict.UNKNOWN
         try:
-            self._check_public_destination(target.url)
+            if not self._pin_public_dns:
+                self._check_public_destination(target.url)
+            self._ensure_client()
             # Only the wire URL includes the ZAN credential; targets and evidence stay public.
             transport_url = target.url + "/" + self._provider_secret.decode("utf-8") if self._zan_key_scope else target.url
             with self.client.stream(target.method, transport_url, json=target.json_body,
-                                    headers=self._provider_headers) as response:
+                                    headers={**(target.headers or {}), **self._provider_headers}) as response:
                 status = response.status_code
                 if status in (401, 402, 403, 429):
                     self.stopped_hosts.add(urlsplit(target.url).hostname)

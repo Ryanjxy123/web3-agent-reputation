@@ -22,15 +22,14 @@ if (-not (Test-Path -LiteralPath $python -PathType Leaf)) {
 if (-not (Test-Path -LiteralPath (Join-Path $projectRoot 'apps/web/dist/index.html') -PathType Leaf)) {
     throw 'Build apps/web first; its dist/index.html is required.'
 }
-if (-not (Test-Path -LiteralPath $profilesFile -PathType Leaf)) {
-    throw 'Configure runtime/platform-config/profiles.json before starting the platform.'
-}
+$profiles = @()
 try {
-    $profiles = @(Get-Content -LiteralPath $profilesFile -Raw | ConvertFrom-Json)
+    if (Test-Path -LiteralPath $profilesFile -PathType Leaf) {
+        $profiles = @(Get-Content -LiteralPath $profilesFile -Raw | ConvertFrom-Json)
+    }
 } catch {
     throw 'The private profiles.json file must contain valid JSON.'
 }
-if ($profiles.Count -eq 0) { throw 'The private profiles.json file has no configured profiles.' }
 foreach ($profile in $profiles) {
     $requiredProfileFields = @('registration_reference', 'candidate_key', 'policy_id', 'history_run', 'plan_run')
     switch ([string]$profile.policy_id) {

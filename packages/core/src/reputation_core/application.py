@@ -24,9 +24,12 @@ def normalize_reference(value: str) -> str | None:
         return None
     if parsed.scheme != "https" or parsed.hostname not in {"8004scan.io", "www.8004scan.io"} or parsed.query or parsed.fragment:
         return None
-    match = re.fullmatch(r"/agents/(bsc|ethereum|base|mantle)/([0-9]+)/?", parsed.path)
+    chains = {"bsc": 56, "ethereum": 1, "base": 8453, "mantle": 5000,
+              "gnosis": 100, "polygon": 137, "celo": 42220, "arbitrum": 42161,
+              "avalanche": 43114, "optimism": 10}
+    match = re.fullmatch(r"/agents/(" + "|".join(chains) + r")/([0-9]+)/?", parsed.path)
     if match and not parsed.username and not parsed.password and port in (None, 443):
-        chain = {"bsc": 56, "ethereum": 1, "base": 8453, "mantle": 5000}[match[1]]
+        chain = chains[match[1]]
         return f"eip155:{chain}:0x8004a169fb4a3325136eb29fa0ceb6d2e539a432:{int(match[2])}"
     return None
 

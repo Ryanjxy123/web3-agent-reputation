@@ -179,8 +179,15 @@ def evaluate(repo: Repository, job: dict, worker: str, profiles: list[dict], *, 
         return
     matches = [profile for profile in profiles if normalize_reference(profile["registration_reference"]) == canonical]
     if not matches:
-        repo.finalize_job(job["id"], worker, job["fencing_token"], status="NEEDS_INFO",
-            message="这份注册标识已保留，当前还缺可核验的服务资料与已适配方案，暂不能评价。已有对象的报告仍可浏览。")
+        if not enabled:
+            repo.finalize_job(job["id"], worker, job["fencing_token"], status="NEEDS_INFO",
+                message="注册标识已保留。当前未启用公开采集，本次没有请求外部服务或产生新分数。")
+            return
+        if not proxy:
+            raise ValueError("An enabled evaluation requires an explicit operator proxy")
+        from reputation_platform.generic_evaluation import evaluate_generic
+
+        evaluate_generic(repo, job, worker, canonical, proxy)
         return
     if len(matches) != 1:
         raise ValueError("Operator profile identity is ambiguous")

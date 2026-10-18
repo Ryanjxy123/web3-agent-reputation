@@ -266,6 +266,7 @@ version = "0.1.0"
 source = { editable = "services/platform" }
 dependencies = [
     { name = "fastapi" },
+    { name = "httpcore" },
     { name = "httpx" },
     { name = "psycopg", extra = ["binary"] },
     { name = "reputation-core" },
@@ -275,6 +276,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", specifier = "==0.143.3" },
+    { name = "httpcore", specifier = "==1.0.9" },
     { name = "httpx", specifier = "==0.28.1" },
     { name = "psycopg", extras = ["binary"], specifier = "==3.3.6" },
     { name = "reputation-core", editable = "packages/core" },

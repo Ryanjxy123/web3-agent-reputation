@@ -14,7 +14,7 @@ from psycopg.types.json import Jsonb
 from reputation_core.admission import CandidateRecord
 from reputation_core.application import AgentDetail, AgentSummary, EvaluationJob, ReportSummary, normalize_reference
 from reputation_core.reporting import EvaluationReport
-from reputation_core.scoring import ScoringOutcome
+from reputation_core.scoring import SERVICE_CONTRACT_POLICY_VERSION, ScoringOutcome
 from reputation_platform.settings import PROJECT_ROOT
 
 
@@ -124,15 +124,20 @@ class Repository:
         _, hashes = self._manifest(directory)
         report_path = self._runtime_file(directory / "report.json")
         report = _validated_report(json.loads(report_path.read_bytes()))
-        policies = [json.loads((self.root / name).read_bytes()) for name in hashes
-                    if Path(name).parent == Path("configs/pilots") and Path(name).suffix == ".json"]
-        policies = [policy for policy in policies if policy.get("policy_version") == report.scores.policy_version]
-        if len(policies) != 1:
-            raise EvidenceIntegrityError("A report requires one verified pilot configuration for its scoring policy")
-        policy = policies[0]
-        registration_reference = normalize_reference(
-            f"eip155:{policy['chain_id']}:{policy['registry']}:{policy['agent_id']}"
-        )
+        if report.policy_version == SERVICE_CONTRACT_POLICY_VERSION:
+            from reputation_platform.generic_evaluation import verify_generic_report_sources
+
+            registration_reference = verify_generic_report_sources(self.root, report, hashes)
+        else:
+            policies = [json.loads((self.root / name).read_bytes()) for name in hashes
+                        if Path(name).parent == Path("configs/pilots") and Path(name).suffix == ".json"]
+            policies = [policy for policy in policies if policy.get("policy_version") == report.scores.policy_version]
+            if len(policies) != 1:
+                raise EvidenceIntegrityError("A report requires one verified pilot configuration for its scoring policy")
+            policy = policies[0]
+            registration_reference = normalize_reference(
+                f"eip155:{policy['chain_id']}:{policy['registry']}:{policy['agent_id']}"
+            )
         if registration_reference is None:
             raise EvidenceIntegrityError("The verified pilot configuration has no valid full registration identity")
         references = set(report.source_references)
