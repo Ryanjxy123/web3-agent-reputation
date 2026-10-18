@@ -1,6 +1,6 @@
 # 本机凭证与历史配置位置
 
-2026-10-18 已检查下列两个文件存在且为普通文件。提交前的本机敏感信息扫描仅将秘密读入内存作匹配比较，没有复制到新项目、输出内容或记录秘密摘要，也没有验证其当前有效性。
+2026-10-18 已检查下列两个文件，并在本轮后台真实调用中分别用于 DeepSeek 与 ZAN 历史只读查询。提交前敏感信息扫描仅在内存匹配，不复制秘密到新项目、不输出内容或秘密摘要。当前有效不代表未来凭证永不失效。
 
 用户明确要求新会话复用这些位置，不要让用户重新发送密钥。凭证内容由确实需要它的后台 loader 在获准调用时读取，不贴进聊天、命令行、前端、源码、日志或证据包。
 
@@ -15,17 +15,23 @@
 
 不要把 RPC URL 当公开配置打印出来，也不要把 Base 主网只读 RPC 与 Anvil 的本地开发链混淆。普通网站用户不需要填写这些配置。
 
+新工具已核实同一 ZAN 项目密钥可用于固定 BSC 端点，并实际读取历史状态。SafeHttpClient 只在实际传输时添加私有密钥段，计划与观测保留无密钥地址；原先无密钥地址加 Bearer 返回 400，不能继续沿用。凭证不允许发送到注册资料指定的其他 RPC，见 ADR-0003。
+
 ## 旧模型配置参考
 
 文件：`D:/xjtu_project/block_chain_new/runtime/autonomous-deepseek-model-20261017-01.private.env`。
 
 仅核实其中非秘密字段：`MODEL_ANALYSIS_PROVIDER=deepseek`、`MODEL_ANALYSIS_MODEL_ID=deepseek-flash`，以及指向上述密钥文件的 `MODEL_ANALYSIS_KEY_FILE`。旧实现曾成功调用固定 `POST https://api.deepseek.com/responses`。这属于 2026-10-17 的历史运行事实，不能承诺该型号、端点和额度在未来一直有效。
 
-该配置还带历史模型启用和预算参数。不要直接加载后运行，更不能把它整份提交到新仓库。新项目当前工具使用显式 CLI，不加载 `.env`；模型网关与环境配置 loader 尚未实现，`.env.example` 只是无秘密模板。
+该配置还带历史模型启用和预算参数。不要直接加载后运行，更不能把它整份提交到新仓库。新项目使用显式 CLI 和固定端点凭证加载，不加载旧 `.env`，不恢复旧预算门禁；`.env.example` 只是无秘密模板。
 
-2026-10-18 已只读核对 [DeepSeek 官方文档](https://api-docs.deepseek.com/api/create-response/)，当前文档仍列出 `deepseek-flash` 与 `POST /responses`。本轮没有读取模型密钥、验证带密钥 API 或产生模型请求。新增额度提议与待确认状态集中在 STATUS，不从历史参数推断授权。
+2026-10-18 已只读核对 [DeepSeek 官方文档](https://api-docs.deepseek.com/api/create-response/)，当前文档仍列出 `deepseek-flash` 与 `POST /responses`。本轮真实调用与余额检查结果以 STATUS 为准。
 
-## 历史费用与调用记录
+## 当前模型使用授权
+
+2026-10-18 用户明确：不设置请求数或费用上限，使用现有 DeepSeek 余额，余额不足时告知，不因旧费用规定停工。此前 20 次/1 美元提议未生效，不再实现或读取旧预算门禁。实际模型 usage 与响应保留，不自动充值；该授权不包含付费 Agent 业务、签名或资产操作。
+
+## 历史费用与调用记录（仅存档）
 
 旧总滚动授权为 40 次请求、2 美元保守预留，包含原四次试点。2026-10-17 这次 30 对象分析完成后，封存账本合计 34 次、1.70 美元预留，实际账单费用未知。授权存在有效窗口，并可能已到期；不能把“剩余六次”当成永久或新项目独立额度。
 
@@ -33,7 +39,7 @@
 - 预算修订与四笔保留记录导入收据：`D:/xjtu_project/block_chain_new/runtime/ai-autonomous-maintenance-20261017-01/budget-application-04/receipt.json`。
 - 原四笔导出：`D:/xjtu_project/block_chain_new/runtime/model-history-export-20261017-01/retained-model-history.private.json`，这是私有记录，不上传。
 
-真实预算权威仍在旧数据库中的费用记录和修订，不由上述文字快照决定。新会话不创建新库、换 owner、换 provider 或重新申请同一意图来清除历史。新费用安排须明确承接旧记录或得到用户对新预算的明确授权。
+上述旧记录保留，不清除或改写；它们不再是本项目调用的预算权威。当前使用遵循用户最新余额授权，不需要迁移旧费用账本或重建费用审批系统。
 
 ## 旧服务配置只作定位
 
