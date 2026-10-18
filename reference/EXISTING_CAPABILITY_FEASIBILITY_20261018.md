@@ -55,7 +55,7 @@
 
 这六个也不能统称为“删一条域名检查即可评价”。[既有目录原件](../runtime/olas-discovery-20261018T063948Z-f38a1edd/olas-mech-directory.response.bin)记录：2469 的 factory 为 `0x65fd74c29463afe08c879a3020323dd7df02da57`，其余本表 11 个预测实例为 `0x8b299c20f87e3fcbff0e1b86dc0acc06ab6993ef`。既有[官方映射调查](OLAS_DISCOVERY_20261018.md)将前者标为 NvmSubscription Native、后者为 Fixed Price Native。本次没有其任务级支付/Request/Deliver原件，故不能假设订阅支付和已验 FixedPrice 路径相同，也不能无依据断言全部事件签名不同。**事件、费用约束及历史调用的实际兼容性仍 UNKNOWN。** 其余实例 factory 相同也不能替代任务核验。
 
-待评估的改进方向是复用既有可信 RPC 下的 Mech.serviceId/serviceRegistry/getOperator、官方桥映射、注册 URI/原件及实际任务证据，证明同一服务，而不强制单一提供方域名字符串。该方向本轮未实施，也未证明新增路径安全通过；不能按每对象名称写例外、把 agentWallet 当执行者，或接受 metadata 任意 RPC。
+后续通用履约路径已复用可信RPC下的Mech.serviceId/serviceRegistry/getOperator、官方桥映射、注册URI原件及历史任务，替代提供方域名条件；两个旧对象和未配置#2340已有验证，见ADR-0011/0012与STATUS。此实现尚未迁入旧预测专项，不改变本表其余对象的14市场充分性UNKNOWN；不能按名字写例外、把agentWallet当执行者或接受metadata任意RPC。
 
 本批 12 个预测对象的声明访问字段均为 unknown。已有用户授权的公开只读取证和成功历史文件访问，不等于可以创建收费预测、签名、购买订阅或付款。2198/2235 的已发布结果只证明那些历史文件可读取；其他对象的具体任务 CID、可访问性与完整 CAR 仍待事实核实，本轮不查询。
 

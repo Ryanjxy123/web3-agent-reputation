@@ -2,7 +2,7 @@
 
 日期：2026-10-18。工作目录：`D:/xjtu_project/block_chain_new/block_chain_new_new`。
 
-Vue 网站、FastAPI、独立 worker 与 PostgreSQL 已实现。当前候选、不同完整评分对象及报告数量以 [STATUS.md](../../STATUS.md) 为准。已适配专项可复用保留证据；没有预置 profile 的规范注册身份也可自动发现注册资料和协议接口，按实际覆盖生成报告。历史采集与离线核验用法见 [MODEL_EVIDENCE_LOOP.md](MODEL_EVIDENCE_LOOP.md)。
+Vue 网站、FastAPI、独立 worker 与 PostgreSQL 已实现。当前候选、不同完整评分对象及报告数量以 [STATUS.md](../../STATUS.md) 为准。已适配专项可复用保留证据；没有预置 profile 的规范身份也可自动发现注册资料、协议接口及适用的Mech历史履约任务，按实际覆盖生成报告。历史采集与离线核验用法见 [MODEL_EVIDENCE_LOOP.md](MODEL_EVIDENCE_LOOP.md)。
 
 ## 日常启动
 
@@ -48,6 +48,8 @@ profile 属于可选运营配置，本机已保留首个历史增仓特例和两
 
 开启公共只读后，没有预置 profile 的规范身份走通用路径：核对目录身份、使用操作者可信 RPC 在固定区块读取注册信息，再从登记文档发现服务和协议资料。已适配的 MCP 发现接口可安排独立可用性采样；取得工具列表或 Schema 只说明已发现声明，不代表业务完成或交易履约通过。缺少业务、独立判据或交易证据时，报告分别列出缺项，不计算完整综合分。若目录与链上两类来源均没有取得有效身份依据，则以 `NEEDS_INFO` 结束并保留采集记录；无法识别的输入返回 `UNSUPPORTED`。
 
+适用的Gnosis Mech可自动复用或只读采集公开历史，冻结七个不同履约B槽，重验请求/交付交易、历史执行控制、任务标识及CID/CAR文件。原件不足保留缺项；按需新评价可只补同七槽缺项，不重读已成功项、不换槽、不创建新业务任务或自动重试。来源清单和原件只追加，规则见 [ADR-0011](../adr/0011-shared-task-delivery-evidence.md)与[ADR-0012](../adr/0012-resume-frozen-task-evidence.md)。实际业务正确性F尚未接入，B通过不代替F。
+
 预测历史的 worker 已完成两个真实对象的正式闭环：2198 综合89.72，2235 综合98.71，分别使用同一代码与各自原件。运营 profile 使用 `policy_id=prediction-history-v1`、`history_run`、`plan_run`，可另给 `identity_run` 身份补充和 `translation_run` 已保存中文材料；这些都是本机保留目录，普通用户不填写。实际命令、真实任务和报告号见 [PREDICTION_REUSE](PREDICTION_REUSE.md)。该轮完成时主库为33候选、3个不同完整评分对象、4份报告；此处是历史验收记录，当前统计见 STATUS。
 
 该路径先核对自动选出的方案、固定十四个不同市场的7+7分组、真实交付事件中的内容摘要及原始文件/CAR。历史cohort不足或已固定交付缺原件时，以 `NEEDS_INFO` 结束且不发新采样；资料具备后才新采十次公开历史文件访问，再离线生成本次报告。复评不会重新收集历史、发起新预测或调用翻译模型。
@@ -56,11 +58,17 @@ profile 属于可选运营配置，本机已保留首个历史增仓特例和两
 
 ## 本轮通用接入验证
 
-本轮已通过真实 API 提交三个没有预置 profile 的身份：Base #45074、BSC #49467、Gnosis #2340。三者均完成链上注册核验并保存报告，实际结果见 [通用接入验证原件](../../runtime/generic-platform-check-20261018T093143Z-c316e720/result.json)。这些报告的可用性、功能、交易样本均为 **0**，`scores.status=NOT_EVALUATED`，无维度分或综合分；它们证明自动接入与缺项报告路径可用，不增加完整评分对象数量。
+首次基线验收通过真实 API 提交三个没有预置 profile 的身份：Base #45074、BSC #49467、Gnosis #2340。三者均完成链上注册核验并保存报告，实际结果见 [通用接入验证原件](../../runtime/generic-platform-check-20261018T093143Z-c316e720/result.json)。当时三份报告的可用性、功能、交易样本均为 **0**，`scores.status=NOT_EVALUATED`；原报告保留，后续2340履约报告另列下文。
 
 随后仅对新增MCP描述文件远端发现格式做了一次受影响的Clicks复评：作业 `c891dc87-f630-48d9-aa1e-33e0cc08996e` 正式发布报告 `5b7a2b70-4fe5-47cc-8396-dee2bf5bcdf7`。真实发现4个工具；发现接口10次新访问为9PASS/1UNKNOWN，p95为10,734ms，可用性80。功能和交易无任务样本，报告PARTIAL、无综合分。见[结果与必要失败控制](../../runtime/generic-descriptor-check-20261018T093900Z-0e4c7f79/result.json)及[详细报告](../../runtime/generic-evaluation-20261018T093902Z-e866bab9/report.html)。复用原件完成错误身份与伪造判分拒绝、私有附件404、网页和当前JS200，未再次发起Agent采样；辅助脚本先前的computed字段读取错误及exit1也保留在结果中。
 
-本轮共享 Schema 生成及前端类型检查、构建已通过。浏览器视觉与 DOM 交互验收仍未完成。
+共用Mech履约规则已离线重验两个旧对象的原七个行为槽：2198覆盖2种工具、2235覆盖3种，合计4种；两者B均为100、无综合分，本次不发布新报告。原件重派生及错误身份/伪造行为判分拒绝退出 **0**，新增公开请求 **0**，见[两对象履约核验](../../runtime/mech-task-check-20261018T105653Z-850f26e7/result.json)。
+
+无预置profile的Gnosis #2340经真实API任务 `b08ad952-11e2-4069-acbf-eeba41358666` 自动采集并发布 `50066371-ef1a-4210-91be-3ec833fe9381`：原七槽6 PASS，1个文件ConnectError，B无分、PARTIAL。新评价 `9b83f0d5-e783-4724-9eae-2e901cd6e4dc` 只补同七槽缺项，新增4次公开读取；入库复核因多注册proof、父来源引用集合不一致而FAILED。修正后复用同份原件完成离线复核、真实PostgreSQL导入和API GET200，两份计划附件与原文件一致，命令退出 **0**，恢复阶段新增公开请求 **0**。
+
+正式新报告为 `72bbfff4-27bb-4f7b-afd1-8302bf03ee60`：**B七PASS、100分；A/F无分，综合分为空，PARTIAL**。见[补证与恢复结果](../../runtime/mech-task-platform-check-20261018T111813Z-cfc50af6/result.json)及[详细报告](../../runtime/generic-evaluation-20261018T111817Z-0415f9eb/report.html)。旧报告、FAILED作业、源清单和原七槽均保留，未重复已成功六项。本轮完成后为34候选、3个不同完整评分对象、10份报告；B报告不增加完整评分对象数量。
+
+本轮复用已有核心、网络及前端构建验证，没有重跑旧测试或构建。API保持本机7754运行，浏览器视觉与DOM交互验收仍为 **BLOCKED**，无远程配置或推送。下一任务 `GENERIC_FUNCTIONAL_EVIDENCE` 的功能正确性路线待确定，可能需要用户决定优先级。
 
 ## 安装、构建与历史首次导入
 

@@ -1,6 +1,6 @@
 # 真实公共 Agent 候选与扩展记录
 
-更新日期：2026-10-18。首批 5 个候选已实查，既有 3 个提供方线索与 Custos、Olas 调查记录继续保留。Brain DeFi 的历史增仓窄范围已完成三维评分及网站自动复评，当前仍为 1 / 至少 10 个对象，不代表整个 Agent 的能力。第二个独立提供方复用尚未完成，新线索不计为已就绪。
+更新日期：2026-10-18。当前主库34候选、3 / 至少10个不同完整评分对象、10份报告，最新结果见[STATUS](../STATUS.md)。完整对象为Brain历史增仓特例及Olas2198、2235历史预测；通用#2340取得行为100但仍无综合分。下表保留首批实查及后续线索，不把新线索计为就绪；跨提供方业务复用仍未证明。
 
 ## 已实际检查的候选
 
@@ -30,9 +30,9 @@
 
 最新[中文详细报告](../runtime/evaluation-report-20261018T060340Z-4c27cea3/report.html)与 JSON、manifest、background 位于 `runtime/evaluation-report-20261018T060340Z-4c27cea3/`，由正式 API 任务及 worker 自动发布，综合 97.93。首轮 `runtime/evaluation-report-20261018T053613Z-fe5237bc/` 与更早排版版保留；同一对象多份报告不增加对象数。
 
-24 个评分槽位固定为 10 次新可用性访问、7 条功能披露、7 条不同运行的行为任务；13 条无动作记录为背景 NOT_APPLICABLE，不进入七任务分母。可用性的非满分来自实际访问耗时，未对真实全通过的功能或行为人为扣分。`MODEL_PILOT`、`FIRST_EVIDENCE_LOOP`、`LOCAL_PLATFORM` 本机功能闭环已完成；下一步 `PUBLIC_HISTORY_ADAPTER`，至少 10 个和独立提供方复用尚未完成。
+该增仓报告24槽为10次新访问、7条披露、另7条行为；13条无动作记录为背景NOT_APPLICABLE。可用性差异来自实际耗时，功能/行为未人为扣分。后续已完成两对象预测复用及通用接入/履约；下一任务 `GENERIC_FUNCTIONAL_EVIDENCE` 路线待对齐，至少10个和跨提供方业务复用仍未完成。
 
-Git 为 `codex/local-platform`，前轮提交 `2b71d65` / `ed3152f`；本轮平台和资料状态待分批提交，最终以 `git log` 为准。`REMOTE_NOT_CONFIGURED`，未 push 或创建 PR。
+Git为 `codex/local-platform`，提交记录以 `git log` 及STATUS为准；`REMOTE_NOT_CONFIGURED`，未push或创建PR。
 
 ## 首批证据定位
 
