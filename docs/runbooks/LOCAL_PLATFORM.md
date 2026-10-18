@@ -1,10 +1,12 @@
 # 本机平台启动与实际验收
 
-2026-10-19：当前task_id=`PREDICTION_ORDINARY_HISTORY_EXPANSION`。用户授权的目录排序/筛选与全站字号放大已实现，唯一必要前端类型检查/构建exit0；本机新JS/CSS与网站200、字节SHA一致，浏览器视觉/交互仍BLOCKED。下一明确任务是用现有规则扩充完整评分：2359在旧128条以外的三页又有41条普通请求关联（仅背景潜力，尚非合格题），按已批准512上限启动自动资格与评价；不实现签名协议。当前完整仍9个，三维/权重/10点A及7F/7B不变，旧报告保留。
+2026-10-19：目录排序/筛选与全站字号放大已完成；2359复用现有预测规则取得完整84.39分，至少10个不同真实公共Agent完整评分的数量目标已达到。真实PG为38候选/46报告/10个完整身份/0活动任务；三维、30/40/30及10点A、互斥7F/7B门槛不变。缓存初始化租约修复已由一次必要真实PG验证通过并重载。当前task_id=`LOCAL_DELIVERY_HANDOFF`；下一步优先核查跨提供方既有声明及可测证据，不先新建评分类别。generic F、跨专项组合、跨提供方同类完整复用及浏览器视觉验收仍未完成。
 
-日期：2026-10-18。工作目录：`D:/xjtu_project/block_chain_new/block_chain_new_new`。
+更新日期：2026-10-19。工作目录：`D:/xjtu_project/block_chain_new/block_chain_new_new`。
 
-Vue 网站、FastAPI、独立 worker 与 PostgreSQL 已实现。本轮收口的真实PG快照为38候选、35份报告、7个不同完整评分对象、0活动任务；最新结果以[STATUS.md](../../STATUS.md)为准。已适配专项可复用保留证据；没有预置 profile 的规范身份也可自动发现注册资料、协议接口及适用的Mech历史履约任务，按实际覆盖生成报告。历史采集与离线核验用法见 [MODEL_EVIDENCE_LOOP.md](MODEL_EVIDENCE_LOOP.md)。
+Vue 网站、FastAPI、独立 worker 与 PostgreSQL 已实现。最新真实PG快照为38候选、46份报告、10个不同完整评分对象、0活动任务；最新结果以[STATUS.md](../../STATUS.md)为准。已适配专项可复用保留证据；没有预置 profile 的规范身份也可自动发现注册资料、协议接口及适用的Mech历史履约任务，按实际覆盖生成报告。历史采集与离线核验用法见 [MODEL_EVIDENCE_LOOP.md](MODEL_EVIDENCE_LOOP.md)。
+
+当前运行：API7754、PG55438，单worker记录`runtime/v2-worker-revision4-20261018T161853Z/process.json`（launcher PID36044）。2359终态且确认0active后才重载，已载入缓存构造/来源准备的续约修复。最终只读核对`runtime/prediction-v2-close-20261018T161826Z-c3e056d3/result.json` exit0；前端构建和新JS/CSS本机读取通过，浏览器视觉/交互仍BLOCKED。
 
 ## 日常启动
 
@@ -60,9 +62,9 @@ profile 属于可选运营配置，本机已保留首个历史增仓特例和两
 
 ## 当前无需profile的预测自动接入与本轮收口
 
-窗口授权已执行：2150最多512、实际200、10合格，最终PARTIAL；原128条及旧分数保留。新阶段先研究签名交付多对象可评分性，不执行签名或链上写入。
+窗口授权已执行：2150最多512、实际200、10合格，最终PARTIAL；原128条及旧分数保留。签名调查未证明业务可评分性，用户已选择暂停签名实现、扩大普通候选。2359按同一普通规则在203条中取得14题，完整84.39；不执行签名或链上写入。
 
-当前9个不同完整对象，真实PG38候选/45报告/0active；普通阶段收口原件 `runtime/prediction-v2-close-20261018T151306Z-9fd425ac/result.json` exit0。单worker进程记录 `runtime/v2-worker-revision4-20261018T152610Z/process.json`，API7754；视觉仍BLOCKED。下文7对象/35报告为历史快照，当前结果以STATUS开头为准。
+当前10个不同完整对象，真实PG38候选/46报告/0active；收口原件 `runtime/prediction-v2-close-20261018T161826Z-c3e056d3/result.json` exit0。单worker进程记录 `runtime/v2-worker-revision4-20261018T161853Z/process.json`，API7754；视觉仍BLOCKED。下文7对象/35报告、9对象/45报告均为历史快照，当前结果以STATUS开头为准。
 
 普通用户只提交完整canonical或注册页面，平台核实登记、工具声明和协议后自动执行；不填profile、不选方案、不二次确认。支持保留的prediction-history-v1与显式V2；14个不同已结算问题互斥7F/7B及10次A，不降门槛或按结果换槽。当前仅已核Fixed Price Native与Omen/IPFS，订阅2469未适配，不承诺任意登记对象完整出分。
 
@@ -198,7 +200,7 @@ uv sync --locked
 
 随后通过仓库读取与 socket 检查确认启动器自己的 API 已停止，原有两份报告仍保留，该核对也退出 **0**。原件 `worker-and-assets-checks.json`、`launcher-check.json` 均位于 `runtime/local-platform-check-20261018T055831Z-95665164`。早期时间字符串比较错误只属于验收汇总，实际测量与报告没有失败。
 
-该历史轮次有 1 个真实对象完成窄范围三维评分，后续已增加预测实例及通用缺项报告，当前统计以 [STATUS.md](../../STATUS.md) 为准；至少 10 个真实公共 Agent 获得完整评分的目标仍未完成。网站/API/worker/PG 已实现，真实提交到报告保存、历史版本保留、缺项任务和启动器生命周期均有实际验收记录。浏览器视觉仍为 **BLOCKED**，未声称完成 DOM 交互或桌面/手机视觉验收。
+该历史轮次有 1 个真实对象完成窄范围三维评分，后续已增加预测实例及通用缺项报告，当前统计以 [STATUS.md](../../STATUS.md) 为准；至少10个真实公共Agent完整评分数量目标现已达到；各历史数量以其采集时刻为准。网站/API/worker/PG 已实现，真实提交到报告保存、历史版本保留、缺项任务和启动器生命周期均有实际验收记录。浏览器视觉仍为 **BLOCKED**，未声称完成 DOM 交互或桌面/手机视觉验收。
 
 
 2026-10-18 预测实例完成时的历史启动记录：通过常规 `./scripts/start_local_platform.ps1 -EnablePublicReadOnly` 保持网站和worker运行。第一次因启动脚本仍对所有profile强制要求增仓专用context_run/rpc_runs而exit1；将必需字段按已支持policy区分后，仅重试该失败启动，健康检查通过，当时RUNNING于127.0.0.1:7754，并非已退出0。未重新采集或评分，PostgreSQL仍为本项目原实例。

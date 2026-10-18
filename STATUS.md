@@ -1,10 +1,12 @@
 # 新项目当前状态
 
-2026-10-19：当前task_id=`PREDICTION_ORDINARY_HISTORY_EXPANSION`。用户授权的目录排序/筛选与全站字号放大已实现，唯一必要前端类型检查/构建exit0；本机新JS/CSS与网站200、字节SHA一致，浏览器视觉/交互仍BLOCKED。下一明确任务是用现有规则扩充完整评分：2359在旧128条以外的三页又有41条普通请求关联（仅背景潜力，尚非合格题），按已批准512上限启动自动资格与评价；不实现签名协议。当前完整仍9个，三维/权重/10点A及7F/7B不变，旧报告保留。
+2026-10-19：目录排序/筛选与全站字号放大已完成；2359复用现有预测规则取得完整84.39分，至少10个不同真实公共Agent完整评分的数量目标已达到。真实PG为38候选/46报告/10个完整身份/0活动任务；三维、30/40/30及10点A、互斥7F/7B门槛不变。缓存初始化租约修复已由一次必要真实PG验证通过并重载。当前task_id=`LOCAL_DELIVERY_HANDOFF`；下一步优先核查跨提供方既有声明及可测证据，不先新建评分类别。generic F、跨专项组合、跨提供方同类完整复用及浏览器视觉验收仍未完成。
 
-当前以本页开头为准。已有批次新增2135完整88.27与2267完整29.8；完整9个。当前扩普通协议候选；签名调查已收口并暂停实现，视觉BLOCKED，无remote。
+当前数量目标已达到：Brain增仓特例1个、同协议预测9个，共10个不同身份。最新2359报告84.39；旧报告、未评分候选及缺项保留。签名实现暂停，视觉BLOCKED，无remote。
 
-2026-10-19 缓存初始化租约修复：2359首次本地缓存构造超过租约窗口，旧执行者未发布，随后由新fence恢复。现已把既有报告核验的15秒等待续约提为`run_with_lease`，用于缓存构造、来源准备和报告核验；租约SQL、fencing及评分规则不变。唯一受影响验证`./.venv/Scripts/python.exe -X utf8 runtime/check_blocking_stage_lease.py` exit0：独立真实PG schema中17.36秒阻塞正常续约、错误fence不执行operation、operation原始TimeoutError透传；1内部job/0 Agent/0 report，schema已按创建记录清理，public schema操作0。原件`runtime/blocking-stage-lease-check-20261018T161504Z-119809cb/result.json`。不重跑既有65秒用例或整套测试，当前活动worker待2359结束后再重载。
+2026-10-19 缓存初始化租约修复：2359首次本地缓存构造超过租约窗口，旧执行者未发布，随后由新fence恢复。现已把既有报告核验的15秒等待续约提为`run_with_lease`，用于缓存构造、来源准备和报告核验；租约SQL、fencing及评分规则不变。唯一受影响验证`./.venv/Scripts/python.exe -X utf8 runtime/check_blocking_stage_lease.py` exit0：独立真实PG schema中17.36秒阻塞正常续约、错误fence不执行operation、operation原始TimeoutError透传；1内部job/0 Agent/0 report，schema已按创建记录清理，public schema操作0。原件`runtime/blocking-stage-lease-check-20261018T161504Z-119809cb/result.json`。不重跑既有65秒用例或整套测试，已确认0active后重载唯一自有worker，记录`runtime/v2-worker-revision4-20261018T161853Z/process.json`，新launcher PID36044；API和PG未重启。
+
+**本轮最终本机只读收口**：`runtime/capture_prediction_v2_close.py` exit0，原件`runtime/prediction-v2-close-20261018T161826Z-c3e056d3/result.json`。真实PG38候选/46报告/10个不同完整身份/0active；2135、2150、2267、2359报告及原输入附件200、SHA一致，1722缺项报告200，网站与新JS200。完整综合分范围29.8–98.71。0新公网/模型；不是浏览器视觉验收。
 
 ## 本轮V2证据扩展
 
@@ -27,15 +29,15 @@
 
 **目录可用性已完成**：App保留搜索，新增状态/范围筛选（预测V1/V2同组）、最近报告更新/综合分高低/名称排序、结果计数和清空；空分始终后置，真实0正常排序，filter新数组再排序。同分按时间/名称/key稳定排列。全站正文17px、卡片/控件16px、报告正文15–17px，小字最低12px，移动端换行，不用zoom/新依赖。Node22.17下唯一受影响`pnpm run build` exit0；新资源index-ClLolS_X.js、index-BB3T5TnR.css。`runtime/check_directory_frontend_assets.py` exit0，网站/两资源200且SHA与dist完全一致，原件 `runtime/directory-frontend-check-20261018T155942Z-5f80ca72/result.json`；视觉/实际交互未跑，既有浏览器崩溃BLOCKED不重试。
 
-**下一覆盖来源**：新增三页2359官方索引各1POST/exit0，skip128/160/192分别32行中4/9/28有普通请求关联，其余null不推定签名；0输入/输出/模型/评分。原件 `runtime/prediction-history-tail-discovery-20261018T155700Z-2472f347/`、`20261018T155800Z-342193eb/`、`20261018T155759Z-0c5bd73a/`。该对象已有真实预测工具声明和原范围6个合格问题，扩展历史比新建单对象规则更直接；是否凑14仍由新自动资格决定。
+**已使用的覆盖来源**：新增三页2359官方索引各1POST/exit0，skip128/160/192分别32行中4/9/28有普通请求关联，其余null不推定签名；该发现阶段0输入/输出/模型/评分。原件 `runtime/prediction-history-tail-discovery-20261018T155700Z-2472f347/`、`20261018T155800Z-342193eb/`、`20261018T155759Z-0c5bd73a/`。后续同规则自动资格已取得14题并完成评分，见下。
 
 **其他普通候选的第二批**：1841/1966/1983共18必要读，只有通用任务描述，MCP/A2A五404一TransportError；3553/3179/2682共16读，前两无预测Schema且描述404，后者登记JSONTransportError。六项均UNKNOWN，没有历史/API/模型/评分。包 `runtime/ordinary-frozen-group-20261018T155435Z-bd36f10e/` 与 `runtime/ordinary-candidate-next3-20261018T155507Z-9fc3a7f6/`，各子命令exit0或1仅表示有限采集/缺项；语义未评，不能当业务PASS。
 
-**2359当前实际进度**：job `50eb8e3e-19f3-4108-a64a-0608bbec6ca2`、批次 `runtime/prediction-auto-batch-20261018T160051Z-eedabcb1/`、history `runtime/prediction-auto-history-20261018T160240Z-4dc3a559/`。新512范围已在实际203条达到READY14且14不同Question：14合格、173缺普通请求关联UNKNOWN、15较早重复/pilot排除、1未结算；计划已先冻结，交付/A/报告仍在执行，不能计第10个完整。初次本地缓存扫描无heartbeat导致一次租约恢复，空history160118Z-e3cb1dcb/旧日志保留，现fence2正常续约，未把它算Agent失败；通用阻塞阶段续约修复正在做，保留原owner/fence/过期SQL，不重启活动worker。
+**2359普通历史扩展已完成**：job `50eb8e3e-19f3-4108-a64a-0608bbec6ca2`，批次`runtime/prediction-auto-batch-20261018T160051Z-eedabcb1/`真实driver及执行层exit0，1提交/1终态/0在途。history `runtime/prediction-auto-history-20261018T160240Z-4dc3a559/`在203条中取得14不同Question后停止：14合格、173缺普通请求关联UNKNOWN、15较早重复/pilot排除、1未结算。资格不使用输出；先冻结7F/7B，本轮新输出读取在计划之后，6份已持有输出直接复用，不声称全新盲测。另采10点A，七个B底层链核验全PASS。新报告`6b154968-0e9b-4315-9122-71db03d3ecc6`，`runtime/evaluation-report-20261018T161647Z-cb458b73/`，A89.79/F68.62/B100、综合84.39；历史交付窗口为UTC2026-09-30 15:33:05–22:45:35，结算固定Gnosis48822687，不外推长期表现或实时推理。旧128范围PARTIAL及首次缓存超时租约恢复记录保留，签名路径未实现或计分。
 
 ## 当前完整结果
 
-签名阶段已按用户新决定停止扩展，详见[可评分性调查](reference/SIGNED_DELIVERY_FEASIBILITY_20261018.md)。16身份离线群体中7身份有301条缺普通请求关联的索引行，不代表301个签名预测。2150首例为Say Hi；2359三固定输入分别一次超时。新增来源11次（官方/2150输入4，2359的RPC/输入7），无输出、模型、验签或评分；没有新建协议评分规则。生产仅把真实的整个request为空改为清楚的中文缺关联说明，保持原UNKNOWN结论；低影响说明修改不另写工程测试或重采旧报告。worker已在确认0active后重载最新摘要/说明，进程记录 `runtime/v2-worker-revision4-20261018T152610Z/process.json`。
+签名阶段已按用户新决定停止扩展，详见[可评分性调查](reference/SIGNED_DELIVERY_FEASIBILITY_20261018.md)。16身份离线群体中7身份有301条缺普通请求关联的索引行，不代表301个签名预测。2150首例为Say Hi；2359三固定输入分别一次超时。新增来源11次（官方/2150输入4，2359的RPC/输入7），无输出、模型、验签或评分；没有新建协议评分规则。生产仅把真实的整个request为空改为清楚的中文缺关联说明，保持原UNKNOWN结论；低影响说明修改不另写工程测试或重采旧报告。当时在确认0active后重载摘要/说明，历史进程记录 `runtime/v2-worker-revision4-20261018T152610Z/process.json`；现运行进程见本页开头。
 
 | 不同真实对象 | 评价范围 | A / F / B | 最新综合分 |
 | --- | --- | --- | ---: |
@@ -48,19 +50,20 @@
 | Olas #4110（service3786） | 历史预测及登记日期补录 | 89.69 / 53.89 / 100 | 78.46 |
 | Olas #2267 | 历史预测V2，实际错误输出 | 99.34 / 0 / 0 | 29.8 |
 | Olas #2135 | 历史预测V2，历史事件核验修订4 | 97.05 / 72.89 / 100 | 88.27 |
+| Olas #2359 | 历史预测V2，批准512范围内203条审查 | 89.79 / 68.62 / 100 | 84.39 |
 
 4110新报告 `6b4a1a7b-278b-48f0-88e8-980edc86129f` 已真实PG发布，原件 `runtime/evaluation-report-20261018T130748Z-45152bd3/amendment-result.json` exit0。原14任务与10次A复用，A/F不变；补登记证据后B可完整核验。旧PARTIAL保留，同身份多报告只计一个对象。范围分不代表整个Agent，历史入口A不代表实时推理在线。
 
 ## 旧版缺项与剩余扩展
 
-下表为V1旧取证快照，不表示CID不存在。2267已由V2取得完整分；2135/2150进度见上。其余候选继续保留缺项。
+下表为V1旧取证快照，不表示CID不存在。2267、2135、2359已由V2取得完整分；2150扩大历史后仍PARTIAL，见上。其余候选继续保留缺项。
 
 | 对象 | 保留结果 | 处理 |
 | --- | --- | --- |
 | 2135 | 128份输入404，0合格市场 | 缺资料，不记预测失败 |
 | 2150 | 109份输入404、10条无market_id、9条非支持工具，0合格 | 按缺项保留 |
 | 2267 | 42份输入404、79条无market_id、7条非支持工具，0合格 | 按缺项保留 |
-| 2359 | 只有6个合格市场，少于14 | 保留PARTIAL，不降门槛 |
+| 2359 | 旧128范围仅6题，旧PARTIAL保留 | 新512范围已凑14并完整评分，规则不变 |
 | 4134（service3809） | 共用null CID解析已修；首条input是inline JSON（129/174字节），无request_context | 不为inline另开类别、不重跑；追加格式说明 |
 | 1722 | 本次38条：36份输入404、2条无market_id | 新四对象批次0合格 |
 | 2266 | 14份输入404 | 新四对象批次0合格 |
@@ -157,7 +160,7 @@
 
 首个限定范围评分已完成：**服务可用性 88.89、功能声明一致性 100、交易行为可靠性 100，综合分 96.67，状态 COMPLETE**。共 24 个真实评价槽位（10 次新可用性、7 条功能披露、7 条不同运行的三步行为）；另有 13 条无动作记录单列为背景 NOT_APPLICABLE，不进入七任务分母。可用性因真实访问延迟而非满分，没有把 HTTP 成功直接记为 100。
 
-首个增仓窄范围只有1个真实对象获得完整分，保留为特例；后续预测自动接入使当前合计增至7个，详见本页开头。至少10个与第二独立提供方同类完整复用目标仍未完成；网站和后台已本机跑通，浏览器视觉未验收。
+首个增仓窄范围只有1个真实对象获得完整分，保留为特例；后续预测自动接入使当前合计增至7个，详见本页开头。至少10个完整身份现已达到，第二独立提供方同类完整复用仍未完成；网站和后台已本机跑通，浏览器视觉未验收。
 
 首次可审阅的[中文详细报告](runtime/evaluation-report-20261018T053613Z-fe5237bc/report.html)：
 
@@ -223,7 +226,7 @@ Base 注册原件 `runtime/base-registration-probe-20261018T062514Z-7cb4f595/`�
 ## 尚未实现或未验收
 
 - 网站/API/worker已本机跑通；未配置对象可自动注册/协议接入，已支持的MCP可用性和Mech历史履约分别出分。未知协议的实际业务及功能正确性仍不能自动评分，桌面/手机视觉验收未完成。
-- 第二个独立提供方的同类复用与至少 10 个完整评分对象：未完成；新线索见 [候选调研](reference/CANDIDATE_RESEARCH_20261018.md)。
+- 至少10个完整身份已达到；第二个独立提供方的同类完整复用仍未完成；新线索见 [候选调研](reference/CANDIDATE_RESEARCH_20261018.md)。
 - PostgreSQL 集成与并发验收已通过；Anvil 集成 NOT_RUN。本轮为真实主网只读历史核验，不依赖 Anvil 或发起新链交易。
 - 模型 API 已实际调用；付费 Agent、签名、主网写入、资产交易：NOT_RUN。
 - Node 22.17.0 与 PostgreSQL 17.11 已用于实际构建/服务，Foundry 1.8.4 只用于必要 ABI 编解码；Docker 未找到，不影响本机功能闭环。
@@ -231,7 +234,7 @@ Base 注册原件 `runtime/base-registration-probe-20261018T062514Z-7cb4f595/`�
 
 ## Git
 
-独立仓库根目录 `D:/xjtu_project/block_chain_new/block_chain_new_new`，分支 `codex/local-platform`。本轮共用V2实现562526b、输出/直接原题f00e263、历史事件及批准窗口b038acf、摘要修正ca6cbf5已提交；签名研究与最新状态文档待本轮收口提交。暂存diff与本机秘密计数扫描通过，runtime/密钥不入Git，旧提交保留。
+独立仓库根目录 `D:/xjtu_project/block_chain_new/block_chain_new_new`，分支 `codex/local-platform`。本轮共用V2实现562526b、输出/直接原题f00e263、历史事件及批准窗口b038acf、摘要修正ca6cbf5已提交；签名研究3af431f、前端d5239ce、租约修复7250cde已提交；最新10个完整身份结果随本次文档收口提交。暂存diff与本机秘密计数扫描通过，runtime/密钥不入Git，旧提交保留。
 
 新远程 REMOTE_NOT_CONFIGURED；push、PR、部署均 NOT_RUN。未操作父仓库、旧服务、其他分支或共享历史。
 
