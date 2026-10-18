@@ -14,6 +14,7 @@
 
 - **同协议历史事件与2135补充**：[ADR-0018](docs/adr/0018-marketplace-request-event-versions.md)。官方父版/变更源码和2135、2150两个真实对象先核实四参数事件；纯核验默认旧修订不变，显式新修订仍逐项核身份、授权、价格、接手、调用、CID与确认。`runtime/check_marketplace_event_revision.py` 一次必要实原件验证exit0：两旧事件UNKNOWN→PASS、2198当前事件整结果不变、7拒绝控制通过，0公网/模型/A。2135新报告 `9dbc7665-6942-4f7f-9af9-98229de3c0c2` 位于 `runtime/evaluation-report-20261018T145744Z-4d118477/`，A97.05/F72.89/B100、88.27；14任务、10A与原SHA不变。`runtime/append_prediction_event_revision.py` 最终exit0，真实PG独立导入、API200、旧事件回执附件200且SHA一致；首次沙箱本机PG10013 exit1发生在生成前，失败审计保留。发布审计 `runtime/prediction-event-revision-publication-20261018T145702Z-cfb27de2/result.json`。
 - **扩大窗口**：[ADR-0019](docs/adr/0019-prediction-history-bound.md)在依赖实现前记录用户批准。V2自动接入统一512、旧profile/报告仍原值。新2150批次只提交一次canonical，不写对象专用profile。driver现识别V1/V2，旧driver退出2记录不改。
+- **面向用户的摘要修正**：共用HTML/Vue明确区分没有有效概率、概率方向错误和履约中的约定输出差异，不将2267的Invalid response概括成链上交易失败。没有改分或覆写旧报告。可审阅包 `runtime/prediction-summary-presentation-20261018T150728Z-fc35cc3e/` 绑定原JSON和新HTML的SHA，离线生成最终exit0（首试严格模型载入入口错误exit1保留）；原分与源文件SHA保持。此次Vue实际变更后仅运行必要的 `pnpm run build`，exit0，新资源 `/assets/index-DEE3Wput.js`；未重跑旧套件，视觉仍BLOCKED。
 
 ## 当前完整结果
 

@@ -146,8 +146,14 @@ def render_evaluation_report(report: EvaluationReport) -> str:
     if scores.status == "COMPLETE":
         status = "本次范围内已完成评价"
         if prediction:
-            finding = (f'七个历史问题的概率已与最终市场结算对应，其中 {scores.functional.failed} 题给最终结果的概率低于中性或输出不合约定；'
-                       f'另外七项链上交付中有 {scores.behavioral.failed} 项未通过完整核验。')
+            invalid = sum(item.sample.purpose == MeasurementPurpose.FUNCTIONAL
+                          and item.sample.verdict == Verdict.FAIL and item.sample.prediction is None
+                          for item in report.samples)
+            finding = f'本次核验 {scores.functional.observed} 个不同历史问题，平均概率信用分为 {scores.functional.value:.2f}，这不是预测准确率。'
+            if invalid:
+                finding += f'其中 {invalid} 份交付未返回符合约定的有效概率，按规则计零信用。'
+            finding += (f'另 {scores.behavioral.observed} 个任务的履约核验包含链上归属与约定输出，'
+                        f'{scores.behavioral.passed} 项通过、{scores.behavioral.failed} 项未通过；具体输出差异与链上发现见逐条结果。')
         elif generic:
             finding = (f'本次 {scores.functional.observed} 个不同任务的功能声明核验有 {scores.functional.passed} 条通过、'
                        f'{scores.functional.failed} 条未通过；另外 {scores.behavioral.observed} 个任务的真实交易履约核验有 '

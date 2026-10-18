@@ -54,8 +54,10 @@ const conclusion = computed(() => {
   if (scores.status === 'COMPLETE') {
     const findings = []
     if (isPrediction.value) {
-      findings.push(`本次 ${scores.functional.observed} 个不同问题的已结算预测，平均概率信用分为 ${score(scores.functional.value)}，这不是预测准确率。`)
-      findings.push(`另 ${scores.behavioral.observed} 个问题的链上归属与交付核验中，${scores.behavioral.passed} 条通过、${scores.behavioral.failed} 条未通过。`)
+      const invalid = props.report.samples.filter(item => item.sample.purpose === 'functional' && item.sample.verdict === 'FAIL' && !item.sample.prediction).length
+      findings.push(`本次核验 ${scores.functional.observed} 个不同历史问题，平均概率信用分为 ${score(scores.functional.value)}，这不是预测准确率。`)
+      if (invalid) findings.push(`其中 ${invalid} 份交付未返回符合约定的有效概率，按规则计零信用。`)
+      findings.push(`另 ${scores.behavioral.observed} 个任务的履约核验包含链上归属与约定输出，${scores.behavioral.passed} 条通过、${scores.behavioral.failed} 条未通过；具体输出差异与链上发现见逐条结果。`)
     } else if (scores.functional.failed === 0 && scores.behavioral.failed === 0) {
       findings.push('本次样本中的历史披露，以及包装、兑换、增仓三笔公开操作均已核实。')
     } else {
