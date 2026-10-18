@@ -1,8 +1,47 @@
-# 既有 14 对象的预测能力与可测性事实表
+# 预测能力可测性：实际结果与历史快照
+
+## 当前真实结果（2026-10-18 收口）
+
+本次仅离线整理已有 runtime，没有新增网络、模型请求、评分或测试。下表为最初 12 个预测身份加后续 4 个身份，共 **16 个不同 canonical**；一个身份的多个工具、报告版本或作业不重复计数。共同注册合约 `R = 0x8004a169fb4a3325136eb29fa0ceb6d2e539a432`，`100:ID` 表示 `eip155:100:R:ID`，service ID 单列。
+
+当前已发布完整预测评分的身份为 **2198、2235、2340、2182、2360、4110，共 6 个**；加上 Brain DeFi 的 LP 特例，平台为 **7 个不同完整评分对象**。下面的部分、无分和未适配记录不计完整覆盖。统一沿用 `prediction-history-v1` 的固定 cutoff、最多 128 条历史交付资格检查、14 个不同市场与互斥 7+7 任务门槛；未因对象或采集结果改变标准。
+
+| canonical 简写 | service | 当前结果 | 实际证据与缺项 |
+| --- | --- | --- | --- |
+| `100:2198` | 2198 | COMPLETE，综合 89.72 | 已发布完整历史预测报告；仅覆盖所评任务。[报告](../runtime/evaluation-report-20261018T074802Z-2378ca3d/report.json) |
+| `100:2235` | 2235 | COMPLETE，综合 98.71 | 已发布完整历史预测报告；仅覆盖所评任务。[报告](../runtime/evaluation-report-20261018T074803Z-c4f9fbe0/report.json) |
+| `100:2340` | 2340 | COMPLETE，综合 91.28 | 自动匹配方案后的更正结果，保留原计划及原件。[报告](../runtime/evaluation-report-20261018T121131Z-58798899/report.json) |
+| `100:2182` | 2182 | COMPLETE，综合 90.56 | 正式自动批次已完成，不再是只有 pilot 的对象。[API 报告原件](../runtime/prediction-auto-batch-20261018T115755Z-d735bc1f/2182/report.json) |
+| `100:2360` | 2360 | COMPLETE，综合 88.62 | 14 市场与实际 10 次文件访问后成功入库。[API 报告原件](../runtime/prediction-auto-batch-20261018T122655Z-7696abd2/2360/report.json) |
+| `100:2359` | 2359 | PARTIAL，无维度分与总分 | 仅 6 个合格市场，不足 14；保留实际原件，不换题或降低门槛。[报告](../runtime/prediction-auto-batch-20261018T122655Z-7696abd2/2359/report.json) |
+| `100:4110` | **3786** | COMPLETE；A89.69、F53.89、B100、综合78.46 | 原PARTIAL保留；仅补原目录读取失败的登记证明，实际mint及同笔服务关联已核实。1次目录GET+3次RPC，原14任务、10次A均未重采；按ADR-0015通用补录后重建B七PASS。[追加报告](../runtime/evaluation-report-20261018T130748Z-45152bd3/amendment-result.json) |
+| `100:4134` | **3809** | 无分；首条格式未适配 | 首条固定任务的 Request/Deliver 实际为 inline JSON，不是当前方案支持的 32 字节 CID；输入也无 Omen context/market_id。旧运行的 NoneType 属平台解析问题；首条诊断不外推其余 125 条，没有重试该对象。[原事件诊断](../runtime/cid-inline-inspection-20261018T125004Z-3b718fb5/proof.json) |
+| `100:2135` | 2135 | 0 资格，NOT_EVALUATED | 128 条输入均在指定 `metadata.json` 路径返回 HTTP404。[B1] |
+| `100:2150` | 2150 | 0 资格，NOT_EVALUATED | 109 次指定路径404、10 条缺明确市场 ID、9 条工具不在已核预测操作集合。[B1] |
+| `100:2267` | 2267 | 0 资格，NOT_EVALUATED | 42 次指定路径404、79 条缺明确市场 ID、7 条工具不在已核预测操作集合。[B1] |
+| `100:2469` | 2469 | 未适配；未运行预测批次 | 实际为 NvmSubscription Native，不能套用 Fixed Price Native 的支付/事件核验；未购买订阅或创建付费任务。[协议原件](../runtime/olas-discovery-20261018T063948Z-f38a1edd/olas-mech-directory.response.bin) |
+| `100:1722` | 1722 | 0 资格，NOT_EVALUATED | 索引实际返回 38 条：36 次指定路径404、2 条缺明确市场 ID。[B3] |
+| `100:2266` | 2266 | 0 资格，NOT_EVALUATED | 索引实际返回 14 条，输入均在指定路径404。[B3] |
+| `100:2673` | **2661** | 0 资格，NOT_EVALUATED | 索引实际返回 29 条：22 次指定路径404、6 条工具不符、1 条缺明确市场 ID。[B3] |
+| `100:2699` | **2685** | 0 资格，UNKNOWN 缺项，无分 | 索引实际返回 2 条：1 条读取 ReadTimeout、1 条工具不符。超时不证明该任务不能评价，没有自动重试。[B3] |
+
+这里的“0 资格”只描述该次固定范围内未取得符合本政策的样本，不是 Agent 的零分或业务 FAIL。HTTP404 只证明**实际请求的指定 `metadata.json` 路径**返回404，不证明整个 CID 不存在；缺 market_id 不猜市场，读取超时不当失败，未适配不当不可用。部分报告保留已有证据，完整报告也不把本范围结果转给其他功能。可用性 A 测量公开历史交付文件访问，不代表实时推理服务。
+
+三批实际汇总与逐槽原件：
+
+- **B1**：[共用发现修正后资格汇总](../runtime/prediction-auto-batch-20261018T121455Z-3e3d1f01/qualification-summary.json)，绑定 2135/2150/2267 各自 plan、qualifications 与 manifest SHA；[批次结果](../runtime/prediction-auto-batch-20261018T121455Z-3e3d1f01/result.json)。
+- **B2**：[2359/2360/4110/4134 批次恢复后结果](../runtime/prediction-auto-batch-20261018T122655Z-7696abd2/result-after-recovery.json)。原 [停止时快照](../runtime/prediction-auto-batch-20261018T122655Z-7696abd2/result.json) 未改；4110 的租约发布问题由平台恢复，不改变原分或重采原 A。
+- **B3**：[新增四身份资格汇总](../runtime/prediction-auto-batch-20261018T125324Z-96bd00cd/qualification-summary.json)，含实际返回条数、404/缺标识/超时原因与原件 SHA；[批次结果](../runtime/prediction-auto-batch-20261018T125324Z-96bd00cd/result.json)。[冻结候选材料](../runtime/prediction-expansion-candidates-20261018T124219Z-45506011/candidates.json) 不等于可测或 READY。
+
+自动接入现已使用真实注册 URI、官方桥映射、Mech/service/getOperator 与历史原件，不再把提供方 operator 域名当作共同前置条件。域名缺失的旧判断不能覆盖后续真实接入结果；同样，自动接入成功不保证历史样本充分。上述是当前执行事实，以下原分析只保留其时间点含义。
+
+## 建模前离线分析：历史快照，非当前结论
+
+**以下保留原审阅内容与来源索引。** 其中“仅 2 个完整”“其余 10 个 UNKNOWN”“缺 operator 域名导致拒绝”“尚未迁入预测专项”等均描述自动扩量实施前的状态，已由上方实测结果更新，不作为当前推进依据；旧 `capability_proposals` 草案也不作推荐输入。
 
 日期：2026-10-18。任务为 `CAPABILITY_COVERAGE_ANALYSIS`。仅离线审阅已有材料，没有新网络、模型、历史采集、评分或工程测试；没有设计第三类评价。
 
-## 计数口径与结论
+### 历史：计数口径与结论
 
 输入为 [records.json](../runtime/capability-inventory-20261018T080106Z-2c848b9d/records.json) 和 [capability-links.json](../runtime/capability-inventory-20261018T080106Z-2c848b9d/capability-links.json)。前者 SHA256 为 `82f91eef15c113aaaa4ac3fb315f69cfb8b55fa153ab949dabd028adbda27b62`；后者为 `3dfaf9eb9de9a348fe9088e99c33f901648c942c73d7400b7a7b7ad5fc525bf3`。清单含 14 个不同 canonical 引用、149 条已保留声明和 149 条映射记录。映射中的 `capability_proposals` 是草案，本表不将其作为语义分类或可测结论。
 
@@ -13,13 +52,13 @@
 
 本表使用同一对象条件合取：业务声明、输入输出、身份/协议适配、读取许可、独立判据和任务历史不能从不同对象拼接。“声明 12／当前注册模板 6／完整已证 2”是不同层次，不能相互替代。
 
-## 输入输出说明不等于强约束概率 Schema
+### 历史：输入输出说明不等于强约束概率 Schema
 
 表中 12 个预测对象均有 `ipfs-v0.1` 声明；所选最小证据工具的输入为 text，外层输出 Schema 要求 `requestId`、`result`、`prompt`，其中 `result` 是字符串，其示例含 `p_yes/p_no/confidence/info_utility`。
 
 这足以证明提供方**声明了概率输出形态**。但所选 12 条证据均未将内层概率定义为必填 numeric 属性，也未在该 Schema 中约束有限值、[0,1] 或两项和为 1。因此不得写成“12 个对象已有强约束概率 Schema”。正式报告仍须解析真实交付、核对工具/原题/时间，并以核心规则检查数值及独立结算。下表 `T/R` 专指上述 text 输入与 result 字符串概率示例。
 
-## 逐对象事实
+### 历史：逐对象事实
 
 共同注册合约 `R = 0x8004a169fb4a3325136eb29fa0ceb6d2e539a432`；表中 `chain:agentId` 的完整 canonical 为 `eip155:{chain}:R:{agentId}`。服务号另列，不能默认等于 ERC-8004 编号。S01～S14 的原件和模型投影见文末。
 
@@ -42,14 +81,14 @@
 
 “同服务关联已核”仅复用已保留固定块资料，不能前推任务发生时的控制关系。未完成对象还需各自的任务时间、原始 Request/Deliver、CID/DAG、实际交付者与历史 operator、支付/接手条件、原题到 Omen 问题/条件及最终结算绑定。没有以 analytics accuracy 或目录总交付量代替这些证据。
 
-## 必须排除的语义混合
+### 历史：必须排除的语义混合
 
 1. **查询市场资料不是自行预测。** DegenAI 的 browse/detail 返回市场已有的隐含概率与规则；positions 返回持仓/订单。这些原文支持的是资料查询，没有证明 Agent 新估计未来事件概率。
 2. **已关闭市场裁决不是事前预测。** 4110 的 `resolve-market-jury-v1`/`resolve_market_jury` 描述要输出 `is_valid/is_determinable/has_occurred/vote`，而通用输出模板仍带 p_yes 示例，存在资料内部不一致；不能把这个示例升级成未来预测声明。2469/2267 的 `resolve-market-reasoning-gpt-4.1` 明确用于市场关闭后，也不算该预测工具的覆盖。
 3. **通用模型或编码能力不由概率模板决定。** 2469/2267 的 `openai-*` 描述为 TEE 中的 prompt relay；4134 的 `openai-*`/`default` 为 general completion；2135/2150 的普通 OpenAI 请求声明仅说转发模型请求。即使共用预测输出标题或示例，也不单独算概率预测；没有明确编码业务声明时也不猜成编码能力。
 4. **事实研究要看完整业务链。** S03～S08 的 `factual_research` 不止“核查事实”，原文明确事实取证后输出二元市场概率，可纳入该声明的预测能力；它不是因为名称或 p_yes 字段被归类。S09 的 `resolution_evidence_pack` 虽名称近似裁决，其 metadata 描述实际为 binary forecaster，需按此原文理解，不能按 key 自动分类。
 
-## 现有适配缺口与许可
+### 历史：适配缺口与许可
 
 `services/platform/src/reputation_platform/prediction_evidence.py:333` 精确要求注册文档包含 `https://{mech无0x}-100.mech.valory.xyz` 的 operator 服务。2340/2359/2360 等有此字段；4110、2469、4134、2135、2267、2150 的已保留注册 JSON 均没有它。因此后六者是**当前实现的前置条件不支持**，不是链上身份不存在或 Agent 业务失败。
 
@@ -59,7 +98,7 @@
 
 本批 12 个预测对象的声明访问字段均为 unknown。已有用户授权的公开只读取证和成功历史文件访问，不等于可以创建收费预测、签名、购买订阅或付款。2198/2235 的已发布结果只证明那些历史文件可读取；其他对象的具体任务 CID、可访问性与完整 CAR 仍待事实核实，本轮不查询。
 
-## 去重与未知边界
+### 历史：去重与未知边界
 
 按完整 canonical、实际 Mech、链上 service 三层检查，本批预测子集均为 **12 个不同 canonical／12 个不同 service／12 个不同 Mech**，未发现以同 Mech 或同 service 多注册重复计数。实际 ERC #4110 对应 service3786、#4134 对应 service3809；二者不再把服务号作为另一个 Agent 计数。
 
@@ -69,7 +108,7 @@
 
 以上是限定材料内的声明与可测性判断，不宣称穷尽 Agent 的全部功能。元数据只复用已保留 HTTP 原件、摘要和既有身份关联，本轮没有新验证其 IPFS DAG 或业务真实性。
 
-## 来源索引
+### 历史：来源索引
 
 每行 S 编号与上表对应；JSON 工具证据定位在 `toolMetadata`，DegenAI 在 `capabilities`，Brain 在保留 HTML/投影。完整摘要、观测和引用 JSON Pointer 可回查输入 records.json。以下原件与投影均来自新工作区。
 

@@ -1,4 +1,4 @@
-> 当前交接（2026-10-18）：注册/协议自动接入与跨工具Mech历史履约B已实现，下一任务 `GENERIC_FUNCTIONAL_EVIDENCE`，功能正确性路线待确定，可能需要用户决定优先级。当前34候选、3个不同完整评分对象、10份报告；2340的B100仍缺A/F，无综合分。详见 AGENTS、PLAN、STATUS 及 ADR-0010/0011/0012。
+> 当前交接（2026-10-18）：本轮自动预测批次已收口，真实PG为38候选/35报告/7不同完整对象/0活动任务；至少10尚未达成。4110仅补登记日期后完整78.46，原14任务/10A不变，旧PARTIAL保留。新4批次0full，逐功能展示完成。下一task_id：DIRECTION_ALIGNMENT_AFTER_PREDICTION_BATCH，已向用户询问下一优先级，等待回复；不启动新类/队列、不放宽政策。视觉BLOCKED、无remote。
 
 # 新对话工作交接 prompt
 
@@ -34,16 +34,24 @@
 
 未经用户授权不修改电脑全局网络或环境。本轮用户已明确要求修复 Codex 代理，已保存用户级代理变量；桌面重启后的 WebSocket 验收仍待完成，参见 LOCAL_CONFIGURATION。不要把 HTTP 连通性写成重连问题已完全验收。
 
-2026-10-18 执行进度以 STATUS 为准。默认公共采集关闭；显式开启后，没有预置 profile 的规范身份也可自动读取目录、可信 RPC 注册原件和登记的协议入口，适用时取得Mech历史履约证据。目录与链上两类来源均无有效身份依据时返回 `NEEDS_INFO`；其余缺项据实展示。首次基线验收的三个身份（Base #45074、BSC #49467、Gnosis #2340）均完成链上注册核验和报告发布，当时三份报告A/F/B样本均为0、状态 `NOT_EVALUATED`；这是历史记录，后续2340履约版本另行保留。原件见 `runtime/generic-platform-check-20261018T093143Z-c316e720/result.json`。
+当前进度以STATUS为准。默认公共采集关闭；显式启用后，普通用户提交完整canonical或注册页面，平台自动读取目录、可信RPC注册原件、登记服务与实际工具声明，按协议选择方案并执行。不手写对象profile、不选方案、不二次确认。无有效身份依据时NEEDS_INFO；其它缺项分别展示，UNKNOWN不扣Agent分。
 
-Clicks 已通过共享 MCP 描述文件发现路径接入真实端点，发现4个工具，完成10个全新可用性槽：9 PASS、1 UNKNOWN，p95为10734毫秒，可用性80分。报告 ID `5b7a2b70-4fe5-47cc-8396-dee2bf5bcdf7`；功能和交易维度均无实际业务样本，不评分、无综合分。不能把工具发现或 Schema 当作业务正确和履约通过。
+当前真实PostgreSQL为38候选、35份报告、7个不同完整评分对象、0活动任务：Brain增仓特例97.93；同政策预测2198=89.72、2235=98.71、2340=91.28、2182=90.56、2360=88.62、4110=78.46。多个功能或历史报告不重复计对象，至少10目标未完成，不能把本轮收口当项目完成。
 
-`GENERIC_TASK_EVIDENCE` 已实现共享历史履约B：两个旧对象各复用原七个行为槽，2198涉及2种工具、2235涉及3种，合计4种。离线原件重验及错误身份/伪造判分拒绝退出0，见 `runtime/mech-task-check-20261018T105653Z-850f26e7/result.json`；不读取旧预测分作为通用分，也不把Schema合规作为F。
+4110原PARTIAL的B缺登记日期，原因是目录GET单次TransportError而非字段解析遗漏。只补确切GET一次+3次必要RPC，在旧profile/N下核agent4110/service3786的mint与按序服务关联；日期2026-08-12T23:45:35+00:00、块47694994。ADR-0015与共用helper仅补registration evidence/time/block，绑定原history manifest/bundle，不改任务、身份或已知失败。补录包 `runtime/prediction-registration-supplement-20261018T130654Z-671d83aa/`；新报告 `6b4a1a7b-278b-48f0-88e8-980edc86129f`（`runtime/evaluation-report-20261018T130748Z-45152bd3/amendment-result.json`）真实PG发布exit0，A89.69/F53.89/B100、78.46；原14任务/10A复用、旧PARTIAL保留。两项负控产物已完成，原执行exit未回收；后续只读产物检查exit0，不称负控原命令exit0。
 
-无预置profile的2340首次真实API报告为七槽6 PASS、1文件ConnectError，B无分、PARTIAL。按需新评价只补同七槽缺项的4次公开读取；入库复核因多注册proof及父来源引用集合问题失败，原FAILED作业保留。修正后复用同份原件，离线复核、真实PG导入、API GET200及两计划附件一致性核对退出0，发布 `72bbfff4-27bb-4f7b-afd1-8302bf03ee60`：B七PASS/100，A/F无分、综合分为空。详见 `runtime/mech-task-platform-check-20261018T111813Z-cfc50af6/result.json`，报告原件 `runtime/generic-evaluation-20261018T111817Z-0415f9eb`。恢复未新增公开读取，旧报告及原七槽不改、不重复已成功六项；后续补证只在按需新评价中执行，无客户端重试。
+租约恢复证明 `runtime/publication-lease-check-20261018T124836Z-c445e119/result.json` exit0，真实PG验证107.05秒（含65秒本地延迟，用于验证续约），66秒竞争者未领取、fence未变，旧token拒绝。早期重复A中断记录保留，不声称网络恰好一次；恢复自身0新A/网络/模型。实现提交07b0d39包含租约和CID共用修复。
 
-下一任务 `GENERIC_FUNCTIONAL_EVIDENCE` 的具体路线待确定，必要时询问用户优先级，不预设转向预测扩量。通用F仍未接入，任意业务执行与多功能任务自动编排仍未实现。业务专项按适用条件附加，缺项出部分评价，三维充分才出综合分；同一对象的功能和报告不重复计数。
+原七对象批次已收口：2135为128输入404；2150为109输入404+10无market_id+9不支持；2267为42输入404+79无market_id+7不支持，均0资格；2359只有6个；2360完整88.62；4110补录后完整78.46。4134平台null CID解析已修，实际首条inline JSON129/174字节且无context，不为inline另开类别或重跑；追加说明报告 `e34a935a-13de-4608-a4ee-dcd51889ab2c`，目录 `runtime/generic-report-format-gap-20261018T125256Z-f7e7d0b1/`。
 
-群体覆盖分析已完成，567个身份中186个有直接当前功能声明，详见 `reference/CAPABILITY_COVERAGE_DECISION_20261018.md`。这些是有来源的声明覆盖，不代表已可测或已履约。优先复用既有原件和14个对象的149条已核来源声明，不重复模型提取或工程测试；禁止围着单个 Agent 做新类别，也不能把通用性只留作事后验收。
+后续四对象批次 `runtime/prediction-auto-batch-20261018T125324Z-96bd00cd/qualification-summary.json` 全部结束、新增完整0：1722检查38条，36输入404+2无market_id；2266检查14条全404；2673（service2661）检查29条，22输入404+6不支持工具+1无market_id；2699（service2685）2条，1ReadTimeout+1不支持工具。driver exit2/PowerShell exit1；2699超时是读取不确定，不是平台逻辑bug，不能据此猜Omen市场或降14门槛。独立冻结候选包及有限资料原件保留，现无待启动/在途任务。
 
-Vue / FastAPI / worker / 真实 PostgreSQL 已本机跑通，API本机7754保持运行。当前34候选、3 / 至少10个不同完整评分对象、10份报告；Brain增仓特例与预测2198/2235的完整结果保留。通用F与视觉验收仍待完成，视觉BLOCKED；已有核心、网络及前端构建结果继续复用，不为文档收口重跑。无远程配置、未推送。启动用法见 `docs/runbooks/LOCAL_PLATFORM.md`。用户授权持续推进；遇方向不确定或原地反复，按上述停止询问规则处理。
+逐功能展示本轮已完成：2340 `c7eb4285-bd1a-456d-9a1e-34606e067b15`，2182 `1e7732c5-3a24-4582-9ca0-b0f4deedd1dd`，2360 `63b17e17-3260-48f8-b258-67bdd68abf94`；各4tools/14真实关联，分数不变，刷新脚本exit0。2340明确83.01→91.28的ADR-0014核验修正且0重采，旧原分仍可复算；展示首试双origin exit1未入库、修正后exit0。三个0资格说明 `runtime/prediction-gap-publication-20261018T123936Z-2004616f/result.json` exit0、同来源/样本/分数且错误SHA拒绝。前端最终受影响pnpm build exit0，无core/API Schema改变，旧工程测试不重跑。
+
+本轮已连续超过用户要求的50分钟。下一task_id：`DIRECTION_ALIGNMENT_AFTER_PREDICTION_BATCH`。根代理已向用户异步询问“优先扩预测证据来源/结算关联（建议），或通用查询正确性与履约调查”，等待回复；不启动新队列/新类，不放宽Omen/cutoff/14门槛。用户回复后先更新常读文档再执行，不重问已答需求。
+
+现有预测只支持Fixed Price Native与Omen/IPFS，generic F/跨专项组合未实现，视觉BLOCKED，订阅2469未适配。资料与缺项见 `reference/PREDICTION_EXPANSION_DISCOVERY_20261018.md`；群体声明覆盖见 `reference/CAPABILITY_COVERAGE_DECISION_20261018.md`，声明数不等于可测数。Vue/FastAPI/worker/真实PG当前本机7754可用，启动见LOCAL_PLATFORM。
+
+最终只读收口 `runtime/prediction-batch-close-20261018T131251Z-ef4125f5/result.json` exit0：38/35/7/0active，4110报告与补录附件200、字节SHA一致，网站和新JS200；visual仍BLOCKED。API7754与最新代码单worker保持运行，两个额外批量worker已停，不再留旧三worker在途。
+
+Git分支codex/local-platform，实现包括1791a8a、01494e8、07b0d39；登记补录已提交 `3091343`，本轮文档随收口提交；无remote/push/PR。公共读取走SafeHttpClient、显式代理与停止条件；DeepSeek用现余额，付费Agent、签名、资产操作仍未授权。文档收口不联网/测试，不重复浏览器崩溃尝试。

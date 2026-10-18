@@ -2,7 +2,7 @@
 
 日期：2026-10-18。工作目录：`D:/xjtu_project/block_chain_new/block_chain_new_new`。
 
-Vue 网站、FastAPI、独立 worker 与 PostgreSQL 已实现。当前候选、不同完整评分对象及报告数量以 [STATUS.md](../../STATUS.md) 为准。已适配专项可复用保留证据；没有预置 profile 的规范身份也可自动发现注册资料、协议接口及适用的Mech历史履约任务，按实际覆盖生成报告。历史采集与离线核验用法见 [MODEL_EVIDENCE_LOOP.md](MODEL_EVIDENCE_LOOP.md)。
+Vue 网站、FastAPI、独立 worker 与 PostgreSQL 已实现。本轮收口的真实PG快照为38候选、35份报告、7个不同完整评分对象、0活动任务；最新结果以[STATUS.md](../../STATUS.md)为准。已适配专项可复用保留证据；没有预置 profile 的规范身份也可自动发现注册资料、协议接口及适用的Mech历史履约任务，按实际覆盖生成报告。历史采集与离线核验用法见 [MODEL_EVIDENCE_LOOP.md](MODEL_EVIDENCE_LOOP.md)。
 
 ## 日常启动
 
@@ -37,18 +37,18 @@ Vue 网站、FastAPI、独立 worker 与 PostgreSQL 已实现。当前候选、�
 | PostgreSQL | 17.11，`127.0.0.1:55438`，库/角色均为 `reputation` |
 | 数据目录 | `runtime/platform-postgres`，与旧项目分离 |
 | PostgreSQL 工具 | `D:/web3-runtime/tools/postgresql-17.11/pgsql/bin` |
-| API 与生产静态网页 | `127.0.0.1:7754` |
+| 当前API与生产静态网页 | `127.0.0.1:7754`，与启动脚本默认一致 |
 | API/worker 连接配置 | `runtime/platform-config/database-url.txt`，可由运营者环境变量覆盖，不进入公开接口 |
 | 运营 profile（可选） | `runtime/platform-config/profiles.json`，引用已有专项身份、政策与保留证据目录；缺省时仍可运行通用接入 |
 | 启动日志 / 任务原件 | `runtime/platform-logs` / `runtime/worker-jobs` |
 
-API 首次尝试绑定 8015 时，Windows 返回 `Errno 13`。随后一次原生 `socket.bind(127.0.0.1, 0)` 诊断由系统分配到可用的 7754，API 已在该端口真实启动；没有修改防火墙。当前启动脚本默认 7754，开发代理也已同步；Vite 的 5175 仅保留为开发配置，尚未完成该端口的真实启动验收。
+API 首次尝试绑定 8015 时，Windows 返回 `Errno 13`。随后一次原生 `socket.bind(127.0.0.1, 0)` 诊断由系统分配到可用的 7754，API 已在该端口真实启动；没有修改防火墙。当前API、启动脚本与开发代理均为7754。当前服务已在运行时直接访问网页，无需重复启动。Vite 的 5175 仅保留为开发配置，尚未完成该端口的真实启动验收。
 
 profile 属于可选运营配置，本机已保留首个历史增仓特例和两个预测历史实例。匹配这些配置时，worker 新采 10 点可用性，再复用保留的历史交易、状态与上下文独立核验，生成新版本；复评不调用模型、不触发资产操作。
 
 开启公共只读后，没有预置 profile 的规范身份走通用路径：核对目录身份、使用操作者可信 RPC 在固定区块读取注册信息，再从登记文档发现服务和协议资料。已适配的 MCP 发现接口可安排独立可用性采样；取得工具列表或 Schema 只说明已发现声明，不代表业务完成或交易履约通过。缺少业务、独立判据或交易证据时，报告分别列出缺项，不计算完整综合分。若目录与链上两类来源均没有取得有效身份依据，则以 `NEEDS_INFO` 结束并保留采集记录；无法识别的输入返回 `UNSUPPORTED`。
 
-适用的Gnosis Mech可自动复用或只读采集公开历史，冻结七个不同履约B槽，重验请求/交付交易、历史执行控制、任务标识及CID/CAR文件。原件不足保留缺项；按需新评价可只补同七槽缺项，不重读已成功项、不换槽、不创建新业务任务或自动重试。来源清单和原件只追加，规则见 [ADR-0011](../adr/0011-shared-task-delivery-evidence.md)与[ADR-0012](../adr/0012-resume-frozen-task-evidence.md)。实际业务正确性F尚未接入，B通过不代替F。
+适用的Gnosis Mech可自动复用或只读采集公开历史，冻结七个不同履约B槽，重验请求/交付交易、历史执行控制、任务标识及CID/CAR文件。原件不足保留缺项；按需新评价可只补同七槽缺项，不重读已成功项、不换槽、不创建新业务任务或自动重试。来源清单和原件只追加，规则见 [ADR-0011](../adr/0011-shared-task-delivery-evidence.md)与[ADR-0012](../adr/0012-resume-frozen-task-evidence.md)。通用业务正确性F尚未接入，B通过不代替F；下述自动预测另用独立政策，已可形成其限定范围的三维分。
 
 预测历史的 worker 已完成两个真实对象的正式闭环：2198 综合89.72，2235 综合98.71，分别使用同一代码与各自原件。运营 profile 使用 `policy_id=prediction-history-v1`、`history_run`、`plan_run`，可另给 `identity_run` 身份补充和 `translation_run` 已保存中文材料；这些都是本机保留目录，普通用户不填写。实际命令、真实任务和报告号见 [PREDICTION_REUSE](PREDICTION_REUSE.md)。该轮完成时主库为33候选、3个不同完整评分对象、4份报告；此处是历史验收记录，当前统计见 STATUS。
 
@@ -56,7 +56,34 @@ profile 属于可选运营配置，本机已保留首个历史增仓特例和两
 
 作业 `COMPLETE` 表示该轮处理和报告发布结束，报告是否取得完整分数以报告自身 `scores.status` 为准。新采样或独立核验不足时可发布 `PARTIAL` 报告，作业消息明确说明没有完整三维分及综合分；不把流程结束冒充完整评分。每轮仍由数据库租约与fencing token约束续租和发布，历史版本保留。
 
-## 本轮通用接入验证
+## 当前无需profile的预测自动接入与本轮收口
+
+普通用户只提交完整canonical或注册页面，平台核实登记、工具声明和协议后自动执行；不填profile、不选方案、不二次确认。沿用独立prediction-history-v1、14个不同已结算市场互斥7F/7B及10次A，不降门槛或按结果换槽。当前仅已核Fixed Price Native与Omen/IPFS，订阅2469未适配，不承诺任意登记对象完整出分。
+
+本轮真实PG为38候选/35报告/7不同完整对象/0活动任务：Brain特例97.93，预测2198=89.72、2235=98.71、2340=91.28、2182=90.56、2360=88.62、4110=78.46。至少10未完成；当前无在途或待启动批次。已连续推进超过50分钟，下一task_id为DIRECTION_ALIGNMENT_AFTER_PREDICTION_BATCH，根代理已向用户询问下一优先级，等待回复，不启动新队列/类别。
+
+| 对象 | 最新报告 | A / F / B | 综合分 |
+| --- | --- | --- | ---: |
+| 2340 | `c7eb4285-bd1a-456d-9a1e-34606e067b15` | 98.51 / 79.33 / 100 | 91.28 |
+| 2182 | `1e7732c5-3a24-4582-9ca0-b0f4deedd1dd` | 98.33 / 77.64 / 100 | 90.56 |
+| 2360 | `63b17e17-3260-48f8-b258-67bdd68abf94` | 98.33 / 72.79 / 100 | 88.62 |
+| 4110（service3786） | `6b4a1a7b-278b-48f0-88e8-980edc86129f` | 89.69 / 53.89 / 100 | 78.46 |
+
+4110旧PARTIAL仅缺登记日期：目录GET为TransportError，并非字段解析漏掉。仅补1次确切GET及3次必要RPC，在旧profile/固定N核唯一mint与有序ServiceAgentLinked，登记块47694994、UTC2026-08-12T23:45:35+00:00。共用helper依[ADR-0015](../adr/0015-registration-date-supplement.md)绑定旧history manifest/bundle，补录源 `runtime/prediction-registration-supplement-20261018T130654Z-671d83aa/`；原14任务与10A未重采，旧PARTIAL保留。新报告 `runtime/evaluation-report-20261018T130748Z-45152bd3/amendment-result.json` 真实PG发布exit0。两项补录负控产物显示拒绝，但原执行exit未回收；仅后续只读产物检查exit0，不冒称原命令exit0。
+
+长验证租约验收 `runtime/publication-lease-check-20261018T124836Z-c445e119/result.json` exit0：真实PG验证107.05秒（含65秒本地延迟，用于验证续约），第66秒竞争者claim为None、fence未变，旧token拒绝。此前重复A采样中断记录保留，不声称恰好一次；这次恢复0新A/网络/模型。后续登记补录才使4110由PARTIAL变为完整78.46。
+
+2340原83.01由ADR-0014 revision2更正为91.28，旧报告及revision1复算保留，原14任务/10A/翻译零重采。逐功能展示2340（`runtime/evaluation-report-20261018T123417Z-556b41e4/`）、2182（`runtime/evaluation-report-20261018T130123Z-25aa1c20/`）、2360（`runtime/evaluation-report-20261018T130228Z-14e08e63/`）均4工具/14真实关联、分数不变，刷新脚本exit0。2340展示验收先因双origin exit1未入库，修正后exit0；三个0资格说明同源同分与错误correction SHA拒绝exit0。前端最终受影响pnpm build exit0，明确计划槽位不等于实际测得，无core/API Schema改变；视觉仍BLOCKED。
+
+七对象批次的2135/2150/2267各0合格，2359仅6个，保留缺项而不降14门槛；4134共用null CID解析已修，但实际inline JSON129/174字节无Omen context，不为其新建类或重跑，说明报告 `e34a935a-13de-4608-a4ee-dcd51889ab2c` 位于 `runtime/generic-report-format-gap-20261018T125256Z-f7e7d0b1/`。
+
+后续四对象批次 `runtime/prediction-auto-batch-20261018T125324Z-96bd00cd/qualification-summary.json` 已结束0full：1722的38条为36输入404+2无market_id；2266的14条全404；2673的29条为22输入404+6不支持工具+1无market_id；2699的2条为1ReadTimeout+1不支持工具。driver exit2/PowerShell exit1，2699超时是平台读取不确定，不是逻辑bug。初筛和正式有限资格都保留原件，不能据此猜市场、改cutoff或为股票/inline开新类。见[有限扩量调查](../../reference/PREDICTION_EXPANSION_DISCOVERY_20261018.md)。
+
+下一方向已异步询问：优先扩预测证据来源/结算关联（建议），或通用查询正确性与履约调查；等用户回复后更新文档再推进。generic F、跨专项组合和视觉仍未完成，本轮收口不是总体完成。实现提交1791a8a/01494e8/07b0d39，登记补录已提交 `3091343`；无remote，文档收口不测试/联网，旧有效工程结果复用。
+
+本轮最终只读收口 `runtime/prediction-batch-close-20261018T131251Z-ef4125f5/result.json` 实际exit0：38候选/35报告/7完整/0active；4110报告API200、补录附件200且原件字节SHA一致，网页与当前新JS200，新外网/模型0。浏览器视觉仍BLOCKED。API7754与重启后最新代码的一个worker保持运行，两个额外批量worker已停，旧三worker已替换为一；这次收口不新增采样或任务。
+
+## 历史通用接入验证
 
 首次基线验收通过真实 API 提交三个没有预置 profile 的身份：Base #45074、BSC #49467、Gnosis #2340。三者均完成链上注册核验并保存报告，实际结果见 [通用接入验证原件](../../runtime/generic-platform-check-20261018T093143Z-c316e720/result.json)。当时三份报告的可用性、功能、交易样本均为 **0**，`scores.status=NOT_EVALUATED`；原报告保留，后续2340履约报告另列下文。
 
@@ -66,9 +93,9 @@ profile 属于可选运营配置，本机已保留首个历史增仓特例和两
 
 无预置profile的Gnosis #2340经真实API任务 `b08ad952-11e2-4069-acbf-eeba41358666` 自动采集并发布 `50066371-ef1a-4210-91be-3ec833fe9381`：原七槽6 PASS，1个文件ConnectError，B无分、PARTIAL。新评价 `9b83f0d5-e783-4724-9eae-2e901cd6e4dc` 只补同七槽缺项，新增4次公开读取；入库复核因多注册proof、父来源引用集合不一致而FAILED。修正后复用同份原件完成离线复核、真实PostgreSQL导入和API GET200，两份计划附件与原文件一致，命令退出 **0**，恢复阶段新增公开请求 **0**。
 
-正式新报告为 `72bbfff4-27bb-4f7b-afd1-8302bf03ee60`：**B七PASS、100分；A/F无分，综合分为空，PARTIAL**。见[补证与恢复结果](../../runtime/mech-task-platform-check-20261018T111813Z-cfc50af6/result.json)及[详细报告](../../runtime/generic-evaluation-20261018T111817Z-0415f9eb/report.html)。旧报告、FAILED作业、源清单和原七槽均保留，未重复已成功六项。本轮完成后为34候选、3个不同完整评分对象、10份报告；B报告不增加完整评分对象数量。
+正式新报告为 `72bbfff4-27bb-4f7b-afd1-8302bf03ee60`：**B七PASS、100分；A/F无分，综合分为空，PARTIAL**。见[补证与恢复结果](../../runtime/mech-task-platform-check-20261018T111813Z-cfc50af6/result.json)及[详细报告](../../runtime/generic-evaluation-20261018T111817Z-0415f9eb/report.html)。旧报告、FAILED作业、源清单和原七槽均保留，未重复已成功六项。该履约轮完成时为34候选、3个不同完整评分对象、10份报告；B报告本身不增加完整对象数量。其后自动预测已增至7个，当前统计见本文开头。
 
-本轮复用已有核心、网络及前端构建验证，没有重跑旧测试或构建。API保持本机7754运行，浏览器视觉与DOM交互验收仍为 **BLOCKED**，无远程配置或推送。下一任务 `GENERIC_FUNCTIONAL_EVIDENCE` 的功能正确性路线待确定，可能需要用户决定优先级。
+本轮复用已有核心、网络及前端构建验证，没有重跑旧测试或构建。API保持本机7754运行，浏览器视觉与DOM交互验收仍为 **BLOCKED**，无远程配置或推送。其后用户已批准 `PREDICTION_AUTO_ATTACH` 优先复用既有预测判据，本轮结果与下一优先级问题见上一节。
 
 ## 安装、构建与历史首次导入
 
