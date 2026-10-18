@@ -430,6 +430,18 @@ def _history_query(profile: PredictionProfile, skip: int) -> str:
               'request{id blockNumber blockTimestamp transactionHash marketplaceRequest{ipfsHashBytes}}}}')
 
 
+def _history_anchors(store: EvidenceStore, hint: dict, profile: PredictionProfile) -> dict:
+    anchors = extract_task_anchors(collect_task(store, hint, profile, include_calls=False), mech=profile.mech,
+                                   request_id=hint['requestId'], confirmation_head=profile.confirmation_head)
+    indexed_input = hint['request']['marketplaceRequest']['ipfsHashBytes']
+    indexed_output = hint['marketplaceDelivery']['ipfsHashBytes']
+    if ((indexed_input is not None and indexed_input != anchors['input_digest'])
+        or (indexed_output is not None and indexed_output != anchors['output_digest'])
+        or anchors['delivery_timestamp'] != int(hint['blockTimestamp'])):
+        raise EvidenceUnavailable('Index CID/time hints differ from the actual retained on-chain task')
+    return anchors
+
+
 def collect_history(store: EvidenceStore, profile: PredictionProfile, *, pilot_hint: dict | None = None,
                     identity: dict | None = None, supported_operations: set[str] | None = None,
                     profile_reference: dict | None = None) -> dict:
@@ -480,7 +492,11 @@ def collect_history(store: EvidenceStore, profile: PredictionProfile, *, pilot_h
                 or int(hint["blockNumber"]) > profile.snapshot_block
                 or (pilot_hint is None and int(hint["blockTimestamp"]) >= profile.cutoff_timestamp)):
                 raise EvidenceUnavailable("Index record is outside the frozen instance/time range")
-            input_content = store.ipfs("request-content", hint["request"]["marketplaceRequest"]["ipfsHashBytes"], "metadata.json")
+            indexed_input = hint['request']['marketplaceRequest']['ipfsHashBytes']
+            indexed_output = hint['marketplaceDelivery']['ipfsHashBytes']
+            anchors = _history_anchors(store, hint, profile) if indexed_input is None or indexed_output is None else None
+            input_digest = anchors['input_digest'] if anchors is not None else indexed_input
+            input_content = store.ipfs("request-content", input_digest, "metadata.json")
             if input_content["payload"] is None:
                 raise EvidenceUnavailable(input_content["format_error"])
             if operations is not None:
@@ -503,12 +519,8 @@ def collect_history(store: EvidenceStore, profile: PredictionProfile, *, pilot_h
                 record.update(verdict="NOT_APPLICABLE", reason="同市场较早任务或已查看pilot市场；保留背景，不进入正式分母。")
                 continue
             seen_markets.add(market)
-            anchors = extract_task_anchors(collect_task(store, hint, profile, include_calls=False), mech=profile.mech,
-                                           request_id=rid, confirmation_head=profile.confirmation_head)
-            if (anchors["input_digest"] != hint["request"]["marketplaceRequest"]["ipfsHashBytes"]
-                or anchors["output_digest"] != hint["marketplaceDelivery"]["ipfsHashBytes"]
-                or anchors["delivery_timestamp"] != int(hint["blockTimestamp"])):
-                raise EvidenceUnavailable("Index CID/time hints differ from the actual retained on-chain task")
+            if anchors is None:
+                anchors = _history_anchors(store, hint, profile)
             record["anchors"] = anchors
             market_evidence = collect_market(store, market, profile, header)
             settlement = verify_omen_settlement(market_evidence, snapshot_block=profile.snapshot_block, snapshot_hash=profile.snapshot_hash)
@@ -556,8 +568,7 @@ def collect_history(store: EvidenceStore, profile: PredictionProfile, *, pilot_h
             verification = verify_prediction_chain(task["chain_evidence"], mech=profile.mech, service_id=profile.service_id,
                                                    request_id=slot["request_id"], confirmation_head=profile.confirmation_head)
             task["chain_verification"] = verification.model_dump(mode="json")
-            hint = chosen["hint"]
-            task["output"] = store.ipfs("delivery-content", hint["marketplaceDelivery"]["ipfsHashBytes"], str(int(slot["request_id"], 16)))
+            task["output"] = store.ipfs("delivery-content", chosen['anchors']['output_digest'], str(int(slot["request_id"], 16)))
             task["source_refs"] = task["input"]["evidence"] + task["output"]["evidence"]
         except (EvidenceUnavailable, ValueError, KeyError, TypeError) as error:
             task.update(verdict="UNKNOWN", reason=str(error))

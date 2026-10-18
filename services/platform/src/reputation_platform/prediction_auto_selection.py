@@ -33,7 +33,7 @@ def _history_source(reader: RetainedEvidence, bundle: dict, operations: set[str]
         if not isinstance(content, dict):
             continue
         try:
-            digest = qualification['hint']['request']['marketplaceRequest']['ipfsHashBytes']
+            digest = qualification['anchors']['input_digest']
             actual = reader.content(content, digest, 'metadata.json')
             context = actual.get('request_context') if isinstance(actual, dict) else None
             if (not isinstance(context, dict) or context.get('type') != 'omen'

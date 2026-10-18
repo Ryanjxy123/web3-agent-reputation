@@ -1,6 +1,7 @@
 """PostgreSQL persistence for immutable reports and leased evaluation jobs."""
 
 from dataclasses import dataclass
+from concurrent.futures import ThreadPoolExecutor, TimeoutError
 import hashlib
 import json
 from pathlib import Path
@@ -355,7 +356,17 @@ class Repository:
                      candidate_key: str | None = None, report_directory: str | Path | None = None) -> EvaluationJob:
         if status not in {"COMPLETE", "NEEDS_INFO", "UNSUPPORTED", "FAILED"}:
             raise ValueError("Finalization requires a terminal job status")
-        imported = self._load_report(report_directory) if status == "COMPLETE" and report_directory is not None else None
+        imported = None
+        if status == "COMPLETE" and report_directory is not None:
+            self.renew_job(job_id, worker, fence)
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                verification = executor.submit(self._load_report, report_directory)
+                while True:
+                    try:
+                        imported = verification.result(timeout=15)
+                        break
+                    except TimeoutError:
+                        self.renew_job(job_id, worker, fence)
         if status == "COMPLETE" and imported is None:
             raise ValueError("Completion requires a newly generated, validated report")
         if status != "COMPLETE" and report_directory is not None:
