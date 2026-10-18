@@ -1,6 +1,6 @@
 # 新项目当前状态
 
-更新日期：2026-10-18。当前 task_id 为 `CAPABILITY_COVERAGE_ANALYSIS`；`PREDICTION_REUSE_CLOSEOUT` 已完成。第一类仅完成单对象窄范围试点，通用性未验收；预测类已完成两个真实对象同政策闭环；下一步先做群体能力覆盖分析，不扩新类别。已完成 `REQUIREMENTS_ALIGNMENT`、`CANDIDATE_TOOLING`、`MODEL_PILOT`、`FIRST_EVIDENCE_LOOP`、`LOCAL_PLATFORM` 本机功能闭环。Vue / FastAPI / worker / 真实 PostgreSQL 已实际连通，正式 API 提交的任务自动发布第二份报告，综合 **97.93**。当前为 **3 / 至少 10 个真实公共对象**，只代表历史增仓窄范围。当前优先 task_id 为 `CAPABILITY_COVERAGE_ANALYSIS`，已有预测两对象同方案完整报告；视觉验收仍 BLOCKED。DeepSeek 使用现有余额、不设额外次数/金额上限，旧费用门禁作废。
+更新日期：2026-10-18。当前 task_id 为 `CAPABILITY_COVERAGE_ANALYSIS`；预测类两对象复用已完成。现有 **33 候选 / 3 个不同完整评分对象 / 4 份报告**：Brain 增仓特例，以及 2198、2235 的历史预测。Vue / FastAPI / worker / 真实 PostgreSQL 已连通；视觉验收 BLOCKED。先做群体能力覆盖分析，不启动第三类，也不预先扩充某一类名单。DeepSeek 使用现有余额、不设额外次数/金额上限。
 
 ## 当前推进顺序
 
@@ -68,9 +68,9 @@
 
 ## 新提供方与不可评分记录
 
-`PUBLIC_HISTORY_ADAPTER` 正在推进，完整评分对象仍为 1，没有复制第三方分数或减少样本门槛：
+以下保留早期调查结果及未就绪对象。Olas 后续完成情况见本页预测闭环记录，没有复制第三方分数或降低样本门槛：
 
-- Olas：官方注册资料、固定 Gnosis 注册、bridger 的 serviceId→agentId 映射及 Mech operator 已取得；真实旧请求/交付交易、回执、区块和输入/输出已保留。实际交付者接手了另一优先 Mech 的任务，两者分开归属。原问题目标日为 10 月 20 日，当前尚未到期，不能判预测准确；CID/DAG、历史 operator 与接手规则尚需核验。更早任务按明确 cutoff 调查，见 [调研记录](reference/CANDIDATE_RESEARCH_20261018.md)。
+- Olas：早期 10 月 20 日问题尚未到期，未据此评分；后续选取冻结 cutoff 前 14 个不同已结算问题，完成原始概率、CID/DAG、历史 operator、接手窗口及最终结算核验。2198、2235 已出完整报告；2182 原串行 run 有意中止，原件保留，不计完成。
 - Custos：官方两个匿名只读入口各一次 ReadTimeout，未取得 HTTP 状态；保留 UNKNOWN，不重试凑样本，也不把网络错误扣为 Agent 失败。
 - delu / Clicks：两个目录 GET 200 后，使用已有 ZAN 凭证完成 7 次可信 Base 只读注册核验，退出 0；固定块 52757623。delu 的链上 dataURI 服务列表为空，作者交易日志与身份的执行关联仍缺。Clicks tokenURI 指向的注册文件与 MCP 文档实际 GET 均 200；目录解析 services={} 不代表没有接口。
 - Clicks 实际 MCP initialize/tools/list 均成功且只有四个只读工具；一次分账预览 HTTP200，但正文 `isError=true`，上游 1rpc 返回 usage limit，没有业务结果。停止后续该入口请求，不绕过限流，不把传输 PASS 当功能成功。原件 `runtime/candidate-check-20261018T062845Z-66a748a3/`，该采集 CLI 退出 0 只表示原件保存完成。其历史 bootstrap feedback 是给 Agent #1，不能归为 #45074 的真实结算履约。详情见 [扩展记录](reference/CANDIDATE_EXPANSION_20261018.md)。
@@ -81,7 +81,7 @@ Base 注册原件 `runtime/base-registration-probe-20261018T062514Z-7cb4f595/`�
 
 后续可行性取得新依据：按截止日前三条交付得到三个原始概率，但它们属于同一个市场，只计一个独立事实。固定块的 CT→condition→proxy→Reality→原题干/模板/选项核验已闭合，市场最终结果为 No；这是市场的 oracle 结算，不是平台独立证明现实事件。首个 pilot 的两份真实 CAR 已逐块、目录链接和文件字节离线验证，六个必要失败控制均拒绝，退出 0，原件 `runtime/olas-car-verification-20261018T064124Z-f938e88c/`。分工消息交叠导致多读一次同一交付 CAR，原件保留，未当成新增业务样本。
 
-依据这些证据开始第二类预测历史适配，正式政策先冻结于 [ADR-0008](docs/adr/0008-prediction-history-policy.md)：14 个不同已结算问题分为互斥 7+7，已看 pilot 排除，功能采用由原始概率与结算推导的 Brier 信用分，可用性限定公开历史入口；历史控制/接手规则尚须逐样本完成。当前是实施中，**没有新增完整评分对象**，不能提前展示预测分。
+预测历史按 [ADR-0008](docs/adr/0008-prediction-history-policy.md) 事先冻结政策：每对象 14 个不同已结算问题分为互斥 7+7，已看 pilot 排除；功能由原始概率与结算推导 Brier 信用分，可用性限定公开历史入口。两个对象均已逐样本核验并发布，具体结果见 [PREDICTION_REUSE](docs/runbooks/PREDICTION_REUSE.md)。
 
 ## 实际验证摘要
 
@@ -114,6 +114,6 @@ Base 注册原件 `runtime/base-registration-probe-20261018T062514Z-7cb4f595/`�
 
 新远程 REMOTE_NOT_CONFIGURED；push、PR、部署均 NOT_RUN。未操作父仓库、旧服务、其他分支或共享历史。
 
-新增模型取证：2182一次、第一批5对象各一次、第二批6对象各一次；连同旧3次共15次真实模型请求。新请求全部保留原响应/usage；2198部分引用拒绝未重发。余额仍可用，无费用上限门禁。两个背景pilot仅验证方法，未混入正式分母。正式2182 run `runtime/prediction-history-20261018T070812Z-bb2164f7` 正在资格取证，计划先固定后读输出。新增纯概率和自动选方案各1个必要用例 exit 0；5项纯链失败控制 exit 0，旧测试不重跑。
+既有声明提取共 15 次真实模型请求，留下 14 个对象的 149 条已核来源声明；另有 4 次问题翻译请求、28 题，原响应和 usage 保留。2198 部分声明引用拒绝未重发，4 条中文措辞采用有来源的编辑覆盖，未改变概率或评分。2182 原串行 run 已有意中止，原件保留；两个背景 pilot 不进入正式分母。新增纯概率、自动选方案及原件派生报告各 1 个必要用例、5 项纯链失败控制均已有 exit 0，旧测试不重跑。
 
 预测闭环完成记录：2198可用性98.20/功能75.66/行为100，综合89.72；2235可用性98.61/功能97.81/行为100，综合98.71。各24槽，真实API202→worker→PostgreSQL发布两任务均COMPLETE、worker均exit0；两个新报告实际GET200，公共证据下载逐字节一致。现33候选/3个不同完整评分对象/4份报告。详见docs/runbooks/PREDICTION_REUSE.md；不能声称覆盖所有预测工具、实时推理或任意提供方。
