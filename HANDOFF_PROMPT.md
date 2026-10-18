@@ -1,6 +1,6 @@
 # 当前工作交接
 
-2026-10-18：当前task_id=`SIGNED_DELIVERY_FEASIBILITY`，用户已批准先调查签名交付的多对象可评分性。真实PG/API收口为38候选、45报告、9个不同完整评分对象、0活动评价作业；至少10目标尚未达到。2135原样本补充核验已完整88.27；2150统一512上限实际审查200条、仍10题，PARTIAL为A90.52/F13.39、B及综合分为空。签名历史正在研究，尚未实现适配或增加完整评分；三维、权重和10/7/7不变。
+2026-10-18：当前task_id=`ORDINARY_PREDICTION_CANDIDATE_EXPANSION`。用户已确认暂停签名实现、先扩大普通协议真实预测Agent候选池。签名调查证明两个对象能还原调用，但2150首例为Say Hi，2359三个固定输入均单次超时，尚未证明业务覆盖价值；调查结论见reference/SIGNED_DELIVERY_FEASIBILITY_20261018.md。完整评分仍9个；UTC15:13平台快照38候选/45报告/0active。先核更多真实声明与普通请求历史可得性，再启动现有规则，不新增单对象标准或降低门槛。
 
 工作目录只用 `D:/xjtu_project/block_chain_new/block_chain_new_new`，独立Git分支`codex/local-platform`、无remote。先读AGENTS、PLAN、STATUS、README；不恢复父项目M0/M1或扫描旧代码。grill-me已安装使用，需求已对齐，不重问。
 
@@ -10,13 +10,13 @@
 
 用户已批准512扫描上限：达到14不同问题即停，维度权重及7+7不改。2150最新bc4eb6b3-ea52-4296-bbd0-39acab131e4e，history runtime/prediction-auto-history-20261018T145901Z-4f3c0f5c，实际200候选/10题、A90.52/F13.39/B及overall为空；4空槽不能伪造。新批次runtime/prediction-auto-batch-20261018T145833Z-77a6b75c exit0。1722共38条仅2题不重跑；2359旧范围6题、存在大量缺普通请求关联的历史。
 
-当前任务SIGNED_DELIVERY_FEASIBILITY：已获用户同意先调查签名交付的多对象可评分性，不先写生产。2150资格146固定首null经2RPC证实MarketplaceDeliveryWithSignatures，证据runtime/prediction-null-request-protocol-20261018T151020Z-d5198a60。只证明这一条路径，签名/nonce/输入尚未验证，其余8null不能类推。代理分工：proxy_diagnosis核固定官方源码/共用签名证据条件，public_feasibility核2359固定首null的真实输入/精确Omen与时间，candidate_expansion只读已有群体来源统计。先看代理结果/新runtime包，确认覆盖价值和必要证据后才决定共用适配；真实方向不确定或反复卡住则停下来询问。
+签名调查已收口且暂停实现，最新用户决定为扩大普通协议候选池。已有研究：2150资格146固定首null经2RPC证实MarketplaceDeliveryWithSignatures，证据runtime/prediction-null-request-protocol-20261018T151020Z-d5198a60。只证明这一条路径，签名/nonce/输入尚未验证，其余8null不能类推。代理分工：proxy_diagnosis核固定官方源码/共用签名证据条件，public_feasibility核2359固定首null的真实输入/精确Omen与时间，candidate_expansion只读已有群体来源统计。研究结论见reference/SIGNED_DELIVERY_FEASIBILITY_20261018.md；2150首例为Say Hi，2359三不同输入各一次读取均超时，不继续围绕缺源写适配。当前先调查未实查普通协议候选；真实方向不确定或反复卡住则停下来询问。
 
 ADR0016根File/精确原题，0017直接Will原题/真实输出声明，0018同一Marketplace官方两版普通事件，0019用户批准512，引用后均不改原字节。核验默认旧修订保持；V2显式修订4允许旧普通事件，不因此允许签名路径。原证据、计划和已发布报告只追加。新来源必须CID、实际请求/执行归属、独立结算和交付时序成立，不按分数筛题。
 
 已验证的内容复用：核心新事件两真实旧例UNKNOWN→PASS、2198当前结果完全一致、7拒绝控制，单次离线exit0；2135独立PG导入/API附件SHA exit0；最近Vue摘要实际变更后pnpm build exit0，资源/assets/index-DEE3Wput.js。共用摘要已区分无有效概率与链上归属/约定输出。展示包runtime/prediction-summary-presentation-20261018T150728Z-fc35cc3e只新增HTML、不改原分或旧文件。不要因文档/提交重跑测试；实际变化/失败使旧结果失效才必要受影响验证一次，失败记录不抹除。
 
-API7754、PG55438、单worker运行，进程runtime/v2-worker-revision4-20261018T145816Z/process.json。新项目本地PG/网络命令首次用require_escalated；外部只走SafeHttpClient+显式http://127.0.0.1:7897。密钥位置见LOCAL_CONFIGURATION，不输出或提交secret。DeepSeek使用现余额、不设次数/费用上限，余额不足再告知，不自动充值；付费Agent/资产/签名/链上写入仍未授权。
+API7754、PG55438、单worker运行，进程runtime/v2-worker-revision4-20261018T152610Z/process.json。新项目本地PG/网络命令首次用require_escalated；外部只走SafeHttpClient+显式http://127.0.0.1:7897。密钥位置见LOCAL_CONFIGURATION，不输出或提交secret。DeepSeek使用现余额、不设次数/费用上限，余额不足再告知，不自动充值；付费Agent/资产/签名/链上写入仍未授权。
 
 普通阶段最终快照：runtime/prediction-v2-close-20261018T151306Z-9fd425ac/result.json exit0，38候选/45报告/9完整/0active，报告/原输入附件/网站/当前JS200且SHA一致，新公网/模型0。不是视觉验收：浏览器崩溃仍BLOCKED，不重复尝试。通用功能正确性F、跨专项组合与跨提供方业务复用仍未完成。
 

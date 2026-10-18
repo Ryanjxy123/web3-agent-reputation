@@ -1,6 +1,6 @@
 # 本机平台启动与实际验收
 
-2026-10-18：当前task_id=`SIGNED_DELIVERY_FEASIBILITY`，用户已批准先调查签名交付的多对象可评分性。真实PG/API收口为38候选、45报告、9个不同完整评分对象、0活动评价作业；至少10目标尚未达到。2135原样本补充核验已完整88.27；2150统一512上限实际审查200条、仍10题，PARTIAL为A90.52/F13.39、B及综合分为空。签名历史正在研究，尚未实现适配或增加完整评分；三维、权重和10/7/7不变。
+2026-10-18：当前task_id=`ORDINARY_PREDICTION_CANDIDATE_EXPANSION`。用户已确认暂停签名实现、先扩大普通协议真实预测Agent候选池。签名调查证明两个对象能还原调用，但2150首例为Say Hi，2359三个固定输入均单次超时，尚未证明业务覆盖价值；调查结论见reference/SIGNED_DELIVERY_FEASIBILITY_20261018.md。完整评分仍9个；UTC15:13平台快照38候选/45报告/0active。先核更多真实声明与普通请求历史可得性，再启动现有规则，不新增单对象标准或降低门槛。
 
 日期：2026-10-18。工作目录：`D:/xjtu_project/block_chain_new/block_chain_new_new`。
 
@@ -62,7 +62,7 @@ profile 属于可选运营配置，本机已保留首个历史增仓特例和两
 
 窗口授权已执行：2150最多512、实际200、10合格，最终PARTIAL；原128条及旧分数保留。新阶段先研究签名交付多对象可评分性，不执行签名或链上写入。
 
-当前9个不同完整对象，真实PG38候选/45报告/0active；普通阶段收口原件 `runtime/prediction-v2-close-20261018T151306Z-9fd425ac/result.json` exit0。单worker进程记录 `runtime/v2-worker-revision4-20261018T145816Z/process.json`，API7754；视觉仍BLOCKED。下文7对象/35报告为历史快照，当前结果以STATUS开头为准。
+当前9个不同完整对象，真实PG38候选/45报告/0active；普通阶段收口原件 `runtime/prediction-v2-close-20261018T151306Z-9fd425ac/result.json` exit0。单worker进程记录 `runtime/v2-worker-revision4-20261018T152610Z/process.json`，API7754；视觉仍BLOCKED。下文7对象/35报告为历史快照，当前结果以STATUS开头为准。
 
 普通用户只提交完整canonical或注册页面，平台核实登记、工具声明和协议后自动执行；不填profile、不选方案、不二次确认。支持保留的prediction-history-v1与显式V2；14个不同已结算问题互斥7F/7B及10次A，不降门槛或按结果换槽。当前仅已核Fixed Price Native与Omen/IPFS，订阅2469未适配，不承诺任意登记对象完整出分。
 

@@ -500,6 +500,8 @@ def collect_history(store: EvidenceStore, profile: PredictionProfile, *, pilot_h
                 or int(hint["blockNumber"]) > profile.snapshot_block
                 or (pilot_hint is None and int(hint["blockTimestamp"]) >= profile.cutoff_timestamp)):
                 raise EvidenceUnavailable("Index record is outside the frozen instance/time range")
+            if hint['request'] is None:
+                raise EvidenceUnavailable('索引缺少普通链上请求关联，尚未完成其他请求形式的核验。')
             indexed_input = hint['request']['marketplaceRequest']['ipfsHashBytes']
             indexed_output = hint['marketplaceDelivery']['ipfsHashBytes']
             anchors = _history_anchors(store, hint, profile) if indexed_input is None or indexed_output is None else None
