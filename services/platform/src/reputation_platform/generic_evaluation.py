@@ -23,14 +23,21 @@ def verify_generic_report_sources(root: Path, report: EvaluationReport, hashes: 
     from reputation_platform.protocol_evaluation import availability_verdict, descriptor_remote, VERSIONS, _result, _tools
     from reputation_platform.registration_discovery import verify_registration_proof
 
-    proofs = [name for name in hashes if Path(name).name == "registration-proof.json"]
+    # Recovered task sources retain older registration proofs as provenance.
+    # The report's own summary identifies its primary intake directory.
+    intake_dirs = {Path(name).parent for name in hashes if Path(name).name == "registration-summary.json"}
+    proofs = [name for name in hashes if Path(name).name == "registration-proof.json"
+              and Path(name).parent in intake_dirs]
     if len(proofs) != 1:
-        raise ValueError("A generic report requires one retained registration proof")
+        raise ValueError("A generic report requires one primary retained registration proof")
     identity = verify_registration_proof(root, proofs[0], report.registration_reference)
     if report.scores.status == "COMPLETE" and not identity["registration_verified"]:
         raise ValueError("A complete report requires chain-verified registration")
     endpoints = {item["endpoint"] for item in identity["services"]
                  if str(item.get("name", "")).casefold() == "mcp" and item.get("endpoint")}
+    from reputation_platform.mech_task_evidence import verify_mech_task_samples
+
+    verified_tasks = verify_mech_task_samples(root, report, hashes)
     def retained(name: str) -> bytes:
         path = (root / name).resolve()
         if (not path.is_relative_to(root.resolve()) or name not in hashes
@@ -62,6 +69,8 @@ def verify_generic_report_sources(root: Path, report: EvaluationReport, hashes: 
     plans, observed_files, stopped_urls = {}, set(), set()
     for explanation in report.samples:
         sample = explanation.sample
+        if sample.purpose == MeasurementPurpose.BEHAVIORAL and sample.sample_id in verified_tasks:
+            continue
         if sample.purpose != MeasurementPurpose.AVAILABILITY:
             raise ValueError("This generic adapter has not yet supplied business-task verification")
         plan_names = [name for name in sample.evidence if name.endswith('-availability-plan.json')]
@@ -167,6 +176,8 @@ def verify_generic_report_sources(root: Path, report: EvaluationReport, hashes: 
 def evaluate_generic(repo, job: dict, worker: str, canonical: str, proxy: str,
                      *, root: Path = PROJECT_ROOT) -> None:
     from reputation_platform.protocol_evaluation import collect_protocol_evaluation
+    from reputation_platform.mech_task_evidence import collect_mech_tasks
+    from reputation_platform.mech_task_collection import collect_mech_history
     from reputation_platform.registration_discovery import (
         DiscoveryEvidence, discover_registration, verify_registration_proof,
     )
@@ -196,12 +207,32 @@ def evaluate_generic(repo, job: dict, worker: str, canonical: str, proxy: str,
     repo.set_job_stage(job["id"], worker, job["fencing_token"], "COLLECTING",
         "注册资料已自动取得，正在按已声明的接口发现功能和可评价项目。", candidate_key=key)
     capabilities, samples, limitations = collect_protocol_evaluation(registration, evidence)
+    task_capabilities, task_samples, task_limits = collect_mech_tasks(registration, evidence)
+    if not (run / "generic-mech-task-plan.json").exists():
+        repo.set_job_stage(job["id"], worker, job["fencing_token"], "COLLECTING",
+            "接口资料已保留，正在检查是否存在可核验的公开任务历史；本次不创建付费任务或链上交易。")
+        if collect_mech_history(registration, evidence) is not None:
+            task_capabilities, task_samples, task_limits = collect_mech_tasks(registration, evidence)
+    operations = {item.operation for item in task_capabilities}
+    for task in task_capabilities:
+        metadata_findings = [finding for item in capabilities if item.operation == task.operation for finding in item.findings]
+        task.findings = [*metadata_findings, *task.findings]
+    capabilities = [item for item in capabilities if item.operation not in operations] + task_capabilities
+    samples.extend(task_samples)
+    if task_samples:
+        limitations = [item for item in limitations if item != "当前尚无功能和交易维度的独立实际任务样本，不计算综合分。"]
+    limitations.extend(task_limits)
     repo.set_job_stage(job["id"], worker, job["fencing_token"], "VERIFYING",
-        "正在核对实际协议响应、逐功能证据及未覆盖项目；资料发现不直接作为业务通过。")
+        "正在从原始响应、任务文件和链上交易复核各功能证据；资料发现不直接作为业务通过。")
     _save(run / "registration-summary.json", registration)
     finished = datetime.now(timezone.utc)
+    task_times = [item.observed_at for item in task_samples if item.observed_at is not None]
+    window = f"本次取证：{started.isoformat()} 至 {finished.isoformat()}"
+    if task_times:
+        window += f"；已核历史任务：{min(task_times).isoformat()} 至 {max(task_times).isoformat()}"
     inputs = dict(evidence.inputs)
-    for name in ("configs/generic-rpc.json", "docs/adr/0010-service-contract-policy.md"):
+    for name in ("configs/generic-rpc.json", "docs/adr/0010-service-contract-policy.md",
+                 "docs/adr/0011-shared-task-delivery-evidence.md"):
         inputs[name] = hashlib.sha256((root / name).read_bytes()).hexdigest()
     for path in run.iterdir():
         if path.is_file():
@@ -209,14 +240,15 @@ def evaluate_generic(repo, job: dict, worker: str, canonical: str, proxy: str,
     report = EvaluationReport(
         policy_version=SERVICE_CONTRACT_POLICY_VERSION, candidate_key=key,
         name=registration["name"], registration_reference=canonical, generated_at=finished,
-        scope="公开注册资料与已声明协议接口：自动发现、访问体验及逐功能证据覆盖",
+        scope=("公开注册、协议接口与历史任务：访问体验及逐功能履约证据"
+               if task_samples else "公开注册资料与已声明协议接口：自动发现、访问体验及逐功能证据覆盖"),
         scope_exclusions=["仅协议发现不代表具体业务已正确完成", "未实际调用的功能及未绑定的交易不作通过判断"],
-        evaluation_window=f"{started.isoformat()} 至 {finished.isoformat()}",
-        approach="由注册身份自动采集资料，按协议复用发现与核验规则；分别记录已有证据和缺项，无需逐对象开发。",
+        evaluation_window=window,
+        approach="由注册身份自动采集资料，按协议复用发现与任务核验规则；复用历史原件或只读取得公开历史，分别记录实际范围及缺项。",
         samples=samples, capabilities=capabilities,
         source_references=sorted(inputs),
         limitations=list(dict.fromkeys([*registration["limitations"], *limitations,
-            "当前通用接入已支持注册与协议发现；具体业务调用和任务交易核验尚待适用证据适配器接入。"])),
+            "实际业务答案正确性的通用证据尚未就绪；不以协议或任务格式合规代替功能通过。"])),
     )
     _save(run / "report.json", report.model_dump(mode="json"))
     with (run / "report.html").open("x", encoding="utf-8") as stream:
@@ -228,7 +260,7 @@ def evaluate_generic(repo, job: dict, worker: str, canonical: str, proxy: str,
         "outputs": [{"path": (run / name).relative_to(root).as_posix(),
             "sha256": hashlib.sha256((run / name).read_bytes()).hexdigest()}
             for name in ("report.json", "report.html")],
-        "model_calls": 0, "mainnet_writes": False,
+        "public_request_count": evidence.request_count, "model_calls": 0, "mainnet_writes": False,
     })
     verify_generic_report_sources(root, report, inputs)
     repo.set_job_stage(job["id"], worker, job["fencing_token"], "REPORTING",
