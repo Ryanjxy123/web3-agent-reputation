@@ -1,6 +1,8 @@
-> 当前交接（2026-10-18）：已核实8个不同完整对象，新增2267=29.8，至少10待完成。用户已确认优先扩展预测证据；task_id=`PREDICTION_EVIDENCE_EXPANSION`。ADR0016/0017及共用V2已落盘，2135/2150直接原题先分别验证CID、独立结算和提前交付，再于UTC14:17提交新批次 `runtime/prediction-auto-batch-20261018T141703Z-9af82729/`。核验修订3纠正输出说明而非把内部prompt无回显当别题；旧报告/旧修订不改、14问题与10/7/7门槛不改。视觉BLOCKED，无remote。先查批次终态，勿重复提交或重采已完成A。
+> 当前交接（2026-10-18）：当前已核实9个不同完整评分对象，新增2135为A97.05/F72.89/B100、综合88.27，原14任务、10次A和来源SHA全部复用；2267综合29.8保留。至少10个目标仍待完成。2150按用户批准的统一512条上限执行中，批次 `runtime/prediction-auto-batch-20261018T145833Z-77a6b75c/`，不能提前计为完整。 task_id=`PREDICTION_EVIDENCE_EXPANSION`。ADR0016–0019、事件核验修订4已落盘；不重新询问512授权，不重复2135/2267采样。视觉BLOCKED，无remote。
 
 # 新对话工作交接 prompt
+
+最新批准：历史上限128→512、达到14不同问题停止，门槛不变。两对象旧事件及官方源码先核后统一兼容；2135已零重采发布完整88.27。2150新job50f827ad-be96-40ed-81c4-91e54776c32d正在512范围，先查终态，不重复提交。
 
 在 Codex 中将工作目录设为 `D:/xjtu_project/block_chain_new/block_chain_new_new`。下文可复制给新对话；具体进度以 PLAN 和 STATUS 为准。
 
@@ -36,7 +38,7 @@
 
 当前进度以STATUS为准。默认公共采集关闭；显式启用后，普通用户提交完整canonical或注册页面，平台自动读取目录、可信RPC注册原件、登记服务与实际工具声明，按协议选择方案并执行。不手写对象profile、不选方案、不二次确认。无有效身份依据时NEEDS_INFO；其它缺项分别展示，UNKNOWN不扣Agent分。
 
-此前UTC13:12快照为38候选、35份报告、7个不同完整评分对象、0活动任务：Brain增仓特例97.93；同政策预测2198=89.72、2235=98.71、2340=91.28、2182=90.56、2360=88.62、4110=78.46。现已新增2267完整29.8，总计8个，2135/2150新批次在执行。多个功能或历史报告不重复计对象，至少10目标未完成。
+此前UTC13:12快照38候选/35报告/7完整是历史；当前新增2267=29.8、2135=88.27，共9个完整对象。2135报告9dbc7665-6942-4f7f-9af9-98229de3c0c2、目录runtime/evaluation-report-20261018T145744Z-4d118477，原14task/10A/SHA不变，真实PG独立复验与API附件验收exit0。2150统一512批次在途；至少10尚未完成。
 
 4110原PARTIAL的B缺登记日期，原因是目录GET单次TransportError而非字段解析遗漏。只补确切GET一次+3次必要RPC，在旧profile/N下核agent4110/service3786的mint与按序服务关联；日期2026-08-12T23:45:35+00:00、块47694994。ADR-0015与共用helper仅补registration evidence/time/block，绑定原history manifest/bundle，不改任务、身份或已知失败。补录包 `runtime/prediction-registration-supplement-20261018T130654Z-671d83aa/`；新报告 `6b4a1a7b-278b-48f0-88e8-980edc86129f`（`runtime/evaluation-report-20261018T130748Z-45152bd3/amendment-result.json`）真实PG发布exit0，A89.69/F53.89/B100、78.46；原14任务/10A复用、旧PARTIAL保留。两项负控产物已完成，原执行exit未回收；后续只读产物检查exit0，不称负控原命令exit0。
 
@@ -44,7 +46,7 @@
 
 原七对象批次已收口：2135为128输入404；2150为109输入404+10无market_id+9不支持；2267为42输入404+79无market_id+7不支持，均0资格；2359只有6个；2360完整88.62；4110补录后完整78.46。4134平台null CID解析已修，实际首条inline JSON129/174字节且无context，不为inline另开类别或重跑；追加说明报告 `e34a935a-13de-4608-a4ee-dcd51889ab2c`，目录 `runtime/generic-report-format-gap-20261018T125256Z-f7e7d0b1/`。
 
-后续四对象批次 `runtime/prediction-auto-batch-20261018T125324Z-96bd00cd/qualification-summary.json` 全部结束、新增完整0：1722检查38条，36输入404+2无market_id；2266检查14条全404；2673（service2661）检查29条，22输入404+6不支持工具+1无market_id；2699（service2685）2条，1ReadTimeout+1不支持工具。driver exit2/PowerShell exit1；2699超时是读取不确定，不是平台逻辑bug，不能据此猜Omen市场或降14门槛。独立冻结候选包及有限资料原件保留，现无待启动/在途任务。
+后续四对象批次 `runtime/prediction-auto-batch-20261018T125324Z-96bd00cd/qualification-summary.json` 全部结束、新增完整0：1722检查38条，36输入404+2无market_id；2266检查14条全404；2673（service2661）检查29条，22输入404+6不支持工具+1无market_id；2699（service2685）2条，1ReadTimeout+1不支持工具。driver exit2/PowerShell exit1；2699超时是读取不确定，不是平台逻辑bug，不能据此猜Omen市场或降14门槛。独立冻结候选包及有限资料原件保留，该旧批次已结束；当前任务以开头为准。
 
 逐功能展示本轮已完成：2340 `c7eb4285-bd1a-456d-9a1e-34606e067b15`，2182 `1e7732c5-3a24-4582-9ca0-b0f4deedd1dd`，2360 `63b17e17-3260-48f8-b258-67bdd68abf94`；各4tools/14真实关联，分数不变，刷新脚本exit0。2340明确83.01→91.28的ADR-0014核验修正且0重采，旧原分仍可复算；展示首试双origin exit1未入库、修正后exit0。三个0资格说明 `runtime/prediction-gap-publication-20261018T123936Z-2004616f/result.json` exit0、同来源/样本/分数且错误SHA拒绝。前端最终受影响pnpm build exit0，无core/API Schema改变，旧工程测试不重跑。
 

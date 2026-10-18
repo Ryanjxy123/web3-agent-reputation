@@ -1,14 +1,19 @@
 # 新项目当前状态
 
-更新日期：2026-10-18。当前task_id为 `PREDICTION_EVIDENCE_EXPANSION`，按用户确认扩展预测来源。首批V2三对象收口新增2267完整29.8，已核实8个不同完整对象；至少10个尚未完成。2135与2150的共用直接原题格式先经过各自真实链上来源验证，第二批已于UTC14:17提交，见 `runtime/prediction-auto-batch-20261018T141703Z-9af82729/`。不能把来源PASS或14槽计划提前算作完整评分。视觉BLOCKED，无远程配置。
+更新日期：2026-10-18。task_id=`PREDICTION_EVIDENCE_EXPANSION`。当前已核实9个不同完整评分对象，新增2135为A97.05/F72.89/B100、综合88.27，原14任务、10次A和来源SHA全部复用；2267综合29.8保留。至少10个目标仍待完成。2150按用户批准的统一512条上限执行中，批次 `runtime/prediction-auto-batch-20261018T145833Z-77a6b75c/`，不能提前计为完整。 视觉BLOCKED，无远程配置。
 
 ## 本轮V2证据扩展
+
+最新决定：用户批准512条上限与14不同问题停止规则，评分门槛不改。已重载单worker修订4，进程记录 `runtime/v2-worker-revision4-20261018T145816Z/process.json`。2150新job `50f827ad-be96-40ed-81c4-91e54776c32d` 正式取证中；原128条10题的PARTIAL保留。1722实际38条仅2题，本轮不重跑。
 
 - [ADR-0016](docs/adr/0016-prediction-evidence-v2.md)：增加CID认证根File与完整包装原题精确关联，旧Directory与V1报告复算不变；无模糊题义匹配。V2按14个不同Question冻结7F/7B后才读输出，另10次A。
 - 首批2135/2150/2267三任务全部结束：2135因直接原题尚未支持而无分；2150只有8个合格问题，F13.39/PARTIAL；2267为A99.34/F0/B0、29.8/COMPLETE。原批次 `runtime/prediction-auto-batch-20261018T135720Z-9a59504a/`，driver exit2/执行层exit1来自2135未被旧driver缺项枚举识别，并非三个平台作业失败。
 - [ADR-0017](docs/adr/0017-prediction-question-and-output-contract.md)：先在三个对象的原件中比较格式，再以2135和2150真实CID/独立结算及提前交付证明直接单行Will原题可共用；2267首直接题交付过晚，明确UNKNOWN。来源研究57次只读请求、无output/模型/评分。直接原题离线提取及9项拒绝控制exit0。包装格式保留原方法严格重放。
 - 输出核查已证实2150六个失败均无有效概率，2267七个功能输出均为Invalid response，低分有真实依据；prompt声明并无逐字回显原题义务。核验修订3仅供显式V2，按实际Schema及链上任务/CID关联，失败报告展示真实result。旧修订1/2保留；同样本说明修订不重采。
 - 必要验证：两个真实根File/一个旧Directory及错误CID离线控制exit0；两真实包装题严格query重放与六项拒绝控制exit0；V1原报告独立复算、V2同概率信用及根File副本篡改拒绝的一项受影响回归最终exit0。该回归先因测试JSON载入方式、再因根File误用旧目录接口各exit1，修正后通过；未把失败抹除。共享Schema/OpenAPI生成exit0；前端首构建暴露可选policy字段类型问题，修正后最终pnpm build exit0。未重跑旧套件；视觉仍BLOCKED。
+
+- **同协议历史事件与2135补充**：[ADR-0018](docs/adr/0018-marketplace-request-event-versions.md)。官方父版/变更源码和2135、2150两个真实对象先核实四参数事件；纯核验默认旧修订不变，显式新修订仍逐项核身份、授权、价格、接手、调用、CID与确认。`runtime/check_marketplace_event_revision.py` 一次必要实原件验证exit0：两旧事件UNKNOWN→PASS、2198当前事件整结果不变、7拒绝控制通过，0公网/模型/A。2135新报告 `9dbc7665-6942-4f7f-9af9-98229de3c0c2` 位于 `runtime/evaluation-report-20261018T145744Z-4d118477/`，A97.05/F72.89/B100、88.27；14任务、10A与原SHA不变。`runtime/append_prediction_event_revision.py` 最终exit0，真实PG独立导入、API200、旧事件回执附件200且SHA一致；首次沙箱本机PG10013 exit1发生在生成前，失败审计保留。发布审计 `runtime/prediction-event-revision-publication-20261018T145702Z-cfb27de2/result.json`。
+- **扩大窗口**：[ADR-0019](docs/adr/0019-prediction-history-bound.md)在依赖实现前记录用户批准。V2自动接入统一512、旧profile/报告仍原值。新2150批次只提交一次canonical，不写对象专用profile。driver现识别V1/V2，旧driver退出2记录不改。
 
 ## 当前完整结果
 
@@ -22,6 +27,7 @@
 | Olas #2360 | 自动接入历史预测 | 98.33 / 72.79 / 100 | 88.62 |
 | Olas #4110（service3786） | 历史预测及登记日期补录 | 89.69 / 53.89 / 100 | 78.46 |
 | Olas #2267 | 历史预测V2，实际错误输出 | 99.34 / 0 / 0 | 29.8 |
+| Olas #2135 | 历史预测V2，历史事件核验修订4 | 97.05 / 72.89 / 100 | 88.27 |
 
 4110新报告 `6b4a1a7b-278b-48f0-88e8-980edc86129f` 已真实PG发布，原件 `runtime/evaluation-report-20261018T130748Z-45152bd3/amendment-result.json` exit0。原14任务与10次A复用，A/F不变；补登记证据后B可完整核验。旧PARTIAL保留，同身份多报告只计一个对象。范围分不代表整个Agent，历史入口A不代表实时推理在线。
 

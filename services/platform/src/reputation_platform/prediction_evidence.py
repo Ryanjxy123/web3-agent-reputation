@@ -600,7 +600,8 @@ def collect_history(store: EvidenceStore, profile: PredictionProfile, *, pilot_h
         try:
             task["chain_evidence"] = collect_task(store, chosen["hint"], profile)
             verification = verify_prediction_chain(task["chain_evidence"], mech=profile.mech, service_id=profile.service_id,
-                                                   request_id=slot["request_id"], confirmation_head=profile.confirmation_head)
+                request_id=slot["request_id"], confirmation_head=profile.confirmation_head,
+                marketplace_event_revision=2 if profile.policy_version == 'prediction-history-v2' else 1)
             task["chain_verification"] = verification.model_dump(mode="json")
             task["output"] = store.ipfs("delivery-content", chosen['anchors']['output_digest'], str(int(slot["request_id"], 16)), root_layout=expanded)
             task["source_refs"] = task["input"]["evidence"] + task["output"]["evidence"]

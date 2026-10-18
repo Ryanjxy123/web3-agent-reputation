@@ -22,6 +22,7 @@ TEMPLATE = '{"title": "%s", "type": "single-select", "outcomes": [%s], "category
 REQUEST_TOPIC = "0x" + keccak(b"Request(address,bytes32,bytes)").hex()
 DELIVER_TOPIC = "0x" + keccak(b"Deliver(address,address,bytes32,uint256,bytes)").hex()
 MARKET_REQUEST_TOPIC = "0x" + keccak(b"MarketplaceRequest(address,address,uint256,bytes32[],bytes[])").hex()
+LEGACY_MARKET_REQUEST_TOPIC = "0x" + keccak(b"MarketplaceRequest(address,address,uint256,bytes32[])").hex()
 
 
 class PredictionChainVerification(BaseModel):
@@ -357,12 +358,14 @@ def extract_task_anchors(evidence: dict, *, mech: str, request_id: str, confirma
 
 
 def verify_prediction_chain(evidence: dict, *, mech: str, service_id: int, request_id: str,
-                            confirmation_head: int) -> PredictionChainVerification:
+                            confirmation_head: int, marketplace_event_revision: int = 1) -> PredictionChainVerification:
     """Verify ordinary marketplace request→delivery, including Safe batched calls.
 
     RPC proof envelopes are reauthenticated by the platform before this pure check.
     Unsupported signed/off-chain requests remain UNKNOWN rather than inheriting this rule.
     """
+    if type(marketplace_event_revision) is not int or marketplace_event_revision not in (1, 2):
+        raise ValueError("Unsupported MarketplaceRequest verification revision")
     result = PredictionChainVerification(verdict=Verdict.UNKNOWN, reason="缺少完整历史履约证据。", checks=[])
     try:
         mech = _hex(mech, 40)
@@ -413,24 +416,34 @@ def verify_prediction_chain(evidence: dict, *, mech: str, service_id: int, reque
         result.input_digest = "0x" + digest.hex()
         marketplace_events = []
         for log in request_receipt["logs"]:
-            if _hex(log["address"], 40) != MARKETPLACE or not log["topics"] or log["topics"][0].lower() != MARKET_REQUEST_TOPIC:
+            if _hex(log["address"], 40) != MARKETPLACE or not log["topics"]:
+                continue
+            topic = log["topics"][0].lower()
+            legacy_event = marketplace_event_revision == 2 and topic == LEGACY_MARKET_REQUEST_TOPIC
+            if topic != MARKET_REQUEST_TOPIC and not legacy_event:
                 continue
             encoded_request = bytes.fromhex(_hex(log["data"])[2:])
+            if legacy_event and _abi_word(encoded_request, 32) != 64:
+                raise ValueError("Noncanonical legacy MarketplaceRequest array offset")
             ids = _abi_array(encoded_request, _abi_word(encoded_request, 32))
+            if legacy_event and len(encoded_request) != 96 + 32 * len(ids):
+                raise ValueError("Noncanonical legacy MarketplaceRequest data length")
             if rid in ids:
-                marketplace_events.append((log, encoded_request, ids))
+                marketplace_events.append((log, encoded_request, ids, legacy_event))
         if len(marketplace_events) != 1:
             raise ValueError("Unique MarketplaceRequest task binding is missing")
-        marketplace_event, encoded_request, ids = marketplace_events[0]
+        marketplace_event, encoded_request, ids, legacy_event = marketplace_events[0]
         _same(len(marketplace_event["topics"]), 3, "MarketplaceRequest indexed fields differ")
         _same(_address_word(int(marketplace_event["topics"][1], 16)), priority, "MarketplaceRequest priority differs")
         _same(_address_word(int(marketplace_event["topics"][2], 16)), requester, "MarketplaceRequest requester differs")
         _same(_abi_word(encoded_request, 0), len(ids), "MarketplaceRequest count differs")
-        datas = _abi_array(encoded_request, _abi_word(encoded_request, 64), dynamic=True)
-        _same(len(datas), len(ids), "MarketplaceRequest payload count differs")
+        if not legacy_event:
+            datas = _abi_array(encoded_request, _abi_word(encoded_request, 64), dynamic=True)
+            _same(len(datas), len(ids), "MarketplaceRequest payload count differs")
         if ids.count(rid) != 1:
             raise ValueError("Repeated request ID in MarketplaceRequest")
-        _same(datas[ids.index(rid)], digest, "MarketplaceRequest CID differs from the Mech Request")
+        if not legacy_event:
+            _same(datas[ids.index(rid)], digest, "MarketplaceRequest CID differs from the Mech Request")
         request_call = _unique_call(request_tx, MARKETPLACE, "request(bytes,uint256,bytes32,address,uint256,bytes)")
         _same(_abi_bytes(request_call, _abi_word(request_call, 0), 192), digest, "Request calldata and task CID differ")
         _same(_address_word(_abi_word(request_call, 96)), priority, "Request calldata priority differs")
@@ -438,6 +451,8 @@ def verify_prediction_chain(evidence: dict, *, mech: str, service_id: int, reque
         _same(rt + _abi_word(request_call, 128), timeout, "Absolute task timeout differs from the original request")
         if cap > _abi_word(request_call, 32):
             raise _Contradiction("Recorded rate exceeds requester price cap")
+        if legacy_event:
+            result.checks.append(_finding("旧版请求事件绑定", "受信市场合约的旧版事件角色、数量、唯一任务号及规范编码已核对；请求调用CID仍与独立Mech Request事件精确一致。"))
         event = _event(delivery_receipt, mech, DELIVER_TOPIC, rid)
         _same(len(event["topics"]), 3, "Delivery event indexed fields differ")
         _same(_address_word(int(event["topics"][1], 16)), mech, "Delivery event Mech differs")

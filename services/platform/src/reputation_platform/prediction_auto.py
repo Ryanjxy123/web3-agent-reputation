@@ -80,7 +80,7 @@ def _report(root: Path, origin: dict):
     for item in translation_refs:
         reader.remember(item.path, item.sha256)
     reader.remember(POLICY)
-    if origin.get('verification_revision', 1) in (2, 3):
+    if origin.get('verification_revision', 1) in (2, 3, 4):
         reader.remember(ERRATUM)
     if origin.get('report_format_revision', 1) == 2:
         from reputation_platform.prediction_presentation import present_prediction_report
@@ -184,6 +184,8 @@ def evaluate_auto_prediction(repo, job: dict, worker: str, registration: dict, e
              *(root/'runtime').glob('prediction-question-resolution-check-*'),
              *(root/'runtime').glob('direct-question-source-research-*'),
              *(root/'runtime').glob('direct-question-followup-*'),
+             *(root/'runtime').glob('prediction-history-tail-discovery-*'),
+             *(root/'runtime').glob('prediction-tail-event-probe-*'),
              *(path for path in (root/'runtime').glob('prediction-auto-history-*') if path != history)]
     store = _LeasedEvidenceStore(history, reuse, enabled=evidence.enabled, proxy=evidence.proxy,
         max_requests=1200, parallel_reads=2, root=root, heartbeat=evidence.heartbeat)
@@ -213,6 +215,9 @@ def evaluate_auto_prediction(repo, job: dict, worker: str, registration: dict, e
             if profile.policy_version == 'prediction-history-v2':
                 store._remember([file_reference(root/'docs/adr/0016-prediction-evidence-v2.md', root)])
                 store._remember([file_reference(root/'docs/adr/0017-prediction-question-and-output-contract.md', root)])
+                store._remember([file_reference(root/'docs/adr/0018-marketplace-request-event-versions.md', root)])
+                if profile.history_max_deliveries == 512:
+                    store._remember([file_reference(root/'docs/adr/0019-prediction-history-bound.md', root)])
             store._remember([{'path': name, 'sha256': digest} for name, digest in prepared['retained_inputs'].items()])
             bundle = collect_history(store, profile, identity=prepared['identity'], supported_operations=supported,
                                      profile_reference=file_reference(profile_path, root))
@@ -266,7 +271,7 @@ def evaluate_auto_prediction(repo, job: dict, worker: str, registration: dict, e
                 '--bundles', str(history/'bundle.json'), '--execute', '--proxy', evidence.proxy],
                 log/'translation.log', repo, job, worker)
         origin = {'schema_version': 'prediction-auto-report-v1', 'canonical': canonical,
-            'verification_revision': 3 if profile.policy_version == 'prediction-history-v2' else 2,
+            'verification_revision': 4 if profile.policy_version == 'prediction-history-v2' else 2,
             'report_format_revision': 2,
             'history_run': history.relative_to(root).as_posix(), 'plan_run': plan_run.relative_to(root).as_posix(),
             'availability_run': availability.relative_to(root).as_posix() if availability else None,

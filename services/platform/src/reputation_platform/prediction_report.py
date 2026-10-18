@@ -361,8 +361,8 @@ def _check_behavior_output(evidence: RetainedEvidence, descriptor: PredictionHis
 def explain_task(evidence: RetainedEvidence, task: dict, profile: PredictionProfile,
                  descriptor: PredictionHistoryDescriptor, translation: dict, *,
                  verification_revision: int = 1) -> tuple[SampleExplanation, dict]:
-    if (type(verification_revision) is not int or verification_revision not in (1, 2, 3)
-        or verification_revision == 3 and profile.policy_version != 'prediction-history-v2'):
+    if (type(verification_revision) is not int or verification_revision not in (1, 2, 3, 4)
+        or verification_revision in (3, 4) and profile.policy_version != 'prediction-history-v2'):
         raise ValueError('Unsupported prediction verification revision')
     purpose = MeasurementPurpose(task['purpose'])
     verdict, prediction, observed = Verdict.UNKNOWN, None, None
@@ -419,7 +419,7 @@ def explain_task(evidence: RetainedEvidence, task: dict, profile: PredictionProf
             raise OutputViolation('链上 CID 对应的原始交付不是有效 JSON。') from error
         if not isinstance(output, dict):
             raise OutputViolation('已认证的交付 JSON 不是声明中的对象结构。')
-        if verification_revision == 3:
+        if verification_revision in (3, 4):
             claimed = '原始交付结果：' + str(output.get('result', '缺失'))
         if str(output.get('requestId')) != str(int(task['request_id'], 16)):
             raise OutputViolation('交付文件的任务号与唯一链上交付不一致。')
@@ -445,17 +445,18 @@ def explain_task(evidence: RetainedEvidence, task: dict, profile: PredictionProf
                 + ('交付的原题按普通文本或明确JSON对话中的content原文精确匹配，不作模糊比较。'
                    if purpose == MeasurementPurpose.FUNCTIONAL else
                    '交付字段按实际声明核对；内部prompt是工具处理记录，不要求它再次回显原题。'))
-        if verification_revision == 3:
+        if verification_revision in (3, 4):
             file_explanation = ('原始请求与交付逐块通过CID校验；唯一链上任务、任务号和工具证明关联，原题精确绑定独立结算。'
                                 '交付按实际声明字段核验，不要求内部prompt逐字回显原题。')
         checks.append(_finding('原任务与文件', Verdict.PASS, file_explanation))
         verification = verify_prediction_chain(chain, mech=profile.mech, service_id=profile.service_id,
-                                               request_id=task['request_id'], confirmation_head=profile.confirmation_head)
+            request_id=task['request_id'], confirmation_head=profile.confirmation_head,
+            marketplace_event_revision=2 if verification_revision == 4 else 1)
         detail = {'anchors': anchors, 'settlement': settlement.model_dump(mode='json'), 'chain': verification.model_dump(mode='json')}
         claimed = '原始交付结果：' + str(output.get('result', '缺失'))
         if purpose == MeasurementPurpose.FUNCTIONAL:
             try:
-                if (verification_revision != 3 and not isinstance(output.get('prompt'), str)
+                if (verification_revision not in (3, 4) and not isinstance(output.get('prompt'), str)
                     or not isinstance(output.get('result'), str)):
                     raise ValueError('声明中的 prompt/result 字符串字段不完整')
                 result = json.loads(output['result'])
@@ -595,7 +596,7 @@ def availability_explanations(evidence: RetainedEvidence, run: Path, profile: Pr
 def build_prediction_report(*, history_run: Path, plan_run: Path, availability_run: Path | None = None,
                             translations: dict | None = None, identity_run: Path | None = None,
                             root: Path = PROJECT_ROOT, verification_revision: int = 1) -> tuple[EvaluationReport, dict, RetainedEvidence]:
-    if type(verification_revision) is not int or verification_revision not in (1, 2, 3):
+    if type(verification_revision) is not int or verification_revision not in (1, 2, 3, 4):
         raise ValueError('Unsupported prediction verification revision')
     evidence = RetainedEvidence(root)
     history_manifest = evidence.manifest(history_run)
@@ -605,10 +606,12 @@ def build_prediction_report(*, history_run: Path, plan_run: Path, availability_r
         raise ValueError('Bundle is not bound to one completed history manifest output')
     bundle = json.loads(evidence.remember(bundle_name, bundle_sources[0]['sha256']).read_bytes())
     profile = load_history_profile(evidence, history_manifest, bundle)
-    if verification_revision == 3 and profile.policy_version != 'prediction-history-v2':
-        raise ValueError('Verification revision 3 is limited to explicitly versioned V2 evidence')
-    if verification_revision == 3:
+    if verification_revision in (3, 4) and profile.policy_version != 'prediction-history-v2':
+        raise ValueError('Verification revision 3/4 is limited to explicitly versioned V2 evidence')
+    if verification_revision in (3, 4):
         evidence.remember('docs/adr/0017-prediction-question-and-output-contract.md')
+    if verification_revision == 4:
+        evidence.remember('docs/adr/0018-marketplace-request-event-versions.md')
     plan = bundle['plan']
     if (plan['pilot_only'] or plan['eligibility_uses_outputs'] is not False or len(plan['slots']) != 14
         or [item['purpose'] for item in plan['slots']] != ['functional'] * 7 + ['behavioral'] * 7
@@ -664,10 +667,16 @@ def build_prediction_report(*, history_run: Path, plan_run: Path, availability_r
               '同类政策可复用，但不同能力范围的综合分不作无条件横向排名。']
     if verification_revision == 2:
         limits.append('核验修订2：功能题干支持明确JSON对话content的正规解码后精确匹配；行为题干由已认证请求绑定结算，内部prompt处理记录不必再次回显原题。')
-    if verification_revision == 3:
+    if verification_revision in (3, 4):
         limits.append('核验修订3：以唯一链上任务和输入/输出CID证明任务关联，交付按真实字段声明及概率格式核验；内部prompt没有逐字回显原题的额外义务。Invalid response或服务错误并非有效概率答复，相关失败仍计0信用。')
+    if verification_revision == 4:
+        limits.append('历史事件核验修订4：支持同一Marketplace官方两版普通请求事件；旧事件的输入CID仍由原调用与独立Mech Request精确交叉核对，其他身份、支付与交付规则保持。')
     if profile.policy_version == 'prediction-history-v2':
         limits.append('证据扩展V2：原件可为CID认证的根文件或目录文件；无明确市场ID时，仅按完整原题、唯一问题和唯一市场精确定位，再独立核链上结算。每个Question只占一个槽，不混用旧版样本。')
+    if profile.policy_version == 'prediction-history-v2' and profile.history_max_deliveries == 512:
+        evidence.remember('docs/adr/0019-prediction-history-bound.md')
+        limits.append(f'本次按用户批准最多检查512条历史交付，实际审查{len(bundle.get("qualifications", []))}条，'
+                      f'其中{plan["qualified_market_count"]}个不同问题合格；达到14即停止筛选。实际使用的历史起止见评价时间范围，512不是评分样本数。')
     if not availability_run:
         limits.append('本次尚未完成新的十次公开入口采样，可用性和综合分待评价。')
     if not identity.get('registration_time'):

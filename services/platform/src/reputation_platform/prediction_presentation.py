@@ -17,7 +17,7 @@ def _correction(report: EvaluationReport, reader, origin: dict) -> None:
     if correction is None:
         return
     revision = origin.get('verification_revision')
-    if revision not in (2, 3) or revision == 3 and report.policy_version != 'prediction-history-v2':
+    if revision not in (2, 3, 4) or revision in (3, 4) and report.policy_version != 'prediction-history-v2':
         raise ValueError('A verification erratum requires its explicit supported revision')
     report_ref, origin_ref = correction['report'], correction['origin']
     report_path = reader.remember(report_ref['path'], report_ref['sha256'])
@@ -48,6 +48,14 @@ def _correction(report: EvaluationReport, reader, origin: dict) -> None:
     before = f'{old_score:.2f}' if old_score is not None else '待评价'
     after = f'{new_score:.2f}' if new_score is not None else '待评价'
     unchanged = '原历史任务、原始证据及10次访问均未重采。' if origin.get('availability_run') else '原计划与已有历史证据均未重采，本次未新增访问采样。'
+    if revision == 4:
+        report.scope = (f'本版补充历史事件格式核验：综合{before}→{after}。支持同一Marketplace官方四参数请求事件，并完整核对原调用、唯一任务及输入CID。'
+                        + unchanged + '\n' + report.scope)
+        report.limitations.extend([
+            '修订4仅增加已核实的历史事件ABI；原服务/执行者、授权、支付上限、接手窗口、交付、确认及输出Schema要求保持。',
+            f'上一版报告及其UNKNOWN原因保留：{report_ref["path"]}；本版没有重新选择任务或访问采样。',
+        ])
+        return
     if revision == 3:
         report.scope = (f'本版说明修订：综合{before}→{after}。按真实输出声明核验并展示实际错误返回，不把内部prompt未回显原题说成回答别题。'
                         + unchanged + '\n' + report.scope)
