@@ -87,7 +87,7 @@ const conclusion = computed(() => {
       <ScoreCard v-for="item in dimensions" :key="item.purpose" :title="item.title" :weight="item.weight" :dimension="item.dimension" />
     </section>
 
-    <section v-if="isGeneric" class="panel">
+    <section v-if="isGeneric || (isPrediction && capabilities.length)" class="panel">
       <div class="section-heading"><div><p class="eyebrow">按功能查看已测范围</p><h2>发现了什么，哪些已有业务证据</h2></div></div>
       <p class="section-description">功能声明、协议发现和实际业务结果分别记录。资料完整或输出格式符合约定，只能支持对应检查；业务正确性需要适用的独立判据，交易履约需要任务与真实链上证据绑定。</p>
       <p v-if="!capabilities.length" class="empty-inline">本轮尚无可列明的功能范围；资料来源与缺项见报告限制。</p>
@@ -120,10 +120,10 @@ const conclusion = computed(() => {
     </section>
 
     <section class="panel samples-panel">
-      <div class="section-heading"><div><p class="eyebrow">从结论回到事实</p><h2>每条样本实际发生了什么</h2></div><span class="muted small">共 {{ report.samples.length }} 条评分样本</span></div>
-      <p class="section-description">查看真实输入、服务公布的结果，以及独立核验的发现。每个维度的首个通过样本，以及已记录的首个未通过或无法判断样本默认展开。</p>
+      <div class="section-heading"><div><p class="eyebrow">从结论回到事实</p><h2>每条样本实际发生了什么</h2></div><span class="muted small">共 {{ report.samples.length }} 条核验记录</span></div>
+      <p class="section-description">查看真实输入、服务公布的结果，以及独立核验的发现。缺少原件的计划槽位仍会保留并说明缺项，不代表已测得结果。每个维度的首个通过样本，以及已记录的首个未通过或无法判断样本默认展开。</p>
       <section v-for="group in dimensions" :key="group.purpose" class="sample-group">
-        <div class="sample-group-heading"><h3>{{ group.title }}</h3><span>{{ samplesFor(group.purpose).length }} 条实际样本</span></div>
+        <div class="sample-group-heading"><h3>{{ group.title }}</h3><span>{{ samplesFor(group.purpose).length }} 条核验记录</span></div>
         <p v-if="!samplesFor(group.purpose).length" class="empty-inline">本维度尚无实际评价样本。</p>
         <details v-for="{ item, index } in samplesFor(group.purpose)" :id="`sample-${index + 1}`" :key="item.sample.sample_id" class="sample" :open="representatives.has(index)">
           <summary><span class="sample-marker">{{ String(index + 1).padStart(2, '0') }}</span><span class="sample-title">{{ item.title }}</span><StatusBadge :verdict="item.sample.verdict" /></summary>

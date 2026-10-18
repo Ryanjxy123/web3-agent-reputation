@@ -162,7 +162,7 @@ def render_evaluation_report(report: EvaluationReport) -> str:
         conclusion = finding + f"三个维度均达到既定样本要求，综合分为 {scores.overall:.2f} 分。"
     elif scores.status == "PARTIAL":
         status = "部分评价 · 暂无综合分"
-        conclusion = f"本次已有 {len(report.samples)} 条评价样本，{completed} 个维度达到评分要求。其余维度仍缺足够的确定结论，暂不计算综合分。"
+        conclusion = f"本次保留 {len(report.samples)} 条核验记录（含缺证据槽位），{completed} 个维度达到评分要求。其余维度仍缺足够的确定结论，暂不计算综合分。"
     else:
         status = "尚未形成评价"
         conclusion = "本次尚无进入评分的实际样本，三项维度和综合分均待评价。"
@@ -190,7 +190,7 @@ def render_evaluation_report(report: EvaluationReport) -> str:
     for purpose, (label, _) in PURPOSES.items():
         samples = [_sample(item, index, expanded=index in representatives)
                    for index, item in enumerate(report.samples, 1) if item.sample.purpose == purpose]
-        groups.append(f'<section class="sample-group"><h3>{label} · {len(samples)} 条实际样本</h3>'
+        groups.append(f'<section class="sample-group"><h3>{label} · {len(samples)} 条核验记录</h3>'
                       + ("".join(samples) if samples else '<p class="muted">本维度尚无实际样本。</p>') + '</section>')
     p95 = f"{scores.availability.p95_ms:.2f} 毫秒" if scores.availability.p95_ms is not None else "尚无成功响应可计算"
     overall = f"{scores.overall:.2f}" if scores.overall is not None else "待评价"
@@ -259,7 +259,7 @@ a{{color:#145e83;text-underline-offset:3px;overflow-wrap:anywhere}}a:focus-visib
 <div class="summary-metrics" aria-label="结果概览"><div class="metric"><strong>{overall}</strong><span>综合分 · 三维证据齐全才计算</span></div>
 <div class="metric"><strong>{len(report.samples)}</strong><span>实际评价样本</span></div><div class="metric"><strong>{unknown}</strong><span>无法判断 · 另有 {failed} 条未通过</span></div></div></header>
 <section class="scores" aria-label="三维评分">{cards}</section>
-{_capabilities(report) if generic else ''}
+{_capabilities(report) if generic or (prediction and report.capabilities) else ''}
 <section class="panel"><h2>怎样理解这三个分数</h2><div class="methods">
 <section><h3>服务可用性</h3><p>{_text(availability_intro)}得分由 80% 成功率与 20% 延迟表现组成；成功率的分母仅包括通过和未通过。</p>
 <p class="p95">本次成功响应 p95：{p95}</p><p>p95 表示至少 95% 的成功请求在这一耗时内完成，按样本排序取最近秩。不超过 1000 毫秒时延迟项满分，达到 10000 毫秒为零，中间线性计算。这是本机经既定代理线路的访问体验，包含网络和代理耗时。</p></section>

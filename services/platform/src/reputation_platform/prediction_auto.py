@@ -1,6 +1,7 @@
 """Attach the existing prediction policy to authenticated protocol evidence."""
 
 from datetime import datetime, timezone
+from collections import Counter
 import hashlib
 import json
 from pathlib import Path
@@ -32,6 +33,29 @@ def _run(root: Path, prefix: str) -> Path:
     return path
 
 
+def _qualification_gap(registration: dict, evidence, history: Path, bundle: dict) -> None:
+    """Retain why a recognized specialty could not form an evaluable cohort."""
+    reasons = Counter(item['reason'] for item in bundle['qualifications'])
+    looked = len(bundle['qualifications'])
+    qualified = bundle['plan']['qualified_market_count']
+    explanation = (f'已识别历史预测声明；本轮检查{looked}条历史候选，仅{qualified}个市场符合固定取样条件。'
+                   '未形成可自动评价的任务材料，因此不生成预测分；缺少原件或明确市场标识不等于Agent业务失败。')
+    assessment = evidence.run/'prediction-qualification-summary.json'
+    labels = {'http_status_not_success': '公开原始请求文件未成功读取，具体HTTP状态见保留观测',
+              'Original task lacks an explicit supported market identifier': '原始请求没有明确的受支持市场标识，无法独立对应结算结果'}
+    _save(assessment, {'canonical': registration['canonical'], 'status': 'INSUFFICIENT_EVIDENCE',
+        'looked_count': looked, 'qualified_market_count': qualified,
+        'reason_counts': [{'reason': reason, 'count': count} for reason, count in reasons.most_common()],
+        'explanation': explanation, 'sources': [file_reference(history/name, evidence.root)
+                                               for name in ('manifest.json', 'bundle.json')],
+        'score_effect': 'NONE'})
+    registration['limitations'].extend([explanation, *[f'历史候选缺项：{count}条；{labels.get(reason, reason)}'
+                                                    for reason, count in reasons.most_common()]])
+    for path in (assessment, history/'manifest.json', history/'bundle.json'):
+        reference = file_reference(path, evidence.root)
+        evidence.inputs[reference['path']] = reference['sha256']
+
+
 def _report(root: Path, origin: dict):
     translations, translation_refs = {}, []
     if origin.get('translation_run'):
@@ -45,6 +69,17 @@ def _report(root: Path, origin: dict):
     reader.remember(POLICY)
     if origin.get('verification_revision', 1) == 2:
         reader.remember(ERRATUM)
+    if origin.get('report_format_revision', 1) == 2:
+        from reputation_platform.prediction_presentation import present_prediction_report
+
+        history = root / origin['history_run']
+        manifest = reader.manifest(history)
+        bundle_ref = next(item for item in manifest['outputs']
+                          if item['path'] == (history/'bundle.json').relative_to(root).as_posix())
+        bundle = json.loads(reader.remember(bundle_ref['path'], bundle_ref['sha256']).read_bytes())
+        descriptor = json.loads(reader.remember(origin['plan_run'] + '/descriptor.json').read_bytes())
+        catalog = json.loads(reader.remember(descriptor['metadata_source_file']).read_bytes())
+        present_prediction_report(report, bundle, catalog, reader, origin)
     report.source_references = sorted(reader.inputs)
     return report, background, reader
 
@@ -54,11 +89,14 @@ def verify_auto_prediction_report(root: Path, report, hashes: dict[str, str]) ->
     from reputation_platform.mech_task_evidence import _catalog
     from reputation_platform.mech_task_identity import verify_mech_identity
 
-    names = [name for name in hashes if Path(name).name == ORIGIN]
+    reader = RetainedEvidence(root)
+    origins = {name: json.loads(reader.remember(name, hashes[name]).read_bytes())
+               for name in hashes if Path(name).name == ORIGIN}
+    previous = {item['correction_of']['origin']['path'] for item in origins.values() if item.get('correction_of')}
+    names = [name for name in origins if name not in previous]
     if len(names) != 1:
         raise ValueError('An automatic prediction report requires one retained origin')
-    reader = RetainedEvidence(root)
-    origin = json.loads(reader.remember(names[0], hashes[names[0]]).read_bytes())
+    origin = origins[names[0]]
     if origin.get('schema_version') != 'prediction-auto-report-v1':
         raise ValueError('Unsupported automatic prediction report origin')
     for item in origin['sources']:
@@ -159,6 +197,7 @@ def evaluate_auto_prediction(repo, job: dict, worker: str, registration: dict, e
                 'outputs': [file_reference(history/'bundle.json', root)], 'new_request_count': store.sent,
                 'mainnet_writes': False, 'model_calls': 0})
             if selected is None:
+                _qualification_gap(registration, evidence, history, bundle)
                 return False
         log = _run(root, 'prediction-auto-job')
         availability = None
@@ -192,6 +231,7 @@ def evaluate_auto_prediction(repo, job: dict, worker: str, registration: dict, e
                 '--bundles', str(history/'bundle.json'), '--execute', '--proxy', evidence.proxy],
                 log/'translation.log', repo, job, worker)
         origin = {'schema_version': 'prediction-auto-report-v1', 'canonical': canonical, 'verification_revision': 2,
+            'report_format_revision': 2,
             'history_run': history.relative_to(root).as_posix(), 'plan_run': plan_run.relative_to(root).as_posix(),
             'availability_run': availability.relative_to(root).as_posix() if availability else None,
             'translation_run': translation.relative_to(root).as_posix() if translation else None,
@@ -224,6 +264,7 @@ def evaluate_auto_prediction(repo, job: dict, worker: str, registration: dict, e
         return True
     except EvidenceUnavailable as error:
         _save(attempt_run/'automatic-issue.json', {'status': 'UNKNOWN', 'reason': str(error), 'canonical': canonical})
+        registration['limitations'].append('自动历史预测暂无法评价：' + str(error))
         return False
     finally:
         evidence.inputs.update({item['path']: item['sha256'] for item in store.inputs.values()})

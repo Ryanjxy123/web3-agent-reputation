@@ -50,7 +50,7 @@ def _factory_source(reader: RetainedEvidence, store, mech: str | None, service_i
     for key, item in store.cache.items():
         if json.loads(key)[0] == MECH_INDEX:
             retained.append(item["evidence"])
-    for path in sorted(reader.root.glob("runtime/olas-discovery-*/olas-mech-directory.observation.json")):
+    for path in sorted(reader.root.glob("runtime/olas-*/*mech-directory*.observation.json")):
         try:
             observed = ProbeObservation.model_validate_json(path.read_bytes())
             response = (path.parent / observed.response_file).resolve() if observed.response_file else None
