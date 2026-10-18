@@ -22,6 +22,18 @@ PUBLIC_TARGETS = (
     PublicTarget("catalog-brain", "https://api.8004scan.io/api/v1/agents/56/49467"),
     PublicTarget("brain-defi", "https://brainonbnb.com/defi"),
     PublicTarget("brain-agent", "https://agent.brainonbnb.com/lp/agent"),
+    PublicTarget(
+        "brain-job-health-56657", "https://agent.brainonbnb.com/job/56657/result",
+        purpose=MeasurementPurpose.BACKGROUND,
+    ),
+    PublicTarget(
+        "brain-job-grid-56670", "https://agent.brainonbnb.com/job/56670/result",
+        purpose=MeasurementPurpose.BACKGROUND,
+    ),
+    PublicTarget(
+        "brain-job-yield-56850", "https://agent.brainonbnb.com/job/56850/result",
+        purpose=MeasurementPurpose.BACKGROUND,
+    ),
     PublicTarget("brain-burns", "https://logs.brainonbnb.com/logs/burns.json"),
     PublicTarget("catalog-defi", "https://api.8004scan.io/api/v1/agents/56/363709"),
     PublicTarget(

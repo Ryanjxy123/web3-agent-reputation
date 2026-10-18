@@ -7,17 +7,30 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "packages" / "core" / "src"))
 
-from reputation_core import AdmissionReport, ProbeObservation  # noqa: E402
+from reputation_core import (  # noqa: E402
+    AdmissionReport, BehaviorVerification, DeclarationAnalysis, DisclosureVerification,
+    EvaluationReport, LiquidityHistoryDescriptor, LiquidityVerification, PlanSelection,
+    ProbeObservation, ScoredSample, ScoringOutcome, SourceDocument,
+)
 
-MODELS = {"admission-report": AdmissionReport, "probe-observation": ProbeObservation}
+MODELS = {"admission-report": AdmissionReport, "probe-observation": ProbeObservation,
+          "source-document": SourceDocument, "declaration-analysis": DeclarationAnalysis,
+          "liquidity-verification": LiquidityVerification, "disclosure-verification": DisclosureVerification,
+          "behavior-verification": BehaviorVerification, "liquidity-history-descriptor": LiquidityHistoryDescriptor,
+          "plan-selection": PlanSelection, "scored-sample": ScoredSample,
+          "scoring-outcome": ScoringOutcome, "evaluation-report": EvaluationReport}
 ANNOTATIONS = {"title", "description", "default", "format", "readOnly", "$defs", "$schema"}
-SHAPES = {"$ref", "const", "enum", "anyOf", "type", "items", "properties", "required", "additionalProperties"}
+SHAPES = {"$ref", "const", "enum", "anyOf", "type", "items", "properties", "required",
+          "additionalProperties", "minLength", "minItems"}
 
 
 def to_typescript(schema: dict, names: set[str]) -> str:
     unsupported = set(schema) - ANNOTATIONS - SHAPES
     if unsupported:
         raise ValueError(f"Unsupported schema keywords: {sorted(unsupported)}")
+    for keyword, kind in (("minLength", "string"), ("minItems", "array")):
+        if keyword in schema and (schema.get("type") != kind or schema[keyword] != 1):
+            raise ValueError(f"Only {keyword}=1 on {kind} is supported")
     if "$ref" in schema:
         prefix = "#/$defs/"
         reference = schema["$ref"]
@@ -34,7 +47,8 @@ def to_typescript(schema: dict, names: set[str]) -> str:
     if isinstance(kind, list):
         return " | ".join(to_typescript({"type": item}, names) for item in kind)
     if kind == "array":
-        return f"Array<{to_typescript(schema['items'], names)}>"
+        item = to_typescript(schema["items"], names)
+        return f"[{item}, ...Array<{item}>]" if "minItems" in schema else f"Array<{item}>"
     if kind == "object":
         if schema.get("additionalProperties", False) is not False:
             raise ValueError("Open object schemas are not supported")
@@ -46,6 +60,8 @@ def to_typescript(schema: dict, names: set[str]) -> str:
             fields.append(f"  {modifier}{json.dumps(name)}{optional}: {to_typescript(value, names)};")
         return "{\n" + "\n".join(fields) + "\n}"
     primitives = {"string": "string", "integer": "number", "number": "number", "boolean": "boolean", "null": "null"}
+    if kind == "string" and "minLength" in schema:
+        return "/** @minLength 1; validated by JSON Schema/Pydantic */ string"
     if kind in primitives:
         return primitives[kind]
     raise ValueError(f"Unsupported schema shape: {schema}")

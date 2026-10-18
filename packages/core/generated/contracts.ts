@@ -23,6 +23,83 @@ export type Verdict = "PASS" | "FAIL" | "UNKNOWN" | "NOT_APPLICABLE";
 
 export type MeasurementPurpose = "availability" | "functional" | "behavioral" | "background";
 
+export type BusinessClaim = {
+  "claim_id": /** @minLength 1; validated by JSON Schema/Pydantic */ string;
+  "operation": /** @minLength 1; validated by JSON Schema/Pydantic */ string;
+  "description": /** @minLength 1; validated by JSON Schema/Pydantic */ string;
+  "inputs": Array<string>;
+  "outputs": Array<string>;
+  "constraints": Array<string>;
+  "access": "free" | "paid" | "auth_required" | "unknown";
+  "citations": [ClaimCitation, ...Array<ClaimCitation>];
+};
+
+export type ClaimCitation = {
+  "source_id": /** @minLength 1; validated by JSON Schema/Pydantic */ string;
+  "quote": /** @minLength 1; validated by JSON Schema/Pydantic */ string;
+};
+
+export type StepVerification = {
+  "role": "wrap" | "swap" | "increase";
+  "verdict": Verdict;
+  "reason": string;
+  "transaction_hash"?: string | null;
+  "block_number"?: number | null;
+  "transaction_index"?: number | null;
+  "block_timestamp"?: number | null;
+  "amount_in"?: string | null;
+  "amount_out"?: string | null;
+  "amount0"?: string | null;
+  "amount1"?: string | null;
+  "liquidity_delta"?: string | null;
+};
+
+export type DimensionScore = {
+  "value": number | null;
+  "planned": number;
+  "observed": number;
+  "passed": number;
+  "failed": number;
+  "unknown": number;
+  "not_applicable": number;
+  "p95_ms": number | null;
+};
+
+export type ReportFinding = {
+  "label": string;
+  "verdict": Verdict;
+  "explanation": string;
+};
+
+export type SampleExplanation = {
+  "sample": ScoredSample;
+  "observed_at"?: string | null;
+  "title": string;
+  "input_summary": string;
+  "claimed_output": string;
+  "independent_result": string;
+  "checks": Array<ReportFinding>;
+};
+
+export type ScoredSample = {
+  "sample_id": string;
+  "task_key": string;
+  "purpose": MeasurementPurpose;
+  "verdict": Verdict;
+  "elapsed_ms": number | null;
+  "reason": string;
+  "evidence": Array<string>;
+};
+
+export type ScoringOutcome = {
+  "policy_version"?: "liquidity-history-v1";
+  "availability": DimensionScore;
+  "functional": DimensionScore;
+  "behavioral": DimensionScore;
+  "overall": number | null;
+  "status": "COMPLETE" | "PARTIAL" | "NOT_EVALUATED";
+};
+
 export type AdmissionReport = {
   "schema_version"?: "candidate-admission-v1";
   "assessed_at": string;
@@ -43,4 +120,88 @@ export type ProbeObservation = {
   "response_file": string | null;
   "response_sha256": string | null;
   "body_complete": boolean;
+};
+
+export type SourceDocument = {
+  "source_id": /** @minLength 1; validated by JSON Schema/Pydantic */ string;
+  "url": string;
+  "raw_sha256": string;
+  "projection_sha256": string;
+  "text": /** @minLength 1; validated by JSON Schema/Pydantic */ string;
+};
+
+export type DeclarationAnalysis = {
+  "schema_version"?: "declaration-analysis-v1";
+  "claims": Array<BusinessClaim>;
+  "gaps": Array<string>;
+};
+
+export type LiquidityVerification = {
+  "verdict": Verdict;
+  "reason": string;
+  "liquidity_delta"?: string | null;
+  "amount0"?: string | null;
+  "amount1"?: string | null;
+  "block_number"?: number | null;
+  "transaction_index"?: number | null;
+};
+
+export type DisclosureVerification = {
+  "verdict": Verdict;
+  "reason": string;
+  "actual_liquidity_after"?: string | null;
+  "declared_liquidity_after"?: string | null;
+  "block_end_liquidity"?: string | null;
+  "actual_amount0_base_units"?: string | null;
+  "actual_amount1_base_units"?: string | null;
+  "declared_amount0"?: string | null;
+  "declared_amount1"?: string | null;
+  "declared_amount0_base_units"?: string | null;
+  "declared_amount1_base_units"?: string | null;
+};
+
+export type BehaviorVerification = {
+  "verdict": Verdict;
+  "reason": string;
+  "wrap": StepVerification;
+  "swap": StepVerification;
+  "increase": StepVerification;
+  "elapsed_seconds"?: number | null;
+};
+
+export type LiquidityHistoryDescriptor = {
+  "candidate_key": string;
+  "claim_ids": Array<string>;
+  "chain_id"?: number | null;
+  "protocol"?: string | null;
+  "history_shape"?: string | null;
+  "history_source_file"?: string | null;
+  "history_json_path"?: string | null;
+  "published_execution_wallet"?: string | null;
+  "trusted_manager"?: string | null;
+};
+
+export type PlanSelection = {
+  "candidate_key": string;
+  "status": "SELECTED" | "NEEDS_INFO" | "UNSUPPORTED";
+  "policy_id": "liquidity-history-v1" | null;
+  "claim_ids": Array<string>;
+  "reasons": Array<string>;
+  "pending_evidence": Array<string>;
+};
+
+export type EvaluationReport = {
+  "schema_version"?: "evaluation-report-v1";
+  "candidate_key": string;
+  "name": string;
+  "registration_reference": string;
+  "generated_at": string;
+  "scope": string;
+  "scope_exclusions": Array<string>;
+  "evaluation_window": string;
+  "approach": string;
+  "samples": Array<SampleExplanation>;
+  "source_references": Array<string>;
+  "limitations": Array<string>;
+  readonly "scores": ScoringOutcome;
 };

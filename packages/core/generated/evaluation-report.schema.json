@@ -1,0 +1,352 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "DimensionScore": {
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Value"
+        },
+        "planned": {
+          "title": "Planned",
+          "type": "integer"
+        },
+        "observed": {
+          "title": "Observed",
+          "type": "integer"
+        },
+        "passed": {
+          "title": "Passed",
+          "type": "integer"
+        },
+        "failed": {
+          "title": "Failed",
+          "type": "integer"
+        },
+        "unknown": {
+          "title": "Unknown",
+          "type": "integer"
+        },
+        "not_applicable": {
+          "title": "Not Applicable",
+          "type": "integer"
+        },
+        "p95_ms": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "P95 Ms"
+        }
+      },
+      "required": [
+        "value",
+        "planned",
+        "observed",
+        "passed",
+        "failed",
+        "unknown",
+        "not_applicable",
+        "p95_ms"
+      ],
+      "title": "DimensionScore",
+      "type": "object"
+    },
+    "MeasurementPurpose": {
+      "enum": [
+        "availability",
+        "functional",
+        "behavioral",
+        "background"
+      ],
+      "title": "MeasurementPurpose",
+      "type": "string"
+    },
+    "ReportFinding": {
+      "additionalProperties": false,
+      "properties": {
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "verdict": {
+          "$ref": "#/$defs/Verdict"
+        },
+        "explanation": {
+          "title": "Explanation",
+          "type": "string"
+        }
+      },
+      "required": [
+        "label",
+        "verdict",
+        "explanation"
+      ],
+      "title": "ReportFinding",
+      "type": "object"
+    },
+    "SampleExplanation": {
+      "additionalProperties": false,
+      "properties": {
+        "sample": {
+          "$ref": "#/$defs/ScoredSample"
+        },
+        "observed_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Observed At"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "input_summary": {
+          "title": "Input Summary",
+          "type": "string"
+        },
+        "claimed_output": {
+          "title": "Claimed Output",
+          "type": "string"
+        },
+        "independent_result": {
+          "title": "Independent Result",
+          "type": "string"
+        },
+        "checks": {
+          "items": {
+            "$ref": "#/$defs/ReportFinding"
+          },
+          "title": "Checks",
+          "type": "array"
+        }
+      },
+      "required": [
+        "sample",
+        "title",
+        "input_summary",
+        "claimed_output",
+        "independent_result",
+        "checks"
+      ],
+      "title": "SampleExplanation",
+      "type": "object"
+    },
+    "ScoredSample": {
+      "additionalProperties": false,
+      "properties": {
+        "sample_id": {
+          "title": "Sample Id",
+          "type": "string"
+        },
+        "task_key": {
+          "title": "Task Key",
+          "type": "string"
+        },
+        "purpose": {
+          "$ref": "#/$defs/MeasurementPurpose"
+        },
+        "verdict": {
+          "$ref": "#/$defs/Verdict"
+        },
+        "elapsed_ms": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Elapsed Ms"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "evidence": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence",
+          "type": "array"
+        }
+      },
+      "required": [
+        "sample_id",
+        "task_key",
+        "purpose",
+        "verdict",
+        "elapsed_ms",
+        "reason",
+        "evidence"
+      ],
+      "title": "ScoredSample",
+      "type": "object"
+    },
+    "ScoringOutcome": {
+      "additionalProperties": false,
+      "properties": {
+        "policy_version": {
+          "const": "liquidity-history-v1",
+          "default": "liquidity-history-v1",
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "availability": {
+          "$ref": "#/$defs/DimensionScore"
+        },
+        "functional": {
+          "$ref": "#/$defs/DimensionScore"
+        },
+        "behavioral": {
+          "$ref": "#/$defs/DimensionScore"
+        },
+        "overall": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Overall"
+        },
+        "status": {
+          "enum": [
+            "COMPLETE",
+            "PARTIAL",
+            "NOT_EVALUATED"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "availability",
+        "functional",
+        "behavioral",
+        "overall",
+        "status"
+      ],
+      "title": "ScoringOutcome",
+      "type": "object"
+    },
+    "Verdict": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNKNOWN",
+        "NOT_APPLICABLE"
+      ],
+      "title": "Verdict",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "evaluation-report-v1",
+      "default": "evaluation-report-v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "candidate_key": {
+      "title": "Candidate Key",
+      "type": "string"
+    },
+    "name": {
+      "title": "Name",
+      "type": "string"
+    },
+    "registration_reference": {
+      "title": "Registration Reference",
+      "type": "string"
+    },
+    "generated_at": {
+      "format": "date-time",
+      "title": "Generated At",
+      "type": "string"
+    },
+    "scope": {
+      "title": "Scope",
+      "type": "string"
+    },
+    "scope_exclusions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Scope Exclusions",
+      "type": "array"
+    },
+    "evaluation_window": {
+      "title": "Evaluation Window",
+      "type": "string"
+    },
+    "approach": {
+      "title": "Approach",
+      "type": "string"
+    },
+    "samples": {
+      "items": {
+        "$ref": "#/$defs/SampleExplanation"
+      },
+      "title": "Samples",
+      "type": "array"
+    },
+    "source_references": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Source References",
+      "type": "array"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "scores": {
+      "$ref": "#/$defs/ScoringOutcome",
+      "readOnly": true
+    }
+  },
+  "required": [
+    "candidate_key",
+    "name",
+    "registration_reference",
+    "generated_at",
+    "scope",
+    "scope_exclusions",
+    "evaluation_window",
+    "approach",
+    "samples",
+    "source_references",
+    "limitations",
+    "scores"
+  ],
+  "title": "EvaluationReport",
+  "type": "object"
+}

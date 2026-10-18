@@ -26,13 +26,15 @@ class PublicTarget:
 
 
 class SafeHttpClient:
-    """Only operator-listed HTTPS requests, with no retries or credentials."""
+    """Operator-listed HTTPS requests; provider credentials have a fixed scope."""
 
     def __init__(
         self, targets: tuple[PublicTarget, ...], *, enabled: bool = False,
         proxy: str | None = None, max_requests: int = 8,
         max_body_bytes: int = 1_048_576, timeout_seconds: float = 15,
         transport: httpx.BaseTransport | None = None,
+        provider_key_file: Path | None = None,
+        zan_key_url_file: Path | None = None,
     ) -> None:
         self.targets = {target.key: target for target in targets}
         if len(self.targets) != len(targets):
@@ -50,6 +52,34 @@ class SafeHttpClient:
         self.max_body_bytes = max_body_bytes
         self.timeout_seconds = timeout_seconds
         self.stopped_hosts: set[str] = set()
+        self._provider_headers = {}
+        self._provider_secret = b""
+        self._zan_key_scope = zan_key_url_file is not None
+        self._zan_rpc_methods = {}
+        if provider_key_file is not None and zan_key_url_file is not None:
+            raise ValueError("DeepSeek and ZAN credentials are mutually exclusive")
+        if provider_key_file is not None:
+            permitted = {("https://api.deepseek.com/responses", "POST"),
+                         ("https://api.deepseek.com/user/balance", "GET")}
+            if not enabled or not targets or any((target.url, target.method) not in permitted for target in targets):
+                raise ValueError("Provider credentials are only allowed for the fixed DeepSeek endpoints")
+            secret = provider_key_file.read_text(encoding="utf-8").strip()
+            if not secret or "\n" in secret or "\r" in secret:
+                raise ValueError("Provider key file must contain one nonempty line")
+            self._provider_headers = {"Authorization": "Bearer " + secret}
+            self._provider_secret = secret.encode("utf-8")
+        if zan_key_url_file is not None:
+            if not enabled or not targets:
+                raise ValueError("ZAN credentials require explicitly enabled fixed read-only targets")
+            for target in targets:
+                self._check_zan_target(target)
+                self._zan_rpc_methods[target.key] = target.json_body["method"]
+            key_url = zan_key_url_file.read_text(encoding="utf-8").strip()
+            match = re.fullmatch(r"https://api\.zan\.top/node/v1/base/mainnet/([A-Za-z0-9._~-]+)", key_url)
+            if not match:
+                raise ValueError("ZAN key file must contain one official Base mainnet key URL")
+            secret = match.group(1)
+            self._provider_secret = secret.encode("utf-8")
         self.client = httpx.Client(
             proxy=proxy, transport=transport, trust_env=False,
             timeout=timeout_seconds, follow_redirects=False,
@@ -61,6 +91,19 @@ class SafeHttpClient:
 
     def __exit__(self, *_: object) -> None:
         self.client.close()
+
+    @staticmethod
+    def _check_zan_target(target: PublicTarget) -> None:
+        endpoints = {"https://api.zan.top/node/v1/base/mainnet",
+                     "https://api.zan.top/node/v1/bsc/mainnet"}
+        methods = {"eth_chainId", "eth_blockNumber", "eth_getBlockByNumber",
+                   "eth_getTransactionByHash", "eth_getTransactionReceipt", "eth_call",
+                   "eth_getLogs", "eth_getCode", "eth_getBalance"}
+        rpc_method = target.json_body.get("method") if isinstance(target.json_body, dict) else None
+        if (target.url not in endpoints or target.method != "POST"
+            or not isinstance(target.json_body, dict) or target.json_body.get("jsonrpc") != "2.0"
+            or not isinstance(rpc_method, str) or rpc_method not in methods):
+            raise ValueError("ZAN credentials only allow fixed Base/BSC read-only JSON-RPC targets")
 
     @staticmethod
     def _check_public_destination(url: str) -> None:
@@ -76,6 +119,10 @@ class SafeHttpClient:
         if not self.enabled:
             raise PermissionError("Public reads are disabled")
         target = self.targets[key]
+        if self._zan_key_scope:
+            self._check_zan_target(target)
+            if target.json_body["method"] != self._zan_rpc_methods[key]:
+                raise ValueError("ZAN RPC method changed after scope approval")
         if self.remaining <= 0 or urlsplit(target.url).hostname in self.stopped_hosts:
             raise PermissionError("Request budget exhausted or host stop condition")
         self.remaining -= 1
@@ -88,7 +135,10 @@ class SafeHttpClient:
         outcome = Verdict.UNKNOWN
         try:
             self._check_public_destination(target.url)
-            with self.client.stream(target.method, target.url, json=target.json_body) as response:
+            # Only the wire URL includes the ZAN credential; targets and evidence stay public.
+            transport_url = target.url + "/" + self._provider_secret.decode("utf-8") if self._zan_key_scope else target.url
+            with self.client.stream(target.method, transport_url, json=target.json_body,
+                                    headers=self._provider_headers) as response:
                 status = response.status_code
                 if status in (401, 402, 403, 429):
                     self.stopped_hosts.add(urlsplit(target.url).hostname)
@@ -124,6 +174,9 @@ class SafeHttpClient:
             error = type(exc).__name__
         response_file = None
         digest = None
+        if self._provider_secret and self._provider_secret in body:
+            body = body.replace(self._provider_secret, b"[REDACTED]")
+            error, complete, outcome = "provider_secret_echo_redacted", False, Verdict.UNKNOWN
         if body or status is not None:
             response_file = f"{key}.response.bin"
             with (directory / response_file).open("xb") as stream:
