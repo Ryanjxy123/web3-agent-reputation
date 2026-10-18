@@ -1,6 +1,6 @@
 # 本机平台启动与实际验收
 
-2026-10-18：当前task_id=`ORDINARY_PREDICTION_CANDIDATE_EXPANSION`。用户已确认暂停签名实现、先扩大普通协议真实预测Agent候选池。签名调查证明两个对象能还原调用，但2150首例为Say Hi，2359三个固定输入均单次超时，尚未证明业务覆盖价值；调查结论见reference/SIGNED_DELIVERY_FEASIBILITY_20261018.md。完整评分仍9个；UTC15:13平台快照38候选/45报告/0active。先核更多真实声明与普通请求历史可得性，再启动现有规则，不新增单对象标准或降低门槛。
+2026-10-19：当前task_id=`PREDICTION_ORDINARY_HISTORY_EXPANSION`。用户授权的目录排序/筛选与全站字号放大已实现，唯一必要前端类型检查/构建exit0；本机新JS/CSS与网站200、字节SHA一致，浏览器视觉/交互仍BLOCKED。下一明确任务是用现有规则扩充完整评分：2359在旧128条以外的三页又有41条普通请求关联（仅背景潜力，尚非合格题），按已批准512上限启动自动资格与评价；不实现签名协议。当前完整仍9个，三维/权重/10点A及7F/7B不变，旧报告保留。
 
 日期：2026-10-18。工作目录：`D:/xjtu_project/block_chain_new/block_chain_new_new`。
 

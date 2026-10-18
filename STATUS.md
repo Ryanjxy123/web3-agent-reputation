@@ -1,6 +1,6 @@
 # 新项目当前状态
 
-2026-10-18：当前task_id=`ORDINARY_PREDICTION_CANDIDATE_EXPANSION`。用户已确认暂停签名实现、先扩大普通协议真实预测Agent候选池。签名调查证明两个对象能还原调用，但2150首例为Say Hi，2359三个固定输入均单次超时，尚未证明业务覆盖价值；调查结论见reference/SIGNED_DELIVERY_FEASIBILITY_20261018.md。完整评分仍9个；UTC15:13平台快照38候选/45报告/0active。先核更多真实声明与普通请求历史可得性，再启动现有规则，不新增单对象标准或降低门槛。
+2026-10-19：当前task_id=`PREDICTION_ORDINARY_HISTORY_EXPANSION`。用户授权的目录排序/筛选与全站字号放大已实现，唯一必要前端类型检查/构建exit0；本机新JS/CSS与网站200、字节SHA一致，浏览器视觉/交互仍BLOCKED。下一明确任务是用现有规则扩充完整评分：2359在旧128条以外的三页又有41条普通请求关联（仅背景潜力，尚非合格题），按已批准512上限启动自动资格与评价；不实现签名协议。当前完整仍9个，三维/权重/10点A及7F/7B不变，旧报告保留。
 
 当前以本页开头为准。已有批次新增2135完整88.27与2267完整29.8；完整9个。当前扩普通协议候选；签名调查已收口并暂停实现，视觉BLOCKED，无remote。
 
@@ -20,6 +20,16 @@
 
 - **最终普通阶段收口**：`runtime/capture_prediction_v2_close.py` exit0，原件 `runtime/prediction-v2-close-20261018T151306Z-9fd425ac/result.json`；真实PG38候选/45报告/9完整/0active，2135/2150/2267报告与实际input附件200且SHA一致，1722缺项报告200，网站和当前JS200。0新公网/模型，不代表视觉验收。2150新报告明确512上限、实际200及历史交付2025-08-18至11-14，只有10个实际有时间的任务、4空槽，不假造更早已评分样本。
 - **签名路径研究起点**：9条空request没有被扣分。固定首条经2次只读RPC在可信Marketplace发现唯一匹配 `MarketplaceDeliveryWithSignatures`，实际Mech/ID匹配，但未核签名、nonce或原始输入，不能计合格，也不推断其余8条相同。`runtime/classify_first_null_request.py` exit0，原件 `runtime/prediction-null-request-protocol-20261018T151020Z-d5198a60/`。用户随后批准先调查签名交付的多对象可评分性；先收集声明和证据、比较群体覆盖，再决定共用适配。
+
+普通候选扩池已收口：skip80仅新增8行、无metadata且目录交付0，1POST/exit0；固定三项3766/3771/3768共18次必要读，登记身份/工厂有证但无预测操作Schema。3766的MCP404/A2ATransportError，另两项MCP/A2A各404，均未重试或发历史/API/模型。3766/3768研究命令exit1表示UNKNOWN，3771命令exit0仅表示资料调查完成，三者均未业务评分。原件分别 `runtime/ordinary-candidate-research-20261018T153826Z-741b7237/`、`runtime/ordinary-candidate-3771-research-20261018T154819Z-f0f9c8d9/`、`runtime/ordinary-description-check-20261018T154908Z-016b9a95/`。曾只给已完成代理发消息导致另两任务未实际启动，已纠正为显式followup启动并拆分完成；未掩盖等待或重复请求。
+
+**目录可用性已完成**：App保留搜索，新增状态/范围筛选（预测V1/V2同组）、最近报告更新/综合分高低/名称排序、结果计数和清空；空分始终后置，真实0正常排序，filter新数组再排序。同分按时间/名称/key稳定排列。全站正文17px、卡片/控件16px、报告正文15–17px，小字最低12px，移动端换行，不用zoom/新依赖。Node22.17下唯一受影响`pnpm run build` exit0；新资源index-ClLolS_X.js、index-BB3T5TnR.css。`runtime/check_directory_frontend_assets.py` exit0，网站/两资源200且SHA与dist完全一致，原件 `runtime/directory-frontend-check-20261018T155942Z-5f80ca72/result.json`；视觉/实际交互未跑，既有浏览器崩溃BLOCKED不重试。
+
+**下一覆盖来源**：新增三页2359官方索引各1POST/exit0，skip128/160/192分别32行中4/9/28有普通请求关联，其余null不推定签名；0输入/输出/模型/评分。原件 `runtime/prediction-history-tail-discovery-20261018T155700Z-2472f347/`、`20261018T155800Z-342193eb/`、`20261018T155759Z-0c5bd73a/`。该对象已有真实预测工具声明和原范围6个合格问题，扩展历史比新建单对象规则更直接；是否凑14仍由新自动资格决定。
+
+**其他普通候选的第二批**：1841/1966/1983共18必要读，只有通用任务描述，MCP/A2A五404一TransportError；3553/3179/2682共16读，前两无预测Schema且描述404，后者登记JSONTransportError。六项均UNKNOWN，没有历史/API/模型/评分。包 `runtime/ordinary-frozen-group-20261018T155435Z-bd36f10e/` 与 `runtime/ordinary-candidate-next3-20261018T155507Z-9fc3a7f6/`，各子命令exit0或1仅表示有限采集/缺项；语义未评，不能当业务PASS。
+
+**2359当前实际进度**：job `50eb8e3e-19f3-4108-a64a-0608bbec6ca2`、批次 `runtime/prediction-auto-batch-20261018T160051Z-eedabcb1/`、history `runtime/prediction-auto-history-20261018T160240Z-4dc3a559/`。新512范围已在实际203条达到READY14且14不同Question：14合格、173缺普通请求关联UNKNOWN、15较早重复/pilot排除、1未结算；计划已先冻结，交付/A/报告仍在执行，不能计第10个完整。初次本地缓存扫描无heartbeat导致一次租约恢复，空history160118Z-e3cb1dcb/旧日志保留，现fence2正常续约，未把它算Agent失败；通用阻塞阶段续约修复正在做，保留原owner/fence/过期SQL，不重启活动worker。
 
 ## 当前完整结果
 
