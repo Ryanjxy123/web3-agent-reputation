@@ -355,6 +355,38 @@
         ],
         "title": "AgentSummary"
       },
+      "BinaryPrediction": {
+        "properties": {
+          "p_yes": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "P Yes"
+          },
+          "p_no": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "P No"
+          },
+          "final_outcome": {
+            "type": "string",
+            "enum": [
+              "yes",
+              "no"
+            ],
+            "title": "Final Outcome"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "p_yes",
+          "p_no",
+          "final_outcome"
+        ],
+        "title": "BinaryPrediction"
+      },
       "CandidateRecord": {
         "properties": {
           "key": {
@@ -570,6 +602,15 @@
             "const": "evaluation-report-v1",
             "title": "Schema Version",
             "default": "evaluation-report-v1"
+          },
+          "policy_version": {
+            "type": "string",
+            "enum": [
+              "liquidity-history-v1",
+              "prediction-history-v1"
+            ],
+            "title": "Policy Version",
+            "default": "liquidity-history-v1"
           },
           "candidate_key": {
             "type": "string",
@@ -857,6 +898,16 @@
             },
             "type": "array",
             "title": "Evidence"
+          },
+          "prediction": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BinaryPrediction"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -876,7 +927,10 @@
         "properties": {
           "policy_version": {
             "type": "string",
-            "const": "liquidity-history-v1",
+            "enum": [
+              "liquidity-history-v1",
+              "prediction-history-v1"
+            ],
             "title": "Policy Version",
             "default": "liquidity-history-v1"
           },

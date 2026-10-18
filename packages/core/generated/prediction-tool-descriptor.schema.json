@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Concrete tool declarations parsed from the retained provider metadata.",
+  "properties": {
+    "operation": {
+      "title": "Operation",
+      "type": "string"
+    },
+    "description": {
+      "title": "Description",
+      "type": "string"
+    },
+    "input_type": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Input Type"
+    },
+    "output_type": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Output Type"
+    },
+    "result_type": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Result Type"
+    },
+    "required_output_fields": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Required Output Fields",
+      "type": "array"
+    },
+    "probability_fields": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Probability Fields",
+      "type": "array"
+    }
+  },
+  "required": [
+    "operation",
+    "description",
+    "required_output_fields",
+    "probability_fields"
+  ],
+  "title": "PredictionToolDescriptor",
+  "type": "object"
+}

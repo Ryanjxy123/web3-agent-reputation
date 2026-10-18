@@ -2,7 +2,7 @@
 name = "reputation-core"
 version = "0.1.0"
 requires-python = ">=3.12,<3.13"
-dependencies = ["pydantic==2.13.5"]
+dependencies = ["pydantic==2.13.5", "eth-hash[pycryptodome]==0.8.0"]
 
 [build-system]
 requires = ["hatchling==1.27.0"]

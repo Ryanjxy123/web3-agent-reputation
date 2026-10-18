@@ -18,7 +18,10 @@
     "policy_id": {
       "anyOf": [
         {
-          "const": "liquidity-history-v1",
+          "enum": [
+            "liquidity-history-v1",
+            "prediction-history-v1"
+          ],
           "type": "string"
         },
         {

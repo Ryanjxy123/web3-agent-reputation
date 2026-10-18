@@ -1,6 +1,38 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$defs": {
+    "BinaryPrediction": {
+      "additionalProperties": false,
+      "properties": {
+        "p_yes": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "P Yes",
+          "type": "number"
+        },
+        "p_no": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "P No",
+          "type": "number"
+        },
+        "final_outcome": {
+          "enum": [
+            "yes",
+            "no"
+          ],
+          "title": "Final Outcome",
+          "type": "string"
+        }
+      },
+      "required": [
+        "p_yes",
+        "p_no",
+        "final_outcome"
+      ],
+      "title": "BinaryPrediction",
+      "type": "object"
+    },
     "DimensionScore": {
       "additionalProperties": false,
       "properties": {
@@ -189,6 +221,17 @@
           },
           "title": "Evidence",
           "type": "array"
+        },
+        "prediction": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BinaryPrediction"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
@@ -207,8 +250,11 @@
       "additionalProperties": false,
       "properties": {
         "policy_version": {
-          "const": "liquidity-history-v1",
           "default": "liquidity-history-v1",
+          "enum": [
+            "liquidity-history-v1",
+            "prediction-history-v1"
+          ],
           "title": "Policy Version",
           "type": "string"
         },
@@ -269,6 +315,15 @@
       "const": "evaluation-report-v1",
       "default": "evaluation-report-v1",
       "title": "Schema Version",
+      "type": "string"
+    },
+    "policy_version": {
+      "default": "liquidity-history-v1",
+      "enum": [
+        "liquidity-history-v1",
+        "prediction-history-v1"
+      ],
+      "title": "Policy Version",
       "type": "string"
     },
     "candidate_key": {

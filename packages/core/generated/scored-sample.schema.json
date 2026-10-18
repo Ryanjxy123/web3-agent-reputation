@@ -1,6 +1,38 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$defs": {
+    "BinaryPrediction": {
+      "additionalProperties": false,
+      "properties": {
+        "p_yes": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "P Yes",
+          "type": "number"
+        },
+        "p_no": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "P No",
+          "type": "number"
+        },
+        "final_outcome": {
+          "enum": [
+            "yes",
+            "no"
+          ],
+          "title": "Final Outcome",
+          "type": "string"
+        }
+      },
+      "required": [
+        "p_yes",
+        "p_no",
+        "final_outcome"
+      ],
+      "title": "BinaryPrediction",
+      "type": "object"
+    },
     "MeasurementPurpose": {
       "enum": [
         "availability",
@@ -59,6 +91,17 @@
       },
       "title": "Evidence",
       "type": "array"
+    },
+    "prediction": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/BinaryPrediction"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     }
   },
   "required": [

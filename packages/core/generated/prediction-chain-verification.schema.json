@@ -1,0 +1,218 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "ReportFinding": {
+      "additionalProperties": false,
+      "properties": {
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "verdict": {
+          "$ref": "#/$defs/Verdict"
+        },
+        "explanation": {
+          "title": "Explanation",
+          "type": "string"
+        }
+      },
+      "required": [
+        "label",
+        "verdict",
+        "explanation"
+      ],
+      "title": "ReportFinding",
+      "type": "object"
+    },
+    "Verdict": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNKNOWN",
+        "NOT_APPLICABLE"
+      ],
+      "title": "Verdict",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "verdict": {
+      "$ref": "#/$defs/Verdict"
+    },
+    "reason": {
+      "title": "Reason",
+      "type": "string"
+    },
+    "checks": {
+      "items": {
+        "$ref": "#/$defs/ReportFinding"
+      },
+      "title": "Checks",
+      "type": "array"
+    },
+    "request_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Request Id"
+    },
+    "priority_mech": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Priority Mech"
+    },
+    "delivery_mech": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Delivery Mech"
+    },
+    "service_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Service Id"
+    },
+    "operator": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Operator"
+    },
+    "request_block": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Request Block"
+    },
+    "delivery_block": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Delivery Block"
+    },
+    "request_timestamp": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Request Timestamp"
+    },
+    "delivery_timestamp": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Delivery Timestamp"
+    },
+    "response_timeout": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Response Timeout"
+    },
+    "input_digest": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Input Digest"
+    },
+    "output_digest": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Output Digest"
+    },
+    "delivery_rate": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Delivery Rate"
+    }
+  },
+  "required": [
+    "verdict",
+    "reason",
+    "checks"
+  ],
+  "title": "PredictionChainVerification",
+  "type": "object"
+}

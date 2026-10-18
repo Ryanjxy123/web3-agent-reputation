@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "p_yes": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "P Yes",
+      "type": "number"
+    },
+    "p_no": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "P No",
+      "type": "number"
+    },
+    "final_outcome": {
+      "enum": [
+        "yes",
+        "no"
+      ],
+      "title": "Final Outcome",
+      "type": "string"
+    }
+  },
+  "required": [
+    "p_yes",
+    "p_no",
+    "final_outcome"
+  ],
+  "title": "BinaryPrediction",
+  "type": "object"
+}

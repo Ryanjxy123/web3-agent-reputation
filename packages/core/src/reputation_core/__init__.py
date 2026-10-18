@@ -21,8 +21,13 @@ from reputation_core.claims import (
 from reputation_core.liquidity import LiquidityVerification, verify_increase
 from reputation_core.disclosure import DisclosureVerification, verify_disclosure
 from reputation_core.behavior import BehaviorVerification, StepVerification, verify_behavior
-from reputation_core.planning import LiquidityHistoryDescriptor, PlanSelection, select_plan
+from reputation_core.planning import (
+    LiquidityHistoryDescriptor, PlanSelection, PredictionHistoryDescriptor, PredictionToolDescriptor,
+    prediction_tool_supported, select_plan, select_prediction_plan,
+)
+from reputation_core.prediction import BinaryPrediction
 from reputation_core.reporting import EvaluationReport, ReportFinding, SampleExplanation
+from reputation_core.prediction_chain import MarketSettlementVerification, PredictionChainVerification
 from reputation_core.scoring import (
     AVAILABILITY_LATENCY_WEIGHT,
     AVAILABILITY_SUCCESS_WEIGHT,
@@ -32,6 +37,8 @@ from reputation_core.scoring import (
     MIN_DECISIVE_SAMPLES,
     PLANNED_SAMPLES,
     POLICY_VERSION,
+    PREDICTION_POLICY_VERSION,
+    PolicyVersion,
     DimensionScore,
     ScoredSample,
     ScoringOutcome,
@@ -44,6 +51,7 @@ __all__ = [
     "AdmissionCheck",
     "AdmissionReport",
     "BusinessClaim",
+    "BinaryPrediction",
     "BehaviorVerification",
     "CandidateAdmission",
     "CandidateRecord",
@@ -59,9 +67,15 @@ __all__ = [
     "LiquidityVerification",
     "LiquidityHistoryDescriptor",
     "MeasurementPurpose",
+    "MarketSettlementVerification",
     "MIN_DECISIVE_SAMPLES",
     "PLANNED_SAMPLES",
     "POLICY_VERSION",
+    "PREDICTION_POLICY_VERSION",
+    "PredictionChainVerification",
+    "PredictionHistoryDescriptor",
+    "PredictionToolDescriptor",
+    "PolicyVersion",
     "PlanSelection",
     "ProbeObservation",
     "SourceDocument",
@@ -74,6 +88,8 @@ __all__ = [
     "assess_candidate",
     "calculate_scores",
     "select_plan",
+    "select_prediction_plan",
+    "prediction_tool_supported",
     "validate_analysis",
     "verify_increase",
     "verify_disclosure",

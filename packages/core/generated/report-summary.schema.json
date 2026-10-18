@@ -68,8 +68,11 @@
       "additionalProperties": false,
       "properties": {
         "policy_version": {
-          "const": "liquidity-history-v1",
           "default": "liquidity-history-v1",
+          "enum": [
+            "liquidity-history-v1",
+            "prediction-history-v1"
+          ],
           "title": "Policy Version",
           "type": "string"
         },

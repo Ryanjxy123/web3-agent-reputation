@@ -8,8 +8,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "packages" / "core" / "src"))
 
 from reputation_core import (  # noqa: E402
-    AdmissionReport, BehaviorVerification, DeclarationAnalysis, DisclosureVerification,
-    EvaluationReport, LiquidityHistoryDescriptor, LiquidityVerification, PlanSelection,
+    AdmissionReport, BehaviorVerification, BinaryPrediction, DeclarationAnalysis, DisclosureVerification,
+    EvaluationReport, LiquidityHistoryDescriptor, LiquidityVerification, MarketSettlementVerification,
+    PlanSelection, PredictionChainVerification, PredictionHistoryDescriptor, PredictionToolDescriptor,
     ProbeObservation, ScoredSample, ScoringOutcome, SourceDocument,
 )
 from reputation_core.application import (
@@ -20,14 +21,18 @@ MODELS = {"admission-report": AdmissionReport, "probe-observation": ProbeObserva
           "source-document": SourceDocument, "declaration-analysis": DeclarationAnalysis,
           "liquidity-verification": LiquidityVerification, "disclosure-verification": DisclosureVerification,
           "behavior-verification": BehaviorVerification, "liquidity-history-descriptor": LiquidityHistoryDescriptor,
-          "plan-selection": PlanSelection, "scored-sample": ScoredSample,
+          "plan-selection": PlanSelection, "binary-prediction": BinaryPrediction, "scored-sample": ScoredSample,
+          "prediction-chain-verification": PredictionChainVerification,
+          "prediction-tool-descriptor": PredictionToolDescriptor,
+          "prediction-history-descriptor": PredictionHistoryDescriptor,
+          "market-settlement-verification": MarketSettlementVerification,
           "scoring-outcome": ScoringOutcome, "evaluation-report": EvaluationReport,
           "agent-summary": AgentSummary, "agent-detail": AgentDetail, "report-summary": ReportSummary,
           "evaluation-job": EvaluationJob, "evaluation-submission": EvaluationSubmission,
           "health-status": HealthStatus}
 ANNOTATIONS = {"title", "description", "default", "format", "readOnly", "$defs", "$schema"}
 SHAPES = {"$ref", "const", "enum", "anyOf", "type", "items", "properties", "required",
-          "additionalProperties", "minLength", "minItems"}
+          "additionalProperties", "minLength", "minItems", "minimum", "maximum"}
 
 
 def to_typescript(schema: dict, names: set[str]) -> str:
@@ -69,6 +74,9 @@ def to_typescript(schema: dict, names: set[str]) -> str:
     if kind == "string" and "minLength" in schema:
         return "/** @minLength 1; validated by JSON Schema/Pydantic */ string"
     if kind in primitives:
+        if kind in ("number", "integer") and ("minimum" in schema or "maximum" in schema):
+            limits = " ".join(f"@{key} {schema[key]}" for key in ("minimum", "maximum") if key in schema)
+            return f"/** {limits}; validated by JSON Schema/Pydantic */ number"
         return primitives[kind]
     raise ValueError(f"Unsupported schema shape: {schema}")
 

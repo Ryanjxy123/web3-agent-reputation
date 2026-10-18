@@ -54,6 +54,28 @@ export type StepVerification = {
   "liquidity_delta"?: string | null;
 };
 
+export type BinaryPrediction = {
+  "p_yes": /** @minimum 0 @maximum 1; validated by JSON Schema/Pydantic */ number;
+  "p_no": /** @minimum 0 @maximum 1; validated by JSON Schema/Pydantic */ number;
+  "final_outcome": "yes" | "no";
+};
+
+export type ReportFinding = {
+  "label": string;
+  "verdict": Verdict;
+  "explanation": string;
+};
+
+export type PredictionToolDescriptor = {
+  "operation": string;
+  "description": string;
+  "input_type"?: string | null;
+  "output_type"?: string | null;
+  "result_type"?: string | null;
+  "required_output_fields": Array<string>;
+  "probability_fields": Array<string>;
+};
+
 export type DimensionScore = {
   "value": number | null;
   "planned": number;
@@ -63,12 +85,6 @@ export type DimensionScore = {
   "unknown": number;
   "not_applicable": number;
   "p95_ms": number | null;
-};
-
-export type ReportFinding = {
-  "label": string;
-  "verdict": Verdict;
-  "explanation": string;
 };
 
 export type SampleExplanation = {
@@ -89,10 +105,11 @@ export type ScoredSample = {
   "elapsed_ms": number | null;
   "reason": string;
   "evidence": Array<string>;
+  "prediction"?: BinaryPrediction | null;
 };
 
 export type ScoringOutcome = {
-  "policy_version"?: "liquidity-history-v1";
+  "policy_version"?: "liquidity-history-v1" | "prediction-history-v1";
   "availability": DimensionScore;
   "functional": DimensionScore;
   "behavioral": DimensionScore;
@@ -210,14 +227,72 @@ export type LiquidityHistoryDescriptor = {
 export type PlanSelection = {
   "candidate_key": string;
   "status": "SELECTED" | "NEEDS_INFO" | "UNSUPPORTED";
-  "policy_id": "liquidity-history-v1" | null;
+  "policy_id": "liquidity-history-v1" | "prediction-history-v1" | null;
   "claim_ids": Array<string>;
   "reasons": Array<string>;
   "pending_evidence": Array<string>;
 };
 
+export type PredictionChainVerification = {
+  "verdict": Verdict;
+  "reason": string;
+  "checks": Array<ReportFinding>;
+  "request_id"?: string | null;
+  "priority_mech"?: string | null;
+  "delivery_mech"?: string | null;
+  "service_id"?: string | null;
+  "operator"?: string | null;
+  "request_block"?: number | null;
+  "delivery_block"?: number | null;
+  "request_timestamp"?: number | null;
+  "delivery_timestamp"?: number | null;
+  "response_timeout"?: number | null;
+  "input_digest"?: string | null;
+  "output_digest"?: string | null;
+  "delivery_rate"?: string | null;
+};
+
+export type PredictionHistoryDescriptor = {
+  "candidate_key": string;
+  "claim_ids": Array<string>;
+  "tools": Array<PredictionToolDescriptor>;
+  "chain_id"?: number | null;
+  "protocol"?: string | null;
+  "metadata_source_id"?: string | null;
+  "metadata_source_file"?: string | null;
+  "input_format"?: string | null;
+  "output_format"?: string | null;
+  "published_mech"?: string | null;
+  "service_id"?: string | null;
+  "history_shape"?: string | null;
+  "history_source_file"?: string | null;
+  "history_tool"?: string | null;
+  "history_context_type"?: string | null;
+  "history_market"?: string | null;
+  "history_prompt"?: string | null;
+};
+
+export type MarketSettlementVerification = {
+  "verdict": Verdict;
+  "reason": string;
+  "checks": Array<ReportFinding>;
+  "market"?: string | null;
+  "condition_id"?: string | null;
+  "question_id"?: string | null;
+  "title"?: string | null;
+  "question_data"?: string | null;
+  "template_id"?: string | null;
+  "outcomes"?: Array<string>;
+  "final_outcome"?: "yes" | "no" | null;
+  "opening_timestamp"?: number | null;
+  "finalized_timestamp"?: number | null;
+  "checked_block"?: number | null;
+  "payouts"?: Array<string>;
+};
+
 export type EvaluationReport = {
   "schema_version"?: "evaluation-report-v1";
+  "policy_version"?: "liquidity-history-v1" | "prediction-history-v1";
   "candidate_key": string;
   "name": string;
   "registration_reference": string;
