@@ -18,6 +18,9 @@ ROOT = Path(__file__).resolve().parents[1]
 class PredictionEvidenceV2Tests(unittest.TestCase):
     def test_evidence_version_preserves_scores_and_authentication(self):
         legacy_run = ROOT / 'runtime/evaluation-report-20261018T130748Z-45152bd3'
+        research = ROOT / 'runtime/input-layout-research-20261018T133653Z-b20ec01e'
+        if not (legacy_run / 'manifest.json').is_file() or not (research / 'findings.json').is_file():
+            self.skipTest('NOT_RUN: retained real prediction sources are required')
         payload = json.loads((legacy_run / 'report.json').read_bytes())
         retained_scores = payload.pop('scores')
         report = EvaluationReport.model_validate_json(json.dumps(payload, ensure_ascii=False))
@@ -36,7 +39,6 @@ class PredictionEvidenceV2Tests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'PASS requires validated probabilities'):
             calculate_scores([broken], policy_version='prediction-history-v2')
 
-        research = ROOT / 'runtime/input-layout-research-20261018T133653Z-b20ec01e'
         findings = json.loads((research / 'findings.json').read_bytes())['findings']
         with tempfile.TemporaryDirectory(prefix='v2-content-check-', dir=ROOT / 'runtime') as directory:
             store = EvidenceStore(Path(directory), [research], root=ROOT)
