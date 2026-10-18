@@ -430,8 +430,32 @@ def _history_query(profile: PredictionProfile, skip: int) -> str:
               'request{id blockNumber blockTimestamp transactionHash marketplaceRequest{ipfsHashBytes}}}}')
 
 
-def collect_history(store: EvidenceStore, profile: PredictionProfile, *, pilot_hint: dict | None = None) -> dict:
-    identity = collect_identity(store, profile)
+def collect_history(store: EvidenceStore, profile: PredictionProfile, *, pilot_hint: dict | None = None,
+                    identity: dict | None = None, supported_operations: set[str] | None = None,
+                    profile_reference: dict | None = None) -> dict:
+    supplied_identity = identity is not None
+    if supported_operations is not None and (not isinstance(supported_operations, set)
+        or any(not isinstance(operation, str) or not operation.strip() for operation in supported_operations)):
+        raise ValueError("Supported prediction operations must be a set of nonempty catalog names")
+    operations = frozenset(supported_operations) if supported_operations is not None else None
+    if supplied_identity or profile_reference is not None:
+        # Local imports avoid a cycle: the retained reader also imports PredictionProfile.
+        from reputation_platform.mech_task_identity import verify_mech_identity
+        from reputation_platform.prediction_report import RetainedEvidence
+
+        retained = RetainedEvidence(store.root)
+        try:
+            if supplied_identity:
+                verify_mech_identity(retained, {"profile": asdict(profile), "identity": identity},
+                                     profile.registration_reference)
+            if profile_reference is not None:
+                path = retained.remember(profile_reference["path"], profile_reference["sha256"])
+                if json.loads(path.read_bytes()) != asdict(profile):
+                    raise ValueError("Runtime prediction profile differs from its retained original")
+        finally:
+            store._remember([{"path": name, "sha256": digest} for name, digest in retained.inputs.items()])
+    if identity is None:
+        identity = collect_identity(store, profile)
     header = identity["header"]["value"]
     hints, qualifications, selected, tasks, seen_markets = [], [], [], [], set()
     if pilot_hint is not None:
@@ -459,6 +483,15 @@ def collect_history(store: EvidenceStore, profile: PredictionProfile, *, pilot_h
             input_content = store.ipfs("request-content", hint["request"]["marketplaceRequest"]["ipfsHashBytes"], "metadata.json")
             if input_content["payload"] is None:
                 raise EvidenceUnavailable(input_content["format_error"])
+            if operations is not None:
+                record["input"] = input_content
+                operation = input_content["payload"].get("tool")
+                if not isinstance(operation, str) or not operation:
+                    raise EvidenceUnavailable("Original task does not identify a declared prediction operation")
+                record["operation"] = operation
+                if operation not in operations:
+                    record.update(verdict="NOT_APPLICABLE", reason="实际请求工具不属于本次已核验的预测操作集合；保留背景，不读取交付结果或计入预测样本。")
+                    continue
             context = input_content["payload"].get("request_context", {})
             if not isinstance(context, dict) or not isinstance(context.get("market_id"), str):
                 raise EvidenceUnavailable("Original task lacks an explicit supported market identifier")
@@ -506,6 +539,8 @@ def collect_history(store: EvidenceStore, profile: PredictionProfile, *, pilot_h
             "eligibility_uses_outputs": False, "cutoff_timestamp": profile.cutoff_timestamp,
             "excluded_pilot_markets": sorted(EXCLUDED_MARKETS), "history_bound": profile.history_max_deliveries,
             "qualified_market_count": len(selected), "status": "READY" if len(selected) == len(slots) else "PARTIAL"}
+    if operations is not None:
+        plan["supported_operations"] = sorted(operations)
     # Append-only files are durable before the first selected-output read below.
     store.save("qualifications.json", qualifications)
     plan_reference = store.save("plan.json", plan)
@@ -531,5 +566,9 @@ def collect_history(store: EvidenceStore, profile: PredictionProfile, *, pilot_h
     bundle = {"schema_version": "prediction-evidence-bundle-v1", "profile": asdict(profile), "identity": identity,
               "plan": plan, "plan_reference": plan_reference, "qualifications": qualifications, "tasks": tasks,
               "inputs": list(store.inputs.values()), "issues": store.issues, "new_request_count": store.sent}
+    if supplied_identity:
+        bundle["identity_protocol"] = "mech-registered-v1"
+    if profile_reference is not None:
+        bundle["profile_reference"] = dict(profile_reference)
     store.save("bundle.json", bundle)
     return bundle

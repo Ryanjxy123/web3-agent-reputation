@@ -128,6 +128,10 @@ class Repository:
             from reputation_platform.generic_evaluation import verify_generic_report_sources
 
             registration_reference = verify_generic_report_sources(self.root, report, hashes)
+        elif any(Path(name).name == "prediction-auto-origin.json" for name in hashes):
+            from reputation_platform.prediction_auto import verify_auto_prediction_report
+
+            registration_reference = verify_auto_prediction_report(self.root, report, hashes)
         else:
             policies = [json.loads((self.root / name).read_bytes()) for name in hashes
                         if Path(name).parent == Path("configs/pilots") and Path(name).suffix == ".json"]

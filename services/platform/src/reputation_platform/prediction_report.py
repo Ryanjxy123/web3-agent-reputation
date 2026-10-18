@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 import hashlib
 import json
 from pathlib import Path
+import re
 
 from eth_hash.auto import keccak
 
@@ -146,7 +147,76 @@ def _word(calls: dict, name: str, target: str, signature: str, block: int, *args
     return int(value, 16)
 
 
+def load_history_profile(evidence: RetainedEvidence, manifest: dict, bundle: dict) -> PredictionProfile:
+    """Load the one authenticated operator profile used by this history bundle."""
+    reference = bundle.get('profile_reference')
+    if reference is not None:
+        path = evidence.path(reference['path'])
+        relative = path.relative_to(evidence.root)
+        if (len(relative.parts) < 2 or relative.parts[0] != 'runtime'
+            or path.name != 'prediction-profile.json' or reference['path'] != relative.as_posix()):
+            raise ValueError('Automatic profile must be runtime/**/prediction-profile.json')
+        sources = [item for item in manifest['inputs'] if item['path'] == reference['path']]
+        if len(sources) != 1 or sources[0]['sha256'] != reference['sha256']:
+            raise ValueError('Automatic profile is not uniquely bound to the history manifest')
+    else:
+        sources = [item for item in manifest['inputs'] if Path(item['path']).parent == Path('configs/pilots')]
+        if len(sources) != 1:
+            raise ValueError('One immutable operator profile is required')
+    profile = PredictionProfile.load(evidence.remember(sources[0]['path'], sources[0]['sha256']))
+    if profile.__dict__ != bundle['profile']:
+        raise ValueError('Bundle profile differs from its original configuration')
+    return profile
+
+
+def _registration_timing(identity: dict, profile: PredictionProfile, *, derive_time: bool = False) -> dict:
+    """Prove the registration date from the mint and service-link transaction."""
+    if identity.get('registration_evidence'):
+        proofs = identity['registration_evidence']
+        part = {name: proofs[name]['value'] for name in ('transaction', 'receipt', 'header')}
+        tx_hash = part['transaction']['hash']
+        block = int(part['transaction']['blockNumber'], 16)
+        for name, method, params in (
+            ('transaction', 'eth_getTransactionByHash', [tx_hash]),
+            ('receipt', 'eth_getTransactionReceipt', [tx_hash]),
+            ('header', 'eth_getBlockByNumber', [hex(block), False]),
+        ):
+            if proofs[name]['method'] != method or proofs[name]['params'] != params:
+                raise ValueError('Registration transaction proof uses different parameters')
+        _, receipt, _, timestamp = _receipt(part, profile.confirmation_head)
+        transfer_topic = '0x' + keccak(b'Transfer(address,address,uint256)').hex()
+        linked_topic = '0x' + keccak(b'ServiceAgentLinked(uint256,uint256)').hex()
+        minted = [log for log in receipt['logs'] if log['address'].lower() == REGISTRY and len(log['topics']) == 4
+                  and log['topics'][0].lower() == transfer_topic and int(log['topics'][1], 16) == 0
+                  and int(log['topics'][2], 16) == int(BRIDGER, 16) and int(log['topics'][3], 16) == profile.agent_id]
+        linked = [log for log in receipt['logs'] if log['address'].lower() == BRIDGER and len(log['topics']) == 3
+                  and log['topics'][0].lower() == linked_topic and int(log['topics'][1], 16) == profile.service_id
+                  and int(log['topics'][2], 16) == profile.agent_id]
+        if len(minted) != 1 or len(linked) != 1 or int(minted[0]['logIndex'], 16) >= int(linked[0]['logIndex'], 16):
+            raise ValueError('Unique identity mint and ordered same-transaction service link are missing')
+        actual_time = datetime.fromtimestamp(timestamp, timezone.utc).isoformat()
+        claimed_time = identity.get('registration_time') if derive_time else identity['registration_time']
+        if claimed_time != actual_time and not (derive_time and claimed_time is None):
+            raise ValueError('Registration date differs from its authenticated block header')
+        if derive_time:
+            identity['registration_time'] = actual_time
+        identity['registration_block'] = block
+    else:
+        identity.pop('registration_time', None)
+    return identity
+
+
 def verify_identity(evidence: RetainedEvidence, bundle: dict, profile: PredictionProfile) -> dict:
+    if bundle.get('identity_protocol') == 'mech-registered-v1':
+        from reputation_platform.mech_task_identity import verify_mech_identity
+
+        verified = verify_mech_identity(evidence, bundle, profile.registration_reference)
+        identity = evidence.tree(bundle['identity'])
+        identity['checks'] = [item.model_dump(mode='json') for item in verified['checks']]
+        identity.setdefault('historical_note', '当前ERC-8004注册不被前推为历史注册；每项任务另核任务区块的同服务与执行控制。')
+        evidence.snapshot_header = identity['header']['value']
+        return _registration_timing(identity, profile, derive_time=True)
+
     identity = evidence.tree(bundle['identity'])
     n, calls = profile.snapshot_block, identity['calls']
     if (int(identity['chain']['value'], 16) != profile.chain_id
@@ -186,36 +256,7 @@ def verify_identity(evidence: RetainedEvidence, bundle: dict, profile: Predictio
     if int(identity['head']['value'], 16) != profile.confirmation_head:
         raise ValueError('Confirmation height differs from the original observed head')
     evidence.snapshot_header = identity['header']['value']
-    if identity.get('registration_evidence'):
-        proofs = identity['registration_evidence']
-        part = {name: proofs[name]['value'] for name in ('transaction', 'receipt', 'header')}
-        tx_hash = part['transaction']['hash']
-        block = int(part['transaction']['blockNumber'], 16)
-        for name, method, params in (
-            ('transaction', 'eth_getTransactionByHash', [tx_hash]),
-            ('receipt', 'eth_getTransactionReceipt', [tx_hash]),
-            ('header', 'eth_getBlockByNumber', [hex(block), False]),
-        ):
-            if proofs[name]['method'] != method or proofs[name]['params'] != params:
-                raise ValueError('Registration transaction proof uses different parameters')
-        _, receipt, _, timestamp = _receipt(part, profile.confirmation_head)
-        transfer_topic = '0x' + keccak(b'Transfer(address,address,uint256)').hex()
-        linked_topic = '0x' + keccak(b'ServiceAgentLinked(uint256,uint256)').hex()
-        minted = [log for log in receipt['logs'] if log['address'].lower() == REGISTRY and len(log['topics']) == 4
-                  and log['topics'][0].lower() == transfer_topic and int(log['topics'][1], 16) == 0
-                  and int(log['topics'][2], 16) == int(BRIDGER, 16) and int(log['topics'][3], 16) == profile.agent_id]
-        linked = [log for log in receipt['logs'] if log['address'].lower() == BRIDGER and len(log['topics']) == 3
-                  and log['topics'][0].lower() == linked_topic and int(log['topics'][1], 16) == profile.service_id
-                  and int(log['topics'][2], 16) == profile.agent_id]
-        if len(minted) != 1 or len(linked) != 1 or int(minted[0]['logIndex'], 16) >= int(linked[0]['logIndex'], 16):
-            raise ValueError('Unique identity mint and ordered same-transaction service link are missing')
-        actual_time = datetime.fromtimestamp(timestamp, timezone.utc).isoformat()
-        if identity['registration_time'] != actual_time:
-            raise ValueError('Registration date differs from its authenticated block header')
-        identity['registration_block'] = block
-    else:
-        identity.pop('registration_time', None)
-    return identity
+    return _registration_timing(identity, profile)
 
 
 def load_selection(evidence: RetainedEvidence, run: Path, profile: PredictionProfile) -> tuple[CandidateRecord, PredictionHistoryDescriptor]:
@@ -248,8 +289,55 @@ def _finding(label: str, verdict: Verdict, explanation: str) -> ReportFinding:
     return ReportFinding(label=label, verdict=verdict, explanation=explanation)
 
 
+def _prompt_contains_title(prompt: str, title: str) -> bool:
+    if title in prompt:
+        return True
+    sections = r'(?m)^--- [A-Z][A-Z0-9 _-]* ---[ \t]*\r?$'
+    for heading in re.finditer(sections, prompt):
+        fragment = prompt[heading.end():].lstrip()
+        if not fragment.startswith('['):
+            continue
+        try:
+            messages, _ = json.JSONDecoder().raw_decode(fragment)
+        except ValueError:
+            continue
+        if isinstance(messages, list) and any(
+            isinstance(message, dict) and message.get('role') in ('system', 'user', 'assistant', 'tool')
+            and isinstance(message.get('content'), str) and title in message['content'] for message in messages
+        ):
+            return True
+    return False
+
+
+def _check_behavior_output(evidence: RetainedEvidence, descriptor: PredictionHistoryDescriptor,
+                           tool: str, output: dict) -> None:
+    catalog = evidence.json(descriptor.metadata_source_file)
+    schema = catalog['toolMetadata'][tool]['output']['schema']
+    for name in schema.get('required', []):
+        if name not in output:
+            raise OutputViolation('已认证交付缺少实际工具声明的必备字段：' + name)
+    types = {'string': lambda value: isinstance(value, str),
+             'integer': lambda value: type(value) is int,
+             'number': lambda value: type(value) in (int, float),
+             'boolean': lambda value: type(value) is bool,
+             'object': lambda value: isinstance(value, dict),
+             'array': lambda value: isinstance(value, list),
+             'null': lambda value: value is None}
+    for name, declaration in schema.get('properties', {}).items():
+        expected = declaration.get('type')
+        if name not in output or expected is None:
+            continue
+        if expected not in types:
+            raise ValueError('暂未适配该交付字段的声明类型：' + name)
+        if not types[expected](output[name]):
+            raise OutputViolation('已认证交付字段与实际声明类型不符：' + name)
+
+
 def explain_task(evidence: RetainedEvidence, task: dict, profile: PredictionProfile,
-                 descriptor: PredictionHistoryDescriptor, translation: dict) -> tuple[SampleExplanation, dict]:
+                 descriptor: PredictionHistoryDescriptor, translation: dict, *,
+                 verification_revision: int = 1) -> tuple[SampleExplanation, dict]:
+    if type(verification_revision) is not int or verification_revision not in (1, 2):
+        raise ValueError('Unsupported prediction verification revision')
     purpose = MeasurementPurpose(task['purpose'])
     verdict, prediction, observed = Verdict.UNKNOWN, None, None
     claimed, independent, checks, detail = '尚未取得可信交付文件。', '必要证据尚未完整取得，本条不扣成失败。', [], {}
@@ -258,6 +346,8 @@ def explain_task(evidence: RetainedEvidence, task: dict, profile: PredictionProf
     try:
         if not task.get('request_id'):
             raise ValueError(task.get('reason', '未取得合资格市场'))
+        if any(not isinstance(task.get(name), dict) for name in ('chain_evidence', 'market_evidence', 'input', 'output')):
+            raise ValueError('本槽位的请求、交付或独立市场原件尚未完整取得')
         chain = evidence.tree(task['chain_evidence'])
         anchors = extract_task_anchors(chain, mech=profile.mech, request_id=task['request_id'], confirmation_head=profile.confirmation_head)
         settlement = evidence.market(task['market_evidence'], profile)
@@ -267,7 +357,8 @@ def explain_task(evidence: RetainedEvidence, task: dict, profile: PredictionProf
         if not isinstance(source, dict) or not isinstance(source.get('request_context'), dict):
             raise ValueError('原始请求尚未提供可识别的任务对象与市场上下文')
         context, prompt, tool = source.get('request_context', {}), source.get('prompt'), source.get('tool')
-        if (context.get('type') != 'omen' or context.get('market_id', '').lower() != settlement.market
+        if (context.get('type') != 'omen' or not isinstance(context.get('market_id'), str)
+            or context['market_id'].lower() != settlement.market
             or task['market'] != settlement.market or not isinstance(prompt, str)
             or f'"{settlement.title}"' not in prompt or tool not in {item.operation for item in descriptor.tools}):
             raise ValueError('原始工具、题干或目标市场未与声明方案对应')
@@ -289,10 +380,25 @@ def explain_task(evidence: RetainedEvidence, task: dict, profile: PredictionProf
             raise OutputViolation('已认证的交付 JSON 不是声明中的对象结构。')
         if str(output.get('requestId')) != str(int(task['request_id'], 16)):
             raise OutputViolation('交付文件的任务号与唯一链上交付不一致。')
-        if ('tool' in output and output['tool'] != tool) or not isinstance(output.get('prompt'), str) or settlement.title not in output['prompt']:
-            raise OutputViolation('交付中的工具或原题干与已绑定的请求不一致。')
+        if verification_revision == 1:
+            if ('tool' in output and output['tool'] != tool) or not isinstance(output.get('prompt'), str) or settlement.title not in output['prompt']:
+                raise OutputViolation('交付中的工具或原题干与已绑定的请求不一致。')
+        else:
+            if 'tool' in output and output['tool'] != tool:
+                raise OutputViolation('交付中的工具与已绑定的请求不一致。')
+            if purpose == MeasurementPurpose.FUNCTIONAL:
+                if not isinstance(output.get('prompt'), str) or not _prompt_contains_title(output['prompt'], settlement.title):
+                    raise OutputViolation('交付中的原题干与已绑定的请求不一致。')
+            else:
+                _check_behavior_output(evidence, descriptor, tool, output)
         checks.extend(settlement.checks)
-        checks.append(_finding('原任务与文件', Verdict.PASS, '原始请求与交付文件逐块通过 CID/DAG 校验；任务编号、工具、题干、市场和预测时序已匹配。'))
+        file_explanation = '原始请求与交付文件逐块通过 CID/DAG 校验；任务编号、工具、题干、市场和预测时序已匹配。'
+        if verification_revision == 2:
+            file_explanation = ('原始请求与交付文件逐块通过 CID/DAG 校验；任务号和工具绑定一致，原题由已认证请求精确绑定市场及结算。'
+                + ('交付的原题按普通文本或明确JSON对话中的content原文精确匹配，不作模糊比较。'
+                   if purpose == MeasurementPurpose.FUNCTIONAL else
+                   '交付字段按实际声明核对；内部prompt是工具处理记录，不要求它再次回显原题。'))
+        checks.append(_finding('原任务与文件', Verdict.PASS, file_explanation))
         verification = verify_prediction_chain(chain, mech=profile.mech, service_id=profile.service_id,
                                                request_id=task['request_id'], confirmation_head=profile.confirmation_head)
         detail = {'anchors': anchors, 'settlement': settlement.model_dump(mode='json'), 'chain': verification.model_dump(mode='json')}
@@ -327,7 +433,7 @@ def explain_task(evidence: RetainedEvidence, task: dict, profile: PredictionProf
         if purpose == MeasurementPurpose.FUNCTIONAL:
             independent += '依既定规则本题信用分为 0 分。'
         checks.append(_finding('已证实的输出差异', verdict, independent))
-    except (ValueError, KeyError, TypeError, OSError) as error:
+    except (ValueError, KeyError, TypeError, AttributeError, IndexError, OSError) as error:
         verdict, reason, prediction = Verdict.UNKNOWN, str(error), None
         independent = '必要证据未能完整对应，本条无法判断，不记为业务失败。缺项：' + reason
         checks.append(_finding('证据完整性', verdict, independent))
@@ -416,7 +522,9 @@ def availability_explanations(evidence: RetainedEvidence, run: Path, profile: Pr
 
 def build_prediction_report(*, history_run: Path, plan_run: Path, availability_run: Path | None = None,
                             translations: dict | None = None, identity_run: Path | None = None,
-                            root: Path = PROJECT_ROOT) -> tuple[EvaluationReport, dict, RetainedEvidence]:
+                            root: Path = PROJECT_ROOT, verification_revision: int = 1) -> tuple[EvaluationReport, dict, RetainedEvidence]:
+    if type(verification_revision) is not int or verification_revision not in (1, 2):
+        raise ValueError('Unsupported prediction verification revision')
     evidence = RetainedEvidence(root)
     history_manifest = evidence.manifest(history_run)
     bundle_name = (history_run / 'bundle.json').relative_to(root).as_posix()
@@ -424,12 +532,7 @@ def build_prediction_report(*, history_run: Path, plan_run: Path, availability_r
     if len(bundle_sources) != 1:
         raise ValueError('Bundle is not bound to one completed history manifest output')
     bundle = json.loads(evidence.remember(bundle_name, bundle_sources[0]['sha256']).read_bytes())
-    profile_paths = [item['path'] for item in history_manifest['inputs'] if Path(item['path']).parent == Path('configs/pilots')]
-    if len(profile_paths) != 1:
-        raise ValueError('One immutable operator profile is required')
-    profile = PredictionProfile.load(evidence.remember(profile_paths[0]))
-    if profile.__dict__ != bundle['profile']:
-        raise ValueError('Bundle profile differs from its original configuration')
+    profile = load_history_profile(evidence, history_manifest, bundle)
     plan = bundle['plan']
     if (plan['pilot_only'] or plan['eligibility_uses_outputs'] is not False or len(plan['slots']) != 14
         or [item['purpose'] for item in plan['slots']] != ['functional'] * 7 + ['behavioral'] * 7
@@ -441,7 +544,7 @@ def build_prediction_report(*, history_run: Path, plan_run: Path, availability_r
     for slot, task in zip(plan['slots'], bundle['tasks']):
         if any(task.get(key) != slot.get(key) for key in ('slot', 'purpose', 'request_id', 'market', 'task_key')):
             raise ValueError('Task differs from the immutable cohort slot')
-    markets = [item['market'] for item in plan['slots'] if item['market']]
+    markets = [item['market'] for item in plan['slots'] if item.get('market')]
     if len(set(markets)) != len(markets) or any(market in plan['excluded_pilot_markets'] for market in markets):
         raise ValueError('Repeated or pilot market cannot enter formal measurement')
     for item in bundle['inputs']:
@@ -457,7 +560,8 @@ def build_prediction_report(*, history_run: Path, plan_run: Path, availability_r
     if availability_run:
         samples.extend(availability_explanations(evidence, availability_run, profile, bundle['tasks']))
     for task in bundle['tasks']:
-        explanation, detail = explain_task(evidence, task, profile, descriptor, translations or {})
+        explanation, detail = explain_task(evidence, task, profile, descriptor, translations or {},
+                                           verification_revision=verification_revision)
         if task['purpose'] == 'behavioral' and not identity.get('registration_time'):
             reason = '尚缺 ERC-8004 登记日期的原始交易证明，不能完整说明当前身份与历史服务的时序。'
             explanation.sample.verdict, explanation.sample.reason = Verdict.UNKNOWN, reason
@@ -475,6 +579,8 @@ def build_prediction_report(*, history_run: Path, plan_run: Path, availability_r
               '每个市场只保留截止前最后一次交付；不同问题仍可能相关，十四题不能代表长期总体水平。',
               '概率信用分的 50/50 中性基准为 75 分；该值不是预测准确率。',
               '同类政策可复用，但不同能力范围的综合分不作无条件横向排名。']
+    if verification_revision == 2:
+        limits.append('核验修订2：功能题干支持明确JSON对话content的正规解码后精确匹配；行为题干由已认证请求绑定结算，内部prompt处理记录不必再次回显原题。')
     if not availability_run:
         limits.append('本次尚未完成新的十次公开入口采样，可用性和综合分待评价。')
     if not identity.get('registration_time'):
@@ -489,5 +595,5 @@ def build_prediction_report(*, history_run: Path, plan_run: Path, availability_r
             + '；历史截止 UTC 2026-10-01 00:00，独立结算固定于 Gnosis 区块 ' + str(profile.snapshot_block) + '。',
         approach='由有来源的真实工具声明自动匹配方案；先固定不同市场和 7+7 分组，再读预测结果；从原始 RPC、事件、CID/DAG 与独立市场结算重建结论。',
         samples=samples, source_references=sorted(evidence.inputs), limitations=limits)
-    return report, {'identity': identity, 'tasks': details, 'qualifications': bundle['qualifications'],
-                    'issues': bundle['issues'], 'plan': plan}, evidence
+    return report, {'identity': identity, 'tasks': details, 'qualifications': bundle.get('qualifications', []),
+                    'issues': bundle.get('issues', []), 'plan': plan}, evidence

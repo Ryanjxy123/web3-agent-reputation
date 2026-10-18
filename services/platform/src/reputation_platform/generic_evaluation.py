@@ -206,6 +206,11 @@ def evaluate_generic(repo, job: dict, worker: str, canonical: str, proxy: str,
     key = existing.key if existing else registration["candidate_key"]
     repo.set_job_stage(job["id"], worker, job["fencing_token"], "COLLECTING",
         "注册资料已自动取得，正在按已声明的接口发现功能和可评价项目。", candidate_key=key)
+    registration["candidate_key"] = key
+    from reputation_platform.prediction_auto import evaluate_auto_prediction
+
+    if evaluate_auto_prediction(repo, job, worker, registration, evidence):
+        return
     capabilities, samples, limitations = collect_protocol_evaluation(registration, evidence)
     task_capabilities, task_samples, task_limits = collect_mech_tasks(registration, evidence)
     if not (run / "generic-mech-task-plan.json").exists():

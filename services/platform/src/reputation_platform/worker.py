@@ -44,9 +44,12 @@ def execute_child(command: list[str], log: Path, repo: Repository, job: dict, wo
                 process.terminate()
                 process.wait(timeout=20)
             raise
-    if code != 0:
+    child = Path(command[1]).name
+    if code != 0 and not (child == "translate_prediction_questions.py" and code == 1):
         raise RuntimeError("Read-only evidence stage did not complete; its records have been retained")
     text = log.read_text(encoding="utf-8")
+    if child == "translate_prediction_questions.py":
+        return retained_directory(json.loads(text)["run"], "question-translation-")
     sampler_prefixes = {"sample_availability.py": "availability-",
                         "sample_prediction_availability.py": "prediction-availability-"}
     sampler = Path(command[1]).name
