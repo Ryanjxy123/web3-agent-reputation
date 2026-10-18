@@ -145,6 +145,8 @@ class RetainedEvidence:
                     json.loads(self.path(item['path']).read_bytes())['url'] == car_url]
         _, car = self.observation(car_refs, url=car_url, method='GET')
         verify_car_file(car, digest, filename, raw)
+        if hashlib.sha256(raw).hexdigest() != content['sha256']:
+            raise ValueError('CID-authenticated file digest differs')
         return raw
 
     @staticmethod
@@ -359,7 +361,8 @@ def _check_behavior_output(evidence: RetainedEvidence, descriptor: PredictionHis
 def explain_task(evidence: RetainedEvidence, task: dict, profile: PredictionProfile,
                  descriptor: PredictionHistoryDescriptor, translation: dict, *,
                  verification_revision: int = 1) -> tuple[SampleExplanation, dict]:
-    if type(verification_revision) is not int or verification_revision not in (1, 2):
+    if (type(verification_revision) is not int or verification_revision not in (1, 2, 3)
+        or verification_revision == 3 and profile.policy_version != 'prediction-history-v2'):
         raise ValueError('Unsupported prediction verification revision')
     purpose = MeasurementPurpose(task['purpose'])
     verdict, prediction, observed = Verdict.UNKNOWN, None, None
@@ -391,8 +394,12 @@ def explain_task(evidence: RetainedEvidence, task: dict, profile: PredictionProf
             if not isinstance(context, dict) or context.get('type') != 'omen' or not isinstance(context.get('market_id'), str):
                 raise ValueError('原始请求尚未提供可识别的任务对象与市场上下文')
             market = context['market_id'].lower()
-        if (market != settlement.market or task['market'] != settlement.market or not isinstance(prompt, str)
-            or f'"{settlement.title}"' not in prompt or tool not in {item.operation for item in descriptor.tools}):
+        title_bound = isinstance(prompt, str) and (f'"{settlement.title}"' in prompt
+            or profile.policy_version == 'prediction-history-v2'
+            and task.get('question_resolution', {}).get('method') == 'omen-exact-direct-question-v1'
+            and prompt == settlement.title)
+        if (market != settlement.market or task['market'] != settlement.market
+            or not title_bound or tool not in {item.operation for item in descriptor.tools}):
             raise ValueError('原始工具、题干或目标市场未与声明方案对应')
         if profile.policy_version == 'prediction-history-v2' and task.get('question_id') != settlement.question_id:
             raise ValueError('冻结的问题ID与独立链上问题不一致')
@@ -412,12 +419,14 @@ def explain_task(evidence: RetainedEvidence, task: dict, profile: PredictionProf
             raise OutputViolation('链上 CID 对应的原始交付不是有效 JSON。') from error
         if not isinstance(output, dict):
             raise OutputViolation('已认证的交付 JSON 不是声明中的对象结构。')
+        if verification_revision == 3:
+            claimed = '原始交付结果：' + str(output.get('result', '缺失'))
         if str(output.get('requestId')) != str(int(task['request_id'], 16)):
             raise OutputViolation('交付文件的任务号与唯一链上交付不一致。')
         if verification_revision == 1:
             if ('tool' in output and output['tool'] != tool) or not isinstance(output.get('prompt'), str) or settlement.title not in output['prompt']:
                 raise OutputViolation('交付中的工具或原题干与已绑定的请求不一致。')
-        else:
+        elif verification_revision == 2:
             if 'tool' in output and output['tool'] != tool:
                 raise OutputViolation('交付中的工具与已绑定的请求不一致。')
             if purpose == MeasurementPurpose.FUNCTIONAL:
@@ -425,6 +434,10 @@ def explain_task(evidence: RetainedEvidence, task: dict, profile: PredictionProf
                     raise OutputViolation('交付中的原题干与已绑定的请求不一致。')
             else:
                 _check_behavior_output(evidence, descriptor, tool, output)
+        else:
+            if 'tool' in output and output['tool'] != tool:
+                raise OutputViolation('交付中的工具与已绑定的请求不一致。')
+            _check_behavior_output(evidence, descriptor, tool, output)
         checks.extend(settlement.checks)
         file_explanation = '原始请求与交付文件逐块通过 CID/DAG 校验；任务编号、工具、题干、市场和预测时序已匹配。'
         if verification_revision == 2:
@@ -432,6 +445,9 @@ def explain_task(evidence: RetainedEvidence, task: dict, profile: PredictionProf
                 + ('交付的原题按普通文本或明确JSON对话中的content原文精确匹配，不作模糊比较。'
                    if purpose == MeasurementPurpose.FUNCTIONAL else
                    '交付字段按实际声明核对；内部prompt是工具处理记录，不要求它再次回显原题。'))
+        if verification_revision == 3:
+            file_explanation = ('原始请求与交付逐块通过CID校验；唯一链上任务、任务号和工具证明关联，原题精确绑定独立结算。'
+                                '交付按实际声明字段核验，不要求内部prompt逐字回显原题。')
         checks.append(_finding('原任务与文件', Verdict.PASS, file_explanation))
         verification = verify_prediction_chain(chain, mech=profile.mech, service_id=profile.service_id,
                                                request_id=task['request_id'], confirmation_head=profile.confirmation_head)
@@ -439,7 +455,8 @@ def explain_task(evidence: RetainedEvidence, task: dict, profile: PredictionProf
         claimed = '原始交付结果：' + str(output.get('result', '缺失'))
         if purpose == MeasurementPurpose.FUNCTIONAL:
             try:
-                if not isinstance(output.get('prompt'), str) or not isinstance(output.get('result'), str):
+                if (verification_revision != 3 and not isinstance(output.get('prompt'), str)
+                    or not isinstance(output.get('result'), str)):
                     raise ValueError('声明中的 prompt/result 字符串字段不完整')
                 result = json.loads(output['result'])
                 prediction = BinaryPrediction(p_yes=result['p_yes'], p_no=result['p_no'], final_outcome=settlement.final_outcome)
@@ -578,7 +595,7 @@ def availability_explanations(evidence: RetainedEvidence, run: Path, profile: Pr
 def build_prediction_report(*, history_run: Path, plan_run: Path, availability_run: Path | None = None,
                             translations: dict | None = None, identity_run: Path | None = None,
                             root: Path = PROJECT_ROOT, verification_revision: int = 1) -> tuple[EvaluationReport, dict, RetainedEvidence]:
-    if type(verification_revision) is not int or verification_revision not in (1, 2):
+    if type(verification_revision) is not int or verification_revision not in (1, 2, 3):
         raise ValueError('Unsupported prediction verification revision')
     evidence = RetainedEvidence(root)
     history_manifest = evidence.manifest(history_run)
@@ -588,6 +605,10 @@ def build_prediction_report(*, history_run: Path, plan_run: Path, availability_r
         raise ValueError('Bundle is not bound to one completed history manifest output')
     bundle = json.loads(evidence.remember(bundle_name, bundle_sources[0]['sha256']).read_bytes())
     profile = load_history_profile(evidence, history_manifest, bundle)
+    if verification_revision == 3 and profile.policy_version != 'prediction-history-v2':
+        raise ValueError('Verification revision 3 is limited to explicitly versioned V2 evidence')
+    if verification_revision == 3:
+        evidence.remember('docs/adr/0017-prediction-question-and-output-contract.md')
     plan = bundle['plan']
     if (plan['pilot_only'] or plan['eligibility_uses_outputs'] is not False or len(plan['slots']) != 14
         or [item['purpose'] for item in plan['slots']] != ['functional'] * 7 + ['behavioral'] * 7
@@ -643,6 +664,8 @@ def build_prediction_report(*, history_run: Path, plan_run: Path, availability_r
               '同类政策可复用，但不同能力范围的综合分不作无条件横向排名。']
     if verification_revision == 2:
         limits.append('核验修订2：功能题干支持明确JSON对话content的正规解码后精确匹配；行为题干由已认证请求绑定结算，内部prompt处理记录不必再次回显原题。')
+    if verification_revision == 3:
+        limits.append('核验修订3：以唯一链上任务和输入/输出CID证明任务关联，交付按真实字段声明及概率格式核验；内部prompt没有逐字回显原题的额外义务。Invalid response或服务错误并非有效概率答复，相关失败仍计0信用。')
     if profile.policy_version == 'prediction-history-v2':
         limits.append('证据扩展V2：原件可为CID认证的根文件或目录文件；无明确市场ID时，仅按完整原题、唯一问题和唯一市场精确定位，再独立核链上结算。每个Question只占一个槽，不混用旧版样本。')
     if not availability_run:

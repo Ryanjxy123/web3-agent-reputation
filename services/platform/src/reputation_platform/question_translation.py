@@ -174,7 +174,10 @@ def prepare_questions(bundle_paths: list[Path], prepared_at: datetime, root: Pat
             request = task["input"]
             request_file = checked_source({"path": request["response_file"], "sha256": request["sha256"]}, root)
             payload = json.loads(request_file.read_bytes())
-            if payload != request["payload"] or f'"{original_question}"' not in payload.get("prompt", ""):
+            title_bound = (f'"{original_question}"' in payload.get('prompt', '') or expanded
+                and task.get('question_resolution', {}).get('method') == 'omen-exact-direct-question-v1'
+                and payload.get('prompt') == original_question)
+            if payload != request["payload"] or not title_bound:
                 raise ValueError("Original request does not bind the exact market question")
             context = payload.get("request_context", {})
             resolution_refs = []

@@ -196,7 +196,12 @@ def select_prediction_plan(
         missing.append("service_id需要明确的正整数十进制标识。")
     if descriptor.history_context_type not in (None, "omen"):
         return result("UNSUPPORTED", ["实际历史请求不属于当前支持的Omen市场上下文。"])
-    if descriptor.history_prompt and not all(token in descriptor.history_prompt for token in ("p_yes", "p_no")):
+    direct_question = (policy_version == 'prediction-history-v2' and descriptor.history_prompt
+                       and descriptor.history_prompt.startswith('Will ') and descriptor.history_prompt.endswith('?')
+                       and descriptor.history_prompt.count('?') == 1
+                       and descriptor.history_prompt.strip() == descriptor.history_prompt
+                       and '\n' not in descriptor.history_prompt and '\r' not in descriptor.history_prompt)
+    if descriptor.history_prompt and not direct_question and not all(token in descriptor.history_prompt for token in ("p_yes", "p_no")):
         missing.append("历史原始输入尚未明确Yes/No概率问题。")
     operations = [tool.operation for tool in descriptor.tools]
     if not operations or len(set(operations)) != len(operations) or any(not name.strip() for name in operations):

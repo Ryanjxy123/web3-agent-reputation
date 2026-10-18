@@ -522,6 +522,8 @@ def collect_history(store: EvidenceStore, profile: PredictionProfile, *, pilot_h
 
                 resolution = resolve_exact_question(store, input_content['payload'])
                 record['question_resolution'] = resolution
+                if resolution['method'] == 'omen-exact-direct-question-v1':
+                    store._remember([file_reference(store.root/'docs/adr/0017-prediction-question-and-output-contract.md', store.root)])
                 market = resolution['market']
             else:
                 if not isinstance(context, dict) or not isinstance(context.get("market_id"), str):
@@ -554,7 +556,10 @@ def collect_history(store: EvidenceStore, profile: PredictionProfile, *, pilot_h
                 seen_questions.add(settlement.question_id)
                 record['question_id'] = settlement.question_id
             prompt = input_content["payload"].get("prompt")
-            if (not isinstance(prompt, str) or f'"{settlement.title}"' not in prompt
+            title_bound = isinstance(prompt, str) and (f'"{settlement.title}"' in prompt or expanded
+                and record.get('question_resolution', {}).get('method') == 'omen-exact-direct-question-v1'
+                and prompt == settlement.title)
+            if (not title_bound
                 or not isinstance(input_content["payload"].get("tool"), str)
                 or not int(hint["blockTimestamp"]) < settlement.opening_timestamp
                 or not int(hint["blockTimestamp"]) < settlement.finalized_timestamp):

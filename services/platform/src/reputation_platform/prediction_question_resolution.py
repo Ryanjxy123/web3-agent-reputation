@@ -9,11 +9,20 @@ PREFIX = 'With the given question "'
 SUFFIX = ('" and the `yes` option represented by `Yes` and the `no` option represented by `No`, '
           'what are the respective probabilities of `p_yes` and `p_no` occurring?')
 METHOD = 'omen-exact-question-v1'
+DIRECT_METHOD = 'omen-exact-direct-question-v1'
 
 
-def extract_exact_question(original: dict) -> str:
-    """Accept the observed complete Will/Yes/No template without normalization."""
+def extract_exact_question(original: dict, *, method: str = METHOD) -> str:
+    """Extract the explicitly selected retained format without normalization."""
     prompt = original.get('prompt') if isinstance(original, dict) else None
+    if method == DIRECT_METHOD:
+        if (not isinstance(prompt, str) or not prompt.startswith('Will ')
+            or not prompt.endswith('?') or prompt.count('?') != 1
+            or prompt.strip() != prompt or prompt.splitlines() != [prompt]):
+            raise EvidenceUnavailable('Original request is not one complete single-line direct Will question')
+        return prompt
+    if method != METHOD:
+        raise EvidenceUnavailable('Unsupported exact-question extraction method')
     if (not isinstance(prompt, str) or not prompt.startswith(PREFIX)
         or not prompt.endswith(SUFFIX) or prompt.count(SUFFIX) != 1):
         raise EvidenceUnavailable('Original request lacks the supported explicit binary-question template')
@@ -55,18 +64,21 @@ def _unique_question(questions, title: str) -> dict:
 
 def resolve_exact_question(store, original: dict) -> dict:
     """One official discovery query; settlement and correctness are not inferred."""
-    title = extract_exact_question(original)
+    prompt = original.get('prompt') if isinstance(original, dict) else None
+    method = (METHOD if isinstance(prompt, str) and prompt.startswith(PREFIX)
+              and prompt.endswith(SUFFIX) else DIRECT_METHOD)
+    title = extract_exact_question(original, method=method)
     index = store.graphql('omen-exact-question', OMEN_INDEX, _query(title))
     selected = _unique_question(index['data'].get('questions'), title)
-    return {'method': METHOD, **selected, 'index': index}
+    return {'method': method, **selected, 'index': index}
 
 
 def verify_exact_question_resolution(reader, resolution: dict, original: dict) -> str:
     """Rebuild the exact query and selection from retained observations and bytes."""
     try:
-        title = extract_exact_question(original)
-        if not isinstance(resolution, dict) or resolution.get('method') != METHOD:
+        if not isinstance(resolution, dict) or resolution.get('method') not in (METHOD, DIRECT_METHOD):
             raise ValueError('Unsupported exact-question resolution method')
+        title = extract_exact_question(original, method=resolution['method'])
         index = resolution['index']
         observation, raw = reader.observation(index['evidence'], url=OMEN_INDEX, method='POST')
         request, response = json.loads(observation.request_json), json.loads(raw)

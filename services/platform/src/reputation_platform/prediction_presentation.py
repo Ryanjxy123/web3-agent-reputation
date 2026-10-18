@@ -16,8 +16,9 @@ def _correction(report: EvaluationReport, reader, origin: dict) -> None:
     correction = origin.get('correction_of')
     if correction is None:
         return
-    if origin.get('verification_revision') != 2:
-        raise ValueError('A verification erratum requires explicit revision 2')
+    revision = origin.get('verification_revision')
+    if revision not in (2, 3) or revision == 3 and report.policy_version != 'prediction-history-v2':
+        raise ValueError('A verification erratum requires its explicit supported revision')
     report_ref, origin_ref = correction['report'], correction['origin']
     report_path = reader.remember(report_ref['path'], report_ref['sha256'])
     origin_path = reader.remember(origin_ref['path'], origin_ref['sha256'])
@@ -47,6 +48,14 @@ def _correction(report: EvaluationReport, reader, origin: dict) -> None:
     before = f'{old_score:.2f}' if old_score is not None else '待评价'
     after = f'{new_score:.2f}' if new_score is not None else '待评价'
     unchanged = '原历史任务、原始证据及10次访问均未重采。' if origin.get('availability_run') else '原计划与已有历史证据均未重采，本次未新增访问采样。'
+    if revision == 3:
+        report.scope = (f'本版说明修订：综合{before}→{after}。按真实输出声明核验并展示实际错误返回，不把内部prompt未回显原题说成回答别题。'
+                        + unchanged + '\n' + report.scope)
+        report.limitations.extend([
+            '修订3保留链上唯一任务、原请求、交付CID、工具、时间和实际输出Schema核验；格式错误仍FAIL，未提供有效概率仍记0信用。',
+            f'上一版报告及原件保留：{report_ref["path"]}；未重新选择任务或访问采样。',
+        ])
+        return
     report.scope = (f'本版更正：综合{before}→{after}。修复JSON对话转义造成的原题误判，以及行为维度对内部prompt回显的错误门禁。'
                     + unchanged + '\n' + report.scope)
     report.limitations.extend([

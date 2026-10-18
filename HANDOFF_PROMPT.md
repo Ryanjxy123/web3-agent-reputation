@@ -1,4 +1,4 @@
-> 当前交接（2026-10-18）：本轮自动预测批次已收口，真实PG为38候选/35报告/7不同完整对象/0活动任务；至少10尚未达成。4110仅补登记日期后完整78.46，原14任务/10A不变，旧PARTIAL保留。新4批次0full，逐功能展示完成。下一task_id：DIRECTION_ALIGNMENT_AFTER_PREDICTION_BATCH，已向用户询问下一优先级，等待回复；不启动新类/队列、不放宽政策。视觉BLOCKED、无remote。
+> 当前交接（2026-10-18）：已核实8个不同完整对象，新增2267=29.8，至少10待完成。用户已确认优先扩展预测证据；task_id=`PREDICTION_EVIDENCE_EXPANSION`。ADR0016/0017及共用V2已落盘，2135/2150直接原题先分别验证CID、独立结算和提前交付，再于UTC14:17提交新批次 `runtime/prediction-auto-batch-20261018T141703Z-9af82729/`。核验修订3纠正输出说明而非把内部prompt无回显当别题；旧报告/旧修订不改、14问题与10/7/7门槛不改。视觉BLOCKED，无remote。先查批次终态，勿重复提交或重采已完成A。
 
 # 新对话工作交接 prompt
 
@@ -36,7 +36,7 @@
 
 当前进度以STATUS为准。默认公共采集关闭；显式启用后，普通用户提交完整canonical或注册页面，平台自动读取目录、可信RPC注册原件、登记服务与实际工具声明，按协议选择方案并执行。不手写对象profile、不选方案、不二次确认。无有效身份依据时NEEDS_INFO；其它缺项分别展示，UNKNOWN不扣Agent分。
 
-当前真实PostgreSQL为38候选、35份报告、7个不同完整评分对象、0活动任务：Brain增仓特例97.93；同政策预测2198=89.72、2235=98.71、2340=91.28、2182=90.56、2360=88.62、4110=78.46。多个功能或历史报告不重复计对象，至少10目标未完成，不能把本轮收口当项目完成。
+此前UTC13:12快照为38候选、35份报告、7个不同完整评分对象、0活动任务：Brain增仓特例97.93；同政策预测2198=89.72、2235=98.71、2340=91.28、2182=90.56、2360=88.62、4110=78.46。现已新增2267完整29.8，总计8个，2135/2150新批次在执行。多个功能或历史报告不重复计对象，至少10目标未完成。
 
 4110原PARTIAL的B缺登记日期，原因是目录GET单次TransportError而非字段解析遗漏。只补确切GET一次+3次必要RPC，在旧profile/N下核agent4110/service3786的mint与按序服务关联；日期2026-08-12T23:45:35+00:00、块47694994。ADR-0015与共用helper仅补registration evidence/time/block，绑定原history manifest/bundle，不改任务、身份或已知失败。补录包 `runtime/prediction-registration-supplement-20261018T130654Z-671d83aa/`；新报告 `6b4a1a7b-278b-48f0-88e8-980edc86129f`（`runtime/evaluation-report-20261018T130748Z-45152bd3/amendment-result.json`）真实PG发布exit0，A89.69/F53.89/B100、78.46；原14任务/10A复用、旧PARTIAL保留。两项负控产物已完成，原执行exit未回收；后续只读产物检查exit0，不称负控原命令exit0。
 
@@ -48,7 +48,7 @@
 
 逐功能展示本轮已完成：2340 `c7eb4285-bd1a-456d-9a1e-34606e067b15`，2182 `1e7732c5-3a24-4582-9ca0-b0f4deedd1dd`，2360 `63b17e17-3260-48f8-b258-67bdd68abf94`；各4tools/14真实关联，分数不变，刷新脚本exit0。2340明确83.01→91.28的ADR-0014核验修正且0重采，旧原分仍可复算；展示首试双origin exit1未入库、修正后exit0。三个0资格说明 `runtime/prediction-gap-publication-20261018T123936Z-2004616f/result.json` exit0、同来源/样本/分数且错误SHA拒绝。前端最终受影响pnpm build exit0，无core/API Schema改变，旧工程测试不重跑。
 
-本轮已连续超过用户要求的50分钟。下一task_id：`DIRECTION_ALIGNMENT_AFTER_PREDICTION_BATCH`。根代理已向用户异步询问“优先扩预测证据来源/结算关联（建议），或通用查询正确性与履约调查”，等待回复；不启动新队列/新类，不放宽Omen/cutoff/14门槛。用户回复后先更新常读文档再执行，不重问已答需求。
+预测证据扩展按ADR-0016/0017执行；已发布结果及当前批次以STATUS开头为准。 既有prediction-history-v1的三维、30/40/30、固定历史计划与原件继续保留；取得足够可核证据才发布新分数。
 
 现有预测只支持Fixed Price Native与Omen/IPFS，generic F/跨专项组合未实现，视觉BLOCKED，订阅2469未适配。资料与缺项见 `reference/PREDICTION_EXPANSION_DISCOVERY_20261018.md`；群体声明覆盖见 `reference/CAPABILITY_COVERAGE_DECISION_20261018.md`，声明数不等于可测数。Vue/FastAPI/worker/真实PG当前本机7754可用，启动见LOCAL_PLATFORM。
 

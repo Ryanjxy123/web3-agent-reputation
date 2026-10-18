@@ -36,17 +36,19 @@ def _history_source(reader: RetainedEvidence, bundle: dict, operations: set[str]
             digest = qualification['anchors']['input_digest']
             actual = reader.content(content, digest, 'metadata.json')
             context = actual.get('request_context') if isinstance(actual, dict) else None
+            direct_question = False
             if bundle['profile'].get('policy_version') == 'prediction-history-v2' and context in (None, {}):
                 from reputation_platform.prediction_question_resolution import verify_exact_question_resolution
 
                 market = verify_exact_question_resolution(reader, qualification['question_resolution'], actual)
+                direct_question = qualification['question_resolution']['method'] == 'omen-exact-direct-question-v1'
             else:
                 if (not isinstance(context, dict) or context.get('type') != 'omen'
                     or not isinstance(context.get('market_id'), str) or not context['market_id'].strip()):
                     continue
                 market = context['market_id']
             if (not market or actual.get('tool') not in operations or not isinstance(actual.get('prompt'), str)
-                or not all(field in actual['prompt'] for field in ('p_yes', 'p_no'))):
+                or not direct_question and not all(field in actual['prompt'] for field in ('p_yes', 'p_no'))):
                 continue
             return content['response_file'], actual
         except (ValueError, KeyError, TypeError, AttributeError, OSError):
@@ -155,6 +157,7 @@ def write_auto_selection(registration: dict, evidence, bundle: dict, catalog: di
         reader.remember(name)
     if profile.policy_version == 'prediction-history-v2':
         reader.remember('docs/adr/0016-prediction-evidence-v2.md')
+        reader.remember('docs/adr/0017-prediction-question-and-output-contract.md')
     run.mkdir(parents=True, exist_ok=True)
 
     def save(name: str, value) -> dict:
