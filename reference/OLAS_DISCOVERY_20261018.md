@@ -200,3 +200,43 @@
 ```
 
 输出 `runtime/admission-report-20261018T071049Z-f95cbda3`，包含 `admission-report.json`、中文 `admission-report.html`、`observations.json`、`manifest.json`。共 24 候选、0 READY，引用 **186 条不同既有观测**及其原始响应：本线原 184 条 HTTP，加复用 2182 的链号/固定 header 两条；372 个源文件摘要均已核对。manifest 明确 `network_requests_performed=0`、`scores_computed=false`，没有把引用数算为新请求。本子任务没有重新采集、调用模型、运行工程测试或导入数据库；DB 导入交由根执行。
+
+## 2182 登记时间的独立补件
+
+登记先后另行核验，不从当前桥映射反推历史。新增 `scripts/probe_olas_registration.py` 默认关闭，固定 2182，先用公开索引定位一笔铸造交易，再按可信 Gnosis RPC 核交易、回执和精确区块头；不从区块 0 盲扫日志。官方 Bridger 源码 `_register` 在 ERC-8004 `register` 后发出 `ServiceAgentLinked(serviceId,agentId)`，可与同笔 ERC-721 mint 共同核对。该事件签名已用本机 `cast keccak` 独立计算一次，退出 0。
+
+首次请求 [Gnosis 官方文档所指的 Blockscout](https://docs.gnosischain.com/tools/Blockchain%20Explorers/blockscout) NFT 索引，实际 HTTP 301，未跟随。原件 `runtime/olas-registration-probe-20261018T071415Z-5e0465c4`，1 次新 GET，退出 1；当前旧 explorer 主页转向 Gnosisscan，不能假定旧 API 仍可用。
+
+随后显式选择现有 [8004scan 公共目录](https://api.8004scan.io/api/v1/agents/100/2182) 的固定索引，实际 GET HTTP 200，链、注册合约、tokenId 均匹配，定位到 **block 44507431**、交易 `0xbe932f173bb3ce3979ef4b6242e83c3b18bb2e24ee55f30f7bc91f9fa46a4d49`。唯一回执读取遇到 HTTP 未取得 / ConnectError，按无重试规则停止，未读交易与 header。目录日期尚未作为链上登记时间采用。
+
+```powershell
+# 原 Blockscout：退出 1，保留 301，不自动跟随
+.venv/Scripts/python.exe scripts/probe_olas_registration.py --identity-run runtime/olas-history-probe-20261018T060841Z-ff48df5e --execute-public-readonly --proxy http://127.0.0.1:7897
+
+# 显式8004scan索引：退出 1，GET200后receipt ConnectError即停止
+.venv/Scripts/python.exe scripts/probe_olas_registration.py --identity-run runtime/olas-history-probe-20261018T060841Z-ff48df5e --index-provider 8004scan --execute-public-readonly --proxy http://127.0.0.1:7897
+```
+
+第二次原件 `runtime/olas-registration-probe-20261018T071704Z-9d6c9ac9` 保存 2 次新请求及发送前 manifest。独立补件 `runtime/olas-identity-supplement-20261018T071732Z-be7554a5/identity-supplement.json` 只复用原 `head` 的 method/params/value `0x2e8de87` 及两份原件摘要，保留 `registration_gap`，**没有填写 registration_time**。其 manifest 绑定来源观测和响应，不含凭证。后续若确认可以补缺，用 `--index-provider 8004scan --index-run runtime/olas-registration-probe-20261018T071704Z-9d6c9ac9` 复用索引，不重发目录 GET；登记需回执/区块头双核后才完成。本节 3 次新读取属于 2182 登记补件，不混入前述 24 对象的冻结 184 条调查请求。
+
+根随后明确授权独立补缺阶段：复用成功索引，receipt、transaction、header 各读一次，失败仍不自动重试。实际补采三项均 HTTP 200，退出 **0**：
+
+```powershell
+.venv/Scripts/python.exe scripts/probe_olas_registration.py --identity-run runtime/olas-history-probe-20261018T060841Z-ff48df5e --index-provider 8004scan --index-run runtime/olas-registration-probe-20261018T071704Z-9d6c9ac9 --execute-public-readonly --proxy http://127.0.0.1:7897
+```
+
+原件 `runtime/olas-registration-probe-20261018T071931Z-6fc803a1` 核实登记交易正是前述哈希，区块 **44507431**、hash `0x697eb533c9a45ba3117b4b5c3861b922c17582f2b43d5531756d0fe7d29d2a2b`、timestamp **1770210845**，即 **2026-02-04 13:14:05 UTC / 北京时间21:14:05**。成功回执中精确 ERC-721 mint(0→Bridger,#2182) 为 log 317，随后精确 `ServiceAgentLinked(2182,2182)` 为 log 325；实际交易、回执和区块头归属一致。这次才采用链上登记时间，与目录索引时间分开。
+
+完整独立补件为 `runtime/olas-identity-supplement-20261018T071947Z-878ebc14`，包含原 `head` proof、`registration_time`、transaction/receipt/header 各自原 method/params/value/evidence；manifest 绑定全部原件与来源观测。旧缺项补件和失败请求保留不改。该回执共铸造 #2156～#2190 的 35 个 token，**不含新 first5 的身份**，不能借本次日期给它们补登记时间。登记调查累计新增 6 次 HTTP，本子任务未做评分或模型调用。
+
+## first5 预测历史配置与采集
+
+新增 `configs/pilots/olas-predict-{2198,2235,2340,2359,2360}-v1.json`，沿 2182 冻结 policy、chain、registry、N/hash、confirmation_head、cutoff 与有界页数，只替换实际 candidate key、Mech、服务号、真实 agentId、已取得的登记原件及摘要。5 个配置实际通过现有 `PredictionProfile.load`，退出 0，没有改变评分政策、补造声明或重复模型分析。
+
+先只启动 2198 一个新增 collector，默认 2 个独立只读并发，与旧 2182 进程分开；原始任务 Mech 与事件仍独立核验。复用链号、head、快照、首批身份及已有市场/历史原件，遇到跨进程共享 host 停止标记不删除或更换端点。
+
+2198 实际运行 `runtime/prediction-history-20261018T072135Z-26548298` 已退出 **0**：非 pilot，预先保存的计划为 READY、14 个独立市场、14 个任务，实际新增 418 次只读取证。完整 `bundle.json` 已交给根的独立报告核验流程；采集 READY 不等于三维已评分，未手工读取输出筛选概率或重做模型。
+
+随后按根确认启动第二个实例 2235，复用已完整 2198 原件和相同固定市场状态，仍默认 2 并行；未启动其余三个 profile。运行 `runtime/prediction-history-20261018T072524Z-fc00242b` 已自然收尾、退出 **0**：非 pilot、READY、14 个独立市场和 14 个任务、432 次新只读取证，未触发共享 host 停止标记。两份 bundle 均已交根独立核验，不由本子任务直接给分；各自登记时间不得套用 2182。
+
+用户随后明确调整优先级：先证明第一类的多对象复用，未证明时保持单对象窄试点。2198、2235 的本轮已启动取证保留，自然收尾后停止扩大第二类；2340、2359、2360 仅有 profile，未启动 collector。本子任务转为核查已有 LP 同类线索，不能用第二类的两个 READY 证明第一类已经通用。

@@ -6,6 +6,31 @@ from reputation_core import DeclarationAnalysis, SourceDocument, validate_analys
 
 from reputation_platform.safe_http import PublicTarget
 
+
+def prediction_tool_descriptors(metadata: dict) -> list:
+    """Extract actual source schema fields, without inventing fields from tool names."""
+    from reputation_core.planning import PredictionToolDescriptor
+
+    result = []
+    catalog, details = metadata.get('tools', []), metadata.get('toolMetadata', {})
+    if not isinstance(catalog, list) or not isinstance(details, dict):
+        return result
+    for operation in catalog:
+        if not isinstance(operation, str) or not isinstance(details.get(operation), dict):
+            continue
+        item = details[operation]
+        schema = item.get('output', {}).get('schema', {})
+        result_schema = schema.get('properties', {}).get('result', {})
+        try:
+            example = json.loads(result_schema.get('example', 'null'))
+        except (TypeError, ValueError):
+            example = None
+        result.append(PredictionToolDescriptor(operation=operation, description=item.get('description', ''),
+            input_type=item.get('input', {}).get('type'), output_type=item.get('output', {}).get('type'),
+            result_type=result_schema.get('type'), required_output_fields=schema.get('required', []),
+            probability_fields=list(example) if isinstance(example, dict) else []))
+    return result
+
 MODEL = "deepseek-flash"
 ENDPOINT = "https://api.deepseek.com/responses"
 BALANCE_ENDPOINT = "https://api.deepseek.com/user/balance"

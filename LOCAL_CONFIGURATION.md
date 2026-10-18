@@ -53,6 +53,8 @@
 
 ## 可移植性
 
+新项目本机平台另外使用本目录 `runtime/platform-config/database-url.txt`（PG 连接秘密）、`db-password.txt` 和 `profiles.json`（已适配对象/保留证据引用）。它们由本机启动与运营配置产生，不复用旧数据库，均被 Git 忽略且不能公开下载。独立 PG 为 127.0.0.1:55438，API 为 127.0.0.1:7754；命令和实际验收见 [LOCAL_PLATFORM](docs/runbooks/LOCAL_PLATFORM.md)。
+
 本机路径说明可以随文档提交，秘密文件不随 Git 迁移。新仓库克隆到其他机器后，操作者需通过本地环境或 secret mount 配置自己的文件位置；不能把本机凭证自动上传给 GitHub 或新的部署平台。
 
 ## Codex 本机 HTTP 代理（2026-10-18）

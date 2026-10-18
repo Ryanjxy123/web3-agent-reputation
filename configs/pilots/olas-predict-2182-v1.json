@@ -1,0 +1,17 @@
+{
+  "candidate_key": "olas-valory-predict-2182",
+  "policy_version": "prediction-history-v1",
+  "chain_id": 100,
+  "registry": "0x8004a169fb4a3325136eb29fa0ceb6d2e539a432",
+  "mech": "0xc05e7412439bd7e91730a6880e18d5d5873f632c",
+  "service_id": 2182,
+  "agent_id": 2182,
+  "registration_source": "runtime/candidate-check-20261018T055124Z-88e6eb13/olas-registration-2182.response.bin",
+  "registration_sha256": "743dee98217f51df7b2a835b8de8827b4ca712fdc1ebf047e264a21d3056e929",
+  "snapshot_block": 48815687,
+  "snapshot_hash": "0x7311c246d521d721727a156d9f5b96102828f6ebf270c028de3defb73ad4ebe5",
+  "confirmation_head": 48815751,
+  "cutoff_timestamp": 1790812800,
+  "history_page_size": 32,
+  "history_max_deliveries": 128
+}

@@ -2,7 +2,7 @@
 
 日期：2026-10-18。工作目录：`D:/xjtu_project/block_chain_new/block_chain_new_new`。
 
-Vue 网站、FastAPI、独立 worker 与 PostgreSQL 已实现。当前本机已有 5 个候选，同一个已适配对象已有两份完整窄范围报告；新提交的正式任务已自动完成，实际结果见文末。历史采集与离线核验用法见 [MODEL_EVIDENCE_LOOP.md](MODEL_EVIDENCE_LOOP.md)。
+Vue 网站、FastAPI、独立 worker 与 PostgreSQL 已实现。当前本机已有 9 个候选，同一个已适配对象已有两份完整窄范围报告；新提交的正式任务已自动完成，实际结果见文末。历史采集与离线核验用法见 [MODEL_EVIDENCE_LOOP.md](MODEL_EVIDENCE_LOOP.md)。
 
 ## 日常启动
 
@@ -46,6 +46,12 @@ API 首次尝试绑定 8015 时，Windows 返回 `Errno 13`。随后一次原生
 
 profile 属于运营配置，本机已配置首个历史增仓方案。worker 对已支持对象执行新的 10 点可用性采样，再复用保留的历史交易、状态与上下文独立核验，生成新版本；当前流程不调用模型、不触发资产操作。规范标识尚缺适配资料时返回 `NEEDS_INFO`，无法识别的输入返回 `UNSUPPORTED`，不会冒充已评价或给零分。
 
+预测历史的 worker 已完成两个真实对象的正式闭环：2198 综合89.72，2235 综合98.71，分别使用同一代码与各自原件。运营 profile 使用 `policy_id=prediction-history-v1`、`history_run`、`plan_run`，可另给 `identity_run` 身份补充和 `translation_run` 已保存中文材料；这些都是本机保留目录，普通用户不填写。实际命令、真实任务和报告号见 [PREDICTION_REUSE](PREDICTION_REUSE.md)。当前主库33候选、3个不同完整评分对象、4份报告；本机profile为首个增仓特例及两个预测实例。
+
+该路径先核对自动选出的方案、固定十四个不同市场的7+7分组、真实交付事件中的内容摘要及原始文件/CAR。历史cohort不足或已固定交付缺原件时，以 `NEEDS_INFO` 结束且不发新采样；资料具备后才新采十次公开历史文件访问，再离线生成本次报告。复评不会重新收集历史、发起新预测或调用翻译模型。
+
+作业 `COMPLETE` 表示该轮处理和报告发布结束，报告是否取得完整分数以报告自身 `scores.status` 为准。新采样或独立核验不足时可发布 `PARTIAL` 报告，作业消息明确说明没有完整三维分及综合分；不把流程结束冒充完整评分。每轮仍由数据库租约与fencing token约束续租和发布，历史版本保留。
+
 ## 安装、构建与首次导入
 
 本轮 uv 锁定/依赖安装、前端独立 pnpm 锁定安装与首次构建均已真实退出 0。Python 使用项目 `.venv`，前端实际使用 Node 22.17.0、pnpm 11.25.0；精确依赖见 [前端说明](../../apps/web/README.md)。新机器安装入口为：
@@ -65,6 +71,15 @@ uv sync --locked
 ```
 
 主库已实际导入 **5 个候选**，首份报告 ID 为 `251eb31d-973d-4cb1-ba4a-4a735d652ec7`，综合分 **96.67**；三维为 88.89 / 100 / 100，限于报告列明的历史增仓范围。本机已有记录，不需在每次启动时重复导入。
+
+后续离线补记将 Custos、Olas、delu 和 Clicks 的六项事实/缺项整理为新准入快照，没有产生声誉分：
+
+```powershell
+.venv/Scripts/python.exe scripts/build_expansion_admission.py configs/candidate-reviews-20261018.json
+.venv/Scripts/python.exe scripts/import_local_report.py --candidates runtime/admission-report-20261018T063130Z-e7ee947b
+```
+
+两条实际命令均退出 **0**，前者复用 31 条观测、无外网调用，后者导入 4 个新对象。主库核对为 **9 个候选 / 1 个完整评分对象 / 同一对象 2 份报告**；原件目录中另存 database-import-receipt.json。网站能直接查看这些对象的未决资料与下一步。该日期配置已作为快照输入冻结，后续变化另建版本，不改写已引用原件。
 
 `runtime` 中的公共采集原件、数据库和私有 profile 均被忽略，不入 Git。新 clone 没有这些采集证据，不能凭空生成上述 seed 报告。应按采集运行手册取得真实原件、生成报告，再由运营者导入并配置对应 profile；普通网站用户只提交注册资料。
 

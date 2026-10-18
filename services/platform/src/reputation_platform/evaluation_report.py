@@ -109,9 +109,13 @@ def render_evaluation_report(report: EvaluationReport) -> str:
     completed = sum(score.value is not None for score in dimensions.values())
     unknown = sum(score.unknown for score in dimensions.values())
     failed = sum(score.failed for score in dimensions.values())
+    prediction = report.policy_version == 'prediction-history-v1'
     if scores.status == "COMPLETE":
         status = "本次范围内已完成评价"
-        if scores.functional.failed == 0 and scores.behavioral.failed == 0:
+        if prediction:
+            finding = (f'七个历史问题的概率已与最终市场结算对应，其中 {scores.functional.failed} 题给最终结果的概率低于中性或输出不合约定；'
+                       f'另外七项链上交付中有 {scores.behavioral.failed} 项未通过完整核验。')
+        elif scores.functional.failed == 0 and scores.behavioral.failed == 0:
             finding = "本次抽查的增仓结果披露和三步交易均能与链上证据对应。"
         else:
             finding = f"本次有 {scores.functional.failed + scores.behavioral.failed} 条历史任务未通过核验，具体差异在下方逐条说明。"
@@ -142,6 +146,21 @@ def render_evaluation_report(report: EvaluationReport) -> str:
         "首个通过样本，以及首个未通过或无法判断样本默认展开。其余样本点击标题查看；原始文件和标识收在各自的证据区。"
         if report.samples else "本轮尚无进入判分的样本；取得实际证据后会在这里逐条解释。"
     )
+    if prediction:
+        functional_method = ('使用预先固定的七个不同已结算问题，核对原始请求、工具、预测概率与协议最终结果。'
+            '单题信用分为 100 × [1 −（给“是”的概率 − 最终是/否结果）²]，七题取平均。'
+            '确定且正确为100，确定且相反为0；50/50中性预测为75。这是概率信用分，不是预测准确率。')
+        functional_threshold = '给最终结果的概率不少于50%标为通过，低于50%或已证实格式错误标为未通过；实际连续得分仍逐题保留，需七个确定结论。'
+        behavioral_method = ('使用另外七个不同问题，核对真实请求与交付、原始文件摘要、交易和事件、任务编号、历史执行者及服务归属。'
+            '若由另一服务接手，还需核实其严格超过优先窗口、已获授权并符合支付类型与报价上限。')
+        behavioral_threshold = '本维度评价完整链上履约，不评价预测准确。得分为通过任务数 ÷ 确定结论任务数 × 100，需七个确定结论。'
+        availability_intro = '检查预先固定的公开历史预测文件能否完整读取并与任务及内容摘要匹配；不代表当前付费推理服务可用。'
+    else:
+        functional_method = '使用预先固定的一组历史运行记录，核对指定仓位、公布的真实资产用量和执行后流动性。独立读取固定区块状态，并按同区块事件顺序重建目标交易后的结果。'
+        functional_threshold = '本维度只评价这些实际结果披露。得分为通过任务数 ÷ 确定结论任务数 × 100，需7个确定结论。'
+        behavioral_method = '使用与功能维度互不重复的完整运行记录，逐笔核实包装原生币、兑换、最终增仓这三项公开操作，包括身份、调用目标、资产流向、参数限制与链上结果。'
+        behavioral_threshold = '三笔操作需要完整证据。得分为通过任务数 ÷ 确定结论任务数 × 100，需7个确定结论。'
+        availability_intro = '检查公开运行记录入口能否返回约定格式。'
     return f'''<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light"><title>{_text(report.name)} · 声誉评价报告</title>
@@ -172,12 +191,10 @@ a{{color:#145e83;text-underline-offset:3px;overflow-wrap:anywhere}}a:focus-visib
 <div class="metric"><strong>{len(report.samples)}</strong><span>实际评价样本</span></div><div class="metric"><strong>{unknown}</strong><span>无法判断 · 另有 {failed} 条未通过</span></div></div></header>
 <section class="scores" aria-label="三维评分">{cards}</section>
 <section class="panel"><h2>怎样理解这三个分数</h2><div class="methods">
-<section><h3>服务可用性</h3><p>检查公开运行记录入口能否返回约定格式。得分由 80% 成功率与 20% 延迟表现组成；成功率的分母仅包括通过和未通过。</p>
+<section><h3>服务可用性</h3><p>{_text(availability_intro)}得分由 80% 成功率与 20% 延迟表现组成；成功率的分母仅包括通过和未通过。</p>
 <p class="p95">本次成功响应 p95：{p95}</p><p>p95 表示至少 95% 的成功请求在这一耗时内完成，按样本排序取最近秩。不超过 1000 毫秒时延迟项满分，达到 10000 毫秒为零，中间线性计算。这是本机经既定代理线路的访问体验，包含网络和代理耗时。</p></section>
-<section><h3>功能声明一致性</h3><p>使用预先固定的一组历史运行记录，核对指定仓位、公布的真实资产用量和执行后流动性。独立读取固定区块状态，并按同区块事件顺序重建目标交易后的结果。</p>
-<p>本维度只评价这些实际结果披露。得分为通过任务数 ÷ 确定结论任务数 × 100，需 7 个确定结论。</p></section>
-<section><h3>交易行为可靠性</h3><p>使用与功能维度互不重复的完整运行记录，逐笔核实包装原生币、兑换、最终增仓这三项公开操作，包括身份、调用目标、资产流向、参数限制与链上结果。</p>
-<p>三笔操作需要完整证据。得分为通过任务数 ÷ 确定结论任务数 × 100，需 7 个确定结论。</p></section></div>
+<section><h3>功能声明一致性</h3><p>{_text(functional_method)}</p><p>{_text(functional_threshold)}</p></section>
+<section><h3>交易行为可靠性</h3><p>{_text(behavioral_method)}</p><p>{_text(behavioral_threshold)}</p></section></div>
 <p class="muted">“无法判断（UNKNOWN）”表示证据或核验条件不足，不记为失败，也不进入判分分母；“不适用”单独保留。可用性至少需 8 个确定结论。三维齐全后，综合分按 30% / 40% / 30% 加权。</p></section>
 <section class="panel"><h2>每条样本实际发生了什么</h2><p class="muted">{_text(sample_intro)}</p>{"".join(groups)}</section>
 <section class="panel"><h2>报告的适用边界与当前限制</h2><div class="boundaries"><section><h3>本次未覆盖</h3>{_items(report.scope_exclusions)}</section>
