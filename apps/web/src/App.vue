@@ -11,6 +11,14 @@ import StatusBadge from './components/StatusBadge.vue'
 const view = ref<'browse' | 'detail' | 'submit'>('browse')
 const agents = ref<AgentSummary[]>([])
 const search = ref('')
+const statusFilter = ref<'all' | 'COMPLETE' | 'PARTIAL' | 'NOT_EVALUATED'>('all')
+const scopeFilter = ref('all')
+const directorySort = ref<'updated' | 'score-desc' | 'score-asc' | 'name'>('updated')
+const scopeLabels = {
+  prediction: '历史预测', liquidity: '历史增仓', generic: '通用服务',
+  unknown: '范围待确认', unreported: '尚无报告范围',
+}
+const nameOrder = new Intl.Collator('zh-CN', { numeric: true, sensitivity: 'base' })
 const directoryLoading = ref(true)
 const directoryError = ref<ApiError | null>(null)
 const pageLoading = ref(false)
@@ -26,10 +34,20 @@ const jobError = ref<ApiError | null>(null)
 const completedCount = computed(() => agents.value.filter(agent => agent.latest_report?.scores.status === 'COMPLETE').length)
 const exampleAgent = computed(() => agents.value.find(agent => agent.latest_report && agent.registration_reference.startsWith('eip155:'))
   ?? agents.value.find(agent => agent.registration_reference.startsWith('eip155:')))
+const scopeOptions = computed(() => {
+  const present = new Set(agents.value.map(evaluationScope))
+  return (Object.keys(scopeLabels) as Array<keyof typeof scopeLabels>)
+    .filter(value => present.has(value)).map(value => ({ value, label: scopeLabels[value] }))
+})
+const hasDirectoryConditions = computed(() => search.value !== '' || statusFilter.value !== 'all'
+  || scopeFilter.value !== 'all' || directorySort.value !== 'updated')
 const matches = computed(() => {
   const needle = search.value.trim().toLocaleLowerCase()
   return agents.value.filter(agent => [agent.name, agent.description, agent.registration_reference, agent.key]
-    .some(value => value.toLocaleLowerCase().includes(needle)))
+    .some(value => value.toLocaleLowerCase().includes(needle))
+    && (statusFilter.value === 'all' || evaluationStatus(agent) === statusFilter.value)
+    && (scopeFilter.value === 'all' || evaluationScope(agent) === scopeFilter.value))
+    .sort(compareAgents)
 })
 const jobActive = computed(() => job.value?.status === 'QUEUED' || job.value?.status === 'RUNNING')
 const stages = ['QUEUED', 'COLLECTING', 'VERIFYING', 'REPORTING'] as const
@@ -37,6 +55,45 @@ let routeVersion = 0
 let routeAbort: AbortController | undefined
 let pollingGeneration = 0
 let pollTimer: ReturnType<typeof setTimeout> | undefined
+
+function evaluationStatus(agent: AgentSummary) {
+  return agent.latest_report?.scores.status ?? 'NOT_EVALUATED'
+}
+
+function evaluationScope(agent: AgentSummary): keyof typeof scopeLabels {
+  if (!agent.latest_report) return 'unreported'
+  switch (agent.latest_report.scores.policy_version) {
+    case 'prediction-history-v1':
+    case 'prediction-history-v2': return 'prediction'
+    case 'liquidity-history-v1': return 'liquidity'
+    case 'service-contract-v1': return 'generic'
+    default: return 'unknown'
+  }
+}
+
+function compareAgents(left: AgentSummary, right: AgentSummary): number {
+  const byName = () => nameOrder.compare(left.name, right.name) || nameOrder.compare(left.key, right.key)
+  if (directorySort.value === 'name') return byName()
+  if (directorySort.value === 'score-desc' || directorySort.value === 'score-asc') {
+    const a = left.latest_report?.scores.overall
+    const b = right.latest_report?.scores.overall
+    if (a == null && b != null) return 1
+    if (a != null && b == null) return -1
+    if (a != null && b != null && a !== b) return directorySort.value === 'score-asc' ? a - b : b - a
+  }
+  const a = left.latest_report ? Date.parse(left.latest_report.generated_at) : NaN
+  const b = right.latest_report ? Date.parse(right.latest_report.generated_at) : NaN
+  if (Number.isNaN(a) && !Number.isNaN(b)) return 1
+  if (!Number.isNaN(a) && Number.isNaN(b)) return -1
+  return (!Number.isNaN(a) && !Number.isNaN(b) && a !== b) ? b - a : byName()
+}
+
+function clearDirectoryConditions() {
+  search.value = ''
+  statusFilter.value = 'all'
+  scopeFilter.value = 'all'
+  directorySort.value = 'updated'
+}
 
 function stopPolling() {
   pollingGeneration += 1
@@ -184,13 +241,22 @@ onBeforeUnmount(() => {
       <template v-if="view === 'browse'">
         <section class="directory-heading"><div><p class="eyebrow">公开 Agent · 可追溯的评价</p><h1>看清服务表现，读懂评分依据。</h1><p class="page-description">从实际业务与链上记录出发，了解每个 Agent 做了什么、结果如何，以及哪些能力还没有被核验。</p></div><button class="primary-button" @click="openSubmission()">接入 Agent <span aria-hidden="true">↗</span></button></section>
         <section v-if="!directoryLoading && !directoryError" class="directory-stats" aria-label="目录概况"><div><strong>{{ agents.length }}</strong><span>已记录的公共 Agent</span></div><div><strong>{{ completedCount }}</strong><span>已有完整范围分</span></div><p>每个分数都对应一份具体范围的报告。<br>暂不能评价的对象，也保留缺项与后续线索。</p></section>
-        <div class="directory-toolbar"><label class="search-field"><svg aria-hidden="true" viewBox="0 0 20 20" fill="none"><circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="m13 13 4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><span class="sr-only">搜索 Agent</span><input v-model="search" type="search" placeholder="搜索名称、能力或注册标识" /></label><span v-if="!directoryLoading && !directoryError" class="muted small">{{ matches.length }} 个结果</span></div>
+        <div class="directory-toolbar">
+          <label class="search-field"><svg aria-hidden="true" viewBox="0 0 20 20" fill="none"><circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="m13 13 4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><span class="sr-only">搜索 Agent</span><input v-model="search" type="search" placeholder="搜索名称、能力或注册标识" /></label>
+          <div class="directory-filters">
+            <label class="directory-filter"><span>评价状态</span><select v-model="statusFilter"><option value="all">全部状态</option><option value="COMPLETE">完整评价</option><option value="PARTIAL">部分评价</option><option value="NOT_EVALUATED">待评价</option></select></label>
+            <label class="directory-filter"><span>评价范围</span><select v-model="scopeFilter"><option value="all">全部范围</option><option v-for="option in scopeOptions" :key="option.value" :value="option.value">{{ option.label }}</option></select></label>
+            <label class="directory-filter sort-filter"><span>排序方式</span><select v-model="directorySort"><option value="updated">最近更新</option><option value="score-desc">综合分从高到低</option><option value="score-asc">综合分从低到高</option><option value="name">名称顺序</option></select></label>
+          </div>
+          <div v-if="!directoryLoading && !directoryError" class="directory-results"><p role="status" aria-live="polite" aria-atomic="true">显示 <strong>{{ matches.length }}</strong> / {{ agents.length }} 个 Agent</p><button v-if="hasDirectoryConditions" class="text-button" @click="clearDirectoryConditions">清空条件</button></div>
+          <p class="directory-comparison-note">综合分只用于相同评价范围的比较，样本与时间见报告。最近更新以最新报告时间为准。</p>
+        </div>
         <p v-if="directoryLoading" class="loading-state" role="status"><span class="spinner" aria-hidden="true"></span>正在读取 Agent 目录…</p>
         <ErrorNotice v-else-if="directoryError" :error="directoryError"><button class="text-button" @click="loadAgents">重新读取目录</button></ErrorNotice>
-        <section v-else-if="!matches.length" class="empty-state panel"><h2>{{ agents.length ? '没有找到匹配的 Agent' : '目录中还没有 Agent' }}</h2><p>{{ agents.length ? '试试其他名称或注册标识，也可以接入新的 Agent。' : '提交公开注册信息后，平台会检查资料并推进评价。' }}</p><button v-if="search" class="secondary-button" @click="search = ''">清除搜索</button><button v-else class="primary-button" @click="openSubmission()">接入 Agent</button></section>
+        <section v-else-if="!matches.length" class="empty-state panel"><h2>{{ agents.length ? '没有符合条件的 Agent' : '目录中还没有 Agent' }}</h2><p>{{ agents.length ? '可以调整搜索词、评价状态或范围，也可以清空条件查看全部对象。' : '提交公开注册信息后，平台会检查资料并推进评价。' }}</p><button v-if="agents.length && hasDirectoryConditions" class="secondary-button" @click="clearDirectoryConditions">清空条件</button><button v-else class="primary-button" @click="openSubmission()">接入 Agent</button></section>
         <section v-else class="agent-grid" aria-label="Agent 目录"><article v-for="agent in matches" :key="agent.key" class="agent-card">
-          <div class="agent-card-top"><span class="agent-avatar" aria-hidden="true">{{ agent.name.slice(0, 2).toUpperCase() }}</span><span class="report-status" :class="{ complete: agent.latest_report?.scores.status === 'COMPLETE' }">{{ !agent.latest_report ? '尚未评价' : agent.latest_report.scores.status === 'COMPLETE' ? '本范围已评分' : '部分评价' }}</span></div>
-          <h2><a :href="'?agent=' + encodeURIComponent(agent.key)" @click.prevent="openAgent(agent.key)">{{ agent.name }}</a></h2><p class="agent-description">{{ agent.description }}</p>
+          <div class="agent-card-top"><span class="agent-avatar" aria-hidden="true">{{ agent.name.slice(0, 2).toUpperCase() }}</span><span class="report-status" :class="{ complete: evaluationStatus(agent) === 'COMPLETE' }">{{ evaluationStatus(agent) === 'COMPLETE' ? '本范围已评分' : evaluationStatus(agent) === 'PARTIAL' ? '部分评价' : '待评价' }}</span></div>
+          <h2><a :href="'?agent=' + encodeURIComponent(agent.key)" @click.prevent="openAgent(agent.key)">{{ agent.name }}</a></h2><p v-if="agent.latest_report" class="card-scope">{{ scopeLabels[evaluationScope(agent)] }}</p><p class="agent-description">{{ agent.description }}</p>
           <template v-if="agent.latest_report"><div class="card-score"><div><strong>{{ score(agent.latest_report.scores.overall) }}</strong><span>本范围综合分</span></div><p>{{ agent.latest_report.scope }}</p></div><p class="muted small">更新于 {{ when(agent.latest_report.generated_at) }}</p></template>
           <p v-else class="unscored-note">尚无足够证据形成完整评分。详情中保留了已核实事实、缺项和下一步。</p>
           <a class="card-link" :href="'?agent=' + encodeURIComponent(agent.key)" @click.prevent="openAgent(agent.key)">{{ agent.latest_report ? '阅读评价报告' : '查看资料与缺项' }}<span aria-hidden="true">→</span></a>
