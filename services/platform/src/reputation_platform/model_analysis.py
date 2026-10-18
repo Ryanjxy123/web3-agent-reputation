@@ -31,6 +31,12 @@ def catalog_operations(sources: list[SourceDocument]) -> list[str] | None:
     capabilities = document.get("capabilities") if isinstance(document, dict) else None
     if isinstance(capabilities, list) and capabilities and all(isinstance(item, dict) and isinstance(item.get("id"), str) for item in capabilities):
         return [item["id"] for item in capabilities]
+    tools = document.get("tools") if isinstance(document, dict) else None
+    metadata = document.get("toolMetadata") if isinstance(document, dict) else None
+    if (isinstance(tools, list) and tools and all(isinstance(tool, str) for tool in tools)
+        and len(set(tools)) == len(tools) and isinstance(metadata, dict)
+        and all(isinstance(metadata.get(tool), dict) and metadata[tool].get("input") and metadata[tool].get("output") for tool in tools)):
+        return tools
     return None
 
 

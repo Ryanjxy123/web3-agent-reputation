@@ -1,6 +1,6 @@
 # 真实公共 Agent 候选与扩展记录
 
-更新日期：2026-10-18。首批 5 个候选已实查，既有 3 个提供方线索及新的 Custos 调查记录继续保留。Brain DeFi 的历史增仓窄范围已完成 10+7+7 个真实槽位的三维分和综合分，当前为 1 / 至少 10 个对象，不代表整个 Agent 的能力。第二个独立提供方的同类复用尚未完成，Custos 不计为已就绪。
+更新日期：2026-10-18。首批 5 个候选已实查，既有 3 个提供方线索与 Custos、Olas 调查记录继续保留。Brain DeFi 的历史增仓窄范围已完成三维评分及网站自动复评，当前仍为 1 / 至少 10 个对象，不代表整个 Agent 的能力。第二个独立提供方复用尚未完成，新线索不计为已就绪。
 
 ## 已实际检查的候选
 
@@ -10,26 +10,29 @@
 | [Agent Arena](https://agentarena.site/)，Base #18500 | 实际查询返回 HTTP 200，但 name/description 为空、services=[]，与保留目录存在差异 | 固定同一身份读取链上 agentURI 与文件，查清来源/缓存差异；尚不能直接判业务失败。被查询对象的交易不归给 Arena |
 | [DARKSOL / Synthesis](https://github.com/darks0l/synthesis-agent)，Base #31929 | 目录与作者仓库指向同一身份；作者仓库有执行钱包和交易线索，但仪表盘为 localhost | 当前 API 的免费与证明条件未闭合；公开文档读取曾遇到 402，已停止该主机，不调用付费路径。随机数 demo 不等于实际链上执行证明；身份换名不另算一个 Agent |
 | [Brain On BNB](https://brainonbnb.com/services)，BSC #49467 | 固定区块直接核实注册存在；保留官方服务说明与 434 条公开 burn 日志；抽查一笔真实历史销毁交易 | 抽查交易使用旧执行地址和不同代币，不能直接归给当前身份。需要迁移/绑定证明；不把同项目 DeFi 历史移给它。免费业务正确性尚未评价 |
-| [Brain DeFi](https://brainonbnb.com/defi)，BSC #363709 | 历史增仓窄范围 COMPLETE：可用性 88.89、功能一致性 100、交易可靠性 100，综合 96.67；24 个真实槽位，13 条 N_A 另列。注册事件内 Operating wallet 与 record 接口、真实执行者、固定块仓位所有权及三步交易均已核对 | 仅覆盖记录入口、7 条披露和另 7 条三步行为；实时 `lp/look` 未固定 block，收益与完整策略不在结论内。与 #49467 同一提供方，不能用两身份冒充独立提供方复用 |
+| [Brain DeFi](https://brainonbnb.com/defi)，BSC #363709 | 历史增仓窄范围 COMPLETE：首次 88.89 / 100 / 100、综合 96.67；正式接入复评 93.09 / 100 / 100、综合 97.93。每份 24 个真实槽位，13 条 N_A 另列。注册事件内 Operating wallet 与 record 接口、真实执行者、固定块仓位所有权及三步交易均已核对 | 第二报告重新采集可用性、复用未变历史，不算新对象。仅覆盖记录入口、7 条披露和另 7 条三步行为；实时 `lp/look` 未固定 block，收益与完整策略不在结论内。与 #49467 同一提供方，不能冒充独立提供方复用 |
 
-## 保留的资料线索，尚未调用业务或 RPC
+## 后续扩展线索与实际核实状态
 
 | 提供方 | 官方来源与拟评业务 | 决定性缺项与下一步 |
 | --- | --- | --- |
 | b1e55ed，Base #28362 | [介绍](https://docs.b1e55ed.permanentupperclass.com/introduction)、[作者仓库](https://github.com/P-U-C/b1e55ed)、[官网](https://b1e55ed.permanentupperclass.com/)公开匿名 provenance 查询 | 官方明确仓位是模拟盘，不能计入真实交易。若评价链上 karma 写入，需实际签名者、信号与具体交易关联；捐赠钱包不能代替执行钱包 |
 | Clawlinker / Molttail，Ethereum #22945 | [身份 manifest](https://github.com/clawlinker/synthesis-hackathon/blob/main/agent.json)、[公开接口声明](https://github.com/clawlinker/synthesis-hackathon/blob/main/public/.well-known/agent.json)、[receipt 路由](https://github.com/clawlinker/synthesis-hackathon/blob/main/app/api/receipts/route.ts)声明匿名 receipt 查询与执行钱包 | 尚未直接核实注册绑定。receipt 错误/超时路径会返回 sample；[ENS 路由](https://github.com/clawlinker/synthesis-hackathon/blob/main/app/api/ens-resolver/route.ts)对合法名称返回固定记录，contenthash 是 placeholder，不能据源码声称已通过实时解析。执行日志的支付日期与缓存交易日期不对应，尚无完整任务归属链。需检查实际响应并排除演示数据 |
 | ACK / Etch | [ACK 注册说明](https://gist.github.com/tyler-james-bridges/cc80c2eee531a02a29370f931de90c5d)、[Etch 作者仓库](https://github.com/tyler-james-bridges/etch)公开免费存证 verify 与合约 | ACK 的多个注册身份不能自动转给 Etch。需要注册 metadata 到 Etch 服务的绑定、真实 minter 与历史存证任务；当前不计为已确定身份候选 |
-| Custos，作者 0xMaxyz | [本轮调研](CANDIDATE_RESEARCH_20261018.md)记录作者部署资料、拟核实的 Mantle #128 身份、匿名 `/snapshot` 与 `/decisions` 路由及决策事件设计 | 尚未独立核验注册、实际匿名服务、ALLOCATOR 执行关联或真实任务证据；deployer 不能当执行者。优先核实资料，不计为可评分或第二提供方复用已通过 |
+| Custos，作者 0xMaxyz | [本轮调研](CANDIDATE_RESEARCH_20261018.md)记录作者部署资料、拟核实的 Mantle #128 身份、匿名 `/snapshot` 与 `/decisions` 路由及决策事件设计；两个官方只读入口各尝试一次，均 ReadTimeout、未取得 HTTP 状态 | 网络失败 UNKNOWN，不判 Agent 失败、不重试凑样本。尚缺注册、ALLOCATOR 关联和真实决策原件；deployer 不能当执行者。原件 `runtime/candidate-check-20261018T053927Z-27b8ade9/` |
+| Olas Valory Mech Predict，Gnosis #2182 线索 | 固定块注册、bridger 的服务号→注册号映射、实际 operator 与一条旧请求/交付原件已取得；owner 是 bridger，不能当执行钱包。真实预测目标日尚未到，不能判准确；见[本轮调研](CANDIDATE_RESEARCH_20261018.md) | 继续核较早已结算任务、CID/DAG、历史 operator 与接手规则。原优先 Mech 和实际交付者分开，不复用 analytics accuracy，多个 tool 不算多个 Agent，不发付费新任务 |
+| delu，Base #30004 | 目录和固定块注册已读取；链上 dataURI 的服务列表为空。作者仓库提供一条带输入/输出和 txHash 的 MOLT 兑换记录，见[扩展调查](CANDIDATE_EXPANSION_20261018.md) | 作者项目到注册服务及实际执行钱包的关联未闭合，且不足量任务；dashboard 源码有 mock fallback，不能以页面 200 或新时间戳判实时服务正常 |
+| Clicks Protocol，Base #45074 | 固定块注册→实际注册 JSON→MCP 文档和远程四工具列表已核；一次匿名分账预览 HTTP200 但业务 `isError=true`，上游 RPC 额度不足，无结果 | 停止该入口后续请求；没有固定块查询支持或可归属的足量结算任务。bootstrap attestation 对象是 Agent #1，不是本 Agent。保留缺项与原件，未计分 |
 
 这些线索按提供方记录，不将多个链上的同一服务重复计数。源码和文档描述不冒充已部署服务的实际表现。
 
 ## 已完成的首个限定范围评分
 
-最新[中文详细报告](../runtime/evaluation-report-20261018T053613Z-fe5237bc/report.html)与 JSON、manifest、background 位于 `runtime/evaluation-report-20261018T053613Z-fe5237bc/`。首次版本 `runtime/evaluation-report-20261018T053426Z-ba06f389/` 保留；两次离线生成均退出 0，新版复用原件并改善普通用户读法，分数相同。
+最新[中文详细报告](../runtime/evaluation-report-20261018T060340Z-4c27cea3/report.html)与 JSON、manifest、background 位于 `runtime/evaluation-report-20261018T060340Z-4c27cea3/`，由正式 API 任务及 worker 自动发布，综合 97.93。首轮 `runtime/evaluation-report-20261018T053613Z-fe5237bc/` 与更早排版版保留；同一对象多份报告不增加对象数。
 
-24 个评分槽位固定为 10 次新可用性访问、7 条功能披露、7 条不同运行的行为任务；13 条无动作记录为背景 NOT_APPLICABLE，不进入七任务分母。可用性的非满分来自实际访问耗时，未对真实全通过的功能或行为人为扣分。`MODEL_PILOT`、`FIRST_EVIDENCE_LOOP` 已完成；接下来验证独立提供方复用并建设 `LOCAL_PLATFORM`，完整网站、API、worker 和 PostgreSQL 尚未实现。
+24 个评分槽位固定为 10 次新可用性访问、7 条功能披露、7 条不同运行的行为任务；13 条无动作记录为背景 NOT_APPLICABLE，不进入七任务分母。可用性的非满分来自实际访问耗时，未对真实全通过的功能或行为人为扣分。`MODEL_PILOT`、`FIRST_EVIDENCE_LOOP`、`LOCAL_PLATFORM` 本机功能闭环已完成；下一步 `PUBLIC_HISTORY_ADAPTER`，至少 10 个和独立提供方复用尚未完成。
 
-Git 为 `codex/model-evidence-loop`，实现已本地提交 `2b71d65`；本轮状态文档随后提交，以 `git log` 为准。`REMOTE_NOT_CONFIGURED`，未 push 或创建 PR。
+Git 为 `codex/local-platform`，前轮提交 `2b71d65` / `ed3152f`；本轮平台和资料状态待分批提交，最终以 `git log` 为准。`REMOTE_NOT_CONFIGURED`，未 push 或创建 PR。
 
 ## 首批证据定位
 

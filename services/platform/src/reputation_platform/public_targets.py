@@ -40,4 +40,46 @@ PUBLIC_TARGETS = (
         "brain-look-position", "https://agent.brainonbnb.com/lp/look?position=7637521",
         purpose=MeasurementPurpose.AVAILABILITY,
     ),
+    PublicTarget(
+        "custos-snapshot", "https://trycustos.xyz/api/snapshot",
+        purpose=MeasurementPurpose.BACKGROUND,
+    ),
+    PublicTarget(
+        "custos-decisions", "https://trycustos.xyz/api/decisions",
+        purpose=MeasurementPurpose.BACKGROUND,
+    ),
+    PublicTarget(
+        "olas-registration-2182", "https://marketplace.olas.network/api/erc8004/gnosis/ai-agents/2182",
+        purpose=MeasurementPurpose.BACKGROUND,
+    ),
+    PublicTarget(
+        "olas-manifest-2182",
+        "https://gateway.autonolas.tech/ipfs/f01701220dd974e01447d4b3fcc180e9320fb0bbd452ca374407c99a876e420a07be88c29",
+        purpose=MeasurementPurpose.BACKGROUND,
+    ),
+    PublicTarget(
+        "olas-analytics-2182",
+        "https://mech-analytics-api.autonolas.tech/v1/metrics/mech/100/0xc05e7412439bd7e91730a6880e18d5d5873f632c",
+        purpose=MeasurementPurpose.BACKGROUND,
+    ),
+    PublicTarget("catalog-delu", "https://api.8004scan.io/api/v1/agents/8453/30004"),
+    PublicTarget("catalog-clicks", "https://api.8004scan.io/api/v1/agents/8453/45074"),
+    PublicTarget("clicks-registration", "https://clicksprotocol.xyz/.well-known/agent-registration.json"),
+    PublicTarget("clicks-mcp-document", "https://clicksprotocol.xyz/mcp/server.json"),
+    PublicTarget(
+        "clicks-initialize", "https://mcp.clicksprotocol.xyz/mcp", "POST",
+        json_body={"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {
+            "protocolVersion": "2025-03-26", "capabilities": {},
+            "clientInfo": {"name": "web3-reputation-readonly", "version": "0.1.0"}}},
+    ),
+    PublicTarget(
+        "clicks-tools", "https://mcp.clicksprotocol.xyz/mcp", "POST",
+        json_body={"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}},
+    ),
+    PublicTarget(
+        "clicks-split-query", "https://mcp.clicksprotocol.xyz/mcp", "POST",
+        json_body={"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {
+            "name": "clicks_simulate_split", "arguments": {
+                "amount": "1.234567", "agent_address": "0xf873bb73e10d24cd3cf9bbed917f5e2d07da8b80"}}},
+    ),
 )

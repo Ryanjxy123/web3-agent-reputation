@@ -1,0 +1,76 @@
+{
+  "chain_id": 100,
+  "rpc_url": "https://rpc.gnosischain.com",
+  "snapshot_block": 48815687,
+  "snapshot_hash": "0x7311c246d521d721727a156d9f5b96102828f6ebf270c028de3defb73ad4ebe5",
+  "registry": "0x8004a169fb4a3325136eb29fa0ceb6d2e539a432",
+  "bridger": "0x6e8f740f23f07ce129daa59786926feca8c2d2f3",
+  "service_registry": "0x9338b5153ae39bb89f50468e608ed9d764b755fd",
+  "candidates": [
+    {
+      "service_id": 2469,
+      "mech": "0x1cae83a8a68993954ed28e4de23341f6e672d9dc"
+    },
+    {
+      "service_id": 3809,
+      "mech": "0x56a28949aa6336c0ca4a7166cb3e49fc22f25ca8"
+    },
+    {
+      "service_id": 3791,
+      "mech": "0x9a6f151704acc0611a31edcde409fa423b88b6a6"
+    },
+    {
+      "service_id": 3661,
+      "mech": "0x40a1595473a954308c8076c82357a3991d71b7ba"
+    },
+    {
+      "service_id": 2135,
+      "mech": "0xbead38e4c4777341bb3fd44e8cd4d1ba1a7ad9d7"
+    },
+    {
+      "service_id": 2267,
+      "mech": "0xe43a68c509886b6eb1147c7cfb20cacec1cea32b"
+    },
+    {
+      "service_id": 3795,
+      "mech": "0xd94d0d6424f05c374554dfc4fd31c827caab16d3"
+    },
+    {
+      "service_id": 2150,
+      "mech": "0xfacaa9dd513af6b5a79b73353daff041925d0101"
+    },
+    {
+      "service_id": 3798,
+      "mech": "0x75033125b8b156fdbe70be73d5c9544e44d3a9bb"
+    }
+  ],
+  "sources": [
+    "https://docs.gnosischain.com/tools/RPC%20Providers/",
+    "https://github.com/valory-xyz/autonolas-registries/blob/main/contracts/8004/IdentityRegistryBridger.sol",
+    "https://github.com/valory-xyz/autonolas-marketplace/blob/main/abis/0.8.28/MechFixedPriceNative.json"
+  ],
+  "selection": {
+    "rule": "retained_directory_order_unexamined_with_metadata",
+    "exclude_service_ids": [
+      2182,
+      2198,
+      3098,
+      2235,
+      2340,
+      2359,
+      2360,
+      3783,
+      3786,
+      3066,
+      3118,
+      3264,
+      3254,
+      3440,
+      3446,
+      3443
+    ],
+    "first": 9,
+    "require_metadata": true,
+    "scoring_or_prediction_quality_filter": false
+  }
+}
