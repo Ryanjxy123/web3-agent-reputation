@@ -161,12 +161,18 @@ class Repository:
 
     def _upsert_agent(self, connection, *, key: str, name: str, reference: str, description: str = "") -> None:
         canonical = normalize_reference(reference)
-        connection.execute("""INSERT INTO agents(key,name,registration_reference,description)
+        row = connection.execute("""INSERT INTO agents(key,name,registration_reference,description)
             VALUES (%s,%s,%s,%s) ON CONFLICT(key) DO UPDATE SET
             name=EXCLUDED.name,registration_reference=CASE WHEN %s THEN EXCLUDED.registration_reference
                 ELSE agents.registration_reference END,
             description=CASE WHEN EXCLUDED.description='' THEN agents.description ELSE EXCLUDED.description END,
-            updated_at=clock_timestamp()""", (key, name, canonical or reference, description, canonical is not None))
+            updated_at=clock_timestamp()
+            WHERE NOT (%s AND agents.registration_reference ~ '^eip155:[0-9]+:0x[0-9a-f]{40}:[0-9]+$'
+                AND agents.registration_reference <> EXCLUDED.registration_reference)
+            RETURNING key""", (key, name, canonical or reference, description, canonical is not None,
+                               canonical is not None)).fetchone()
+        if row is None:
+            raise EvidenceIntegrityError("An internal agent key cannot be rebound to a different registered identity")
 
     def _insert_candidate(self, connection, candidate: CandidateRecord, directory: Path, source_hash: str) -> None:
         self._upsert_agent(connection, key=candidate.key, name=candidate.name, reference=candidate.registration_reference)

@@ -15,11 +15,39 @@ import psycopg
 from psycopg.conninfo import conninfo_to_dict
 
 from reputation_platform.api import create_app
-from reputation_platform.db import LeaseLostError, Repository
+from reputation_platform.db import EvidenceIntegrityError, LeaseLostError, Repository
 from reputation_platform.settings import PROJECT_ROOT
 
 
 class LocalPlatformIntegrationTests(unittest.TestCase):
+    def test_registration_identity_cannot_be_rebound(self) -> None:
+        configuration = os.environ.get("REPUTATION_TEST_DATABASE_URL_FILE")
+        if not configuration or not Path(configuration).is_file():
+            raise RuntimeError("NOT_RUN: configure the isolated PostgreSQL verification database")
+        dsn = Path(configuration).read_text(encoding="utf-8").strip()
+        if conninfo_to_dict(dsn).get("dbname") != "reputation_verification":
+            raise RuntimeError("NOT_RUN: this case only permits reputation_verification")
+        repository = Repository(dsn)
+        key = "verification-identity-" + uuid4().hex
+        canonical = "eip155:56:0x8004a169fb4a3325136eb29fa0ceb6d2e539a432:363709"
+        with repository._connect() as connection:
+            repository._upsert_agent(connection, key=key, name="Controlled identity fixture", reference="BNB Chain / 363709")
+            repository._upsert_agent(connection, key=key, name="Controlled identity fixture", reference=canonical)
+            repository._upsert_agent(connection, key=key, name="Controlled identity fixture", reference="56:0x8004A169FB4a3325136EB29fA0ceB6D2e539a432:363709")
+        baseline = repository.get_agent(key)
+        self.assertEqual(baseline.agent.registration_reference, canonical)
+        source = PROJECT_ROOT / "runtime/admission-report-20261017T182038Z-f504c54e"
+        candidate = repository._candidates(source / "admission-report.json")[0].model_copy(update={
+            "key": key, "name": "Conflicting controlled fixture",
+            "registration_reference": "eip155:1:0x8004a169fb4a3325136eb29fa0ceb6d2e539a432:23121",
+        })
+        with self.assertRaises(EvidenceIntegrityError):
+            with repository._connect() as connection:
+                repository._insert_candidate(connection, candidate, source, hashlib.sha256((source / "admission-report.json").read_bytes()).hexdigest())
+        self.assertEqual(repository.get_agent(key), baseline)
+        with repository._connect() as connection:
+            self.assertEqual(connection.execute("SELECT count(*) AS count FROM candidate_metadata WHERE agent_key=%s", (key,)).fetchone()["count"], 0)
+
     def test_real_report_integrity_leases_and_http(self) -> None:
         configuration = os.environ.get("REPUTATION_TEST_DATABASE_URL_FILE")
         if not configuration or not Path(configuration).is_file():

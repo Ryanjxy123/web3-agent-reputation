@@ -88,6 +88,14 @@ uv sync --locked
 
 1 个用例 PASS，退出 **0**，使用私有 `REPUTATION_TEST_DATABASE_URL_FILE` 指向独立验收库。实际覆盖 3 个并发领取者仅一个获得任务、租约过期后旧 fencing token 无法续租或提交、报告 UPDATE/DELETE 追加写保护，以及正常和错误 API、证据摘要与下载归属。没有使用 SQLite 或内存数据库替代 PostgreSQL；已有有效结果直接复用。
 
+后续静态复核发现同一内部 key 可被另一完整注册身份覆盖，已用原子 upsert 条件拒绝冲突，保留短线索首次补齐和规范等价写法。仅新增并执行这一关键回归：
+
+```powershell
+.venv/Scripts/python.exe -m unittest discover -s tests -p test_local_platform.py -k test_registration_identity_cannot_be_rebound -v
+```
+
+真实独立 PG 用例 PASS、退出 **0**：补齐身份、等价写法、候选冲突拒绝及事务后内容不变。等价输入的测试样例修正后只重跑该新用例，最终 1.010s；此前集成用例未重跑，主库真实报告未修改。
+
 共享 API DTO、Schema 与 TS 从 core 类型生成。`.venv/Scripts/python.exe scripts/export_api_contracts.py` 已退出 **0**，导出实际 FastAPI 路由的 `services/platform/generated/openapi.json`，共享字段统一由类型维护。
 
 前端首次 `pnpm run build`（`vue-tsc` + Vite）PASS、退出 0；随后真实集成审查发现示例按钮误选旧短注册线索、身份标签不准确，修正必要 Vue 源并改善结论说明后，仅重新构建受影响前端一次，同样 PASS、退出 0。开发代理 8015→7754 的配置调整未触发重建。
