@@ -435,6 +435,64 @@
         ],
         "title": "CandidateRecord"
       },
+      "CapabilityCoverage": {
+        "properties": {
+          "capability_id": {
+            "type": "string",
+            "title": "Capability Id"
+          },
+          "operation": {
+            "type": "string",
+            "title": "Operation"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "protocol": {
+            "type": "string",
+            "title": "Protocol"
+          },
+          "tested_scope": {
+            "type": "string",
+            "title": "Tested Scope"
+          },
+          "sample_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Sample Ids"
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/ReportFinding"
+            },
+            "type": "array",
+            "title": "Findings"
+          },
+          "missing_evidence": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Missing Evidence"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "capability_id",
+          "operation",
+          "description",
+          "protocol",
+          "tested_scope",
+          "sample_ids",
+          "findings",
+          "missing_evidence"
+        ],
+        "title": "CapabilityCoverage"
+      },
       "CheckCode": {
         "type": "string",
         "enum": [
@@ -607,7 +665,8 @@
             "type": "string",
             "enum": [
               "liquidity-history-v1",
-              "prediction-history-v1"
+              "prediction-history-v1",
+              "service-contract-v1"
             ],
             "title": "Policy Version",
             "default": "liquidity-history-v1"
@@ -668,6 +727,14 @@
             },
             "type": "array",
             "title": "Limitations"
+          },
+          "capabilities": {
+            "items": {
+              "$ref": "#/components/schemas/CapabilityCoverage"
+            },
+            "type": "array",
+            "title": "Capabilities",
+            "default": []
           },
           "scores": {
             "$ref": "#/components/schemas/ScoringOutcome",
@@ -847,6 +914,17 @@
             },
             "type": "array",
             "title": "Checks"
+          },
+          "capability_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capability Id"
           }
         },
         "additionalProperties": false,
@@ -929,7 +1007,8 @@
             "type": "string",
             "enum": [
               "liquidity-history-v1",
-              "prediction-history-v1"
+              "prediction-history-v1",
+              "service-contract-v1"
             ],
             "title": "Policy Version",
             "default": "liquidity-history-v1"

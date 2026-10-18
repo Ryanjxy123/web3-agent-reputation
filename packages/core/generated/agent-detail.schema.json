@@ -240,7 +240,8 @@
           "default": "liquidity-history-v1",
           "enum": [
             "liquidity-history-v1",
-            "prediction-history-v1"
+            "prediction-history-v1",
+            "service-contract-v1"
           ],
           "title": "Policy Version",
           "type": "string"

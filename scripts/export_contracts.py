@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "packages" / "core" / "src"))
 
 from reputation_core import (  # noqa: E402
-    AdmissionReport, BehaviorVerification, BinaryPrediction, DeclarationAnalysis, DisclosureVerification,
+    AdmissionReport, BehaviorVerification, BinaryPrediction, CapabilityCoverage, DeclarationAnalysis, DisclosureVerification,
     EvaluationReport, LiquidityHistoryDescriptor, LiquidityVerification, MarketSettlementVerification,
     PlanSelection, PredictionChainVerification, PredictionHistoryDescriptor, PredictionToolDescriptor,
     ProbeObservation, ScoredSample, ScoringOutcome, SourceDocument,
@@ -27,6 +27,7 @@ MODELS = {"admission-report": AdmissionReport, "probe-observation": ProbeObserva
           "prediction-history-descriptor": PredictionHistoryDescriptor,
           "market-settlement-verification": MarketSettlementVerification,
           "scoring-outcome": ScoringOutcome, "evaluation-report": EvaluationReport,
+          "capability-coverage": CapabilityCoverage,
           "agent-summary": AgentSummary, "agent-detail": AgentDetail, "report-summary": ReportSummary,
           "evaluation-job": EvaluationJob, "evaluation-submission": EvaluationSubmission,
           "health-status": HealthStatus}

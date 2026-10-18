@@ -87,6 +87,17 @@ export type DimensionScore = {
   "p95_ms": number | null;
 };
 
+export type CapabilityCoverage = {
+  "capability_id": string;
+  "operation": string;
+  "description": string;
+  "protocol": string;
+  "tested_scope": string;
+  "sample_ids": Array<string>;
+  "findings": Array<ReportFinding>;
+  "missing_evidence": Array<string>;
+};
+
 export type SampleExplanation = {
   "sample": ScoredSample;
   "observed_at"?: string | null;
@@ -95,6 +106,7 @@ export type SampleExplanation = {
   "claimed_output": string;
   "independent_result": string;
   "checks": Array<ReportFinding>;
+  "capability_id"?: string | null;
 };
 
 export type ScoredSample = {
@@ -109,7 +121,7 @@ export type ScoredSample = {
 };
 
 export type ScoringOutcome = {
-  "policy_version"?: "liquidity-history-v1" | "prediction-history-v1";
+  "policy_version"?: "liquidity-history-v1" | "prediction-history-v1" | "service-contract-v1";
   "availability": DimensionScore;
   "functional": DimensionScore;
   "behavioral": DimensionScore;
@@ -292,7 +304,7 @@ export type MarketSettlementVerification = {
 
 export type EvaluationReport = {
   "schema_version"?: "evaluation-report-v1";
-  "policy_version"?: "liquidity-history-v1" | "prediction-history-v1";
+  "policy_version"?: "liquidity-history-v1" | "prediction-history-v1" | "service-contract-v1";
   "candidate_key": string;
   "name": string;
   "registration_reference": string;
@@ -304,6 +316,7 @@ export type EvaluationReport = {
   "samples": Array<SampleExplanation>;
   "source_references": Array<string>;
   "limitations": Array<string>;
+  "capabilities"?: Array<CapabilityCoverage>;
   readonly "scores": ScoringOutcome;
 };
 

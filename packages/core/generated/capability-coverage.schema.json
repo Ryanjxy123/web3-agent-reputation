@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "ReportFinding": {
+      "additionalProperties": false,
+      "properties": {
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "verdict": {
+          "$ref": "#/$defs/Verdict"
+        },
+        "explanation": {
+          "title": "Explanation",
+          "type": "string"
+        }
+      },
+      "required": [
+        "label",
+        "verdict",
+        "explanation"
+      ],
+      "title": "ReportFinding",
+      "type": "object"
+    },
+    "Verdict": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNKNOWN",
+        "NOT_APPLICABLE"
+      ],
+      "title": "Verdict",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "capability_id": {
+      "title": "Capability Id",
+      "type": "string"
+    },
+    "operation": {
+      "title": "Operation",
+      "type": "string"
+    },
+    "description": {
+      "title": "Description",
+      "type": "string"
+    },
+    "protocol": {
+      "title": "Protocol",
+      "type": "string"
+    },
+    "tested_scope": {
+      "title": "Tested Scope",
+      "type": "string"
+    },
+    "sample_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Sample Ids",
+      "type": "array"
+    },
+    "findings": {
+      "items": {
+        "$ref": "#/$defs/ReportFinding"
+      },
+      "title": "Findings",
+      "type": "array"
+    },
+    "missing_evidence": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Missing Evidence",
+      "type": "array"
+    }
+  },
+  "required": [
+    "capability_id",
+    "operation",
+    "description",
+    "protocol",
+    "tested_scope",
+    "sample_ids",
+    "findings",
+    "missing_evidence"
+  ],
+  "title": "CapabilityCoverage",
+  "type": "object"
+}

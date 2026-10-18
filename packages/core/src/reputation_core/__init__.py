@@ -26,7 +26,7 @@ from reputation_core.planning import (
     prediction_tool_supported, select_plan, select_prediction_plan,
 )
 from reputation_core.prediction import BinaryPrediction
-from reputation_core.reporting import EvaluationReport, ReportFinding, SampleExplanation
+from reputation_core.reporting import CapabilityCoverage, EvaluationReport, ReportFinding, SampleExplanation
 from reputation_core.prediction_chain import MarketSettlementVerification, PredictionChainVerification
 from reputation_core.scoring import (
     AVAILABILITY_LATENCY_WEIGHT,
@@ -38,6 +38,7 @@ from reputation_core.scoring import (
     PLANNED_SAMPLES,
     POLICY_VERSION,
     PREDICTION_POLICY_VERSION,
+    SERVICE_CONTRACT_POLICY_VERSION,
     PolicyVersion,
     DimensionScore,
     ScoredSample,
@@ -55,6 +56,7 @@ __all__ = [
     "BehaviorVerification",
     "CandidateAdmission",
     "CandidateRecord",
+    "CapabilityCoverage",
     "CheckCode",
     "ClaimCitation",
     "DeclarationAnalysis",
@@ -72,6 +74,7 @@ __all__ = [
     "PLANNED_SAMPLES",
     "POLICY_VERSION",
     "PREDICTION_POLICY_VERSION",
+    "SERVICE_CONTRACT_POLICY_VERSION",
     "PredictionChainVerification",
     "PredictionHistoryDescriptor",
     "PredictionToolDescriptor",

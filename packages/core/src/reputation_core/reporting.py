@@ -1,12 +1,15 @@
 """User-facing explanations over evidence-derived scores, without I/O."""
 
 from datetime import datetime
-from typing import Literal
+from typing import Literal, Self
 
-from pydantic import BaseModel, ConfigDict, computed_field
+from pydantic import BaseModel, ConfigDict, computed_field, model_validator
 
-from reputation_core.admission import Verdict
-from reputation_core.scoring import POLICY_VERSION, PolicyVersion, ScoredSample, ScoringOutcome, calculate_scores
+from reputation_core.admission import MeasurementPurpose, Verdict
+from reputation_core.scoring import (
+    POLICY_VERSION, SERVICE_CONTRACT_POLICY_VERSION, PolicyVersion,
+    ScoredSample, ScoringOutcome, calculate_scores,
+)
 
 
 class ReportFinding(BaseModel):
@@ -15,6 +18,19 @@ class ReportFinding(BaseModel):
     label: str
     verdict: Verdict
     explanation: str
+
+
+class CapabilityCoverage(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    capability_id: str
+    operation: str
+    description: str
+    protocol: str
+    tested_scope: str
+    sample_ids: list[str]
+    findings: list[ReportFinding]
+    missing_evidence: list[str]
 
 
 class SampleExplanation(BaseModel):
@@ -27,6 +43,7 @@ class SampleExplanation(BaseModel):
     claimed_output: str
     independent_result: str
     checks: list[ReportFinding]
+    capability_id: str | None = None
 
 
 class EvaluationReport(BaseModel):
@@ -45,6 +62,30 @@ class EvaluationReport(BaseModel):
     samples: list[SampleExplanation]
     source_references: list[str]
     limitations: list[str]
+    capabilities: list[CapabilityCoverage] = []
+
+    @model_validator(mode="after")
+    def bind_service_contract_capabilities(self) -> Self:
+        if self.policy_version != SERVICE_CONTRACT_POLICY_VERSION:
+            return self
+        capabilities = {item.capability_id: item for item in self.capabilities}
+        if len(capabilities) != len(self.capabilities):
+            raise ValueError("duplicate capability_id")
+        samples = {item.sample.sample_id: item for item in self.samples}
+        for capability in self.capabilities:
+            if len(set(capability.sample_ids)) != len(capability.sample_ids):
+                raise ValueError("duplicate capability sample_id")
+            for sample_id in capability.sample_ids:
+                sample = samples.get(sample_id)
+                if sample is None or sample.capability_id != capability.capability_id:
+                    raise ValueError("capability references a missing or differently bound sample")
+        for sample in self.samples:
+            required = sample.sample.purpose in (MeasurementPurpose.FUNCTIONAL, MeasurementPurpose.BEHAVIORAL)
+            if required or sample.capability_id is not None:
+                capability = capabilities.get(sample.capability_id)
+                if capability is None or sample.sample.sample_id not in capability.sample_ids:
+                    raise ValueError("service-contract sample requires a matching capability binding")
+        return self
 
     @computed_field
     @property
