@@ -12,13 +12,19 @@ from reputation_core import (  # noqa: E402
     EvaluationReport, LiquidityHistoryDescriptor, LiquidityVerification, PlanSelection,
     ProbeObservation, ScoredSample, ScoringOutcome, SourceDocument,
 )
+from reputation_core.application import (
+    AgentDetail, AgentSummary, EvaluationJob, EvaluationSubmission, HealthStatus, ReportSummary,
+)
 
 MODELS = {"admission-report": AdmissionReport, "probe-observation": ProbeObservation,
           "source-document": SourceDocument, "declaration-analysis": DeclarationAnalysis,
           "liquidity-verification": LiquidityVerification, "disclosure-verification": DisclosureVerification,
           "behavior-verification": BehaviorVerification, "liquidity-history-descriptor": LiquidityHistoryDescriptor,
           "plan-selection": PlanSelection, "scored-sample": ScoredSample,
-          "scoring-outcome": ScoringOutcome, "evaluation-report": EvaluationReport}
+          "scoring-outcome": ScoringOutcome, "evaluation-report": EvaluationReport,
+          "agent-summary": AgentSummary, "agent-detail": AgentDetail, "report-summary": ReportSummary,
+          "evaluation-job": EvaluationJob, "evaluation-submission": EvaluationSubmission,
+          "health-status": HealthStatus}
 ANNOTATIONS = {"title", "description", "default", "format", "readOnly", "$defs", "$schema"}
 SHAPES = {"$ref", "const", "enum", "anyOf", "type", "items", "properties", "required",
           "additionalProperties", "minLength", "minItems"}

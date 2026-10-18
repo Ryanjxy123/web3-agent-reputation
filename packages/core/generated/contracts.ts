@@ -100,6 +100,32 @@ export type ScoringOutcome = {
   "status": "COMPLETE" | "PARTIAL" | "NOT_EVALUATED";
 };
 
+export type ReportSummary = {
+  "id": string;
+  "candidate_key": string;
+  "generated_at": string;
+  "scope": string;
+  "scores": ScoringOutcome;
+};
+
+export type AgentSummary = {
+  "key": string;
+  "name": string;
+  "registration_reference": string;
+  "description": string;
+  "report_count": number;
+  "latest_report": ReportSummary | null;
+};
+
+export type CandidateRecord = {
+  "key": string;
+  "name": string;
+  "registration_reference": string;
+  "source_urls": Array<string>;
+  "checks": Array<AdmissionCheck>;
+  "next_actions": Array<string>;
+};
+
 export type AdmissionReport = {
   "schema_version"?: "candidate-admission-v1";
   "assessed_at": string;
@@ -204,4 +230,31 @@ export type EvaluationReport = {
   "source_references": Array<string>;
   "limitations": Array<string>;
   readonly "scores": ScoringOutcome;
+};
+
+export type AgentDetail = {
+  "agent": AgentSummary;
+  "reports": Array<ReportSummary>;
+  "candidate": CandidateRecord | null;
+};
+
+export type EvaluationJob = {
+  "id": string;
+  "reference": string;
+  "status": "QUEUED" | "RUNNING" | "COMPLETE" | "NEEDS_INFO" | "UNSUPPORTED" | "FAILED";
+  "stage": "QUEUED" | "COLLECTING" | "VERIFYING" | "REPORTING" | "DONE";
+  "message": string;
+  "candidate_key": string | null;
+  "report_id": string | null;
+  "created_at": string;
+  "updated_at": string;
+};
+
+export type EvaluationSubmission = {
+  "reference": /** @minLength 1; validated by JSON Schema/Pydantic */ string;
+};
+
+export type HealthStatus = {
+  "status": "ok";
+  "database": "ready";
 };

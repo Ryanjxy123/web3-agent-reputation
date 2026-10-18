@@ -1,0 +1,19 @@
+"""Local operator configuration; database credentials never enter public contracts."""
+
+import os
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[4]
+
+
+def load_database_url() -> str:
+    value = os.environ.get("REPUTATION_DATABASE_URL")
+    if value is None:
+        path = PROJECT_ROOT / "runtime/platform-config/database-url.txt"
+        if not path.is_file():
+            raise RuntimeError("Local database configuration is missing")
+        value = path.read_text(encoding="utf-8")
+    value = value.strip()
+    if not value or "\n" in value or "\r" in value:
+        raise RuntimeError("Local database configuration must contain one nonempty line")
+    return value

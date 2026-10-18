@@ -1,0 +1,149 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "DimensionScore": {
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Value"
+        },
+        "planned": {
+          "title": "Planned",
+          "type": "integer"
+        },
+        "observed": {
+          "title": "Observed",
+          "type": "integer"
+        },
+        "passed": {
+          "title": "Passed",
+          "type": "integer"
+        },
+        "failed": {
+          "title": "Failed",
+          "type": "integer"
+        },
+        "unknown": {
+          "title": "Unknown",
+          "type": "integer"
+        },
+        "not_applicable": {
+          "title": "Not Applicable",
+          "type": "integer"
+        },
+        "p95_ms": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "P95 Ms"
+        }
+      },
+      "required": [
+        "value",
+        "planned",
+        "observed",
+        "passed",
+        "failed",
+        "unknown",
+        "not_applicable",
+        "p95_ms"
+      ],
+      "title": "DimensionScore",
+      "type": "object"
+    },
+    "ScoringOutcome": {
+      "additionalProperties": false,
+      "properties": {
+        "policy_version": {
+          "const": "liquidity-history-v1",
+          "default": "liquidity-history-v1",
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "availability": {
+          "$ref": "#/$defs/DimensionScore"
+        },
+        "functional": {
+          "$ref": "#/$defs/DimensionScore"
+        },
+        "behavioral": {
+          "$ref": "#/$defs/DimensionScore"
+        },
+        "overall": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Overall"
+        },
+        "status": {
+          "enum": [
+            "COMPLETE",
+            "PARTIAL",
+            "NOT_EVALUATED"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "availability",
+        "functional",
+        "behavioral",
+        "overall",
+        "status"
+      ],
+      "title": "ScoringOutcome",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "candidate_key": {
+      "title": "Candidate Key",
+      "type": "string"
+    },
+    "generated_at": {
+      "format": "date-time",
+      "title": "Generated At",
+      "type": "string"
+    },
+    "scope": {
+      "title": "Scope",
+      "type": "string"
+    },
+    "scores": {
+      "$ref": "#/$defs/ScoringOutcome"
+    }
+  },
+  "required": [
+    "id",
+    "candidate_key",
+    "generated_at",
+    "scope",
+    "scores"
+  ],
+  "title": "ReportSummary",
+  "type": "object"
+}
