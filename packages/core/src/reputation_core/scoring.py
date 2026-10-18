@@ -10,8 +10,10 @@ from reputation_core.prediction import BinaryPrediction
 
 POLICY_VERSION = "liquidity-history-v1"
 PREDICTION_POLICY_VERSION = "prediction-history-v1"
+PREDICTION_EVIDENCE_POLICY_VERSION = "prediction-history-v2"
+PREDICTION_POLICY_VERSIONS = (PREDICTION_POLICY_VERSION, PREDICTION_EVIDENCE_POLICY_VERSION)
 SERVICE_CONTRACT_POLICY_VERSION = "service-contract-v1"
-PolicyVersion = Literal["liquidity-history-v1", "prediction-history-v1", "service-contract-v1"]
+PolicyVersion = Literal["liquidity-history-v1", "prediction-history-v1", "prediction-history-v2", "service-contract-v1"]
 DIMENSION_WEIGHTS = {
     MeasurementPurpose.AVAILABILITY: 0.30,
     MeasurementPurpose.FUNCTIONAL: 0.40,
@@ -98,7 +100,7 @@ def _dimension_score(purpose: MeasurementPurpose, samples: list[ScoredSample],
             ))
             value = 100 * (AVAILABILITY_SUCCESS_WEIGHT * success_rate
                            + AVAILABILITY_LATENCY_WEIGHT * latency_ratio)
-        elif purpose == MeasurementPurpose.FUNCTIONAL and policy_version == PREDICTION_POLICY_VERSION:
+        elif purpose == MeasurementPurpose.FUNCTIONAL and policy_version in PREDICTION_POLICY_VERSIONS:
             value = sum(sample.prediction.credit if sample.prediction is not None else 0.0
                         for sample in samples) / decisive
         else:
@@ -114,15 +116,15 @@ def _dimension_score(purpose: MeasurementPurpose, samples: list[ScoredSample],
 
 def calculate_scores(samples: list[ScoredSample], *, policy_version: PolicyVersion = POLICY_VERSION) -> ScoringOutcome:
     """Score disjoint measurement tasks; unknown evidence never becomes a zero."""
-    if policy_version not in (POLICY_VERSION, PREDICTION_POLICY_VERSION, SERVICE_CONTRACT_POLICY_VERSION):
+    if policy_version not in (POLICY_VERSION, *PREDICTION_POLICY_VERSIONS, SERVICE_CONTRACT_POLICY_VERSION):
         raise ValueError("unsupported scoring policy")
     grouped = {purpose: [] for purpose in DIMENSION_WEIGHTS}
     sample_ids, task_keys = set(), set()
     for sample in samples:
         sample.validate_prediction()
-        if sample.prediction is not None and policy_version != PREDICTION_POLICY_VERSION:
+        if sample.prediction is not None and policy_version not in PREDICTION_POLICY_VERSIONS:
             raise ValueError(f"{policy_version} does not accept prediction data")
-        if (policy_version == PREDICTION_POLICY_VERSION
+        if (policy_version in PREDICTION_POLICY_VERSIONS
                 and sample.purpose == MeasurementPurpose.FUNCTIONAL
                 and sample.verdict == Verdict.PASS and sample.prediction is None):
             raise ValueError("prediction functional PASS requires validated probabilities and a final outcome")

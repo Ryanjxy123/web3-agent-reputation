@@ -140,7 +140,7 @@ def render_evaluation_report(report: EvaluationReport) -> str:
     completed = sum(score.value is not None for score in dimensions.values())
     unknown = sum(score.unknown for score in dimensions.values())
     failed = sum(score.failed for score in dimensions.values())
-    prediction = report.policy_version == 'prediction-history-v1'
+    prediction = report.policy_version in ('prediction-history-v1', 'prediction-history-v2')
     generic = report.policy_version == 'service-contract-v1'
     coverage_intro = ""
     if scores.status == "COMPLETE":

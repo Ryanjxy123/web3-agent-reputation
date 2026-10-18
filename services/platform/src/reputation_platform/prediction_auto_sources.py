@@ -157,7 +157,8 @@ def prepare_prediction_source(registration, evidence, store) -> dict | None:
             service_id=service_id, agent_id=int(canonical.split(":")[-1]),
             registration_source=source.relative_to(evidence.root).as_posix(), registration_sha256=document["sha256"],
             snapshot_block=int(header["number"], 16), snapshot_hash=header["hash"].lower(),
-            confirmation_head=int(rpc["head"]["value"], 16), cutoff_timestamp=1790812800)
+            confirmation_head=int(rpc["head"]["value"], 16), cutoff_timestamp=1790812800,
+            policy_version='prediction-history-v2')
         identity = {"chain": rpc["chain"], "head": rpc["head"], "header": rpc["header"],
             "calls": {"registration-owner": rpc["owner"], "registration-uri": rpc["uri"]},
             "registration": {"payload": document["payload"], "response_file": profile.registration_source,

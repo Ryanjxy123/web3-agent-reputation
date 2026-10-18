@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict
 
 from reputation_core.admission import CandidateRecord, Verdict
 from reputation_core.claims import DeclarationAnalysis
+from reputation_core.scoring import PREDICTION_POLICY_VERSIONS
 
 
 class LiquidityHistoryDescriptor(BaseModel):
@@ -30,7 +31,7 @@ class PlanSelection(BaseModel):
 
     candidate_key: str
     status: Literal["SELECTED", "NEEDS_INFO", "UNSUPPORTED"]
-    policy_id: Literal["liquidity-history-v1", "prediction-history-v1"] | None
+    policy_id: Literal["liquidity-history-v1", "prediction-history-v1", "prediction-history-v2"] | None
     claim_ids: list[str]
     reasons: list[str]
     pending_evidence: list[str]
@@ -147,8 +148,11 @@ def prediction_tool_supported(tool: PredictionToolDescriptor) -> bool:
 
 def select_prediction_plan(
     analysis: DeclarationAnalysis, candidate: CandidateRecord, descriptor: PredictionHistoryDescriptor,
+    *, policy_version: str = "prediction-history-v1",
 ) -> PlanSelection:
     """Match cited tools and actual Omen request structure; sources are validated by the caller."""
+    if policy_version not in PREDICTION_POLICY_VERSIONS:
+        raise ValueError("Unsupported prediction policy")
     pending = [f"{check.code.value}: {check.status.value}"
                for check in candidate.checks if check.status != Verdict.PASS]
     pending.extend(["方案选择不代替历史归属、结算、CID或样本充分性的独立核验。",
@@ -156,7 +160,7 @@ def select_prediction_plan(
 
     def result(status: str, reasons: list[str]) -> PlanSelection:
         return PlanSelection(candidate_key=candidate.key, status=status,
-            policy_id="prediction-history-v1" if status == "SELECTED" else None,
+            policy_id=policy_version if status == "SELECTED" else None,
             claim_ids=descriptor.claim_ids if status == "SELECTED" else [],
             reasons=reasons, pending_evidence=pending)
 
@@ -164,7 +168,7 @@ def select_prediction_plan(
         return result("NEEDS_INFO", ["来源描述符不属于当前候选。"])
     for field, supported in (("chain_id", 100), ("protocol", "olas-mech-marketplace"),
                              ("input_format", "ipfs-v0.1"), ("output_format", "ipfs-v0.1"),
-                             ("history_shape", "omen-binary-request-v1")):
+                             ("history_shape", "omen-binary-request-v2" if policy_version == "prediction-history-v2" else "omen-binary-request-v1")):
         value = getattr(descriptor, field)
         if value is not None and value != supported:
             return result("UNSUPPORTED", [f"当前预测历史方案不支持 {field}={value}。"])

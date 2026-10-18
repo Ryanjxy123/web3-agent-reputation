@@ -20,7 +20,8 @@
         {
           "enum": [
             "liquidity-history-v1",
-            "prediction-history-v1"
+            "prediction-history-v1",
+            "prediction-history-v2"
           ],
           "type": "string"
         },

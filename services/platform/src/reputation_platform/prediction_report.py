@@ -9,7 +9,7 @@ import re
 from eth_hash.auto import keccak
 
 from reputation_core import CandidateRecord, DeclarationAnalysis, MeasurementPurpose, ProbeObservation, SourceDocument, Verdict, validate_analysis
-from reputation_core.ipfs import verify_car_file
+from reputation_core.ipfs import read_car_file, verify_car_file
 from reputation_core.planning import PredictionHistoryDescriptor, PlanSelection, select_prediction_plan
 from reputation_core.prediction import BinaryPrediction
 from reputation_core.prediction_chain import (
@@ -116,6 +116,22 @@ class RetainedEvidence:
                                       snapshot_hash=profile.snapshot_hash)
 
     def content(self, content: dict, digest: str, filename: str) -> dict:
+        return self._content_json(content, self.content_bytes(content, digest, filename))
+
+    def content_bytes(self, content: dict, digest: str, filename: str) -> bytes:
+        if content.get('layout') == 'unixfs-root-file-v1':
+            url = 'https://gateway.autonolas.tech/ipfs/f01701220' + digest[2:] + '?format=car&dag-scope=entity'
+            if content['url'] != url:
+                raise ValueError('Root CAR URL differs from the on-chain task')
+            car_refs = [item for item in content['evidence'] if item['path'] == content['car_file']
+                        or item['path'].endswith('.observation.json') and
+                        json.loads(self.path(item['path']).read_bytes())['url'] == url]
+            _, car = self.observation(car_refs, url=url, method='GET')
+            raw = self.remember(content['response_file'], content['sha256']).read_bytes()
+            actual, _ = read_car_file(car, digest)
+            if actual != raw:
+                raise ValueError('Derived root file differs from authenticated CAR bytes')
+            return raw
         url = 'https://gateway.autonolas.tech/ipfs/f01701220' + digest[2:] + '/' + filename
         if content['url'] != url:
             raise ValueError('CID file URL differs from the on-chain task')
@@ -129,12 +145,18 @@ class RetainedEvidence:
                     json.loads(self.path(item['path']).read_bytes())['url'] == car_url]
         _, car = self.observation(car_refs, url=car_url, method='GET')
         verify_car_file(car, digest, filename, raw)
+        return raw
+
+    @staticmethod
+    def _content_json(content: dict, raw: bytes) -> dict:
         if hashlib.sha256(raw).hexdigest() != content['sha256']:
             raise ValueError('CID-authenticated file digest differs')
         try:
             actual = json.loads(raw)
         except (json.JSONDecodeError, UnicodeDecodeError) as error:
             raise AuthenticatedJsonError('Authenticated file is not valid UTF-8 JSON') from error
+        if content.get('layout') in ('unixfs-root-file-v1', 'unixfs-directory-v1') and not isinstance(actual, dict):
+            raise AuthenticatedJsonError('Authenticated JSON does not have the declared object structure')
         if actual != content['payload']:
             raise ValueError('CID-authenticated content differs from its retained JSON')
         return actual
@@ -278,7 +300,8 @@ def load_selection(evidence: RetainedEvidence, run: Path, profile: PredictionPro
         raise ValueError('Planning source schemas differ from the actual retained metadata')
     selection = PlanSelection.model_validate(evidence.json((run / 'selection.json').relative_to(evidence.root).as_posix()))
     if (candidate.registration_reference != profile.registration_reference or descriptor.published_mech != profile.mech
-        or descriptor.service_id != str(profile.service_id) or select_prediction_plan(analysis, candidate, descriptor) != selection
+        or descriptor.service_id != str(profile.service_id)
+        or select_prediction_plan(analysis, candidate, descriptor, policy_version=profile.policy_version) != selection
         or selection.status != 'SELECTED' or selection.policy_id != profile.policy_version):
         raise ValueError('The automatically selected plan does not match this registered service')
     selected_operations = {claim.operation for claim in analysis.claims if claim.claim_id in selection.claim_ids}
@@ -354,14 +377,25 @@ def explain_task(evidence: RetainedEvidence, task: dict, profile: PredictionProf
         if settlement.verdict != Verdict.PASS:
             raise ValueError('市场题干与有效最终结算尚不能完整对应：' + settlement.reason)
         source = evidence.content(task['input'], anchors['input_digest'], 'metadata.json')
-        if not isinstance(source, dict) or not isinstance(source.get('request_context'), dict):
+        if not isinstance(source, dict):
             raise ValueError('原始请求尚未提供可识别的任务对象与市场上下文')
         context, prompt, tool = source.get('request_context', {}), source.get('prompt'), source.get('tool')
-        if (context.get('type') != 'omen' or not isinstance(context.get('market_id'), str)
-            or context['market_id'].lower() != settlement.market
-            or task['market'] != settlement.market or not isinstance(prompt, str)
+        if profile.policy_version == 'prediction-history-v2' and context == {}:
+            from reputation_platform.prediction_question_resolution import verify_exact_question_resolution
+
+            resolution = task['question_resolution']
+            market = verify_exact_question_resolution(evidence, resolution, source)
+            if settlement.question_id != resolution['question_id'] or settlement.title != resolution['title']:
+                raise ValueError('精确原题定位与独立链上问题不一致')
+        else:
+            if not isinstance(context, dict) or context.get('type') != 'omen' or not isinstance(context.get('market_id'), str):
+                raise ValueError('原始请求尚未提供可识别的任务对象与市场上下文')
+            market = context['market_id'].lower()
+        if (market != settlement.market or task['market'] != settlement.market or not isinstance(prompt, str)
             or f'"{settlement.title}"' not in prompt or tool not in {item.operation for item in descriptor.tools}):
             raise ValueError('原始工具、题干或目标市场未与声明方案对应')
+        if profile.policy_version == 'prediction-history-v2' and task.get('question_id') != settlement.question_id:
+            raise ValueError('冻结的问题ID与独立链上问题不一致')
         if not anchors['delivery_timestamp'] < min(profile.cutoff_timestamp, settlement.opening_timestamp, settlement.finalized_timestamp):
             raise ValueError('预测并未在固定截止、市场关闭及最终结算之前交付')
         observed = datetime.fromtimestamp(anchors['delivery_timestamp'], timezone.utc)
@@ -448,7 +482,7 @@ def explain_task(evidence: RetainedEvidence, task: dict, profile: PredictionProf
         elif isinstance(value, list):
             for item in value: task_refs(item)
     task_refs(task)
-    sample = ScoredSample(sample_id=f"prediction-history-v1:{profile.candidate_key}:{task['slot']}",
+    sample = ScoredSample(sample_id=f"{profile.policy_version}:{profile.candidate_key}:{task['slot']}",
         task_key=task.get('task_key') or f"missing:{profile.candidate_key}:{task['slot']}", purpose=purpose,
         verdict=verdict, elapsed_ms=None, reason=reason, evidence=sorted(set(references)), prediction=prediction)
     return SampleExplanation(sample=sample, observed_at=observed,
@@ -460,7 +494,8 @@ def availability_explanations(evidence: RetainedEvidence, run: Path, profile: Pr
                               tasks: list[dict]) -> list[SampleExplanation]:
     manifest = evidence.manifest(run)
     slots = manifest['slots']
-    if (manifest['candidate_key'] != profile.candidate_key or manifest['policy_version'] != profile.policy_version
+    if (manifest['policy_version'] not in ('prediction-history-v1', 'prediction-history-v2')
+        or manifest['candidate_key'] != profile.candidate_key or manifest['policy_version'] != profile.policy_version
         or len(slots) != 10 or [item['scheduled_offset_seconds'] for item in slots] != list(range(0, 300, 30))
         or len({item['request_id'] for item in slots}) != 10):
         raise ValueError('Availability plan differs from the fixed ten distinct files and sampling interval')
@@ -469,8 +504,28 @@ def availability_explanations(evidence: RetainedEvidence, run: Path, profile: Pr
     for index, item in enumerate(slots, 1):
         task = selected.get(item['request_id'])
         if (task is None or not task.get('output') or item['sha256'] != task['output']['sha256']
-            or item['response_file'] != task['output']['response_file'] or item['url'] != task['output']['url']):
+            or item['response_file'] != task['output']['response_file']):
             raise ValueError('Availability file is outside the selected immutable cohort')
+        if manifest['policy_version'] == 'prediction-history-v1':
+            if item['url'] != task['output']['url']:
+                raise ValueError('Availability file is outside the selected immutable cohort')
+        else:
+            layout = item.get('layout', 'unixfs-directory-v1')
+            if (layout not in ('unixfs-directory-v1', 'unixfs-root-file-v1')
+                or layout != task['output'].get('layout', 'unixfs-directory-v1')):
+                raise ValueError('Availability layout differs from its authenticated historical file')
+            chain = evidence.tree(task['chain_evidence'])
+            anchors = extract_task_anchors(chain, mech=profile.mech, request_id=item['request_id'],
+                                           confirmation_head=profile.confirmation_head)
+            digest = anchors['output_digest']
+            if item['root_digest'].lower() != digest.lower():
+                raise ValueError('Availability source CID differs from its actual on-chain delivery')
+            evidence.content_bytes(task['output'], digest, str(int(item['request_id'], 16)))
+            expected_url = 'https://gateway.autonolas.tech/ipfs/f01701220' + digest[2:].lower()
+            if layout == 'unixfs-directory-v1':
+                expected_url += '/' + str(int(item['request_id'], 16))
+            if item['url'] != expected_url:
+                raise ValueError('Availability must read the actual plain HTTP file URL for its frozen layout')
         key, refs = f'availability-{index:03d}', []
         observed_path = run / f'{key}.observation.json'
         observed, elapsed, verdict = None, None, Verdict.UNKNOWN
@@ -547,6 +602,13 @@ def build_prediction_report(*, history_run: Path, plan_run: Path, availability_r
     markets = [item['market'] for item in plan['slots'] if item.get('market')]
     if len(set(markets)) != len(markets) or any(market in plan['excluded_pilot_markets'] for market in markets):
         raise ValueError('Repeated or pilot market cannot enter formal measurement')
+    if profile.policy_version == 'prediction-history-v2':
+        questions = [slot['question_id'] for slot in plan['slots'] if slot.get('request_id')]
+        if (any(not isinstance(qid, str) or not re.fullmatch(r'0x[0-9a-f]{64}', qid) for qid in questions)
+            or len(set(questions)) != len(questions)
+            or any(task.get('question_id') != slot.get('question_id') for slot, task in zip(plan['slots'], bundle['tasks']))):
+            raise ValueError('V2 requires immutable distinct independent questions')
+        evidence.remember('docs/adr/0016-prediction-evidence-v2.md')
     for item in bundle['inputs']:
         evidence.remember(item['path'], item['sha256'])
     # The original collector may predate the head-proof field; an explicit retained identity supplement is allowed.
@@ -581,6 +643,8 @@ def build_prediction_report(*, history_run: Path, plan_run: Path, availability_r
               '同类政策可复用，但不同能力范围的综合分不作无条件横向排名。']
     if verification_revision == 2:
         limits.append('核验修订2：功能题干支持明确JSON对话content的正规解码后精确匹配；行为题干由已认证请求绑定结算，内部prompt处理记录不必再次回显原题。')
+    if profile.policy_version == 'prediction-history-v2':
+        limits.append('证据扩展V2：原件可为CID认证的根文件或目录文件；无明确市场ID时，仅按完整原题、唯一问题和唯一市场精确定位，再独立核链上结算。每个Question只占一个槽，不混用旧版样本。')
     if not availability_run:
         limits.append('本次尚未完成新的十次公开入口采样，可用性和综合分待评价。')
     if not identity.get('registration_time'):

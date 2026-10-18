@@ -4,8 +4,8 @@ import hashlib
 import re
 
 
-def verify_car_file(car: bytes, root_digest: str, filename: str, expected_file: bytes) -> dict:
-    """Verify the retained CARv1/SHA256 DAG-PB+UnixFS shape; unsupported forms fail explicitly."""
+def _car_reader(car: bytes, root_digest: str):
+    """Authenticate CAR blocks and expose the supported UnixFS reconstruction."""
     def varint(data: bytes, offset: int = 0) -> tuple[int, int]:
         value, shift = 0, 0
         while offset < len(data) and shift < 64:
@@ -99,12 +99,7 @@ def verify_car_file(car: bytes, root_digest: str, filename: str, expected_file: 
     if not re.fullmatch(r"0x[0-9a-fA-F]{64}", root_digest):
         raise ValueError("Expected a chain-anchored SHA256 digest")
     root = (112, bytes.fromhex(root_digest[2:]))
-    directory, links = node(root)
-    if directory.get(1) != [1] or len([name for name, _ in links if name == filename]) != 1:
-        raise ValueError("The chain-anchored UnixFS directory does not uniquely name the file")
-    leaf = next(child for name, child in links if name == filename)
-    if header_root not in (root, leaf):
-        raise ValueError("CAR header root is unrelated to the requested path")
+    root_data, links = node(root)
 
     def rebuild(identifier: tuple[int, bytes], depth: int = 0) -> bytes:
         if depth > 16 or identifier not in blocks:
@@ -131,8 +126,45 @@ def verify_car_file(car: bytes, root_digest: str, filename: str, expected_file: 
             raise ValueError("UnixFS file size differs from reconstructed bytes")
         return b"".join(pieces)
 
+    return root, header_root, root_data, links, rebuild, len(blocks)
+
+
+def inspect_car_root(car: bytes, root_digest: str) -> dict:
+    """Identify the authenticated request root, without guessing a directory path."""
+    _, _, unixfs, links, _, count = _car_reader(car, root_digest)
+    if unixfs.get(1) == [1]:
+        root_type = "directory"
+    elif unixfs.get(1) in ([0], [2]):
+        root_type = "file"
+    else:
+        raise ValueError("Unsupported UnixFS root type")
+    return {"root_type": root_type, "root_digest": root_digest,
+            "link_names": [name for name, _ in links], "car_blocks": count}
+
+
+def read_car_file(car: bytes, root_digest: str, filename: str | None = None) -> tuple[bytes, dict]:
+    """Extract a root file, or one explicit uniquely named directory member."""
+    root, header_root, unixfs, links, rebuild, count = _car_reader(car, root_digest)
+    if filename is None:
+        if unixfs.get(1) not in ([0], [2]):
+            raise ValueError("The chain-anchored root is not a UnixFS file")
+        leaf = root
+    else:
+        if unixfs.get(1) != [1] or len([name for name, _ in links if name == filename]) != 1:
+            raise ValueError("The chain-anchored UnixFS directory does not uniquely name the file")
+        leaf = next(child for name, child in links if name == filename)
+    if header_root not in (root, leaf):
+        raise ValueError("CAR header root is unrelated to the requested path")
     actual = rebuild(leaf)
+    return actual, {"verified": True, "root_digest": root_digest, "filename": filename,
+                    "car_blocks": count, "file_bytes": len(actual), "file_sha256": hashlib.sha256(actual).hexdigest()}
+
+
+def verify_car_file(car: bytes, root_digest: str, filename: str, expected_file: bytes) -> dict:
+    """Preserve the original explicit-directory verification contract."""
+    if filename is None:
+        raise ValueError("Directory verification requires an explicit filename")
+    actual, proof = read_car_file(car, root_digest, filename)
     if actual != expected_file:
         raise ValueError("Verified UnixFS file bytes differ from the retained JSON")
-    return {"verified": True, "root_digest": root_digest, "filename": filename,
-            "car_blocks": len(blocks), "file_bytes": len(actual), "file_sha256": hashlib.sha256(actual).hexdigest()}
+    return proof

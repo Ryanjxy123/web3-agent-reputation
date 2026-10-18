@@ -60,7 +60,9 @@ def present_prediction_report(report: EvaluationReport, bundle: dict, catalog: d
     if origin.get('report_format_revision') != 2:
         return
     canonical = normalize_reference(report.registration_reference)
-    if report.policy_version != 'prediction-history-v1' or canonical != normalize_reference(origin['canonical']):
+    if (report.policy_version not in ('prediction-history-v1', 'prediction-history-v2')
+        or bundle['profile']['policy_version'] != report.policy_version
+        or canonical != normalize_reference(origin['canonical'])):
         raise ValueError('Prediction presentation belongs to another policy or registered identity')
     identity = verify_mech_identity(reader, bundle, canonical)
     original_catalog, _ = _catalog(reader, identity, {}, origin['catalog'])
@@ -83,7 +85,7 @@ def present_prediction_report(report: EvaluationReport, bundle: dict, catalog: d
             findings=[ReportFinding(label='声明来源（不代表业务通过）', verdict=Verdict.UNKNOWN,
                 explanation='实际登记服务目录列出此工具；目录存在或格式完整不证明实际业务正确，也不产生工具分。')],
             missing_evidence=[])
-    tasks = {f"prediction-history-v1:{report.candidate_key}:{task['slot']}": task for task in bundle['tasks']}
+    tasks = {f"{report.policy_version}:{report.candidate_key}:{task['slot']}": task for task in bundle['tasks']}
     linked, unbound = set(), []
     for explanation in report.samples:
         if explanation.sample.purpose not in (MeasurementPurpose.FUNCTIONAL, MeasurementPurpose.BEHAVIORAL):

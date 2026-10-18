@@ -324,6 +324,7 @@
           "enum": [
             "liquidity-history-v1",
             "prediction-history-v1",
+            "prediction-history-v2",
             "service-contract-v1"
           ],
           "title": "Policy Version",
@@ -393,6 +394,7 @@
       "enum": [
         "liquidity-history-v1",
         "prediction-history-v1",
+        "prediction-history-v2",
         "service-contract-v1"
       ],
       "title": "Policy Version",

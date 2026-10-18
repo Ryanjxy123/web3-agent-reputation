@@ -75,8 +75,7 @@ def prediction_sources(repo: Repository, job: dict, worker: str, profile: dict, 
                        plan_run: Path) -> tuple[list[dict] | None, str, dict]:
     """Validate the fixed cohort and real file roots before issuing fresh public reads."""
     from reputation_core.prediction_chain import extract_task_anchors
-    from reputation_platform.prediction_evidence import PredictionProfile
-    from reputation_platform.prediction_report import RetainedEvidence, load_selection
+    from reputation_platform.prediction_report import RetainedEvidence, load_history_profile, load_selection
 
     evidence = RetainedEvidence(ROOT)
     history_manifest = evidence.manifest(history_run)
@@ -88,21 +87,20 @@ def prediction_sources(repo: Repository, job: dict, worker: str, profile: dict, 
     bundle = evidence.json(bundle_name)
     plan, tasks = bundle.get("plan", {}), bundle.get("tasks", [])
     slots = plan.get("slots", [])
+    policy_version = plan.get("policy_version")
+    independent_key = "question_id" if policy_version == "prediction-history-v2" else "market"
     if (bundle.get("schema_version") != "prediction-evidence-bundle-v1"
-        or plan.get("policy_version") != "prediction-history-v1" or plan.get("pilot_only") is not False
+        or policy_version not in ("prediction-history-v1", "prediction-history-v2") or plan.get("pilot_only") is not False
         or plan.get("eligibility_uses_outputs") is not False or plan.get("status") != "READY"
         or plan.get("qualified_market_count") != 14 or len(slots) != 14 or len(tasks) != 14
-        or len({slot.get("market") for slot in slots if slot.get("market")}) != 14):
+        or len({slot.get(independent_key) for slot in slots if slot.get(independent_key)}) != 14):
         return None, "保留的历史资料尚未固定十四个不同的合资格市场，暂不能开展完整评价；本次未新采样。", {}
     immutable_plan = bundle["plan_reference"]
     if json.loads(evidence.remember(immutable_plan["path"], immutable_plan["sha256"]).read_bytes()) != plan:
         raise ValueError("Prediction cohort differs from its original durable plan")
-    profile_paths = [item["path"] for item in history_manifest["inputs"]
-                     if Path(item["path"]).parent == Path("configs/pilots") and item["path"].endswith(".json")]
-    if len(profile_paths) != 1:
-        raise ValueError("Prediction history requires one immutable operator profile")
-    historical_profile = PredictionProfile.load(evidence.remember(profile_paths[0]))
+    historical_profile = load_history_profile(evidence, history_manifest, bundle)
     if (historical_profile.__dict__ != bundle["profile"]
+        or historical_profile.policy_version != policy_version or profile["policy_id"] != policy_version
         or historical_profile.candidate_key != profile["candidate_key"]
         or normalize_reference(profile["registration_reference"]) != historical_profile.registration_reference):
         raise ValueError("Prediction history identity differs from the queued evaluation")
@@ -114,6 +112,7 @@ def prediction_sources(repo: Repository, job: dict, worker: str, profile: dict, 
         expected_purpose = "functional" if index <= 7 else "behavioral"
         if (slot.get("slot") != index or slot.get("purpose") != expected_purpose or not slot.get("request_id")
             or slot.get("market") in plan["excluded_pilot_markets"]
+            or (policy_version == "prediction-history-v2" and task.get("question_id") != slot.get("question_id"))
             or any(task.get(key) != slot.get(key) for key in ("slot", "purpose", "request_id", "market", "task_key"))):
             raise ValueError("Prediction task differs from the fixed disjoint cohort")
         if not task.get("output") or not task.get("chain_evidence") or not task.get("chain_verification", {}).get("output_digest"):
@@ -125,9 +124,14 @@ def prediction_sources(repo: Repository, job: dict, worker: str, profile: dict, 
         if digest != anchors["output_digest"]:
             raise ValueError("Stored prediction output root differs from its actual delivery event")
         output = task["output"]
-        evidence.content(output, digest, str(int(task["request_id"], 16)))
+        if policy_version == 'prediction-history-v2':
+            evidence.content_bytes(output, digest, str(int(task["request_id"], 16)))
+        else:
+            evidence.content(output, digest, str(int(task["request_id"], 16)))
         outputs.append({"request_id": task["request_id"], "root_digest": digest,
-                        "response_file": output["response_file"], "sha256": output["sha256"]})
+                        "response_file": output["response_file"], "sha256": output["sha256"],
+                        **({"layout": output.get("layout", "unixfs-directory-v1")}
+                           if policy_version == "prediction-history-v2" else {})})
         if index % 4 == 0:
             repo.renew_job(job["id"], worker, job["fencing_token"])
     return outputs, "十四个固定历史文件与链上交付摘要已核对。", evidence.inputs
@@ -147,6 +151,7 @@ def evaluate_prediction(repo: Repository, job: dict, worker: str, profile: dict,
         return
     source_file = log_dir / "prediction-availability-sources.json"
     source_file.write_text(json.dumps({"candidate_key": profile["candidate_key"], "outputs": outputs,
+        **({"policy_version": profile["policy_id"]} if profile["policy_id"] == "prediction-history-v2" else {}),
         "inputs": [{"path": path, "sha256": digest} for path, digest in sorted(source_hashes.items())]},
         ensure_ascii=False, indent=2), encoding="utf-8")
     repo.set_job_stage(job["id"], worker, job["fencing_token"], "COLLECTING",
@@ -202,7 +207,7 @@ def evaluate(repo: Repository, job: dict, worker: str, profiles: list[dict], *, 
         return
     if not proxy:
         raise ValueError("An enabled evaluation requires an explicit operator proxy")
-    if profile["policy_id"] == "prediction-history-v1":
+    if profile["policy_id"] in ("prediction-history-v1", "prediction-history-v2"):
         evaluate_prediction(repo, job, worker, profile, proxy)
         return
     if profile["policy_id"] != "liquidity-history-v1":

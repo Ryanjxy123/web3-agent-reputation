@@ -121,7 +121,7 @@ export type ScoredSample = {
 };
 
 export type ScoringOutcome = {
-  "policy_version"?: "liquidity-history-v1" | "prediction-history-v1" | "service-contract-v1";
+  "policy_version"?: "liquidity-history-v1" | "prediction-history-v1" | "prediction-history-v2" | "service-contract-v1";
   "availability": DimensionScore;
   "functional": DimensionScore;
   "behavioral": DimensionScore;
@@ -239,7 +239,7 @@ export type LiquidityHistoryDescriptor = {
 export type PlanSelection = {
   "candidate_key": string;
   "status": "SELECTED" | "NEEDS_INFO" | "UNSUPPORTED";
-  "policy_id": "liquidity-history-v1" | "prediction-history-v1" | null;
+  "policy_id": "liquidity-history-v1" | "prediction-history-v1" | "prediction-history-v2" | null;
   "claim_ids": Array<string>;
   "reasons": Array<string>;
   "pending_evidence": Array<string>;
@@ -304,7 +304,7 @@ export type MarketSettlementVerification = {
 
 export type EvaluationReport = {
   "schema_version"?: "evaluation-report-v1";
-  "policy_version"?: "liquidity-history-v1" | "prediction-history-v1" | "service-contract-v1";
+  "policy_version"?: "liquidity-history-v1" | "prediction-history-v1" | "prediction-history-v2" | "service-contract-v1";
   "candidate_key": string;
   "name": string;
   "registration_reference": string;

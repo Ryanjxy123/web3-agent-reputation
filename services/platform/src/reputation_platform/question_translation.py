@@ -123,11 +123,14 @@ def prepare_questions(bundle_paths: list[Path], prepared_at: datetime, root: Pat
         bundle = json.loads(bundle_file.read_bytes())
         plan = bundle.get("plan", {})
         slots = plan.get("slots", [])
+        policy_version = plan.get("policy_version")
+        expanded = policy_version == "prediction-history-v2"
+        independent_key = "question_id" if expanded else "market"
         if (bundle.get("schema_version") != "prediction-evidence-bundle-v1"
-                or plan.get("policy_version") != "prediction-history-v1" or plan.get("pilot_only") is not False
+                or policy_version not in ("prediction-history-v1", "prediction-history-v2") or plan.get("pilot_only") is not False
                 or plan.get("eligibility_uses_outputs") is not False or plan.get("status") != "READY"
                 or plan.get("qualified_market_count") != 14 or len(slots) != 14
-                or len({slot.get("market") for slot in slots}) != 14):
+                or len({slot.get(independent_key) for slot in slots if slot.get(independent_key)}) != 14):
             raise ValueError("Translation requires a fixed formal fourteen-market cohort, never a pilot or partial plan")
         plan_file = checked_source(bundle["plan_reference"], root)
         if plan_file.parent != bundle_file.parent or json.loads(plan_file.read_bytes()) != plan:
@@ -142,12 +145,22 @@ def prepare_questions(bundle_paths: list[Path], prepared_at: datetime, root: Pat
             raise ValueError("Formal tasks must retain all fourteen fixed slots")
         for path in (bundle_file, manifest_file, plan_file):
             sources[path] = reference(path, root)
+        if expanded:
+            from reputation_core.prediction_chain import extract_task_anchors
+            from reputation_platform.prediction_report import RetainedEvidence
+            from reputation_platform.prediction_question_resolution import verify_exact_question_resolution
+
+            reader = RetainedEvidence(root)
+            if bundle['profile']['policy_version'] != policy_version:
+                raise ValueError("Translation policy differs from its original bundle profile")
         for index, (slot, task) in enumerate(zip(slots, tasks), 1):
             purpose = "functional" if index <= 7 else "behavioral"
             if (slot.get("slot") != index or slot.get("purpose") != purpose
                     or not slot.get("request_id") or any(task.get(key) != slot.get(key)
                         for key in ("slot", "purpose", "request_id", "market", "task_key"))):
                 raise ValueError("Task identity or purpose differs from the fixed cohort")
+            if expanded and task.get('question_id') != slot.get('question_id'):
+                raise ValueError("Task question differs from the fixed cohort")
             settlement = task["settlement_verification"]
             original_question = settlement.get("title")
             outcomes = settlement.get("outcomes")
@@ -164,12 +177,26 @@ def prepare_questions(bundle_paths: list[Path], prepared_at: datetime, root: Pat
             if payload != request["payload"] or f'"{original_question}"' not in payload.get("prompt", ""):
                 raise ValueError("Original request does not bind the exact market question")
             context = payload.get("request_context", {})
-            if context.get("market_id", "").lower() != slot["market"]:
+            resolution_refs = []
+            if expanded:
+                anchors = extract_task_anchors(reader.tree(task['chain_evidence']), mech=bundle['profile']['mech'],
+                    request_id=slot['request_id'], confirmation_head=bundle['profile']['confirmation_head'])
+                if reader.content(request, anchors['input_digest'], 'metadata.json') != payload:
+                    raise ValueError("Original request differs from its authenticated CID content")
+                if task['question_id'] != settlement.get('question_id'):
+                    raise ValueError("Original question differs from its authenticated settlement")
+            if expanded and context == {}:
+                resolution = task['question_resolution']
+                if (verify_exact_question_resolution(reader, resolution, payload) != slot['market']
+                    or resolution['question_id'] != task['question_id'] or resolution['title'] != original_question):
+                    raise ValueError("Exact original question does not bind the fixed market")
+                resolution_refs = resolution['index']['evidence']
+            elif context.get("market_id", "").lower() != slot["market"]:
                 raise ValueError("Request market differs from the fixed cohort")
             declared_close = context.get("market_close_at")
             if declared_close is not None and not isinstance(declared_close, str):
                 raise ValueError("Original declared close time must remain an unchanged string")
-            source_refs = [TranslationSource.model_validate(item) for item in request["evidence"]]
+            source_refs = [TranslationSource.model_validate(item) for item in request["evidence"] + resolution_refs]
             for item in source_refs:
                 path = checked_source(item.model_dump(), root)
                 sources[path] = item
@@ -181,6 +208,10 @@ def prepare_questions(bundle_paths: list[Path], prepared_at: datetime, root: Pat
                 slot=index, purpose=purpose, request_id=slot["request_id"], market=slot["market"],
                 original_outcomes=list(outcomes), declared_market_close_at=declared_close,
                 verified_close_timestamp=close_timestamp, evidence=source_refs))
+        if expanded:
+            for name, digest in reader.inputs.items():
+                path = checked_source({'path': name, 'sha256': digest}, root)
+                sources[path] = TranslationSource(path=name, sha256=digest)
     if not questions:
         raise ValueError("No actual fixed questions to translate")
     return QuestionMaterials(prepared_at=prepared_at, sources=list(sources.values()), questions=list(questions.values()))

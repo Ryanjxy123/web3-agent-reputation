@@ -17,6 +17,8 @@ from reputation_core.scoring import ScoredSample
 from reputation_platform.safe_http import PublicTarget, SafeHttpClient
 
 POLICY = ROOT / 'docs/adr/0008-prediction-history-policy.md'
+POLICY_V2 = ROOT / 'docs/adr/0016-prediction-evidence-v2.md'
+POLICIES = ('prediction-history-v1', 'prediction-history-v2')
 
 
 def write_json(path: Path, value: object) -> None:
@@ -33,6 +35,20 @@ def request_number(payload: object) -> int:
     return int(value)
 
 
+def public_file_url(item: dict, policy_version: str = 'prediction-history-v1') -> str:
+    if policy_version not in POLICIES:
+        raise ValueError('Unsupported prediction availability policy')
+    if any(not re.fullmatch(r'0x[0-9a-fA-F]{64}', item[name]) for name in ('request_id', 'root_digest')):
+        raise ValueError('Expected full reviewed request and content identifiers')
+    layout = item.get('layout', 'unixfs-directory-v1')
+    if layout not in ('unixfs-directory-v1', 'unixfs-root-file-v1') or (
+        layout == 'unixfs-root-file-v1' and policy_version != 'prediction-history-v2'
+    ):
+        raise ValueError('Content layout does not match the frozen prediction policy')
+    root = 'https://gateway.autonolas.tech/ipfs/f01701220' + item['root_digest'][2:].lower()
+    return root if layout == 'unixfs-root-file-v1' else root + '/' + str(int(item['request_id'], 16))
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--sources', type=Path, required=True, help='Retained JSON with candidate_key and at least ten outputs')
@@ -45,34 +61,38 @@ def main() -> None:
     if args.execute_public_readonly and not args.proxy:
         parser.error('An explicit operator proxy is required')
     configuration = json.loads(source.read_bytes())
+    policy_version = configuration.get('policy_version', 'prediction-history-v1')
+    if policy_version not in POLICIES:
+        raise ValueError('Unsupported prediction availability policy')
+    policy_source = POLICY if policy_version == 'prediction-history-v1' else POLICY_V2
     outputs = configuration['outputs'][:10]
     if len(outputs) != 10:
         raise ValueError('Ten distinct retained outputs are required before starting this sampling window')
     targets, frozen = [], []
     for slot, item in enumerate(outputs, 1):
-        if any(not re.fullmatch(r'0x[0-9a-fA-F]{64}', item[name]) for name in ('request_id', 'root_digest')):
-            raise ValueError('Expected full reviewed request and directory identifiers')
+        url = public_file_url(item, policy_version)
         payload_file = (ROOT / item['response_file']).resolve()
         if (not payload_file.is_file() or not payload_file.is_relative_to(ROOT / 'runtime')
             or any(part in {'platform-config', 'secrets'} for part in payload_file.parts)):
             raise ValueError('Only retained public response files may be sampled')
         payload_bytes = payload_file.read_bytes()
         if (hashlib.sha256(payload_bytes).hexdigest() != item['sha256']
-            or request_number(json.loads(payload_bytes)) != int(item['request_id'], 16)):
+            or policy_version == 'prediction-history-v1'
+            and request_number(json.loads(payload_bytes)) != int(item['request_id'], 16)):
             raise ValueError('The frozen request or content digest differs from its actual source file')
-        url = f"https://gateway.autonolas.tech/ipfs/f01701220{item['root_digest'][2:].lower()}/{int(item['request_id'], 16)}"
         targets.append(PublicTarget(f'availability-{slot:03d}', url, purpose=MeasurementPurpose.AVAILABILITY))
-        frozen.append({**item, 'response_file': payload_file.relative_to(ROOT).as_posix(), 'url': url,
+        layout = {'layout': item.get('layout', 'unixfs-directory-v1')} if policy_version == 'prediction-history-v2' else {}
+        frozen.append({**item, **layout, 'response_file': payload_file.relative_to(ROOT).as_posix(), 'url': url,
                        'slot': slot, 'scheduled_offset_seconds': (slot - 1) * 30})
     if len({item['request_id'] for item in outputs}) != 10:
         raise ValueError('Availability files must be ten distinct historical outputs')
     run_id = f"prediction-availability-{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}-{secrets.token_hex(4)}"
-    plan = {'run_id': run_id, 'policy_version': 'prediction-history-v1', 'candidate_key': configuration['candidate_key'],
+    plan = {'run_id': run_id, 'policy_version': policy_version, 'candidate_key': configuration['candidate_key'],
             'execution_enabled': args.execute_public_readonly, 'purpose': 'availability', 'retries': 0,
             'request_limit': 10, 'interval_seconds': 30, 'slots': frozen,
             'scope': 'Public historical delivery-file access through the operator gateway; not live inference availability',
             'inputs': [{'path': path.relative_to(ROOT).as_posix(), 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
-                       for path in (source, POLICY)]}
+                       for path in (source, policy_source)]}
     print(json.dumps(plan, ensure_ascii=False, indent=2), flush=True)
     if not args.execute_public_readonly:
         return
@@ -107,7 +127,7 @@ def main() -> None:
                         try:
                             matches = (hashlib.sha256(actual).hexdigest() == item['sha256']
                                        and request_number(json.loads(actual)) == int(item['request_id'], 16))
-                        except (ValueError, TypeError):
+                        except (ValueError, TypeError, AttributeError):
                             matches = False
                         verdict = Verdict.PASS if matches else Verdict.FAIL
                         reason = 'Historical task and immutable response bytes match' if matches else 'HTTP200 content did not match the declared historical file'

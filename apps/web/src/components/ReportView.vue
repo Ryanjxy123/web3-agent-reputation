@@ -7,7 +7,7 @@ import ScoreCard from './ScoreCard.vue'
 import StatusBadge from './StatusBadge.vue'
 
 const props = defineProps<{ report: EvaluationReport; reportId: string }>()
-const isPrediction = computed(() => props.report.scores.policy_version === 'prediction-history-v1')
+const isPrediction = computed(() => ['prediction-history-v1', 'prediction-history-v2'].includes(props.report.scores.policy_version ?? ''))
 const isGeneric = computed(() => props.report.scores.policy_version === 'service-contract-v1')
 const capabilities = computed(() => (props.report.capabilities ?? []).filter(item => item.operation !== '未提供可识别操作'))
 const probability = (value: number) => new Intl.NumberFormat('zh-CN', { style: 'percent', maximumFractionDigits: 6 }).format(value)

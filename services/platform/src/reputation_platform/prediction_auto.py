@@ -138,7 +138,7 @@ def verify_auto_prediction_report(root: Path, report, hashes: dict[str, str]) ->
     return profile.registration_reference
 
 
-def _retained_history(root: Path, canonical: str, catalog: dict):
+def _retained_history(root: Path, canonical: str, catalog: dict, policy_version: str = 'prediction-history-v1'):
     for path in sorted((root/'runtime').glob('prediction-auto-history-*/manifest.json'), reverse=True):
         try:
             if json.loads(path.read_bytes()).get('canonical') != canonical:
@@ -150,7 +150,8 @@ def _retained_history(root: Path, canonical: str, catalog: dict):
             ref = next(item for item in manifest['outputs'] if item['path'].endswith('/bundle.json'))
             bundle = json.loads(reader.remember(ref['path'], ref['sha256']).read_bytes())
             profile = load_history_profile(reader, manifest, bundle)
-            if (profile.registration_reference != canonical or bundle['plan']['status'] != 'READY'
+            if (profile.registration_reference != canonical or profile.policy_version != policy_version
+                or bundle['plan']['status'] != 'READY'
                 or not all(task.get('input') and task.get('output') and task.get('chain_evidence') for task in bundle['tasks'])):
                 continue
             from reputation_platform.mech_task_identity import verify_mech_identity
@@ -177,6 +178,10 @@ def evaluate_auto_prediction(repo, job: dict, worker: str, registration: dict, e
     history = _run(root, 'prediction-auto-history')
     attempt_run = history
     reuse = [evidence.run, *(root/'runtime').glob('prediction-history-*'),
+             *(root/'runtime').glob('input-layout-research-*'),
+             *(root/'runtime').glob('prediction-exact-title-chain-research-*'),
+             *(root/'runtime').glob('prediction-question-source-research-*'),
+             *(root/'runtime').glob('prediction-question-resolution-check-*'),
              *(path for path in (root/'runtime').glob('prediction-auto-history-*') if path != history)]
     store = _LeasedEvidenceStore(history, reuse, enabled=evidence.enabled, proxy=evidence.proxy,
         max_requests=1200, parallel_reads=2, root=root, heartbeat=evidence.heartbeat)
@@ -190,7 +195,7 @@ def evaluate_auto_prediction(repo, job: dict, worker: str, registration: dict, e
             return False
         repo.set_job_stage(job['id'], worker, job['fencing_token'], 'COLLECTING',
             '已自动匹配历史预测判据，正在核实不同市场与原始任务；不发起付费预测或链上交易。')
-        retained = _retained_history(root, canonical, catalog)
+        retained = _retained_history(root, canonical, catalog, profile.policy_version)
         identity_run = None
         if retained:
             history, plan_run, bundle, catalog_proof = retained
@@ -203,6 +208,8 @@ def evaluate_auto_prediction(repo, job: dict, worker: str, registration: dict, e
             profile_path = history/'prediction-profile.json'
             _save(profile_path, profile.__dict__)
             store._remember([file_reference(profile_path, root), file_reference(root/POLICY, root)])
+            if profile.policy_version == 'prediction-history-v2':
+                store._remember([file_reference(root/'docs/adr/0016-prediction-evidence-v2.md', root)])
             store._remember([{'path': name, 'sha256': digest} for name, digest in prepared['retained_inputs'].items()])
             bundle = collect_history(store, profile, identity=prepared['identity'], supported_operations=supported,
                                      profile_reference=file_reference(profile_path, root))
@@ -229,15 +236,21 @@ def evaluate_auto_prediction(repo, job: dict, worker: str, registration: dict, e
             try:
                 anchors = extract_task_anchors(reader.tree(task['chain_evidence']), mech=profile.mech,
                     request_id=task['request_id'], confirmation_head=profile.confirmation_head)
-                reader.content(task['output'], anchors['output_digest'], str(int(task['request_id'], 16)))
+                if profile.policy_version == 'prediction-history-v2':
+                    reader.content_bytes(task['output'], anchors['output_digest'], str(int(task['request_id'], 16)))
+                else:
+                    reader.content(task['output'], anchors['output_digest'], str(int(task['request_id'], 16)))
                 outputs.append({'request_id': task['request_id'], 'root_digest': anchors['output_digest'],
                     'response_file': task['output']['response_file'], 'sha256': task['output']['sha256']})
+                if task['output'].get('layout'):
+                    outputs[-1]['layout'] = task['output']['layout']
             except (ValueError, KeyError, TypeError, OSError):
                 continue
         source_inputs.update(reader.inputs)
         if len(outputs) >= 10:
             sources_path = log/'availability-sources.json'
-            _save(sources_path, {'candidate_key': profile.candidate_key, 'outputs': outputs[:10],
+            _save(sources_path, {'candidate_key': profile.candidate_key, 'policy_version': profile.policy_version,
+                'outputs': outputs[:10],
                 'inputs': [{'path': name, 'sha256': digest} for name, digest in sorted(source_inputs.items())]})
             repo.set_job_stage(job['id'], worker, job['fencing_token'], 'COLLECTING',
                 '历史任务已冻结，正在测量十次公开交付文件访问；这不代表实时推理可用性。')

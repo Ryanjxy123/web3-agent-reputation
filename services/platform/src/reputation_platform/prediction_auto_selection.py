@@ -36,9 +36,16 @@ def _history_source(reader: RetainedEvidence, bundle: dict, operations: set[str]
             digest = qualification['anchors']['input_digest']
             actual = reader.content(content, digest, 'metadata.json')
             context = actual.get('request_context') if isinstance(actual, dict) else None
-            if (not isinstance(context, dict) or context.get('type') != 'omen'
-                or not isinstance(context.get('market_id'), str) or not context['market_id'].strip()
-                or actual.get('tool') not in operations or not isinstance(actual.get('prompt'), str)
+            if bundle['profile'].get('policy_version') == 'prediction-history-v2' and context in (None, {}):
+                from reputation_platform.prediction_question_resolution import verify_exact_question_resolution
+
+                market = verify_exact_question_resolution(reader, qualification['question_resolution'], actual)
+            else:
+                if (not isinstance(context, dict) or context.get('type') != 'omen'
+                    or not isinstance(context.get('market_id'), str) or not context['market_id'].strip()):
+                    continue
+                market = context['market_id']
+            if (not market or actual.get('tool') not in operations or not isinstance(actual.get('prompt'), str)
                 or not all(field in actual['prompt'] for field in ('p_yes', 'p_no'))):
                 continue
             return content['response_file'], actual
@@ -103,6 +110,14 @@ def write_auto_selection(registration: dict, evidence, bundle: dict, catalog: di
     if history is None:
         return None
     history_file, actual_input = history
+    if actual_input.get('request_context'):
+        history_market = actual_input['request_context']['market_id']
+    else:
+        qualification = next(item for item in bundle['qualifications']
+                             if item.get('input', {}).get('response_file') == history_file)
+        from reputation_platform.prediction_question_resolution import verify_exact_question_resolution
+
+        history_market = verify_exact_question_resolution(reader, qualification['question_resolution'], actual_input)
     facts = [profile.registration_source, response, history_file]
     history_count = len({slot['market'] for slot in bundle['plan']['slots'] if slot.get('request_id') and slot.get('market')})
     checks = [
@@ -129,14 +144,17 @@ def write_auto_selection(registration: dict, evidence, bundle: dict, catalog: di
         claim_ids=[claim.claim_id for claim in claims], tools=tools, chain_id=profile.chain_id,
         protocol='olas-mech-marketplace', metadata_source_id=source.source_id, metadata_source_file=response,
         input_format=catalog.get('inputFormat'), output_format=catalog.get('outputFormat'), published_mech=profile.mech,
-        service_id=str(profile.service_id), history_shape='omen-binary-request-v1', history_source_file=history_file,
-        history_tool=actual_input['tool'], history_context_type=actual_input['request_context']['type'],
-        history_market=actual_input['request_context']['market_id'], history_prompt=actual_input['prompt'])
-    selection = select_prediction_plan(analysis, candidate, descriptor)
+        service_id=str(profile.service_id),
+        history_shape='omen-binary-request-v2' if profile.policy_version == 'prediction-history-v2' else 'omen-binary-request-v1',
+        history_source_file=history_file, history_tool=actual_input['tool'], history_context_type='omen',
+        history_market=history_market, history_prompt=actual_input['prompt'])
+    selection = select_prediction_plan(analysis, candidate, descriptor, policy_version=profile.policy_version)
     if selection.status != 'SELECTED':
         return None
     for name in ('docs/adr/0008-prediction-history-policy.md', 'docs/adr/0013-automatic-prediction-attachment.md'):
         reader.remember(name)
+    if profile.policy_version == 'prediction-history-v2':
+        reader.remember('docs/adr/0016-prediction-evidence-v2.md')
     run.mkdir(parents=True, exist_ok=True)
 
     def save(name: str, value) -> dict:

@@ -13,6 +13,7 @@ from urllib.parse import urlsplit
 
 from reputation_core.admission import ProbeObservation
 from reputation_core.ipfs import verify_car_file
+from reputation_core.scoring import PREDICTION_POLICY_VERSIONS
 from reputation_core.prediction_chain import (
     BRIDGER, CT, MARKETPLACE, PROXY, REALITY, REGISTRY, SERVICE_REGISTRY,
     calldata, verify_omen_settlement, verify_prediction_chain, extract_task_anchors,
@@ -62,7 +63,7 @@ class PredictionProfile:
 
     def __post_init__(self):
         if (not self.candidate_key or self.chain_id != 100 or self.registry != REGISTRY
-            or self.policy_version != "prediction-history-v1" or not re.fullmatch(r"0x[0-9a-f]{40}", self.mech)
+            or self.policy_version not in PREDICTION_POLICY_VERSIONS or not re.fullmatch(r"0x[0-9a-f]{40}", self.mech)
             or type(self.service_id) is not int or self.service_id < 0 or type(self.agent_id) is not int or self.agent_id < 0
             or not re.fullmatch(r"[0-9a-f]{64}", self.registration_sha256)
             or not re.fullmatch(r"0x[0-9a-f]{64}", self.snapshot_hash)
@@ -136,6 +137,7 @@ class EvidenceStore:
             if "mutation" not in body["query"].lower():
                 return
         if method == "GET" and (re.fullmatch(r"https://gateway\.autonolas\.tech/ipfs/f01701220[0-9a-f]{64}/(?:metadata\.json|[0-9]+)(?:\?format=car&dag-scope=entity)?", url)
+            or re.fullmatch(r"https://gateway\.autonolas\.tech/ipfs/f01701220[0-9a-f]{64}\?format=car&dag-scope=entity", url)
             or re.fullmatch(r"https://marketplace\.olas\.network/(?:api/)?erc8004/gnosis/ai-agents/[0-9]+", url)):
             return
         raise ValueError("Request is outside the operator-supported read-only protocol")
@@ -220,9 +222,13 @@ class EvidenceStore:
             raise EvidenceUnavailable("The official index did not return the supported query shape")
         return {"data": payload["data"], "evidence": retained["evidence"]}
 
-    def ipfs(self, name: str, digest: str, filename: str) -> dict:
+    def ipfs(self, name: str, digest: str, filename: str, *, root_layout: bool = False) -> dict:
         if not re.fullmatch(r"0x[0-9a-f]{64}", digest) or not re.fullmatch(r"metadata\.json|[0-9]+", filename):
             raise ValueError("Unsupported fixed CID or filename")
+        if root_layout:
+            from reputation_platform.prediction_content import collect_root_or_path_content
+
+            return collect_root_or_path_content(self, name, digest, filename)
         url = GATEWAY + "f01701220" + digest[2:] + "/" + filename
         content = self.request(name, url)
         car = self.request(name + "-car", url + "?format=car&dag-scope=entity")
@@ -254,7 +260,7 @@ def create_run(profile: PredictionProfile, profile_path: Path, *, root: Path = P
     now = datetime.now(timezone.utc)
     run = root / "runtime" / f"prediction-history-{now:%Y%m%dT%H%M%SZ}-{secrets.token_hex(4)}"
     run.mkdir()
-    manifest = {"started_at": now.isoformat(), "policy_version": "prediction-history-v1", "measurement_purpose": "background",
+    manifest = {"started_at": now.isoformat(), "policy_version": profile.policy_version, "measurement_purpose": "background",
                 "profile": asdict(profile), "inputs": [file_reference(profile_path, root), file_reference(root / POLICY, root)],
                 "stages": ["identity", "qualification_without_outputs", "persist_fourteen_slot_plan", "selected_outputs", "independent_chain_checks"],
                 "mainnet_writes": False, "paid_calls": False, "retries": 0}
@@ -470,6 +476,8 @@ def collect_history(store: EvidenceStore, profile: PredictionProfile, *, pilot_h
         identity = collect_identity(store, profile)
     header = identity["header"]["value"]
     hints, qualifications, selected, tasks, seen_markets = [], [], [], [], set()
+    expanded = profile.policy_version == 'prediction-history-v2'
+    seen_questions = set()
     if pilot_hint is not None:
         hints = [pilot_hint]
         store._remember(pilot_hint.get("index_evidence", []))
@@ -496,7 +504,7 @@ def collect_history(store: EvidenceStore, profile: PredictionProfile, *, pilot_h
             indexed_output = hint['marketplaceDelivery']['ipfsHashBytes']
             anchors = _history_anchors(store, hint, profile) if indexed_input is None or indexed_output is None else None
             input_digest = anchors['input_digest'] if anchors is not None else indexed_input
-            input_content = store.ipfs("request-content", input_digest, "metadata.json")
+            input_content = store.ipfs("request-content", input_digest, "metadata.json", root_layout=expanded)
             if input_content["payload"] is None:
                 raise EvidenceUnavailable(input_content["format_error"])
             if operations is not None:
@@ -509,11 +517,18 @@ def collect_history(store: EvidenceStore, profile: PredictionProfile, *, pilot_h
                     record.update(verdict="NOT_APPLICABLE", reason="实际请求工具不属于本次已核验的预测操作集合；保留背景，不读取交付结果或计入预测样本。")
                     continue
             context = input_content["payload"].get("request_context", {})
-            if not isinstance(context, dict) or not isinstance(context.get("market_id"), str):
-                raise EvidenceUnavailable("Original task lacks an explicit supported market identifier")
-            market = context["market_id"].lower()
+            if expanded and context == {}:
+                from reputation_platform.prediction_question_resolution import resolve_exact_question
+
+                resolution = resolve_exact_question(store, input_content['payload'])
+                record['question_resolution'] = resolution
+                market = resolution['market']
+            else:
+                if not isinstance(context, dict) or not isinstance(context.get("market_id"), str):
+                    raise EvidenceUnavailable("Original task lacks an explicit supported market identifier")
+                market = context["market_id"].lower()
             record["market"], record["input"] = market, input_content
-            if not re.fullmatch(r"0x[0-9a-f]{40}", market) or context.get("type") != "omen":
+            if not re.fullmatch(r"0x[0-9a-f]{40}", market) or ('question_resolution' not in record and context.get("type") != "omen"):
                 raise EvidenceUnavailable("Original CID-authenticated request is not a supported Omen market task")
             if market in seen_markets or (pilot_hint is None and market in EXCLUDED_MARKETS):
                 record.update(verdict="NOT_APPLICABLE", reason="同市场较早任务或已查看pilot市场；保留背景，不进入正式分母。")
@@ -528,6 +543,16 @@ def collect_history(store: EvidenceStore, profile: PredictionProfile, *, pilot_h
             if settlement.verdict.value != "PASS":
                 record.update(verdict=settlement.verdict.value, reason=settlement.reason)
                 continue
+            if expanded:
+                if 'question_resolution' in record:
+                    resolution = record['question_resolution']
+                    if settlement.question_id != resolution['question_id'] or settlement.title != resolution['title']:
+                        raise EvidenceUnavailable('Exact-title discovery differs from the actual on-chain question')
+                if settlement.question_id in seen_questions:
+                    record.update(verdict='NOT_APPLICABLE', reason='同一独立问题的较早或其它市场交付不重复计入V2样本。')
+                    continue
+                seen_questions.add(settlement.question_id)
+                record['question_id'] = settlement.question_id
             prompt = input_content["payload"].get("prompt")
             if (not isinstance(prompt, str) or f'"{settlement.title}"' not in prompt
                 or not isinstance(input_content["payload"].get("tool"), str)
@@ -547,6 +572,8 @@ def collect_history(store: EvidenceStore, profile: PredictionProfile, *, pilot_h
                       "request_id": chosen["request_id"] if chosen else None, "market": chosen["market"] if chosen else None,
                       "task_key": f"{profile.chain_id}:{profile.mech}:{chosen['request_id']}" if chosen else None,
                       "qualification_index": qualifications.index(chosen) if chosen else None})
+        if expanded:
+            slots[-1]['question_id'] = chosen['question_id'] if chosen else None
     plan = {"policy_version": profile.policy_version, "pilot_only": pilot_hint is not None, "slots": slots,
             "eligibility_uses_outputs": False, "cutoff_timestamp": profile.cutoff_timestamp,
             "excluded_pilot_markets": sorted(EXCLUDED_MARKETS), "history_bound": profile.history_max_deliveries,
@@ -563,12 +590,14 @@ def collect_history(store: EvidenceStore, profile: PredictionProfile, *, pilot_h
         chosen = qualifications[slot["qualification_index"]]
         task = {**slot, "input": chosen["input"], "output": None, "hint": chosen["hint"],
                 "market_evidence": chosen["market_evidence"], "settlement_verification": chosen["settlement_verification"]}
+        if chosen.get('question_resolution'):
+            task['question_resolution'] = chosen['question_resolution']
         try:
             task["chain_evidence"] = collect_task(store, chosen["hint"], profile)
             verification = verify_prediction_chain(task["chain_evidence"], mech=profile.mech, service_id=profile.service_id,
                                                    request_id=slot["request_id"], confirmation_head=profile.confirmation_head)
             task["chain_verification"] = verification.model_dump(mode="json")
-            task["output"] = store.ipfs("delivery-content", chosen['anchors']['output_digest'], str(int(slot["request_id"], 16)))
+            task["output"] = store.ipfs("delivery-content", chosen['anchors']['output_digest'], str(int(slot["request_id"], 16)), root_layout=expanded)
             task["source_refs"] = task["input"]["evidence"] + task["output"]["evidence"]
         except (EvidenceUnavailable, ValueError, KeyError, TypeError) as error:
             task.update(verdict="UNKNOWN", reason=str(error))
