@@ -1,10 +1,12 @@
 # 新项目当前状态
 
-更新日期：2026-10-18。task_id=`PREDICTION_EVIDENCE_EXPANSION`。当前已核实9个不同完整评分对象，新增2135为A97.05/F72.89/B100、综合88.27，原14任务、10次A和来源SHA全部复用；2267综合29.8保留。至少10个目标仍待完成。2150按用户批准的统一512条上限执行中，批次 `runtime/prediction-auto-batch-20261018T145833Z-77a6b75c/`，不能提前计为完整。 视觉BLOCKED，无远程配置。
+2026-10-18：当前task_id=`SIGNED_DELIVERY_FEASIBILITY`，用户已批准先调查签名交付的多对象可评分性。真实PG/API收口为38候选、45报告、9个不同完整评分对象、0活动评价作业；至少10目标尚未达到。2135原样本补充核验已完整88.27；2150统一512上限实际审查200条、仍10题，PARTIAL为A90.52/F13.39、B及综合分为空。签名历史正在研究，尚未实现适配或增加完整评分；三维、权重和10/7/7不变。
+
+当前以本页开头为准。普通预测阶段已收口，新增2135完整88.27与2267完整29.8；完整9个。下一阶段只读研究签名历史，视觉BLOCKED，无remote。
 
 ## 本轮V2证据扩展
 
-最新决定：用户批准512条上限与14不同问题停止规则，评分门槛不改。已重载单worker修订4，进程记录 `runtime/v2-worker-revision4-20261018T145816Z/process.json`。2150新job `50f827ad-be96-40ed-81c4-91e54776c32d` 正式取证中；原128条10题的PARTIAL保留。1722实际38条仅2题，本轮不重跑。
+普通预测窗口扩大已执行结束：2150 report `bc4eb6b3-ea52-4296-bbd0-39acab131e4e`，history `runtime/prediction-auto-history-20261018T145901Z-4f3c0f5c/`。512是上限，官方分页实际200条；10合格、99非支持工具、77严格格式不支持、9索引request为空、其余5条缺唯一题/时序不符/较早重复。全部缺项保留，未凑14。真实批次 `runtime/prediction-auto-batch-20261018T145833Z-77a6b75c/` 最终exit0，1提交/1终态/0在途，平台正常发布PARTIAL。
 
 - [ADR-0016](docs/adr/0016-prediction-evidence-v2.md)：增加CID认证根File与完整包装原题精确关联，旧Directory与V1报告复算不变；无模糊题义匹配。V2按14个不同Question冻结7F/7B后才读输出，另10次A。
 - 首批2135/2150/2267三任务全部结束：2135因直接原题尚未支持而无分；2150只有8个合格问题，F13.39/PARTIAL；2267为A99.34/F0/B0、29.8/COMPLETE。原批次 `runtime/prediction-auto-batch-20261018T135720Z-9a59504a/`，driver exit2/执行层exit1来自2135未被旧driver缺项枚举识别，并非三个平台作业失败。
@@ -13,8 +15,11 @@
 - 必要验证：两个真实根File/一个旧Directory及错误CID离线控制exit0；两真实包装题严格query重放与六项拒绝控制exit0；V1原报告独立复算、V2同概率信用及根File副本篡改拒绝的一项受影响回归最终exit0。该回归先因测试JSON载入方式、再因根File误用旧目录接口各exit1，修正后通过；未把失败抹除。共享Schema/OpenAPI生成exit0；前端首构建暴露可选policy字段类型问题，修正后最终pnpm build exit0。未重跑旧套件；视觉仍BLOCKED。
 
 - **同协议历史事件与2135补充**：[ADR-0018](docs/adr/0018-marketplace-request-event-versions.md)。官方父版/变更源码和2135、2150两个真实对象先核实四参数事件；纯核验默认旧修订不变，显式新修订仍逐项核身份、授权、价格、接手、调用、CID与确认。`runtime/check_marketplace_event_revision.py` 一次必要实原件验证exit0：两旧事件UNKNOWN→PASS、2198当前事件整结果不变、7拒绝控制通过，0公网/模型/A。2135新报告 `9dbc7665-6942-4f7f-9af9-98229de3c0c2` 位于 `runtime/evaluation-report-20261018T145744Z-4d118477/`，A97.05/F72.89/B100、88.27；14任务、10A与原SHA不变。`runtime/append_prediction_event_revision.py` 最终exit0，真实PG独立导入、API200、旧事件回执附件200且SHA一致；首次沙箱本机PG10013 exit1发生在生成前，失败审计保留。发布审计 `runtime/prediction-event-revision-publication-20261018T145702Z-cfb27de2/result.json`。
-- **扩大窗口**：[ADR-0019](docs/adr/0019-prediction-history-bound.md)在依赖实现前记录用户批准。V2自动接入统一512、旧profile/报告仍原值。新2150批次只提交一次canonical，不写对象专用profile。driver现识别V1/V2，旧driver退出2记录不改。
+- **扩大窗口**：[ADR-0019](docs/adr/0019-prediction-history-bound.md)在依赖实现前记录用户批准。V2自动接入统一512、旧profile/报告仍原值。2150批次已结束，仅提交一次canonical，不写对象专用profile。driver现识别V1/V2，旧driver退出2记录不改。
 - **面向用户的摘要修正**：共用HTML/Vue明确区分没有有效概率、概率方向错误和履约中的约定输出差异，不将2267的Invalid response概括成链上交易失败。没有改分或覆写旧报告。可审阅包 `runtime/prediction-summary-presentation-20261018T150728Z-fc35cc3e/` 绑定原JSON和新HTML的SHA，离线生成最终exit0（首试严格模型载入入口错误exit1保留）；原分与源文件SHA保持。此次Vue实际变更后仅运行必要的 `pnpm run build`，exit0，新资源 `/assets/index-DEE3Wput.js`；未重跑旧套件，视觉仍BLOCKED。
+
+- **最终普通阶段收口**：`runtime/capture_prediction_v2_close.py` exit0，原件 `runtime/prediction-v2-close-20261018T151306Z-9fd425ac/result.json`；真实PG38候选/45报告/9完整/0active，2135/2150/2267报告与实际input附件200且SHA一致，1722缺项报告200，网站和当前JS200。0新公网/模型，不代表视觉验收。2150新报告明确512上限、实际200及历史交付2025-08-18至11-14，只有10个实际有时间的任务、4空槽，不假造更早已评分样本。
+- **签名路径研究起点**：9条空request没有被扣分。固定首条经2次只读RPC在可信Marketplace发现唯一匹配 `MarketplaceDeliveryWithSignatures`，实际Mech/ID匹配，但未核签名、nonce或原始输入，不能计合格，也不推断其余8条相同。`runtime/classify_first_null_request.py` exit0，原件 `runtime/prediction-null-request-protocol-20261018T151020Z-d5198a60/`。用户随后批准先调查签名交付的多对象可评分性；先收集声明和证据、比较群体覆盖，再决定共用适配。
 
 ## 当前完整结果
 
@@ -212,7 +217,7 @@ Base 注册原件 `runtime/base-registration-probe-20261018T062514Z-7cb4f595/`�
 
 ## Git
 
-独立仓库根目录与分支已核实：`D:/xjtu_project/block_chain_new/block_chain_new_new`，`codex/local-platform`。当前实现提交包括 `1791a8a`（自动接入）、`01494e8`（展示）及 `07b0d39`（租约/CID）；登记补录已提交 `3091343`；此前共用Mech履约与补证 `b4fbbbe`、契约 `4385363`、自动接入 `5e21b16` 等提交保留。本次常读文档收口未提交，具体hash以git log为准。每批暂存diff检查通过，秘密扫描0命中，不包含runtime、虚拟环境或密钥。旧预测、语料和语义映射提交继续保留，没有改写历史。
+独立仓库根目录 `D:/xjtu_project/block_chain_new/block_chain_new_new`，分支 `codex/local-platform`。本轮共用V2实现562526b、输出/直接原题f00e263、历史事件及批准窗口b038acf、摘要修正ca6cbf5已提交；签名研究与最新状态文档待本轮收口提交。暂存diff与本机秘密计数扫描通过，runtime/密钥不入Git，旧提交保留。
 
 新远程 REMOTE_NOT_CONFIGURED；push、PR、部署均 NOT_RUN。未操作父仓库、旧服务、其他分支或共享历史。
 
