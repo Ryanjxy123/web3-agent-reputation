@@ -1,6 +1,6 @@
 # 新项目当前状态
 
-2026-10-19 08:34（北京时间）卡片布局已更新：去掉已出报告卡片上方重复的大段description，仅保留下方小字scope；名称/类别在顶部，分数与标签在下半部分左上角，说明在其下方通栏排列。取消分数占整列、卡片大屏最小高度和自动顶底留白，长名称可换行；无报告对象仍保留业务简述及缺项。唯一必要`pnpm run build`（vue-tsc+Vite）exit0，新JS`index-CSWvUB0f.js`/CSS`index-DR_OWczq.css`；本机网页及两资源200、SHA与dist一致，原件`runtime/directory-frontend-check-20261019T003435Z-fe57b1e7/result.json`，核对命令exit0。未更改分数/证据/API或重采样；浏览器视觉待用户本人刷新试用，当前继续`LOCAL_MANUAL_REVIEW`。
+2026-10-19 08:50（北京时间）最新卡片调整已完成：按用户要求恢复同行等高、宽屏350px最小高度与留白，内容区伸展使底部链接对齐；去重文字和分数不占整列的布局保留。目录初次打开及清空条件后均默认综合分降序，空分继续后置。唯一必要pnpm run build（vue-tsc+Vite）exit0；新JS index-B_KQIf69.js、CSS index-B7D-JEMY.css，本机网页/两资源200且SHA同dist，原件runtime/directory-frontend-check-20261019T005018Z-9c01365a/result.json，核对命令exit0。未改评分或重采样，视觉待本人刷新反馈，继续LOCAL_MANUAL_REVIEW。
 
 2026-10-19 08:07（北京时间）本机试用已恢复：检查时7754/55438均无监听，未发现API异常栈，实际退出原因无充分日志。通过现有启动器后台重启（未改代码或数据），launcher PID50880；`runtime/manual-review-20261019T000710Z/process.json`为当前进程记录，取代下文旧worker运行状态。`startup-check.json`确认数据库ready、首页/JS/Agent目录200，目录38项，验证命令exit0；未提交新评分、未重采样。访问`http://127.0.0.1:7754/`。当前操作任务`LOCAL_MANUAL_REVIEW`，旧分数及发布快照不变。
 

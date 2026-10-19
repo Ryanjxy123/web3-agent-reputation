@@ -1,6 +1,6 @@
 # 当前工作交接
 
-2026-10-19 08:34北京时间最新试用修改：用户要求目录卡片去重文字、取消分数独占整列。已完成顶部名称/类别、下部左上角分数及下行通栏小字scope；去掉已评分卡片重复description与强制高度/自动留白，未评分简介保留。唯一受影响构建exit0，网页/新JS`index-CSWvUB0f.js`/CSS`index-DR_OWczq.css`200且SHA与dist一致，原件`runtime/directory-frontend-check-20261019T003435Z-fe57b1e7/result.json`。下文旧资源名是历史构建；等待用户刷新确认，不重跑已通过工程测试或评分。
+2026-10-19 08:50北京时间最新试用反馈已实现：恢复目录卡片同行等高/大屏最小高度/留白及底部入口对齐，保留去重小字说明与自然宽度分数。默认及清空复位排序均score-desc，条件判断同步。唯一必要build exit0，网页/新JS index-B_KQIf69.js/CSS index-B7D-JEMY.css 200且SHA同dist，原件runtime/directory-frontend-check-20261019T005018Z-9c01365a/result.json。下文较早排序/资源/留白描述为历史，以本段最新用户决定为准；等待用户刷新反馈，不重跑评分或旧测试。
 
 2026-10-19 08:07北京时间：用户开始本人试用，服务已按请求重新启动；当前运行记录为`runtime/manual-review-20261019T000710Z/process.json`（后台启动器PID50880，统一管理API与worker），旧36044记录仅历史。首页/JS/API目录200，PG ready，38候选保留，启动核对`startup-check.json` exit0。下一步先响应用户试用反馈，不重复启动、评分或旧工程测试。
 

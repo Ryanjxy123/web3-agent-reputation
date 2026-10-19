@@ -13,7 +13,7 @@ const agents = ref<AgentSummary[]>([])
 const search = ref('')
 const statusFilter = ref<'all' | 'COMPLETE' | 'PARTIAL' | 'NOT_EVALUATED'>('all')
 const scopeFilter = ref('all')
-const directorySort = ref<'updated' | 'score-desc' | 'score-asc' | 'name'>('updated')
+const directorySort = ref<'updated' | 'score-desc' | 'score-asc' | 'name'>('score-desc')
 const scopeLabels = {
   prediction: '历史预测', liquidity: '历史增仓', generic: '通用服务',
   unknown: '范围待确认', unreported: '尚无报告范围',
@@ -40,7 +40,7 @@ const scopeOptions = computed(() => {
     .filter(value => present.has(value)).map(value => ({ value, label: scopeLabels[value] }))
 })
 const hasDirectoryConditions = computed(() => search.value !== '' || statusFilter.value !== 'all'
-  || scopeFilter.value !== 'all' || directorySort.value !== 'updated')
+  || scopeFilter.value !== 'all' || directorySort.value !== 'score-desc')
 const matches = computed(() => {
   const needle = search.value.trim().toLocaleLowerCase()
   return agents.value.filter(agent => [agent.name, agent.description, agent.registration_reference, agent.key]
@@ -92,7 +92,7 @@ function clearDirectoryConditions() {
   search.value = ''
   statusFilter.value = 'all'
   scopeFilter.value = 'all'
-  directorySort.value = 'updated'
+  directorySort.value = 'score-desc'
 }
 
 function stopPolling() {
@@ -246,7 +246,7 @@ onBeforeUnmount(() => {
           <div class="directory-filters">
             <label class="directory-filter"><span>评价状态</span><select v-model="statusFilter"><option value="all">全部状态</option><option value="COMPLETE">完整评价</option><option value="PARTIAL">部分评价</option><option value="NOT_EVALUATED">待评价</option></select></label>
             <label class="directory-filter"><span>评价范围</span><select v-model="scopeFilter"><option value="all">全部范围</option><option v-for="option in scopeOptions" :key="option.value" :value="option.value">{{ option.label }}</option></select></label>
-            <label class="directory-filter sort-filter"><span>排序方式</span><select v-model="directorySort"><option value="updated">最近更新</option><option value="score-desc">综合分从高到低</option><option value="score-asc">综合分从低到高</option><option value="name">名称顺序</option></select></label>
+            <label class="directory-filter sort-filter"><span>排序方式</span><select v-model="directorySort"><option value="score-desc">综合分从高到低</option><option value="score-asc">综合分从低到高</option><option value="updated">最近更新</option><option value="name">名称顺序</option></select></label>
           </div>
           <div v-if="!directoryLoading && !directoryError" class="directory-results"><p role="status" aria-live="polite" aria-atomic="true">显示 <strong>{{ matches.length }}</strong> / {{ agents.length }} 个 Agent</p><button v-if="hasDirectoryConditions" class="text-button" @click="clearDirectoryConditions">清空条件</button></div>
           <p class="directory-comparison-note">综合分只用于相同评价范围的比较，样本与时间见报告。最近更新以最新报告时间为准。</p>
