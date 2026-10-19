@@ -6,7 +6,7 @@
 
 Vue 网站、FastAPI、独立 worker 与 PostgreSQL 已实现。最新真实PG快照为38候选、46份报告、10个不同完整评分对象、0活动任务；最新结果以[STATUS.md](../../STATUS.md)为准。已适配专项可复用保留证据；没有预置 profile 的规范身份也可自动发现注册资料、协议接口及适用的Mech历史履约任务，按实际覆盖生成报告。历史采集与离线核验用法见 [MODEL_EVIDENCE_LOOP.md](MODEL_EVIDENCE_LOOP.md)。
 
-当前运行：API7754、PG55438，单worker记录`runtime/v2-worker-revision4-20261018T161853Z/process.json`（launcher PID36044）。2359终态且确认0active后才重载，已载入缓存构造/来源准备的续约修复。最终只读核对`runtime/prediction-v2-close-20261018T161826Z-c3e056d3/result.json` exit0；前端构建和新JS/CSS本机读取通过，浏览器视觉/交互仍BLOCKED。
+当前运行（2026-10-19 08:07北京时间）：API7754、PG55438及只读评价worker由后台启动器PID50880管理，记录`runtime/manual-review-20261019T000710Z/process.json`；同目录`startup-check.json`确认首页/JS/38项Agent目录200、数据库ready，命令exit0。旧PID36044是上轮历史记录。此次仅重启并核实可用性，旧证据与评分保留；浏览器视觉/交互待用户本人试用反馈。
 
 ## 日常启动
 

@@ -1,5 +1,7 @@
 # 当前工作交接
 
+2026-10-19 08:07北京时间：用户开始本人试用，服务已按请求重新启动；当前运行记录为`runtime/manual-review-20261019T000710Z/process.json`（后台启动器PID50880，统一管理API与worker），旧36044记录仅历史。首页/JS/API目录200，PG ready，38候选保留，启动核对`startup-check.json` exit0。下一步先响应用户试用反馈，不重复启动、评分或旧工程测试。
+
 2026-10-19：目录排序/筛选与全站字号放大已完成；2359复用现有预测规则取得完整84.39分，至少10个不同真实公共Agent完整评分的数量目标已达到。真实PG为38候选/46报告/10个完整身份/0活动任务；三维、30/40/30及10点A、互斥7F/7B门槛不变。缓存初始化租约修复已由一次必要真实PG验证通过并重载。当前task_id=`LOCAL_DELIVERY_HANDOFF`；下一步优先核查跨提供方既有声明及可测证据，不先新建评分类别。generic F、跨专项组合、跨提供方同类完整复用及浏览器视觉验收仍未完成。
 
 只用`D:/xjtu_project/block_chain_new/block_chain_new_new`，独立Git分支`codex/local-platform`、无remote。先读AGENTS、PLAN、STATUS、README，不恢复父项目M0/M1或扫描旧代码。grill-me已安装使用、需求已对齐。
