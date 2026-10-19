@@ -1,5 +1,9 @@
 # 新项目执行计划
 
+2026-10-19：当前task_id=`REFACTOR_PUBLICATION`。用户授权旧父仓库断开远程、新项目连接原仓库并提重构PR；旧origin已备份后移除，新origin已fetch非空main，重构分支codex/rebuild-reputation-platform。新项目起手工作区干净；README已补通用启动、PostgreSQL初始化、自备RPC/LLM及.env显式加载。按用户追加要求，正将10个真实完整评分与必要公开证据做可导入发布包，不上传私钥、账号凭证、私有DB或整个runtime；尚未push/建PR，不能宣称已发布。
+
+以下为此前阶段记录；Git发布状态以本段及最新收口为准。
+
 2026-10-19 08:50（北京时间）：按用户最新反馈恢复同行卡片等高、宽屏最小高度及留白，用grid stretch和内容区flex:1对齐底部入口；继续保留名称/类别在顶部、分数自然宽度与下行通栏小字说明。默认排序改综合分从高到低，初值、清空复位和条件判断同步。唯一必要前端构建exit0，新网页/资源200且SHA同dist；等待本人刷新确认，不重跑旧测试或评分。
 
 2026-10-19 08:07（北京时间）：按用户请求恢复本机人工试用。保留数据库与全部报告，使用现有启动器后台启动API7754、PG55438及只读评价worker；首页、前端JS、健康检查和38项Agent目录实际返回200。当前运行记录`runtime/manual-review-20261019T000710Z/process.json`，启动核对`startup-check.json`，命令exit0。当前操作任务`LOCAL_MANUAL_REVIEW`，等待用户实际体验反馈，不重跑评分或旧测试。

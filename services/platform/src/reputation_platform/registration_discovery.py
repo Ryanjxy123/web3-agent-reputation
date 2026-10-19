@@ -12,6 +12,7 @@ from reputation_core import MeasurementPurpose, ProbeObservation
 from reputation_core.application import normalize_reference
 from reputation_core.prediction_chain import calldata
 from reputation_platform.safe_http import PublicTarget, SafeHttpClient
+from reputation_platform.settings import load_zan_key_file
 
 RPC_CONFIG = Path('configs/generic-rpc.json')
 GATEWAY = 'https://gateway.autonolas.tech/ipfs/'
@@ -158,7 +159,7 @@ class DiscoveryEvidence:
             references.append(self._remember(skip))
             return {'raw': b'', 'response_file': None, 'evidence': references, 'observation': None}
         target = PublicTarget(key, url, method, purpose=purpose, json_body=body, headers=headers)
-        credential = Path(rpc['credential_file']) if rpc and rpc['authentication'] == 'zan' else None
+        credential = load_zan_key_file(fallback=rpc['credential_file']) if rpc and rpc['authentication'] == 'zan' else None
         with SafeHttpClient((target,), enabled=True, proxy=self.proxy, max_requests=1,
                             zan_key_url_file=credential, pin_public_dns=True) as client:
             observed = client.fetch(key, self.run)

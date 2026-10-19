@@ -9,6 +9,7 @@ import secrets
 from collect_liquidity_history import (
     ROOT, Collector, NPM, prepare, request_spec, call_key,
 )
+from reputation_platform.settings import load_zan_key_file
 
 CAKE = "0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82"
 WBNB = "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c"
@@ -24,8 +25,7 @@ def main() -> int:
     parser.add_argument("--transaction-runs", nargs="+", type=Path, required=True)
     parser.add_argument("--execute-public-readonly", action="store_true")
     parser.add_argument("--proxy")
-    parser.add_argument("--zan-key-url-file", type=Path,
-                        default=Path("D:/xjtu_project/block_chain_new/runtime/secrets/base-mainnet-rpc-url.txt"))
+    parser.add_argument("--zan-key-url-file", type=Path)
     args = parser.parse_args()
     if args.execute_public_readonly and not args.proxy:
         parser.error("Execution requires explicit --proxy")
@@ -85,7 +85,7 @@ def main() -> int:
     run = ROOT / "runtime" / f"liquidity-context-{now:%Y%m%dT%H%M%SZ}-{secrets.token_hex(4)}"
     run.mkdir()
     (run / "manifest.json").write_text(json.dumps({"created_at": now.isoformat(), **plan}, indent=2), encoding="utf-8")
-    collector = Collector(run, cache, args.proxy, args.zan_key_url_file, len(specs) + 1)
+    collector = Collector(run, cache, args.proxy, load_zan_key_file(args.zan_key_url_file), len(specs) + 1)
     results = collector.stage(specs)
     receipt = results.get("registration-receipt")
     if isinstance(receipt, dict) and not collector.stop:

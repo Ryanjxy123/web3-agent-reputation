@@ -1,5 +1,9 @@
 # 当前工作交接
 
+2026-10-19：当前task_id=`REFACTOR_PUBLICATION`。用户授权旧父仓库断开远程、新项目连接原仓库并提重构PR；旧origin已备份后移除，新origin已fetch非空main，重构分支codex/rebuild-reputation-platform。新项目起手工作区干净；README已补通用启动、PostgreSQL初始化、自备RPC/LLM及.env显式加载。按用户追加要求，正将10个真实完整评分与必要公开证据做可导入发布包，不上传私钥、账号凭证、私有DB或整个runtime；尚未push/建PR，不能宣称已发布。
+
+以下为此前阶段记录；Git发布状态以本段及最新收口为准。
+
 2026-10-19 08:50北京时间最新试用反馈已实现：恢复目录卡片同行等高/大屏最小高度/留白及底部入口对齐，保留去重小字说明与自然宽度分数。默认及清空复位排序均score-desc，条件判断同步。唯一必要build exit0，网页/新JS index-B_KQIf69.js/CSS index-B7D-JEMY.css 200且SHA同dist，原件runtime/directory-frontend-check-20261019T005018Z-9c01365a/result.json。下文较早排序/资源/留白描述为历史，以本段最新用户决定为准；等待用户刷新反馈，不重跑评分或旧测试。
 
 2026-10-19 08:07北京时间：用户开始本人试用，服务已按请求重新启动；当前运行记录为`runtime/manual-review-20261019T000710Z/process.json`（后台启动器PID50880，统一管理API与worker），旧36044记录仅历史。首页/JS/API目录200，PG ready，38候选保留，启动核对`startup-check.json` exit0。下一步先响应用户试用反馈，不重复启动、评分或旧工程测试。

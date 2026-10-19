@@ -16,6 +16,7 @@ from probe_liquidity_state import decode_position, retained, runtime_directory
 from reputation_core import MeasurementPurpose
 from reputation_core.liquidity import INCREASE_TOPIC
 from reputation_platform.safe_http import PublicTarget, SafeHttpClient
+from reputation_platform.settings import load_zan_key_file
 
 RPC_URL = "https://api.zan.top/node/v1/bsc/mainnet"
 NPM = "0x46a15b0b27311cedf172ab29e4f4766fbe7f4364"
@@ -309,8 +310,7 @@ def main() -> int:
     parser.add_argument("--reuse-run", nargs="+", type=Path, default=[], help="Explicit retained RPC runs; digests are checked")
     parser.add_argument("--execute-public-readonly", action="store_true")
     parser.add_argument("--proxy")
-    parser.add_argument("--zan-key-url-file", type=Path,
-                        default=Path("D:/xjtu_project/block_chain_new/runtime/secrets/base-mainnet-rpc-url.txt"))
+    parser.add_argument("--zan-key-url-file", type=Path)
     args = parser.parse_args()
     if args.execute_public_readonly and not args.proxy:
         parser.error("Execution requires --proxy; the default performs no network calls")
@@ -331,7 +331,7 @@ def main() -> int:
     run.mkdir()
     with (run / "manifest.json").open("x", encoding="utf-8") as stream:
         json.dump({"started_at": now.isoformat(), **manifest}, stream, indent=2)
-    collector = Collector(run, cache, args.proxy, args.zan_key_url_file, manifest["maximum_new_requests"])
+    collector = Collector(run, cache, args.proxy, load_zan_key_file(args.zan_key_url_file), manifest["maximum_new_requests"])
     initial = collector.stage(manifest["initial_requests"])
     try:
         if int(initial["chain-id"], 16) != 56:

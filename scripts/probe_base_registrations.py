@@ -13,9 +13,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT / 'packages/core/src'), str(ROOT / 'services/platform/src')]
 from reputation_core.admission import ProbeObservation
 from reputation_platform.safe_http import PublicTarget, SafeHttpClient
+from reputation_platform.settings import load_zan_key_file
 
 CONFIG = ROOT / 'configs/base-registration-candidates.json'
-KEY_FILE = ROOT.parent / 'runtime/secrets/base-mainnet-rpc-url.txt'
 RPC = 'https://api.zan.top/node/v1/base/mainnet'
 REGISTRY = '0x8004a169fb4a3325136eb29fa0ceb6d2e539a432'
 
@@ -39,6 +39,7 @@ def main() -> int:
     parser.add_argument('--source-run', type=Path, required=True)
     parser.add_argument('--execute-public-readonly', action='store_true')
     parser.add_argument('--proxy')
+    parser.add_argument('--zan-key-url-file', type=Path)
     args = parser.parse_args()
     if args.execute_public_readonly and not args.proxy:
         parser.error('An explicit operator proxy is required')
@@ -83,7 +84,8 @@ def main() -> int:
     run.mkdir()
     (run / 'manifest.json').write_text(json.dumps(plan, ensure_ascii=False, indent=2), encoding='utf-8')
     facts, stop = {}, None
-    with SafeHttpClient(targets, enabled=True, proxy=args.proxy, max_requests=len(targets), zan_key_url_file=KEY_FILE) as client:
+    with SafeHttpClient(targets, enabled=True, proxy=args.proxy, max_requests=len(targets),
+                        zan_key_url_file=load_zan_key_file(args.zan_key_url_file)) as client:
         for target in targets:
             observation = client.fetch(target.key, run)
             if observation.http_status != 200 or observation.error_kind or not observation.body_complete:

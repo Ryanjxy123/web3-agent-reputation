@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT / "packages/core/src"), str(ROOT / "services/platform/src")]
 
 from reputation_platform.safe_http import PublicTarget, SafeHttpClient
+from reputation_platform.settings import load_zan_key_file
 
 RPC_PROVIDERS = {
     "bnb-official": ("trusted-rpc.json", "https://bsc-dataseed.bnbchain.org"),
@@ -132,8 +133,7 @@ def main() -> int:
     parser.add_argument("--rpc-provider", choices=tuple(RPC_PROVIDERS), default="bnb-official")
     parser.add_argument("--execute-public-readonly", action="store_true")
     parser.add_argument("--proxy", help="Required explicit operator proxy when execution is enabled")
-    parser.add_argument("--zan-key-url-file", type=Path,
-                        default=Path("D:/xjtu_project/block_chain_new/runtime/secrets/base-mainnet-rpc-url.txt"))
+    parser.add_argument("--zan-key-url-file", type=Path)
     args = parser.parse_args()
     if args.execute_public_readonly and not args.proxy:
         parser.error("Execution requires --proxy; the default command performs no network calls")
@@ -153,7 +153,7 @@ def main() -> int:
             stream.write(body)
     results, stop = {}, None
     with SafeHttpClient(targets, enabled=True, proxy=args.proxy, max_requests=4,
-                        zan_key_url_file=args.zan_key_url_file if args.rpc_provider == "zan" else None) as client:
+                        zan_key_url_file=load_zan_key_file(args.zan_key_url_file) if args.rpc_provider == "zan" else None) as client:
         for target in targets:
             observation = client.fetch(target.key, run)
             if (observation.error_kind or not observation.body_complete

@@ -16,6 +16,7 @@ from reputation_platform.question_translation import (
     prepare_questions, reference, translation_target, verify_cached_translation,
 )
 from reputation_platform.safe_http import PublicTarget, SafeHttpClient
+from reputation_platform.settings import load_llm_key_file
 
 CACHE = ROOT / "runtime/question-translation-cache"
 
@@ -58,8 +59,7 @@ def main() -> int:
     parser.add_argument("--bundles", type=Path, nargs="+", required=True)
     parser.add_argument("--execute", action="store_true")
     parser.add_argument("--proxy")
-    parser.add_argument("--key-file", type=Path,
-                        default=Path("D:/xjtu_project/block_chain_new/runtime/secrets/deepseek-api-key.txt"))
+    parser.add_argument("--key-file", type=Path)
     args = parser.parse_args()
     if args.execute and not args.proxy:
         parser.error("Execution requires an explicit proxy")
@@ -84,7 +84,7 @@ def main() -> int:
         CACHE.mkdir(exist_ok=True)
         scoped = (PublicTarget("balance-before", BALANCE_ENDPOINT), *targets, PublicTarget("balance-after", BALANCE_ENDPOINT))
         with SafeHttpClient(scoped, enabled=True, proxy=args.proxy, max_requests=len(scoped),
-                            timeout_seconds=60, provider_key_file=args.key_file) as client:
+                            timeout_seconds=60, provider_key_file=load_llm_key_file(args.key_file)) as client:
             try:
                 balance, _ = payload(client, "balance-before", run)
                 if balance.get("is_available") is not True:

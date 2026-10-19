@@ -59,6 +59,8 @@
 
 ## Git 与交付
 
+- 2026-10-19 用户已授权将旧父仓库断开origin、新项目连接`https://github.com/Ryanjxy123/web3-agent-reputation.git`并提交重构PR。只推`codex/rebuild-reputation-platform`任务分支，不强推main；保留远程历史，当前PR等待review。本次还须发布已完成的真实完整评分及必要公开证据，个人密钥/数据库/私有配置不上传；不能将整个runtime的忽略规则当作排除评分交付的理由。
+
 - 本目录为独立仓库。Git 操作前核实顶层目录、分支、未提交修改和 remote。
 - 任务分支使用 `codex/` 前缀；不猜提交身份、不改全局 Git 配置。
 - 显式添加本次路径，检查 staged diff 和秘密后本地提交。

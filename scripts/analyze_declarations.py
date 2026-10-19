@@ -15,6 +15,7 @@ sys.path[:0] = [str(ROOT / "packages/core/src"), str(ROOT / "services/platform/s
 from reputation_core import SourceDocument
 from reputation_platform.model_analysis import BALANCE_ENDPOINT, declaration_target, parse_declarations
 from reputation_platform.safe_http import PublicTarget, SafeHttpClient
+from reputation_platform.settings import load_llm_key_file
 
 
 def write_json(path: Path, value: object) -> None:
@@ -59,8 +60,7 @@ def main() -> int:
     parser.add_argument("--candidates", nargs="+")
     parser.add_argument("--execute", action="store_true")
     parser.add_argument("--proxy")
-    parser.add_argument("--key-file", type=Path,
-                        default=Path("D:/xjtu_project/block_chain_new/runtime/secrets/deepseek-api-key.txt"))
+    parser.add_argument("--key-file", type=Path)
     args = parser.parse_args()
     directory = args.review.resolve()
     if not directory.is_relative_to(RUNTIME) or not directory.is_dir():
@@ -87,7 +87,7 @@ def main() -> int:
                PublicTarget("balance-after", BALANCE_ENDPOINT))
     results = []
     stopped = None
-    with SafeHttpClient(targets, enabled=True, proxy=args.proxy, provider_key_file=args.key_file,
+    with SafeHttpClient(targets, enabled=True, proxy=args.proxy, provider_key_file=load_llm_key_file(args.key_file),
                         max_requests=len(targets), timeout_seconds=60) as client:
         try:
             balance = payload(run, client.fetch("balance-before", run))

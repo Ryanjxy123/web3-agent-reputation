@@ -1,83 +1,119 @@
-# Web3 Agent 声誉平台重建交接
+# 基于多源证据的 Web3 Agent 声誉评价平台
 
-2026-10-19：目录排序/筛选与全站字号放大已完成；2359复用现有预测规则取得完整84.39分，至少10个不同真实公共Agent完整评分的数量目标已达到。真实PG为38候选/46报告/10个完整身份/0活动任务；三维、30/40/30及10点A、互斥7F/7B门槛不变。缓存初始化租约修复已由一次必要真实PG验证通过并重载。当前task_id=`LOCAL_DELIVERY_HANDOFF`；下一步优先核查跨提供方既有声明及可测证据，不先新建评分类别。generic F、跨专项组合、跨提供方同类完整复用及浏览器视觉验收仍未完成。
+面向公开注册的 Web3 Agent，关联注册资料、自然语言功能声明、接口、合约和历史交易，生成有证据可追溯的中文评价报告。
 
-本目录为独立重建项目，Vue/FastAPI/worker/真实PG已本机连通。浏览页支持状态、评价范围筛选及更新时间、综合分、名称排序，全站字体已放大。已有10个不同真实公共Agent取得其已测范围的完整三维评分。实际结果及限制见STATUS。
+固定评价维度为**服务可用性、功能声明一致性、交易行为可靠性**，综合权重为30% / 40% / 30%。资料不足时明确显示缺项，不补成0分或满分。用户在网站提交注册标识后，由平台自动匹配已支持的评价方案。
 
-核心需求已对齐。首个增仓保留特例；预测类已用同一政策完成2198、2235、2340、2182、2360、4110，综合分分别89.72、98.71、91.28、90.56、88.62、78.46；2340为核验revision2更正后的最新分。群体声明与可测覆盖比较、注册/协议自动接入及共用历史履约B已完成。预测证据扩展按ADR-0016/0017执行；已发布结果及当前批次以STATUS开头为准。产品的两个主入口是“浏览 Agent 声誉”和“接入 Agent 产生评价”，报告必须让普通用户看懂。旧项目仅作为按需参考。
+这是对原项目的重新实现。当前采用Vue 3 + TypeScript前端、FastAPI API、独立worker和PostgreSQL；不需要运行原项目的微服务、合约或Docker Compose。
 
-## 项目目标
+## 环境准备
 
-老师原要求：
+| 工具 | 本项目使用的版本 |
+| --- | --- |
+| Python | 3.12，当前验证3.12.4 |
+| uv | 0.9.3 |
+| Node.js | 22.17.0（前端要求至少22.12） |
+| pnpm | 11.25.0，见apps/web/package.json |
+| PostgreSQL | 当前验证17.11，需一个自己的数据库与可建表账号 |
 
-> 基于多源证据的 Web3 Agent 声誉评价平台。面向公开注册并提供服务信息的 Web3 Agent，收集其链上注册信息、自然语言功能描述、服务接口、关联合约地址和交易历史，从服务可用性、功能声明一致性和交易行为可靠性三个方面开展评价。
+以下命令在**本仓库根目录**执行。示例使用PowerShell；其他系统可用同样的uv/pnpm/Python入口，数据库安装方式自行选择。
 
-首版至少 10 个真实公共 Agent 获得完整三维评分及综合分，更多更好，不延续旧项目的对象名单。先筛选资料、接口和证据足以评价的对象；不可测或不可评分的候选保留原因和缺项，作为后续扩展目标。首个窄范围为历史自主增仓，指标及样本已在采集前固定；其他类别继续按证据可得性调查。
+```powershell
+uv sync --locked
+pnpm --dir apps/web install --frozen-lockfile
+pnpm --dir apps/web run build
+Copy-Item .env.example .env
+```
 
-评分展示已确认：服务可用性、功能声明一致性、交易行为可靠性分别按 0–100 分展示，综合分权重依次为 30%、40%、30%。三维证据充分时计算综合分；报告展示评价范围、样本量及证据，缺证据维度显示“待评价”。具体指标与阈值由平台设计，在正式评价前固定，见 [评分决策](docs/adr/0001-scoring-policy.md)。
+编辑本机`.env`，填入自己的PostgreSQL连接信息。数据库需事先创建，账号需要创建本项目表和触发器的权限。
 
-评分应体现真实表现差异，不能全部因接口调用成功就获满分。正式评分使用预先固定的标准；区分度来自实际表现，不靠人为扣分。
+```dotenv
+REPUTATION_DATABASE_URL=postgresql://YOUR_DB_USER:YOUR_DB_PASSWORD@127.0.0.1:5432/YOUR_DATABASE
+REPUTATION_LLM_KEY_FILE=runtime/secrets/deepseek-api-key.txt
+REPUTATION_ZAN_KEY_FILE=runtime/secrets/zan-rpc-url.txt
+```
 
-已确认首版交付：老师可实际操作的完整网站，能浏览真实公共 Agent 的三维评分与证据报告，并能接入已支持业务类别的新 Agent 发起评价。
+`.env`不会被应用自动读取；下列命令通过**uv的`--env-file .env`显式加载**。也可以直接设置操作系统环境变量。不要把真实密码或密钥写进README、源码或公开配置。
 
-首版本机完整运行即可验收，不要求公网地址。
+## 启动与打开网站
 
-接入流程：提交注册资料入口后，平台自动采集并逐项识别功能，匹配各功能适用的评价方案并执行；同一 Agent 可执行多类评价，直接呈现评价结果。用户无需选择方案或确认启动；资料不足时明确说明无法评价及缺项。
+首次使用先建表；此命令不导入示例分数：
 
-结果按需更新：首次接入自动评价，之后支持“重新评价”，保留每次报告、评价时间和历史记录。
+```powershell
+uv run --env-file .env --no-sync python scripts/import_local_report.py --initialize
+```
 
-普通评价先覆盖通用项目：服务实际可用性、声明与调用结果一致性，以及有证据的交易履约。业务专项在适用时自动附加，不要求新用户等待逐对象开发。某项缺资料仍展示其他已有评价，三维不足不出综合分。通用入口已支持注册采集、协议发现，以及按真实请求、历史执行控制、交付事件和CID/CAR核验Mech历史履约B；通用业务正确性F仍待独立判据，不以Schema或HTTP成功代替。自动挂接已由真实新对象完成，支持保留的 [prediction-history-v1](docs/adr/0008-prediction-history-policy.md) 与 [V2证据扩展](docs/adr/0016-prediction-evidence-v2.md)，不将预测信用分转作通用F；适用边界见[ADR-0013](docs/adr/0013-automatic-prediction-attachment.md)，核验实现勘误见[ADR-0014](docs/adr/0014-prediction-binding-verification-erratum.md)。通用规则与按需补证边界见 [ADR-0010](docs/adr/0010-service-contract-policy.md)、[ADR-0011](docs/adr/0011-shared-task-delivery-evidence.md)及[ADR-0012](docs/adr/0012-resume-frozen-task-evidence.md)。
+打开第一个终端，启动网页和API：
 
-报告是面向普通用户的核心交付物，必须详细且易懂：先说清能如何使用这份结论，再解释三维得分、评价范围、时间和样本，展示代表性输入、实际输出、独立核验及证据出处。未覆盖和无法判断的内容有具体解释与补充建议；技术原件默认折叠。
+```powershell
+uv run --env-file .env --no-sync python -m uvicorn reputation_platform.api:create_app --factory --host 127.0.0.1 --port 7754
+```
 
-长期工作原则见 [AGENTS.md](AGENTS.md)：方向变化及时更新常读文档，减少防御性实现与文字，仅在必要时验证一次并复用仍有效的结果。
+打开第二个终端，在相同目录启动worker：
 
-## 阅读顺序
+```powershell
+uv run --env-file .env --no-sync python -m reputation_platform.worker
+```
 
-1. [执行计划](PLAN.md)和[当前状态](STATUS.md)：当前任务、真实结果、限制与下一步。
-2. [候选记录](reference/CANDIDATES.md)：可测性、证据缺口及扩展目标。
-3. [候选工具使用说明](docs/runbooks/CANDIDATE_CHECK.md)：独立安装、默认计划模式和离线报告生成。
-4. [经验教训](LESSONS_LEARNED.md)、[本机配置](LOCAL_CONFIGURATION.md)与[交接 prompt](HANDOFF_PROMPT.md)按需查阅。
+浏览器打开 **[http://127.0.0.1:7754/](http://127.0.0.1:7754/)**。无需另开Vite。两个终端应保持运行，Ctrl+C可停止对应进程。
 
-`AGENTS.md` 是本目录内的工作约束。历史事实的精简快照见 [reference/PREVIOUS_PROJECT_FACTS.json](reference/PREVIOUS_PROJECT_FACTS.json)。
+默认worker关闭公网采集，可以浏览已有数据；新提交会说明尚未开启公开取证。需要实际收集免费公共只读证据时，停止默认worker，改为：
 
-## 目录与仓库
+```powershell
+uv run --env-file .env --no-sync python -m reputation_platform.worker --enable-public-readonly --proxy http://127.0.0.1:7897
+```
 
-- 新项目：`D:/xjtu_project/block_chain_new/block_chain_new_new`。
-- 旧项目：`D:/xjtu_project/block_chain_new`。
-- 新目录使用自己的 `.git`，不作为父仓库的 submodule 或 gitlink 提交。
-- 不复制旧仓库历史、runtime、数据库、依赖目录或凭证文件。
-- 新 GitHub 仓库地址尚未提供，`origin` 不配置；没有创建远程仓库或推送。
-- 新目录内运行 Git 命令前，先核实 `git rev-parse --show-toplevel` 指向新目录。
+当前受控网络实现要求本机HTTP代理`127.0.0.1:7897`，不是任意代理地址均可。上述开关只开启已支持的公开只读流程，不发起付费Agent任务、签名或链上写入。
 
-文档中的旧项目本机路径是同一台机器上的定位信息。把新仓库克隆到另一台机器不会自动带来这些文件，也不能把凭证随代码上传。
+网站包含“浏览Agent声誉”和“接入Agent产生评价”两个入口。目录默认按综合分从高到低排序，支持搜索、状态/范围筛选；详情包含历史报告、三维解释、样本与原始证据。可提交的规范身份示例：
 
-## 当前边界
+```text
+eip155:100:0x8004a169fb4a3325136eb29fa0ceb6d2e539a432:2359
+```
 
-Brain DeFi 历史增仓的首次报告为 88.89 / 100 / 100、综合 96.67。通过正式网站 API 发起的第二次评价已自动发布：**可用性 93.09、功能声明一致性 100、交易行为可靠性 100，综合 97.93**。每次依据 24 个真实槽位（10+7+7），另有 13 条无动作 N_A 单列背景。复评重新采集 10 次可用性，复用并核验未变历史原件，仍为同一对象。查看[最新中文报告](runtime/evaluation-report-20261018T060340Z-4c27cea3/report.html)；旧版不覆盖。
+示例不保证未来一定有足够证据出完整分数，平台按实际资料返回结果。
 
-当前为 **10 / 至少10个不同完整评分对象，数量目标已达到**：Brain历史增仓特例，以及Olas2198、2235、2340、2182、2360、4110、2267、2135、2359的历史预测。38个候选及历次缺项继续保留。范围分不代表整个Agent，历史入口可用性不等于实时推理在线。
+## 自备RPC和LLM账号
 
-2340首次自动报告83.01因两处核验实现误判已更正，原报告不改；更正报告 `b19fbaa9-a5cd-44f1-aa57-6cc4a51b2d0a` 为A98.51/F79.33/B100、综合 **91.28**；最新展示版 `c7eb4285-bd1a-456d-9a1e-34606e067b15` 保持该分，逐项展示4工具与14个真实样本关联及更正原因。更正完全复用原14任务、10次访问和翻译，无新增外网或模型；旧revision1仍可复算。2182原完整报告 `7d988a45-5dcd-4bb7-ae5c-196cf6eb72eb` 为A98.33/F77.64/B100、综合 **90.56**。2360逐功能展示版 `63b17e17-3260-48f8-b258-67bdd68abf94` 保持A98.33/F72.79/B100、综合 **88.62**；2182展示版 `1e7732c5-3a24-4582-9ca0-b0f4deedd1dd` 同样分数不变。4110仅补登记原件后发布 `6b4a1a7b-278b-48f0-88e8-980edc86129f`，A89.69/F53.89/B100、综合 **78.46**，原14任务与10A复用、旧PARTIAL保留。实际原件、退出码及当前批次见[STATUS](STATUS.md)和[本机运行记录](docs/runbooks/LOCAL_PLATFORM.md)。
+**个人账号、密钥、数据库、费用记录和私有配置不随仓库提供。其他使用者需要配置自己的服务。**
 
-本机启动见 [LOCAL_PLATFORM](docs/runbooks/LOCAL_PLATFORM.md)。在已配置的这台机器运行 `./scripts/start_local_platform.ps1 -EnablePublicReadOnly` 后访问 `http://127.0.0.1:7754/`；省略开关时只浏览且不做新公开采样。前端有独立 pnpm 锁文件，Python 使用根 uv workspace，不依赖旧源码。新注册对象自动匹配已支持协议：适用者可取得预测三维分；其它对象展示已取得的通用A/B与具体缺项，三维充分才计算综合分。自动预测只支持已核Fixed Price Native与Omen/IPFS证据链，订阅2469仍未适配；不承诺任意登记对象完整评分。当前 HTTP/API/构建及真实数据库验收通过，桌面/手机视觉验收因浏览器异常 BLOCKED。
+| 用途 | 当前接入 | 需要准备什么 |
+| --- | --- | --- |
+| Gnosis历史查询 | 固定公开RPC `https://rpc.gnosischain.com` | 当前可使用公开端点，不必填私人账号；能否取得历史数据取决于上游可用性 |
+| BSC / Base注册及历史查询 | 已审查的ZAN固定端点 | 自己的ZAN项目；把该项目的完整Base mainnet RPC URL保存为一行文件，通过`REPUTATION_ZAN_KEY_FILE`指定 |
+| 声明提取、预测问题中文翻译 | 固定DeepSeek Responses接入，`deepseek-flash` | 自己的DeepSeek API key与可用余额；单行key文件通过`REPUTATION_LLM_KEY_FILE`指定 |
+| 平台存储 | PostgreSQL | 自己的数据库、账号、密码，通过`REPUTATION_DATABASE_URL`指定 |
 
-本轮只读收口exit0：真实PG38候选/46报告/10完整身份/0active，报告、原输入附件、网站及新JS200、附件SHA一致，原件`runtime/prediction-v2-close-20261018T161826Z-c3e056d3/result.json`。API7754和单worker保持运行；视觉仍BLOCKED。
+先创建被Git忽略的`runtime/secrets/`，用本机编辑器填入自己的文件。LLM文件存**API key**；ZAN文件存**含项目密钥的完整RPC URL**，不是裸key。只把文件路径放进环境配置，不把文件内容放到命令行、前端或GitHub PR里。
 
-当前分支 `codex/local-platform`，实现提交包括 `1791a8a`、`01494e8`、`07b0d39`；登记补录已提交 `3091343`，本轮文档随收口提交；实际状态以git log为准。`REMOTE_NOT_CONFIGURED`，未 push 或创建 PR。
+凭证路径也可在相关采集CLI中通过显式`--key-file`或`--zan-key-url-file`指定，优先于环境变量。原开发机可用`runtime/platform-config/llm-key-file.txt`保存已有key文件的路径，避免复制密钥。普通网站用户不需要填写后台账号。
 
-已获准开展有白名单和停止条件的匿名免费只读核实。DeepSeek 已实际接通，使用现有余额、不设额外次数/金额上限，余额不足时告知；付费 Agent 业务及资产操作仍未启用。模型、历史采集与离线报告用法见 [真实证据闭环记录](docs/runbooks/MODEL_EVIDENCE_LOOP.md)，实际结果见 STATUS。
+评分计算与离线核验本身不依赖LLM直接给分；但**当前网站对新就绪预测任务会调用中文翻译步骤**，没有已验证翻译缓存时，应配置自己的DeepSeek key。仅运行网页、浏览原报告或执行不需要模型的通用资料核验，不需要模型余额。
 
-以真实覆盖与可解释评分验收，收录和模型分析完成不等于业务评价完成。资料不足、未适配和无法核验都是需要清楚展示的结果，不补成 0 分或 100 分。
+RPC不是任意供应商网关：链、端点与认证方式由后台固定白名单控制，注册资料不能指定RPC。原有`configs/`部分文件是已发布证据所绑定的历史配置，不要为了填个人密钥而改写；使用上面的本地凭证入口。更换RPC供应商需要单独适配。
 
-通用性必须在建模前有群体资料依据，多对象结果用于验证判断。历史增仓仍是单对象试点；预测已证明同一Gnosis/Olas/Omen协议内多对象自动复用，尚未证明任意提供方或支付协议适用。规则与对象适配分开，不新增单对象专用方案凑覆盖。历史入口可用性不外推为实时推理可用性。
+## 数据与当前完成范围
 
-## 下一步与已知限制
+开发机已完成10个不同真实公共Agent的完整范围评分，综合分29.8–98.71：9个复用历史预测方案，1个历史增仓特例。具体对象、真实退出码及限制见[STATUS.md](STATUS.md)。范围评分不代表Agent全部能力，历史交付文件可访问也不等于实时推理在线。
 
-用户已确认将同一预测规则的历史扫描上限由128扩至512，取得14个不同问题即停止，维度、权重和样本门槛保持。新报告须显示实际历史时间范围；旧报告与原取证边界保留。执行状态见STATUS。
+**首次克隆并初始化数据库后，目录为空是正常结果。** Git不包含`runtime/`、个人数据库、历史响应、原始证据或已发布报告，也不包含`apps/web/dist`和依赖目录。不能仅凭仓库代码复现开发机的38个候选、46份报告和10个已评分对象。
 
-此前V1缺项与失败命令保留；最新已恢复2267、2135完整评分。2150扩大到512上限后实际仅200条、仍10题，PARTIAL为A90.52/F13.39；签名调查未证明业务可评分性，用户已决定暂停实现、扩大普通协议候选；2359现已按普通规则完整评分84.39。已有完整评分不代表任意协议都可评分。
+可以在网页提交受支持身份自行取证，或导入自己合法取得的完整证据包。导入时须保留所有被manifest引用的原件及相对目录；仅有一份report.json不能替代完整证据：
 
-预测证据扩展按ADR-0016/0017执行；已发布结果及当前批次以STATUS开头为准。 既有prediction-history-v1的三维、30/40/30、固定历史计划与原件继续保留；取得足够可核证据才发布新分数。
+```powershell
+uv run --env-file .env --no-sync python scripts/import_local_report.py runtime/YOUR_REPORT_DIRECTORY
+```
 
-2340、2182、2360的逐功能报告各展示4工具/14真实关联，页面区分计划槽位和实际测得。前端最终受影响build exit0；generic F、跨专项组合与浏览器视觉仍未完成。文档收口不重跑测试或网络，保留所有历史版本和实际失败记录。
+完整预测评分目前限已核实的Fixed Price Native/Omen/IPFS证据链；未知协议、证据不足或未适配能力会列出缺项。通用功能正确性、跨专项组合及第二独立提供方的同类完整复用仍有待完善。浏览器桌面/手机视觉验收以用户实际试用反馈继续改进；构建或HTTP成功不当作视觉验收。
+
+## 开发、验证与仓库
+
+- [PLAN.md](PLAN.md)：当前任务和推进顺序。
+- [STATUS.md](STATUS.md)：实际完成、验证记录、限制和Git/PR状态。
+- [docs/runbooks/LOCAL_PLATFORM.md](docs/runbooks/LOCAL_PLATFORM.md)：原开发机Windows快捷启动及运行记录。该快捷脚本依赖原机工具目录；其他机器优先使用本页的通用入口。
+- [GIT_SETUP.md](GIT_SETUP.md)：原项目断开远程、新实现接入及PR方式。
+- [docs/adr/](docs/adr/)：评分与证据规则；历史政策和已发布证据保持可复算。
+
+部分真实集成验收依赖未入Git的证据和独立PostgreSQL，缺少条件时应显示NOT_RUN/BLOCKED，不把skip当作完整集成通过。只运行必要受影响验证，复用已有有效结果。
+
+目标仓库：[Ryanjxy123/web3-agent-reputation](https://github.com/Ryanjxy123/web3-agent-reputation)。本次通过重构PR替换项目实现，保留远程历史，不强推main；个人密钥、运行目录和数据库始终不上传。

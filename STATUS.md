@@ -1,5 +1,11 @@
 # 新项目当前状态
 
+2026-10-19：当前task_id=`REFACTOR_PUBLICATION`。用户授权旧父仓库断开远程、新项目连接原仓库并提重构PR；旧origin已备份后移除，新origin已fetch非空main，重构分支codex/rebuild-reputation-platform。新项目起手工作区干净；README已补通用启动、PostgreSQL初始化、自备RPC/LLM及.env显式加载。按用户追加要求，正将10个真实完整评分与必要公开证据做可导入发布包，不上传私钥、账号凭证、私有DB或整个runtime；尚未push/建PR，不能宣称已发布。
+
+以下为此前阶段记录；Git发布状态以本段及最新收口为准。
+
+本轮可移植凭证入口已完成，CLI参数优先于`REPUTATION_LLM_KEY_FILE`/`REPUTATION_ZAN_KEY_FILE`；不改被历史报告绑定的configs或白名单。一次必要离线路径核验`python -X utf8 runtime/check_credential_paths.py` exit0，1用例/0.178s，默认、env、本地路径指针、显式参数及原configs SHA保持已核，原件`runtime/credential-path-check-20261019T011902Z-0ca8db0c/result.json`；0密钥读取/复制、0公网/PG。新CI已准备，真实PG空库/API/默认off worker验收及Linux前端构建待PR远程运行，当前NOT_RUN，不重跑旧本机测试。
+
 2026-10-19 08:50（北京时间）最新卡片调整已完成：按用户要求恢复同行等高、宽屏350px最小高度与留白，内容区伸展使底部链接对齐；去重文字和分数不占整列的布局保留。目录初次打开及清空条件后均默认综合分降序，空分继续后置。唯一必要pnpm run build（vue-tsc+Vite）exit0；新JS index-B_KQIf69.js、CSS index-B7D-JEMY.css，本机网页/两资源200且SHA同dist，原件runtime/directory-frontend-check-20261019T005018Z-9c01365a/result.json，核对命令exit0。未改评分或重采样，视觉待本人刷新反馈，继续LOCAL_MANUAL_REVIEW。
 
 2026-10-19 08:07（北京时间）本机试用已恢复：检查时7754/55438均无监听，未发现API异常栈，实际退出原因无充分日志。通过现有启动器后台重启（未改代码或数据），launcher PID50880；`runtime/manual-review-20261019T000710Z/process.json`为当前进程记录，取代下文旧worker运行状态。`startup-check.json`确认数据库ready、首页/JS/Agent目录200，目录38项，验证命令exit0；未提交新评分、未重采样。访问`http://127.0.0.1:7754/`。当前操作任务`LOCAL_MANUAL_REVIEW`，旧分数及发布快照不变。
