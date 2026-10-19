@@ -4,7 +4,9 @@
 
 完整评分发布包已生成：`data/public-reports-v1.tar.gz`（16,452,062B，10个不同身份、14,737个公开文件），摘要见`data/public-reports-v1.json`。`scripts/public_reports.py export`真实exit0，包SHA `6f0daa102d5f03d123adfa327a224a85d4e16340644769ac01d4f2613db8ff76`；全部文件/包成员秘密扫描exit0，原件`runtime/public-reports-archive-audit-20261019T014325Z-3e23d85b/result.json`，未检出已知密钥、凭证或平台账户余额/私费数据。保持原报告与原证据字节，额外11个文件仅原HTML/背景资料；没有重采样或模型调用。新Git目录+真实PG隔离schema导入验收正在执行，尚不声称该验收通过。
 
-远程推送当前PUSH_BLOCKED：GitHub明确拒绝更新.github/workflows/ci.yml，当前OAuth登录缺workflow scope；原push命令exit1，重构分支尚未成功发布，PR/远程CI未创建或运行。已向用户请求是否允许补充workflow授权，等待答复，不删CI或绕过权限。公开包已本地提交665e257；全新目录隔离PG导入验收仍在执行。
+远程推送当前PUSH_BLOCKED：GitHub拒绝更新工作流，OAuth缺workflow scope。用户已批准并完成首次设备确认，但CLI令牌交换遇到EOF，权限未保存；正重试同一授权，不删除CI或绕过权限。重构分支尚未发布，PR/远程CI未运行。
+
+首次干净Git目录+真实PG隔离schema导入验收FAIL：重复复核使导入超时，原件`runtime/public-report-distribution-check-20261019T014309Z-e4515279/result.json`，命令exit1/TimeoutExpired；仅自建且OID核对过的schema已清理，生产表未写入。现改为暂存区完整复核一次、复制后校验哈希、复用已核记录在单一PG事务入库；身份、原件、评分校验不变。提交后仅重验此受影响发布路径一次，不重新评价Agent或重跑旧套件。
 
 以下为此前阶段记录；Git发布状态以本段及最新收口为准。
 

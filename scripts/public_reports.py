@@ -1,6 +1,7 @@
 """Export or restore public reports and verify retained sources without network access."""
 
 import argparse
+from dataclasses import replace
 from datetime import datetime, timezone
 import hashlib
 import io
@@ -94,13 +95,16 @@ def export_package(root: Path, output: Path) -> dict:
     files, reports = {}, []
 
     def remember(name: str, expected: str | None = None):
+        previous = files.get(name)
+        if previous is not None:
+            if expected is not None and previous["sha256"] != expected:
+                raise ValueError("Reports disagree on a shared dependency")
+            return
         path = local_path(root, name)
         actual = digest(path)
         if expected is not None and actual != expected:
             raise ValueError("A retained public dependency changed")
         item = {"path": name, "sha256": actual, "size": path.stat().st_size}
-        if name in files and files[name] != item:
-            raise ValueError("Reports disagree on a shared dependency")
         files[name] = item
 
     for canonical, row in sorted(selected.items()):
@@ -179,49 +183,61 @@ def restore_package(root: Path, supplied: Path, import_db: bool, initialize: boo
             for member in members:
                 if member.size != inventory[member.name]["size"]:
                     raise ValueError("Archive member size differs from its inventory")
-                target = local_path(staging, member.name)
+                target = staging / member.name
                 target.parent.mkdir(parents=True, exist_ok=True)
                 with archive.extractfile(member) as source, target.open("xb") as destination:
                     shutil.copyfileobj(source, destination)
                 if member != indices[0] and digest(target) != inventory[member.name]["sha256"]:
                     raise ValueError("Archive member digest differs from its inventory")
+            inventory[indices[0].name]["sha256"] = digest(staging / indices[0].name)
         reports = index["reports"]
         identities = set()
+        verified = []
+        staging_repo = Repository("unused", staging)
         for item in reports:
             UUID(item["source_report_id"])
             public_path(item["directory"] + "/report.json")
             if normalize_reference(item["canonical"]) != item["canonical"] or item["canonical"] in identities:
                 raise ValueError("Package reports must represent distinct canonical identities")
             identities.add(item["canonical"])
-            check_report(Repository("unused", staging), item)
+            verified.append(check_report(staging_repo, item))
         missing = []
-        for name in inventory:
+        for name, entry in inventory.items():
             target = local_path(root, name)
-            staged = local_path(staging, name)
             if target.exists():
-                if not target.is_file() or digest(target) != digest(staged):
+                if not target.is_file() or digest(target) != entry["sha256"]:
                     raise ValueError("A local public file conflicts with the package: " + name)
             elif not name.startswith("runtime/"):
                 raise ValueError("Required Git configuration or policy is missing: " + name)
             else:
-                missing.append((staged, target))
-        for staged, target in missing:
+                missing.append(name)
+        for name in missing:
+            staged = staging / name
+            target = local_path(root, name)
             target.parent.mkdir(parents=True, exist_ok=True)
             with staged.open("rb") as source, target.open("xb") as destination:
                 shutil.copyfileobj(source, destination)
+            if digest(target) != inventory[name]["sha256"]:
+                raise ValueError("A restored public file differs from its verified source")
+        verified = [replace(record,
+            directory=root / record.directory.relative_to(staging),
+            candidates=[(candidate, root / directory.relative_to(staging), source_hash)
+                        for candidate, directory, source_hash in record.candidates]) for record in verified]
     repo = Repository(load_database_url() if import_db else "unused", root)
     if initialize:
         repo.initialize()
     mappings = []
-    for item in reports:
-        imported_id = None
-        if import_db:
-            summary = repo.import_report(item["directory"])
-            if summary.scores.model_dump(mode="json") != item["scores"] or summary.candidate_key != item["candidate_key"]:
-                raise ValueError("Imported report differs from its authenticated package")
-            imported_id = summary.id
-        mappings.append({"source_report_id": item["source_report_id"], "imported_report_id": imported_id,
-                         "canonical": item["canonical"], "report_sha256": item["report_sha256"]})
+    if import_db:
+        with repo._connect() as connection:
+            for item, record in zip(reports, verified, strict=True):
+                summary = repo._insert_report(connection, record)
+                if summary.scores.model_dump(mode="json") != item["scores"] or summary.candidate_key != item["candidate_key"]:
+                    raise ValueError("Imported report differs from its authenticated package")
+                mappings.append({"source_report_id": item["source_report_id"], "imported_report_id": summary.id,
+                                 "canonical": item["canonical"], "report_sha256": item["report_sha256"]})
+    else:
+        mappings = [{"source_report_id": item["source_report_id"], "imported_report_id": None,
+                     "canonical": item["canonical"], "report_sha256": item["report_sha256"]} for item in reports]
     result = {"archive_sha256": digest(supplied), "reports": len(reports), "new_runtime_files": len(missing),
               "database_imported": import_db, "network_requests": 0, "mapping": mappings}
     audit = root / "runtime" / ("public-report-restore-" + secrets.token_hex(16)) / "result.json"
