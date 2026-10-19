@@ -2,6 +2,8 @@
 
 2026-10-19：当前task_id=`REFACTOR_PUBLICATION`。用户授权旧父仓库断开远程、新项目连接原仓库并提重构PR；旧origin已备份后移除，新origin已fetch非空main，重构分支codex/rebuild-reputation-platform。新项目起手工作区干净；README已补通用启动、PostgreSQL初始化、自备RPC/LLM及.env显式加载。按用户追加要求，正将10个真实完整评分与必要公开证据做可导入发布包，不上传私钥、账号凭证、私有DB或整个runtime；尚未push/建PR，不能宣称已发布。
 
+完整评分发布包已生成：`data/public-reports-v1.tar.gz`（16,452,062B，10个不同身份、14,737个公开文件），摘要见`data/public-reports-v1.json`。`scripts/public_reports.py export`真实exit0，包SHA `6f0daa102d5f03d123adfa327a224a85d4e16340644769ac01d4f2613db8ff76`；全部文件/包成员秘密扫描exit0，原件`runtime/public-reports-archive-audit-20261019T014325Z-3e23d85b/result.json`，未检出已知密钥、凭证或平台账户余额/私费数据。保持原报告与原证据字节，额外11个文件仅原HTML/背景资料；没有重采样或模型调用。新Git目录+真实PG隔离schema导入验收正在执行，尚不声称该验收通过。
+
 以下为此前阶段记录；Git发布状态以本段及最新收口为准。
 
 2026-10-19 08:50（北京时间）：按用户最新反馈恢复同行卡片等高、宽屏最小高度及留白，用grid stretch和内容区flex:1对齐底部入口；继续保留名称/类别在顶部、分数自然宽度与下行通栏小字说明。默认排序改综合分从高到低，初值、清空复位和条件判断同步。唯一必要前端构建exit0，新网页/资源200且SHA同dist；等待本人刷新确认，不重跑旧测试或评分。
