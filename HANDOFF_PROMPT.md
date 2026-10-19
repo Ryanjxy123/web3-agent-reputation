@@ -4,6 +4,8 @@
 
 完整评分发布包已生成：`data/public-reports-v1.tar.gz`（16,452,062B，10个不同身份、14,737个公开文件），摘要见`data/public-reports-v1.json`。`scripts/public_reports.py export`真实exit0，包SHA `6f0daa102d5f03d123adfa327a224a85d4e16340644769ac01d4f2613db8ff76`；全部文件/包成员秘密扫描exit0，原件`runtime/public-reports-archive-audit-20261019T014325Z-3e23d85b/result.json`，未检出已知密钥、凭证或平台账户余额/私费数据。保持原报告与原证据字节，额外11个文件仅原HTML/背景资料；没有重采样或模型调用。新Git目录+真实PG隔离schema导入验收正在执行，尚不声称该验收通过。
 
+远程推送当前PUSH_BLOCKED：GitHub明确拒绝更新.github/workflows/ci.yml，当前OAuth登录缺workflow scope；原push命令exit1，重构分支尚未成功发布，PR/远程CI未创建或运行。已向用户请求是否允许补充workflow授权，等待答复，不删CI或绕过权限。公开包已本地提交665e257；全新目录隔离PG导入验收仍在执行。
+
 以下为此前阶段记录；Git发布状态以本段及最新收口为准。
 
 2026-10-19 08:50北京时间最新试用反馈已实现：恢复目录卡片同行等高/大屏最小高度/留白及底部入口对齐，保留去重小字说明与自然宽度分数。默认及清空复位排序均score-desc，条件判断同步。唯一必要build exit0，网页/新JS index-B_KQIf69.js/CSS index-B7D-JEMY.css 200且SHA同dist，原件runtime/directory-frontend-check-20261019T005018Z-9c01365a/result.json。下文较早排序/资源/留白描述为历史，以本段最新用户决定为准；等待用户刷新反馈，不重跑评分或旧测试。

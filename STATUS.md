@@ -4,6 +4,8 @@
 
 完整评分发布包已生成：`data/public-reports-v1.tar.gz`（16,452,062B，10个不同身份、14,737个公开文件），摘要见`data/public-reports-v1.json`。`scripts/public_reports.py export`真实exit0，包SHA `6f0daa102d5f03d123adfa327a224a85d4e16340644769ac01d4f2613db8ff76`；全部文件/包成员秘密扫描exit0，原件`runtime/public-reports-archive-audit-20261019T014325Z-3e23d85b/result.json`，未检出已知密钥、凭证或平台账户余额/私费数据。保持原报告与原证据字节，额外11个文件仅原HTML/背景资料；没有重采样或模型调用。新Git目录+真实PG隔离schema导入验收正在执行，尚不声称该验收通过。
 
+远程推送当前PUSH_BLOCKED：GitHub明确拒绝更新.github/workflows/ci.yml，当前OAuth登录缺workflow scope；原push命令exit1，重构分支尚未成功发布，PR/远程CI未创建或运行。已向用户请求是否允许补充workflow授权，等待答复，不删CI或绕过权限。公开包已本地提交665e257；全新目录隔离PG导入验收仍在执行。
+
 以下为此前阶段记录；Git发布状态以本段及最新收口为准。
 
 本轮可移植凭证入口已完成，CLI参数优先于`REPUTATION_LLM_KEY_FILE`/`REPUTATION_ZAN_KEY_FILE`；不改被历史报告绑定的configs或白名单。一次必要离线路径核验`python -X utf8 runtime/check_credential_paths.py` exit0，1用例/0.178s，默认、env、本地路径指针、显式参数及原configs SHA保持已核，原件`runtime/credential-path-check-20261019T011902Z-0ca8db0c/result.json`；0密钥读取/复制、0公网/PG。新CI已准备，真实PG空库/API/默认off worker验收及Linux前端构建待PR远程运行，当前NOT_RUN，不重跑旧本机测试。
