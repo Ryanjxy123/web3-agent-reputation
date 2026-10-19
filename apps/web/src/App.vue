@@ -255,10 +255,22 @@ onBeforeUnmount(() => {
         <ErrorNotice v-else-if="directoryError" :error="directoryError"><button class="text-button" @click="loadAgents">重新读取目录</button></ErrorNotice>
         <section v-else-if="!matches.length" class="empty-state panel"><h2>{{ agents.length ? '没有符合条件的 Agent' : '目录中还没有 Agent' }}</h2><p>{{ agents.length ? '可以调整搜索词、评价状态或范围，也可以清空条件查看全部对象。' : '提交公开注册信息后，平台会检查资料并推进评价。' }}</p><button v-if="agents.length && hasDirectoryConditions" class="secondary-button" @click="clearDirectoryConditions">清空条件</button><button v-else class="primary-button" @click="openSubmission()">接入 Agent</button></section>
         <section v-else class="agent-grid" aria-label="Agent 目录"><article v-for="agent in matches" :key="agent.key" class="agent-card">
-          <div class="agent-card-top"><span class="agent-avatar" aria-hidden="true">{{ agent.name.slice(0, 2).toUpperCase() }}</span><span class="report-status" :class="{ complete: evaluationStatus(agent) === 'COMPLETE' }">{{ evaluationStatus(agent) === 'COMPLETE' ? '本范围已评分' : evaluationStatus(agent) === 'PARTIAL' ? '部分评价' : '待评价' }}</span></div>
-          <h2><a :href="'?agent=' + encodeURIComponent(agent.key)" @click.prevent="openAgent(agent.key)">{{ agent.name }}</a></h2><p v-if="agent.latest_report" class="card-scope">{{ scopeLabels[evaluationScope(agent)] }}</p><p class="agent-description">{{ agent.description }}</p>
-          <template v-if="agent.latest_report"><div class="card-score"><div><strong>{{ score(agent.latest_report.scores.overall) }}</strong><span>本范围综合分</span></div><p>{{ agent.latest_report.scope }}</p></div><p class="muted small">更新于 {{ when(agent.latest_report.generated_at) }}</p></template>
-          <p v-else class="unscored-note">尚无足够证据形成完整评分。详情中保留了已核实事实、缺项和下一步。</p>
+          <header>
+            <div class="agent-card-top"><span class="agent-avatar" aria-hidden="true">{{ agent.name.slice(0, 2).toUpperCase() }}</span><span class="report-status" :class="{ complete: evaluationStatus(agent) === 'COMPLETE' }">{{ evaluationStatus(agent) === 'COMPLETE' ? '本范围已评分' : evaluationStatus(agent) === 'PARTIAL' ? '部分评价' : '待评价' }}</span></div>
+            <h2><a :href="'?agent=' + encodeURIComponent(agent.key)" @click.prevent="openAgent(agent.key)">{{ agent.name }}</a></h2>
+            <p v-if="agent.latest_report" class="card-scope">{{ scopeLabels[evaluationScope(agent)] }}</p>
+          </header>
+          <div class="agent-card-body">
+            <template v-if="agent.latest_report">
+              <div class="card-score"><strong>{{ score(agent.latest_report.scores.overall) }}</strong><span>本范围综合分</span></div>
+              <p class="card-description">{{ agent.latest_report.scope }}</p>
+              <p class="muted small card-updated">更新于 {{ when(agent.latest_report.generated_at) }}</p>
+            </template>
+            <template v-else>
+              <p class="card-description">{{ agent.description }}</p>
+              <p class="unscored-note">尚无足够证据形成完整评分。详情中保留了已核实事实、缺项和下一步。</p>
+            </template>
+          </div>
           <a class="card-link" :href="'?agent=' + encodeURIComponent(agent.key)" @click.prevent="openAgent(agent.key)">{{ agent.latest_report ? '阅读评价报告' : '查看资料与缺项' }}<span aria-hidden="true">→</span></a>
         </article></section>
       </template>
