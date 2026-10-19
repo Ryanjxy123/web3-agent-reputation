@@ -1,12 +1,16 @@
 # 新项目执行计划
 
-2026-10-19：当前task_id=`REFACTOR_PUBLICATION`。用户授权旧父仓库断开远程、新项目连接原仓库并提重构PR；旧origin已备份后移除，新origin已fetch非空main，重构分支codex/rebuild-reputation-platform。新项目起手工作区干净；README已补通用启动、PostgreSQL初始化、自备RPC/LLM及.env显式加载。按用户追加要求，正将10个真实完整评分与必要公开证据做可导入发布包，不上传私钥、账号凭证、私有DB或整个runtime；尚未push/建PR，不能宣称已发布。
+2026-10-19：`REFACTOR_PUBLICATION`已完成，下一task_id=`PR_REVIEW`。[重构PR #17](https://github.com/Ryanjxy123/web3-agent-reputation/pull/17)已推送并转为ready for review，base=`main`、head=`codex/rebuild-reputation-platform`，不自动合并。旧父仓库origin已备份移除，新项目独立origin指向原目标仓库；两边提交历史保留，CODEOWNERS与PR模板未改。
 
-完整评分发布包已生成：`data/public-reports-v1.tar.gz`（16,452,062B，10个不同身份、14,737个公开文件），摘要见`data/public-reports-v1.json`。`scripts/public_reports.py export`真实exit0，包SHA `6f0daa102d5f03d123adfa327a224a85d4e16340644769ac01d4f2613db8ff76`；全部文件/包成员秘密扫描exit0，原件`runtime/public-reports-archive-audit-20261019T014325Z-3e23d85b/result.json`，未检出已知密钥、凭证或平台账户余额/私费数据。保持原报告与原证据字节，额外11个文件仅原HTML/背景资料；没有重采样或模型调用。新Git目录+真实PG隔离schema导入验收正在执行，尚不声称该验收通过。
+README已写清安装、建库、公开评分导入、API/worker启动、网站`http://127.0.0.1:7754/`及自备RPC/LLM凭证。已上传`data/public-reports-v1.tar.gz`与摘要：10个不同真实Agent完整报告、14,737个公开文件、16,452,062B，包SHA `6f0daa102d5f03d123adfa327a224a85d4e16340644769ac01d4f2613db8ff76`。工作文件、Git blob和全新Git目录中的包哈希一致；不上传个人密钥、私有配置或数据库。全包秘密审计exit0，记录`runtime/public-reports-archive-audit-20261019T014325Z-3e23d85b/result.json`。
 
-远程推送当前PUSH_BLOCKED：GitHub拒绝更新工作流，OAuth缺workflow scope。用户已批准并完成首次设备确认，但CLI令牌交换遇到EOF，权限未保存；正重试同一授权，不删除CI或绕过权限。重构分支尚未发布，PR/远程CI未运行。
+全新Git目录+真实PG隔离schema的导入阶段已通过：代码63e0401，10份完整报告，exit0/717.031秒，0公网/模型。记录`runtime/public-report-distribution-check-20261019T021158Z-8c52fc8c/result.json`的整体仍保留FAIL：后续API验收脚本错误要求Brain旧报告的原始登记展示文字等于canonical。原报告不能改；规范身份由已核索引、登记配置和数据库绑定。更早重复核验导致的TimeoutExpired也保留，不改写历史结果。导入已优化为完整复核一次、恢复文件后核哈希、单一事务入库；评分与证据门槛不变。
 
-首次干净Git目录+真实PG隔离schema导入验收FAIL：重复复核使导入超时，原件`runtime/public-report-distribution-check-20261019T014309Z-e4515279/result.json`，命令exit1/TimeoutExpired；仅自建且OID核对过的schema已清理，生产表未写入。现改为暂存区完整复核一次、复制后校验哈希、复用已核记录在单一PG事务入库；身份、原件、评分校验不变。提交后仅重验此受影响发布路径一次，不重新评价Agent或重跑旧套件。
+只对上述脚本误判补查API，未重复完整导入或全部证据核验：`python -X utf8 runtime/check_public_report_api_checkpoint.py` exit0/PASS，记录`runtime/public-report-api-checkpoint-20261019T022917Z-77a7689e/result.json`。新目录代码/公开文件+真实PG，生产只读获取与已核原件一致的10份记录，复制到新的隔离schema；10对象/10完整报告/逐份原分/1真实附件200及SHA均通过。此次是TestClient进程内HTTP，未复制候选metadata，不冒称再次完整导入或真实socket验收；两个自建schema均按创建OID核对清理，生产表未写入。
+
+GitHub workflow权限首次换令牌EOF后，用户完成第二次设备授权，实核workflow scope及WRITE后成功push；未改全局Git或仓库权限。[实现提交63e0401的CI](https://github.com/Ryanjxy123/web3-agent-reputation/actions/runs/39188899871)两job均success：python-web及真实PostgreSQL/API/默认public-off worker smoke。后续提交只同步交付状态文档，不重跑本机旧测试。分支保留供PR审阅，main未合并。
+
+本次发布完成不代表所有业务能力完成：浏览器视觉验收、通用功能正确性、跨专项组合及第二独立提供方同类完整复用仍未完成。后续先处理PR反馈；产品扩展继续按群体声明及多对象可测证据选择，不自动恢复旧父项目任务。
 
 以下为此前阶段记录；Git发布状态以本段及最新收口为准。
 

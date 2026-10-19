@@ -49,7 +49,7 @@ uv run --env-file .env --no-sync python scripts/import_local_report.py --initial
 uv run --env-file .env --no-sync python scripts/public_reports.py import data/public-reports-v1.tar.gz
 ```
 
-数据包约16.5MB，恢复公开原件到原runtime相对目录，由已有核验器重建分数后入库；不会覆盖不同内容的本地文件，也不包含个人账号或数据库。首次导入会离线核验约1.5万份依赖，可能耗时数分钟。
+数据包约16.5MB，恢复公开原件到原runtime相对目录，由已有核验器重建分数后入库；不会覆盖不同内容的本地文件，也不包含个人账号或数据库。首次导入会离线核验约1.5万份依赖，本机Windows验证约12分钟，期间无需RPC或LLM账号。
 
 打开第一个终端，启动网页和API：
 
