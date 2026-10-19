@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "status": {
+      "const": "ok",
+      "title": "Status",
+      "type": "string"
+    },
+    "database": {
+      "const": "ready",
+      "title": "Database",
+      "type": "string"
+    }
+  },
+  "required": [
+    "status",
+    "database"
+  ],
+  "title": "HealthStatus",
+  "type": "object"
+}

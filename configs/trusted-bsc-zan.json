@@ -1,0 +1,8 @@
+{
+  "chain_id": 56,
+  "rpc_url": "https://api.zan.top/node/v1/bsc/mainnet",
+  "source": "https://docs.zan.top/reference/api-instructions",
+  "archive_source": "https://docs.zan.top/docs/new-credit-costs",
+  "authentication": "operator ZAN project key appended as the final private URL path segment only during transport; no Bearer header; targets and evidence keep the no-key URL",
+  "historical_state_support": "probe_required"
+}

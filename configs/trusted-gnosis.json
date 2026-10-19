@@ -1,0 +1,10 @@
+{
+  "chain_id": 100,
+  "rpc_url": "https://rpc.gnosischain.com",
+  "registry": "0x8004a169fb4a3325136eb29fa0ceb6d2e539a432",
+  "agent_id": 2182,
+  "mech": "0xc05e7412439bd7e91730a6880e18d5d5873f632c",
+  "rpc_source": "https://docs.gnosischain.com/tools/RPC%20Providers/",
+  "chain_source": "https://docs.gnosischain.com/about/networks/mainnet",
+  "mech_source": "https://stack.olas.network/mech-client/"
+}

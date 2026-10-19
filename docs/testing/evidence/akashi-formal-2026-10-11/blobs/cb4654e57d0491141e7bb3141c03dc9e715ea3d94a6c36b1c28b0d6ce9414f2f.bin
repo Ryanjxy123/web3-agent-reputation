@@ -1,1 +1,0 @@
-{"capability_id":"verify_record","method":"POST","origin":"https://anchor.akashi-notari.com","path":"/mcp","protocol":"akashi-mcp-readonly-v1","request_json":{"jsonrpc":"2.0","method":"notifications/initialized","params":{}},"started_at":"2026-10-11T03:19:42.451Z"}

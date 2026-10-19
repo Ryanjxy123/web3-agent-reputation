@@ -1,36 +1,22 @@
-name: Foundation CI
+name: Reputation Platform CI
+
 on:
   push:
-    branches: [main, feat/foundation-m0-m1]
+    branches: [main]
   pull_request:
 
 permissions:
   contents: read
+
 concurrency:
-  group: foundation-${{ github.workflow }}-${{ github.ref }}
+  group: reputation-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   quality:
-    name: foundation-quality
+    name: python-web
     runs-on: ubuntu-24.04
-    # Formal and controlled-fault suites use real paced windows, including RPC timeouts.
-    timeout-minutes: 35
-    services:
-      postgres:
-        image: postgres:17.11-bookworm@sha256:639ab7ceb90e13123085b741fb31ef493fba25463002f6da665352e7b534b652
-        env:
-          POSTGRES_PASSWORD: isolated-ci-only
-          POSTGRES_DB: reputation
-        ports: ['5432:5432']
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 2s
-          --health-timeout 3s
-          --health-retries 30
-    env:
-      DATABASE_URL: postgresql+psycopg://postgres:isolated-ci-only@127.0.0.1:5432/reputation
-      FAIL_ON_SKIP: '1'
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -44,24 +30,32 @@ jobs:
           node-version: '22.17.0'
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
-          version: '10.12.4'
-      - uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09 # v1
-        with:
-          version: 'v1.8.4'
+          package_json_file: apps/web/package.json
       - run: uv sync --locked --all-packages
+      - name: Core scoring boundary case
+        run: uv run --locked --all-packages python -m unittest discover -s tests -p test_scoring.py -v
       - run: pnpm --dir apps/web install --frozen-lockfile
-      - run: pnpm --dir apps/web exec playwright install --with-deps chromium
-      - run: uv run --all-packages python scripts/check.py
+      - run: pnpm --dir apps/web run build
 
-  compose:
-    name: foundation-compose
+  postgres:
+    name: postgres-smoke
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17.11-bookworm@sha256:639ab7ceb90e13123085b741fb31ef493fba25463002f6da665352e7b534b652
+        env:
+          POSTGRES_PASSWORD: isolated-ci-only
+          POSTGRES_DB: reputation_ci
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d reputation_ci"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
     env:
-      CODE_VERSION: ${{ github.sha }}
-      LOCAL_RUNTIME_DIR: runtime/compose-host
-      FIXTURE_HOST_A: fixture-a
-      FIXTURE_HOST_D: fixture-d
+      REPUTATION_DATABASE_URL: postgresql://postgres:isolated-ci-only@127.0.0.1:5432/reputation_ci
+      PYTHONUTF8: '1'
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -70,26 +64,6 @@ jobs:
         with:
           version: '0.9.3'
           python-version: '3.12.4'
-      - uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09 # v1
-        with:
-          version: 'v1.8.4'
       - run: uv sync --locked --all-packages
-      - run: python3 scripts/init_local.py
-      - run: docker compose config --quiet
-      - run: docker compose build
-      - run: docker compose up -d --wait anvil
-      - run: forge build --root contracts
-      - run: uv run --env-file .env --all-packages reputation deploy-local --runtime-dir runtime/compose-host
-      - run: uv run --env-file .env --all-packages reputation seed --runtime-dir runtime/compose-host
-      - run: uv run --all-packages python scripts/prepare_compose_runtime.py --source runtime/compose-host
-      - run: docker compose up -d --wait
-      - run: python3 scripts/smoke_runtime.py
-      - run: uv run --env-file .env --all-packages python scripts/smoke_verification.py
-      - run: uv run --env-file .env --all-packages python scripts/smoke_reports.py
-      - run: uv run --env-file .env --all-packages python scripts/smoke_m1.py
-      - if: failure()
-        run: |
-          docker compose ps -a
-          docker compose logs --no-color --tail 60 api web worker fixture-a fixture-d anvil
-      - if: always()
-        run: docker compose down
+      - name: Empty database and public-off API/worker smoke
+        run: uv run --locked --all-packages python scripts/check_release_smoke.py

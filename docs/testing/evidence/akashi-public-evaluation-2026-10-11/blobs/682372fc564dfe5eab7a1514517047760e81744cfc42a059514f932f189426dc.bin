@@ -1,1 +1,0 @@
-{"additionalProperties":false,"properties":{"endpoint_id":{"maxLength":100,"minLength":1,"title":"Endpoint Id","type":"string"},"execution_chain_key":{"const":"local-demo","title":"Execution Chain Key","type":"string"},"executor":{"title":"Executor","type":"string"}},"required":["executor","endpoint_id","execution_chain_key"],"title":"BindingChallengeRequest","type":"object"}

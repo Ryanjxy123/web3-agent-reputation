@@ -1,39 +1,48 @@
-# Local secrets and generated runtime
+# Local secrets and configuration
 .env
 .env.*
 !.env.example
+!.env.*.example
 secrets/
 *.key
 *.pem
-configs/runtime/
+*.p12
+*.pfx
+
+# Local data and runtime
+runtime/
 artifacts/
-.bootstrap-incoming/
-# Python
+evidence/
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+*.log
+
+# Dependencies and build output
 .venv/
+node_modules/
+dist/
+build/
 __pycache__/
 *.py[cod]
+*.egg-info/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
 .coverage
 htmlcov/
-*.egg-info/
-# JS
-node_modules/
-apps/web/dist/
+coverage/
 playwright-report/
 test-results/
-# Solidity / chain runtime
+
+# Contract and editor output
 contracts/cache/
 contracts/out/
 contracts/broadcast/
-# DB, evidence and OS/editor state
-*.sqlite
-*.sqlite3
-*.db
-runtime/
 .DS_Store
 Thumbs.db
-.vscode/
 .idea/
-# Keep uv.lock, pnpm-lock.yaml and reviewed generated schemas tracked.
+.vscode/
+
+# Keep reviewed dependency lockfiles in Git once implementation starts.

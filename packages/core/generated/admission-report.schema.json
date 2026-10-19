@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "AdmissionCheck": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/CheckCode"
+        },
+        "status": {
+          "$ref": "#/$defs/Verdict"
+        },
+        "explanation": {
+          "title": "Explanation",
+          "type": "string"
+        },
+        "evidence": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence",
+          "type": "array"
+        }
+      },
+      "required": [
+        "code",
+        "status",
+        "explanation",
+        "evidence"
+      ],
+      "title": "AdmissionCheck",
+      "type": "object"
+    },
+    "CandidateAdmission": {
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "title": "Key",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "registration_reference": {
+          "title": "Registration Reference",
+          "type": "string"
+        },
+        "source_urls": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Urls",
+          "type": "array"
+        },
+        "checks": {
+          "items": {
+            "$ref": "#/$defs/AdmissionCheck"
+          },
+          "title": "Checks",
+          "type": "array"
+        },
+        "next_actions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Next Actions",
+          "type": "array"
+        },
+        "ready_for_full_score": {
+          "readOnly": true,
+          "title": "Ready For Full Score",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "key",
+        "name",
+        "registration_reference",
+        "source_urls",
+        "checks",
+        "next_actions",
+        "ready_for_full_score"
+      ],
+      "title": "CandidateAdmission",
+      "type": "object"
+    },
+    "CheckCode": {
+      "enum": [
+        "registration",
+        "functional_declaration",
+        "service_interface",
+        "independent_oracle",
+        "execution_binding",
+        "execution_history"
+      ],
+      "title": "CheckCode",
+      "type": "string"
+    },
+    "Verdict": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNKNOWN",
+        "NOT_APPLICABLE"
+      ],
+      "title": "Verdict",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "candidate-admission-v1",
+      "default": "candidate-admission-v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "assessed_at": {
+      "format": "date-time",
+      "title": "Assessed At",
+      "type": "string"
+    },
+    "candidates": {
+      "items": {
+        "$ref": "#/$defs/CandidateAdmission"
+      },
+      "title": "Candidates",
+      "type": "array"
+    }
+  },
+  "required": [
+    "assessed_at",
+    "candidates"
+  ],
+  "title": "AdmissionReport",
+  "type": "object"
+}

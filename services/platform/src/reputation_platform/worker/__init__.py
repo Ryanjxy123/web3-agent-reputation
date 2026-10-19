@@ -1,1 +1,0 @@
-"""Independent leased worker process."""

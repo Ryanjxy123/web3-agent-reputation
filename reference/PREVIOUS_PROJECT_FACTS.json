@@ -1,0 +1,39 @@
+{
+  "snapshot_kind": "historical_local_handoff",
+  "prepared_date": "2026-10-18",
+  "measurement_date": "2026-10-17",
+  "old_project_root": "D:/xjtu_project/block_chain_new",
+  "old_root_head_verified_at_handoff": "40ced482b20259ac9ba0eb2a33a531ba125ea4dc",
+  "public_directory_identities_historical": 30,
+  "public_agents_with_historical_scoped_scores": 2,
+  "batch_analysis_complete": 30,
+  "batch_unique_analyses": 30,
+  "batch_new_http200_responses": 30,
+  "batch_analyses_with_executable_suggestions": 0,
+  "batch_new_formal_scores": 0,
+  "analyses_without_claims_in_supplied_materials": 18,
+  "analyses_with_claims": 12,
+  "extracted_claims": 30,
+  "claim_level_out_of_library_gaps": 27,
+  "claim_level_needs_info_gaps": 3,
+  "no_claim_analysis_gaps": 18,
+  "independent_model_quality": "NOT_VERIFIED",
+  "historical_total_model_reservations_including_old_four": 34,
+  "historical_conservative_reserve_microusd": 1700000,
+  "actual_billed_cost_microusd": null,
+  "historical_authorized_cap_requests": 40,
+  "historical_authorized_cap_reserve_microusd": 2000000,
+  "budget_current_validity": "NOT_RECHECKED_DO_NOT_REUSE_AUTOMATICALLY",
+  "local_source_artifacts": [
+    "D:/xjtu_project/block_chain_new/runtime/declaration30-retained-results-seal-20261017-01.json",
+    "D:/xjtu_project/block_chain_new/runtime/ai-autonomous-maintenance-20261017-01/budget-application-04/receipt.json",
+    "D:/xjtu_project/block_chain_new/runtime/autonomous-site-observer-20261017-02/result.json"
+  ],
+  "interpretation": [
+    "This is a historical handoff snapshot, not a new live service or provider check.",
+    "No claims in supplied material does not prove an Agent has no functionality.",
+    "COMPLETE analysis and HTTP200 are not formal evaluation or independent accuracy.",
+    "Historical scores cover narrow functions and are not whole-Agent reputation.",
+    "Secret values, private model text, database exports and old runtime are not copied."
+  ]
+}

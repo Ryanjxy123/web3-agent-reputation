@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "BinaryPrediction": {
+      "additionalProperties": false,
+      "properties": {
+        "p_yes": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "P Yes",
+          "type": "number"
+        },
+        "p_no": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "P No",
+          "type": "number"
+        },
+        "final_outcome": {
+          "enum": [
+            "yes",
+            "no"
+          ],
+          "title": "Final Outcome",
+          "type": "string"
+        }
+      },
+      "required": [
+        "p_yes",
+        "p_no",
+        "final_outcome"
+      ],
+      "title": "BinaryPrediction",
+      "type": "object"
+    },
+    "MeasurementPurpose": {
+      "enum": [
+        "availability",
+        "functional",
+        "behavioral",
+        "background"
+      ],
+      "title": "MeasurementPurpose",
+      "type": "string"
+    },
+    "Verdict": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNKNOWN",
+        "NOT_APPLICABLE"
+      ],
+      "title": "Verdict",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "sample_id": {
+      "title": "Sample Id",
+      "type": "string"
+    },
+    "task_key": {
+      "title": "Task Key",
+      "type": "string"
+    },
+    "purpose": {
+      "$ref": "#/$defs/MeasurementPurpose"
+    },
+    "verdict": {
+      "$ref": "#/$defs/Verdict"
+    },
+    "elapsed_ms": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Elapsed Ms"
+    },
+    "reason": {
+      "title": "Reason",
+      "type": "string"
+    },
+    "evidence": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Evidence",
+      "type": "array"
+    },
+    "prediction": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/BinaryPrediction"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "sample_id",
+    "task_key",
+    "purpose",
+    "verdict",
+    "elapsed_ms",
+    "reason",
+    "evidence"
+  ],
+  "title": "ScoredSample",
+  "type": "object"
+}

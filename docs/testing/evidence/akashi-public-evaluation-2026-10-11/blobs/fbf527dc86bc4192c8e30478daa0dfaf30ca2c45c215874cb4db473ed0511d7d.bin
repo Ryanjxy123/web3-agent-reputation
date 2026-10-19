@@ -1,1 +1,0 @@
-{"capability_id":"verify_record","method":"POST","origin":"https://anchor.akashi-notari.com","path":"/mcp","protocol":"akashi-mcp-readonly-v1","request_json":{"id":1,"jsonrpc":"2.0","method":"initialize","params":{"capabilities":{},"clientInfo":{"name":"web3-agent-reputation","version":"1.0"},"protocolVersion":"2025-11-25"}},"started_at":"2026-10-11T07:40:14.820Z"}

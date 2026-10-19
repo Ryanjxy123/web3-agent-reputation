@@ -1,0 +1,25 @@
+{
+  "chain_id": 100,
+  "rpc_url": "https://rpc.gnosischain.com",
+  "snapshot_block": 48815687,
+  "snapshot_hash": "0x7311c246d521d721727a156d9f5b96102828f6ebf270c028de3defb73ad4ebe5",
+  "registry": "0x8004a169fb4a3325136eb29fa0ceb6d2e539a432",
+  "bridger": "0x6e8f740f23f07ce129daa59786926feca8c2d2f3",
+  "service_registry": "0x9338b5153ae39bb89f50468e608ed9d764b755fd",
+  "candidates": [
+    {"service_id": 2198, "mech": "0x601024e27f1c67b28209e24272ced8a31fc8151f"},
+    {"service_id": 3098, "mech": "0x33ca1e117c4254b2ee8cd7ef1621739431a37396"},
+    {"service_id": 2235, "mech": "0xb3c6319962484602b00d5587e965946890b82101"},
+    {"service_id": 2340, "mech": "0xdb78159e9246ec738f51c2c9cb1169b5c0e45fee"},
+    {"service_id": 2359, "mech": "0x818df8dcd43d716a7263798c99a2fc8e27010711"},
+    {"service_id": 2360, "mech": "0x11c4389bf449991d69f89f941c3e79d5d828f1bc"},
+    {"service_id": 3783, "mech": "0x2d64fee808fba217aee1210e3574432c31edcdab"},
+    {"service_id": 3786, "mech": "0xe444eeaa1ffd2113b273d99e21ea82d0f03bc0e0"},
+    {"service_id": 3066, "mech": "0x154e5f443d4f1e0745f91283fc3ce69afede3311"}
+  ],
+  "sources": [
+    "https://docs.gnosischain.com/tools/RPC%20Providers/",
+    "https://github.com/valory-xyz/autonolas-registries/blob/main/contracts/8004/IdentityRegistryBridger.sol",
+    "https://github.com/valory-xyz/autonolas-marketplace/blob/main/abis/0.8.28/MechFixedPriceNative.json"
+  ]
+}

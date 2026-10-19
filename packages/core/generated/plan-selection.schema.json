@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "candidate_key": {
+      "title": "Candidate Key",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "SELECTED",
+        "NEEDS_INFO",
+        "UNSUPPORTED"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "policy_id": {
+      "anyOf": [
+        {
+          "enum": [
+            "liquidity-history-v1",
+            "prediction-history-v1",
+            "prediction-history-v2"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Policy Id"
+    },
+    "claim_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Claim Ids",
+      "type": "array"
+    },
+    "reasons": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Reasons",
+      "type": "array"
+    },
+    "pending_evidence": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Pending Evidence",
+      "type": "array"
+    }
+  },
+  "required": [
+    "candidate_key",
+    "status",
+    "policy_id",
+    "claim_ids",
+    "reasons",
+    "pending_evidence"
+  ],
+  "title": "PlanSelection",
+  "type": "object"
+}

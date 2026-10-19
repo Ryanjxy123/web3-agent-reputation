@@ -1,0 +1,7 @@
+{
+  "schema_version": "capability-corpus-config-v1",
+  "phase": "documentation",
+  "source_documentation": "https://8004scan.io/developers",
+  "request_interval_seconds": 2.2,
+  "targets": [{"key": "8004scan-openapi", "resource": "openapi", "query": {}}]
+}

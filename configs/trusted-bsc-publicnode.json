@@ -1,0 +1,6 @@
+{
+  "chain_id": 56,
+  "rpc_url": "https://bsc-rpc.publicnode.com",
+  "source": "https://bsc.publicnode.com/",
+  "historical_state_support": "NOT_VERIFIED"
+}

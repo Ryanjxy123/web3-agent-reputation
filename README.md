@@ -1,62 +1,129 @@
-# web3-agent-reputation
-Multi-source evidence based reputation evaluation platform for Web3 Agents.
+# 基于多源证据的 Web3 Agent 声誉评价平台
 
-面向链上凭证查询、核验与存证 Agent 的任务级证据评价平台。
+面向公开注册的 Web3 Agent，关联注册资料、自然语言功能声明、接口、合约和历史交易，生成有证据可追溯的中文评价报告。
 
-平台已完成 M0/M1 和后续任务 1–13 的技术实现：三能力任务、四态归因、三维评分、充分度与关键风险、冻结证据包与独立复核、受控故障、HTTPS/MCP 免费只读适配、ERC-8004 身份关联、真实第三方评价闭环、正式对照实验、真实 API 前端及部署演示。任务 11 正式 v2 实验已冻结；任务 12 产品和终审修复已验收；任务 13 的部署、文档、源码打包与复现已验证。最终全量测试与 required CI 记录见 [验收记录](docs/testing/TASKS11_13_ACCEPTANCE.md)，版本、合并提交及发布状态以 [PR #12](https://github.com/Ryanjxy123/web3-agent-reputation/pull/12) 和 [GitHub Releases](https://github.com/Ryanjxy123/web3-agent-reputation/releases) 的实际记录为准。执行计划见 [PLAN.md](PLAN.md)，阶段证据见 [STATUS.md](docs/implementation/STATUS.md)。
+固定评价维度为**服务可用性、功能声明一致性、交易行为可靠性**，综合权重为30% / 40% / 30%。资料不足时明确显示缺项，不补成0分或满分。用户在网站提交注册标识后，由平台自动匹配已支持的评价方案。
 
-## 已有检查
+这是对原项目的重新实现。当前采用Vue 3 + TypeScript前端、FastAPI API、独立worker和PostgreSQL；不需要运行原项目的微服务、合约或Docker Compose。
 
-从仓库根目录执行：
+## 环境准备
 
-```powershell
-python scripts/check_bootstrap.py
-python scripts/git_doctor.py
-```
+| 工具 | 本项目使用的版本 |
+| --- | --- |
+| Python | 3.12，当前验证3.12.4 |
+| uv | 0.9.3 |
+| Node.js | 22.17.0（前端要求至少22.12） |
+| pnpm | 11.25.0，见apps/web/package.json |
+| PostgreSQL | 当前验证17.11，需一个自己的数据库与可建表账号 |
 
-前者验证评分参考、配置和算例；后者只读检查 Git。通过这些检查不代表 API、数据库、合约或端到端验收通过。
-
-## 开发入口
-
-阅读 [AGENTS.md](AGENTS.md)、[任务卡](docs/implementation/BACKLOG.md)、[Windows/Git runbook](docs/runbooks/WINDOWS_AND_GIT.md)。其他规格见 [文档导航](docs/README.md)。
-
-## 产品边界
-
-ERC-8004 注册身份、端点关联、执行者控制与本项目业务测评结论分别记录。基础演示使用本地测试链，不涉及真实资产。少量样本只生成部分评价，不降低 policy-v1 的 20/10/10 门槛；成功交易必须与当前任务独立关联。公共调用默认关闭，只允许明确授权的免费只读范围；真实 Akashi 历史验收为 4 PASS / 1 UNKNOWN，保持 PARTIAL、overall=null、executor UNKNOWN、UNANCHORED。该样本不证明长期表现或未知 hash 全链不存在。
-
-评价包含服务可用性 A、功能声明一致性 B、交易行为可靠性 T；写入画像使用 `0.30A + 0.40B + 0.30T`，只读画像使用 `0.35A + 0.65B`，T 为 NOT_APPLICABLE。充分度 Q 是覆盖、样本量和时效的最低值；所有适用维度满足充分度、覆盖与归因门槛才输出综合分。已有确定关键冲突在 PARTIAL 中仍保留风险提示。完整公式、分母与边界见 [评价规则](docs/specs/EVALUATION.md)；技术评价不是主体诚信或未来安全保证。
-
-## 当前可运行的工作空间
-
-Windows PowerShell，从仓库根目录执行（工具安装只写入 Git 忽略的 runtime/tools）：
+以下命令在**本仓库根目录**执行。示例使用PowerShell；其他系统可用同样的uv/pnpm/Python入口，数据库安装方式自行选择。
 
 ```powershell
-. ./scripts/tools.ps1 -Install
-uv sync --locked --all-packages
-uv run --all-packages python scripts/init_local.py
-uv run --all-packages python scripts/local_postgres.py init
-uv run --all-packages python scripts/local_postgres.py start
-uv run --all-packages reputation migrate
+uv sync --locked
 pnpm --dir apps/web install --frozen-lockfile
-pnpm --dir apps/web exec playwright install chromium
-uv run --all-packages python scripts/check.py
-uv run --package reputation-platform reputation doctor
+pnpm --dir apps/web run build
+Copy-Item .env.example .env
 ```
 
-doctor 会明确报告未就绪工具并返回非零；它不代表完整平台已启动。Python 使用 3.12（当前验证 3.12.4），Node 22.17.0，pnpm 10.12.4。运行环境与依赖版本见 configs/toolchain.json 和锁文件。
+编辑本机`.env`，填入自己的PostgreSQL连接信息。数据库需事先创建，账号需要创建本项目表和触发器的权限。
 
-PostgreSQL 在项目 runtime 中运行，仅监听 127.0.0.1:55432；凭证自动随机生成并被 Git 忽略。Windows 原生 PostgreSQL 对中文路径存在启动编码问题，脚本在项目所在盘根目录创建 `web3-runtime` 目录联接（本机 `D:\web3-runtime`），指向同一 runtime，不复制或移动文件，也不创建额外盘符。已有同名路径指向其他目录时会拒绝启动，不覆盖它。停止数据库使用 `uv run --all-packages python scripts/local_postgres.py stop`。测试只创建并删除自身的 reputation_test_* 临时数据库，不清空开发数据库。仅离线单元检查可运行 `uv run --all-packages pytest tests/unit tests/reference`，不能作为完整数据库验收。
+```dotenv
+REPUTATION_DATABASE_URL=postgresql://YOUR_DB_USER:YOUR_DB_PASSWORD@127.0.0.1:5432/YOUR_DATABASE
+REPUTATION_LLM_KEY_FILE=runtime/secrets/deepseek-api-key.txt
+REPUTATION_ZAN_KEY_FILE=runtime/secrets/zan-rpc-url.txt
+```
 
-领域类型生成：`uv run --all-packages python scripts/generate_schemas.py`、`pnpm --dir apps/web generate:types`。类型检查：`uv run --all-packages mypy -p reputation_core -p reputation_platform -p reputation_verifier -p fixture_agents`。
+`.env`不会被应用自动读取；下列命令通过**uv的`--env-file .env`显式加载**。也可以直接设置操作系统环境变量。不要把真实密码或密钥写进README、源码或公开配置。
 
-完整基础检查：`uv run --all-packages python scripts/check.py`，包含真实数据库集成、Schema/TS 漂移、前端和 Foundry；缺少依赖或跳过测试会失败。`check_bootstrap.py` 只检启动参考，不能替代该命令。
+## 启动与打开网站
 
-API、独立 worker、前端、本地部署/seed/A/D 服务的启动命令见 [本地运行](docs/runbooks/LOCAL_RUNTIME.md)，完整现场顺序和多 runtime 配置见 [演示 runbook](docs/runbooks/DEMO_AND_RELEASE.md)。Docker 镜像已固定 digest；本机 WSL 导入故障与历史 Linux CI 结果分别记录在 STATUS，本次完整 Compose 演示仍须由更新后的 required CI 验证。全量 pytest 使用受控端口 9101/9102，先停止 demo A/D，测试完成后再启动。Linux 浏览器测试先执行 `pnpm --dir apps/web exec playwright install --with-deps chromium` 安装 Chromium 及系统依赖。
+首次使用先建表：
 
-完成本地核验后运行 `uv run --env-file .env --all-packages python scripts/smoke_reports.py`，再运行 `uv run --env-file .env --all-packages python scripts/smoke_m1.py` 完成本地报告锚定和独立复核。独立 CLI 为 `uv run --all-packages reputation-verify <bundle.zip> [--rpc-url <trusted-rpc>]`；不提供 RPC 时链上状态为 `NOT_CHECKED`，离线通过只证明冻结包内部一致性。两份 smoke 报告的 overall_score_bp 均为 null。
+```powershell
+uv run --env-file .env --no-sync python scripts/import_local_report.py --initialize
+```
 
-免费第三方流程见 [公共只读评价](docs/runbooks/PUBLIC_READONLY_EVALUATION.md)。正式交付需按 [比赛交付检查](docs/runbooks/COMPETITION_DELIVERY.md) 核对官方规则、最终测试记录、许可与匿名要求。`scripts/package_delivery.py` 直接读取指定 commit 的 Git blob，导出保持原始字节的公共源码和 SHA-256/许可清单，排除本地未提交 runtime；生成包不代表已通过验收或已发布 Release。
+再导入随项目提供的10个真实完整评分及公开证据；此步骤离线核验，不请求RPC或LLM：
 
-## 正式对照实验
+```powershell
+uv run --env-file .env --no-sync python scripts/public_reports.py import data/public-reports-v1.tar.gz
+```
 
-[Task 11 正式 v2 报告](docs/testing/experiments/task11/formal-20261012-three-repeats-v2/analysis/report.md) 来自 12 场景 × 3 次真实 PostgreSQL/HTTP Agent/Anvil/Worker 执行，共 36 任务。共同写任务上的已知错误 Recall 为在线检测 0、receipt 检测 0、完整任务核验 1；完整核验保留 6 PASS / 15 FAIL / 12 UNKNOWN / 3 N/A。Bundle 判定/原因复核一致性为 36/36，风险一致性为 33/33，另 3 份旧版 N/A 报告无风险评估。结果只适用于这些受控场景，不表示生产准确率。原始产物、精确源码快照、方法分母和离线复现命令见 [实验说明](docs/testing/experiments/task11/README.md)，独立审查见 [Review](docs/testing/experiments/task11/REVIEW.md)。
+数据包约16.5MB，恢复公开原件到原runtime相对目录，由已有核验器重建分数后入库；不会覆盖不同内容的本地文件，也不包含个人账号或数据库。首次导入会离线核验约1.5万份依赖，本机Windows验证约12分钟，期间无需RPC或LLM账号。
+
+打开第一个终端，启动网页和API：
+
+```powershell
+uv run --env-file .env --no-sync python -m uvicorn reputation_platform.api:create_app --factory --host 127.0.0.1 --port 7754
+```
+
+打开第二个终端，在相同目录启动worker：
+
+```powershell
+uv run --env-file .env --no-sync python -m reputation_platform.worker
+```
+
+浏览器打开 **[http://127.0.0.1:7754/](http://127.0.0.1:7754/)**。无需另开Vite。两个终端应保持运行，Ctrl+C可停止对应进程。
+
+默认worker关闭公网采集，可以浏览已有数据；新提交会说明尚未开启公开取证。需要实际收集免费公共只读证据时，停止默认worker，改为：
+
+```powershell
+uv run --env-file .env --no-sync python -m reputation_platform.worker --enable-public-readonly --proxy http://127.0.0.1:7897
+```
+
+当前受控网络实现要求本机HTTP代理`127.0.0.1:7897`，不是任意代理地址均可。上述开关只开启已支持的公开只读流程，不发起付费Agent任务、签名或链上写入。
+
+网站包含“浏览Agent声誉”和“接入Agent产生评价”两个入口。目录默认按综合分从高到低排序，支持搜索、状态/范围筛选；详情包含历史报告、三维解释、样本与原始证据。可提交的规范身份示例：
+
+```text
+eip155:100:0x8004a169fb4a3325136eb29fa0ceb6d2e539a432:2359
+```
+
+示例不保证未来一定有足够证据出完整分数，平台按实际资料返回结果。
+
+## 自备RPC和LLM账号
+
+**个人账号、密钥、数据库、费用记录和私有配置不随仓库提供。其他使用者需要配置自己的服务。**
+
+| 用途 | 当前接入 | 需要准备什么 |
+| --- | --- | --- |
+| Gnosis历史查询 | 固定公开RPC `https://rpc.gnosischain.com` | 当前可使用公开端点，不必填私人账号；能否取得历史数据取决于上游可用性 |
+| BSC / Base注册及历史查询 | 已审查的ZAN固定端点 | 自己的ZAN项目；把该项目的完整Base mainnet RPC URL保存为一行文件，通过`REPUTATION_ZAN_KEY_FILE`指定 |
+| 声明提取、预测问题中文翻译 | 固定DeepSeek Responses接入，`deepseek-flash` | 自己的DeepSeek API key与可用余额；单行key文件通过`REPUTATION_LLM_KEY_FILE`指定 |
+| 平台存储 | PostgreSQL | 自己的数据库、账号、密码，通过`REPUTATION_DATABASE_URL`指定 |
+
+先创建被Git忽略的`runtime/secrets/`，用本机编辑器填入自己的文件。LLM文件存**API key**；ZAN文件存**含项目密钥的完整RPC URL**，不是裸key。只把文件路径放进环境配置，不把文件内容放到命令行、前端或GitHub PR里。
+
+凭证路径也可在相关采集CLI中通过显式`--key-file`或`--zan-key-url-file`指定，优先于环境变量。原开发机可用`runtime/platform-config/llm-key-file.txt`保存已有key文件的路径，避免复制密钥。普通网站用户不需要填写后台账号。
+
+评分计算与离线核验本身不依赖LLM直接给分；但**当前网站对新就绪预测任务会调用中文翻译步骤**，没有已验证翻译缓存时，应配置自己的DeepSeek key。仅运行网页、浏览原报告或执行不需要模型的通用资料核验，不需要模型余额。
+
+RPC不是任意供应商网关：链、端点与认证方式由后台固定白名单控制，注册资料不能指定RPC。原有`configs/`部分文件是已发布证据所绑定的历史配置，不要为了填个人密钥而改写；使用上面的本地凭证入口。更换RPC供应商需要单独适配。
+
+## 数据与当前完成范围
+
+开发机已完成10个不同真实公共Agent的完整范围评分，综合分29.8–98.71：9个复用历史预测方案，1个历史增仓特例。具体对象、真实退出码及限制见[STATUS.md](STATUS.md)。范围评分不代表Agent全部能力，历史交付文件可访问也不等于实时推理在线。
+
+**仓库包含经过审计的完整评分发布包**`data/public-reports-v1.tar.gz`，覆盖10个不同真实Agent的最新完整报告及核验必需公开证据。按上文导入后即可浏览；只浏览和核验这些已有结果不需要配置RPC或LLM密钥。
+
+未导入前新数据库为空。公开包不等于开发机的整个runtime或数据库：不包含个人密钥、私有配置、费用流水、临时日志、旧试运行报告，也不把38个候选和46份历史报告冒称全已随包分发。前端dist和依赖仍需自行安装/构建。
+
+可以在网页提交受支持身份自行取证，或导入自己合法取得的完整证据包。导入时须保留所有被manifest引用的原件及相对目录；仅有一份report.json不能替代完整证据：
+
+```powershell
+uv run --env-file .env --no-sync python scripts/import_local_report.py runtime/YOUR_REPORT_DIRECTORY
+```
+
+完整预测评分目前限已核实的Fixed Price Native/Omen/IPFS证据链；未知协议、证据不足或未适配能力会列出缺项。通用功能正确性、跨专项组合及第二独立提供方的同类完整复用仍有待完善。浏览器桌面/手机视觉验收以用户实际试用反馈继续改进；构建或HTTP成功不当作视觉验收。
+
+## 开发、验证与仓库
+
+- [PLAN.md](PLAN.md)：当前任务和推进顺序。
+- [STATUS.md](STATUS.md)：实际完成、验证记录、限制和Git/PR状态。
+- [docs/runbooks/LOCAL_PLATFORM.md](docs/runbooks/LOCAL_PLATFORM.md)：原开发机Windows快捷启动及运行记录。该快捷脚本依赖原机工具目录；其他机器优先使用本页的通用入口。
+- [GIT_SETUP.md](GIT_SETUP.md)：原项目断开远程、新实现接入及PR方式。
+- [docs/adr/](docs/adr/)：评分与证据规则；历史政策和已发布证据保持可复算。
+
+部分真实集成验收依赖未入Git的证据和独立PostgreSQL，缺少条件时应显示NOT_RUN/BLOCKED，不把skip当作完整集成通过。只运行必要受影响验证，复用已有有效结果。
+
+目标仓库：[Ryanjxy123/web3-agent-reputation](https://github.com/Ryanjxy123/web3-agent-reputation)。本次通过重构PR替换项目实现，保留远程历史，不强推main；个人密钥、私有运行目录和数据库不上传，已完成评分以独立公开证据包交付。

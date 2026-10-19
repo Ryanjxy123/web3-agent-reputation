@@ -1,0 +1,1111 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Web3 Agent 声誉评价平台",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/health": {
+      "get": {
+        "summary": "Health",
+        "operationId": "health_api_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agents": {
+      "get": {
+        "summary": "List Agents",
+        "operationId": "list_agents_api_agents_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AgentSummary"
+                  },
+                  "type": "array",
+                  "title": "Response List Agents Api Agents Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agents/{key}": {
+      "get": {
+        "summary": "Get Agent",
+        "operationId": "get_agent_api_agents__key__get",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reports/{report_id}": {
+      "get": {
+        "summary": "Get Report",
+        "operationId": "get_report_api_reports__report_id__get",
+        "parameters": [
+          {
+            "name": "report_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Report Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationReport"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reports/{report_id}/evidence": {
+      "get": {
+        "summary": "Get Evidence",
+        "operationId": "get_evidence_api_reports__report_id__evidence_get",
+        "parameters": [
+          {
+            "name": "report_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Report Id"
+            }
+          },
+          {
+            "name": "path",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "title": "Path"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/evaluations": {
+      "post": {
+        "summary": "Submit Evaluation",
+        "operationId": "submit_evaluation_api_evaluations_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvaluationSubmission"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationJob"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/jobs/{job_id}": {
+      "get": {
+        "summary": "Get Job",
+        "operationId": "get_job_api_jobs__job_id__get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationJob"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AdmissionCheck": {
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/CheckCode"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Verdict"
+          },
+          "explanation": {
+            "type": "string",
+            "title": "Explanation"
+          },
+          "evidence": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Evidence"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "status",
+          "explanation",
+          "evidence"
+        ],
+        "title": "AdmissionCheck"
+      },
+      "AgentDetail": {
+        "properties": {
+          "agent": {
+            "$ref": "#/components/schemas/AgentSummary"
+          },
+          "reports": {
+            "items": {
+              "$ref": "#/components/schemas/ReportSummary"
+            },
+            "type": "array",
+            "title": "Reports"
+          },
+          "candidate": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CandidateRecord"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "agent",
+          "reports",
+          "candidate"
+        ],
+        "title": "AgentDetail"
+      },
+      "AgentSummary": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "registration_reference": {
+            "type": "string",
+            "title": "Registration Reference"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "report_count": {
+            "type": "integer",
+            "title": "Report Count"
+          },
+          "latest_report": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReportSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "key",
+          "name",
+          "registration_reference",
+          "description",
+          "report_count",
+          "latest_report"
+        ],
+        "title": "AgentSummary"
+      },
+      "BinaryPrediction": {
+        "properties": {
+          "p_yes": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "P Yes"
+          },
+          "p_no": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "P No"
+          },
+          "final_outcome": {
+            "type": "string",
+            "enum": [
+              "yes",
+              "no"
+            ],
+            "title": "Final Outcome"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "p_yes",
+          "p_no",
+          "final_outcome"
+        ],
+        "title": "BinaryPrediction"
+      },
+      "CandidateRecord": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "registration_reference": {
+            "type": "string",
+            "title": "Registration Reference"
+          },
+          "source_urls": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Source Urls"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/AdmissionCheck"
+            },
+            "type": "array",
+            "title": "Checks"
+          },
+          "next_actions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Next Actions"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "key",
+          "name",
+          "registration_reference",
+          "source_urls",
+          "checks",
+          "next_actions"
+        ],
+        "title": "CandidateRecord"
+      },
+      "CapabilityCoverage": {
+        "properties": {
+          "capability_id": {
+            "type": "string",
+            "title": "Capability Id"
+          },
+          "operation": {
+            "type": "string",
+            "title": "Operation"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "protocol": {
+            "type": "string",
+            "title": "Protocol"
+          },
+          "tested_scope": {
+            "type": "string",
+            "title": "Tested Scope"
+          },
+          "sample_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Sample Ids"
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/ReportFinding"
+            },
+            "type": "array",
+            "title": "Findings"
+          },
+          "missing_evidence": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Missing Evidence"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "capability_id",
+          "operation",
+          "description",
+          "protocol",
+          "tested_scope",
+          "sample_ids",
+          "findings",
+          "missing_evidence"
+        ],
+        "title": "CapabilityCoverage"
+      },
+      "CheckCode": {
+        "type": "string",
+        "enum": [
+          "registration",
+          "functional_declaration",
+          "service_interface",
+          "independent_oracle",
+          "execution_binding",
+          "execution_history"
+        ],
+        "title": "CheckCode"
+      },
+      "DimensionScore": {
+        "properties": {
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "planned": {
+            "type": "integer",
+            "title": "Planned"
+          },
+          "observed": {
+            "type": "integer",
+            "title": "Observed"
+          },
+          "passed": {
+            "type": "integer",
+            "title": "Passed"
+          },
+          "failed": {
+            "type": "integer",
+            "title": "Failed"
+          },
+          "unknown": {
+            "type": "integer",
+            "title": "Unknown"
+          },
+          "not_applicable": {
+            "type": "integer",
+            "title": "Not Applicable"
+          },
+          "p95_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "P95 Ms"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "value",
+          "planned",
+          "observed",
+          "passed",
+          "failed",
+          "unknown",
+          "not_applicable",
+          "p95_ms"
+        ],
+        "title": "DimensionScore"
+      },
+      "EvaluationJob": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "reference": {
+            "type": "string",
+            "title": "Reference"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "QUEUED",
+              "RUNNING",
+              "COMPLETE",
+              "NEEDS_INFO",
+              "UNSUPPORTED",
+              "FAILED"
+            ],
+            "title": "Status"
+          },
+          "stage": {
+            "type": "string",
+            "enum": [
+              "QUEUED",
+              "COLLECTING",
+              "VERIFYING",
+              "REPORTING",
+              "DONE"
+            ],
+            "title": "Stage"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "candidate_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Candidate Key"
+          },
+          "report_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Report Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "reference",
+          "status",
+          "stage",
+          "message",
+          "candidate_key",
+          "report_id",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "EvaluationJob"
+      },
+      "EvaluationReport": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "evaluation-report-v1",
+            "title": "Schema Version",
+            "default": "evaluation-report-v1"
+          },
+          "policy_version": {
+            "type": "string",
+            "enum": [
+              "liquidity-history-v1",
+              "prediction-history-v1",
+              "prediction-history-v2",
+              "service-contract-v1"
+            ],
+            "title": "Policy Version",
+            "default": "liquidity-history-v1"
+          },
+          "candidate_key": {
+            "type": "string",
+            "title": "Candidate Key"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "registration_reference": {
+            "type": "string",
+            "title": "Registration Reference"
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Generated At"
+          },
+          "scope": {
+            "type": "string",
+            "title": "Scope"
+          },
+          "scope_exclusions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Scope Exclusions"
+          },
+          "evaluation_window": {
+            "type": "string",
+            "title": "Evaluation Window"
+          },
+          "approach": {
+            "type": "string",
+            "title": "Approach"
+          },
+          "samples": {
+            "items": {
+              "$ref": "#/components/schemas/SampleExplanation"
+            },
+            "type": "array",
+            "title": "Samples"
+          },
+          "source_references": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Source References"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Limitations"
+          },
+          "capabilities": {
+            "items": {
+              "$ref": "#/components/schemas/CapabilityCoverage"
+            },
+            "type": "array",
+            "title": "Capabilities",
+            "default": []
+          },
+          "scores": {
+            "$ref": "#/components/schemas/ScoringOutcome",
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "candidate_key",
+          "name",
+          "registration_reference",
+          "generated_at",
+          "scope",
+          "scope_exclusions",
+          "evaluation_window",
+          "approach",
+          "samples",
+          "source_references",
+          "limitations",
+          "scores"
+        ],
+        "title": "EvaluationReport"
+      },
+      "EvaluationSubmission": {
+        "properties": {
+          "reference": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Reference"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "reference"
+        ],
+        "title": "EvaluationSubmission"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthStatus": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "ok",
+            "title": "Status"
+          },
+          "database": {
+            "type": "string",
+            "const": "ready",
+            "title": "Database"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status",
+          "database"
+        ],
+        "title": "HealthStatus"
+      },
+      "MeasurementPurpose": {
+        "type": "string",
+        "enum": [
+          "availability",
+          "functional",
+          "behavioral",
+          "background"
+        ],
+        "title": "MeasurementPurpose"
+      },
+      "ReportFinding": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "verdict": {
+            "$ref": "#/components/schemas/Verdict"
+          },
+          "explanation": {
+            "type": "string",
+            "title": "Explanation"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "label",
+          "verdict",
+          "explanation"
+        ],
+        "title": "ReportFinding"
+      },
+      "ReportSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "candidate_key": {
+            "type": "string",
+            "title": "Candidate Key"
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Generated At"
+          },
+          "scope": {
+            "type": "string",
+            "title": "Scope"
+          },
+          "scores": {
+            "$ref": "#/components/schemas/ScoringOutcome"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "candidate_key",
+          "generated_at",
+          "scope",
+          "scores"
+        ],
+        "title": "ReportSummary"
+      },
+      "SampleExplanation": {
+        "properties": {
+          "sample": {
+            "$ref": "#/components/schemas/ScoredSample"
+          },
+          "observed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed At"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "input_summary": {
+            "type": "string",
+            "title": "Input Summary"
+          },
+          "claimed_output": {
+            "type": "string",
+            "title": "Claimed Output"
+          },
+          "independent_result": {
+            "type": "string",
+            "title": "Independent Result"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/ReportFinding"
+            },
+            "type": "array",
+            "title": "Checks"
+          },
+          "capability_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capability Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "sample",
+          "title",
+          "input_summary",
+          "claimed_output",
+          "independent_result",
+          "checks"
+        ],
+        "title": "SampleExplanation"
+      },
+      "ScoredSample": {
+        "properties": {
+          "sample_id": {
+            "type": "string",
+            "title": "Sample Id"
+          },
+          "task_key": {
+            "type": "string",
+            "title": "Task Key"
+          },
+          "purpose": {
+            "$ref": "#/components/schemas/MeasurementPurpose"
+          },
+          "verdict": {
+            "$ref": "#/components/schemas/Verdict"
+          },
+          "elapsed_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Elapsed Ms"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "evidence": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Evidence"
+          },
+          "prediction": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BinaryPrediction"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "sample_id",
+          "task_key",
+          "purpose",
+          "verdict",
+          "elapsed_ms",
+          "reason",
+          "evidence"
+        ],
+        "title": "ScoredSample"
+      },
+      "ScoringOutcome": {
+        "properties": {
+          "policy_version": {
+            "type": "string",
+            "enum": [
+              "liquidity-history-v1",
+              "prediction-history-v1",
+              "prediction-history-v2",
+              "service-contract-v1"
+            ],
+            "title": "Policy Version",
+            "default": "liquidity-history-v1"
+          },
+          "availability": {
+            "$ref": "#/components/schemas/DimensionScore"
+          },
+          "functional": {
+            "$ref": "#/components/schemas/DimensionScore"
+          },
+          "behavioral": {
+            "$ref": "#/components/schemas/DimensionScore"
+          },
+          "overall": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Overall"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "COMPLETE",
+              "PARTIAL",
+              "NOT_EVALUATED"
+            ],
+            "title": "Status"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "availability",
+          "functional",
+          "behavioral",
+          "overall",
+          "status"
+        ],
+        "title": "ScoringOutcome"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "Verdict": {
+        "type": "string",
+        "enum": [
+          "PASS",
+          "FAIL",
+          "UNKNOWN",
+          "NOT_APPLICABLE"
+        ],
+        "title": "Verdict"
+      }
+    }
+  }
+}

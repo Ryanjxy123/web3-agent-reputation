@@ -1,312 +1,306 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue';
-import type { components } from './api/generated/schema';
-import { downloadBundle, optionalJson, pollEvaluation, requestAllPages, requestJson, terminalStatuses, updateIfCurrent, type AgentPage, type SnapshotPage, type ReportPage, type AgentView, type AgentSnapshot, type EvaluationRun, type ReportView, type Observation, type RunPlan, type RecordVerificationResult, type ExecutorBinding, type ReadonlyIdentityAssociation, type AcceptedEvaluation, type AcceptedJob } from './api/client';
-import { dimensionLabels, evaluationRequest, readVerifierCliFile, reportComparison, reportSampleSections, scoreLabel, taskEvidenceSections, verifierHashMatch, type VerifierCliResult } from './model';
-import { checkConnection, type Connection } from './status';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import type { AgentDetail, AgentSummary, EvaluationJob, EvaluationReport } from './contracts'
+import { ApiError, asApiError, getAgent, getAgents, getJob, getReport, submitEvaluation } from './api'
+import { checkLabel, jobLabel, score, stageLabel, when } from './format'
+import ErrorNotice from './components/ErrorNotice.vue'
+import EvidenceList from './components/EvidenceList.vue'
+import ReportView from './components/ReportView.vue'
+import StatusBadge from './components/StatusBadge.vue'
 
-type Tab = 'agent' | 'evaluation' | 'evidence' | 'history';
-const connection = ref<Connection>('checking');
-const activeTab = ref<Tab>('agent');
-const operatorToken = ref('');
-const chainId = ref('31337');
-const agentNumber = ref('1');
-const registryAddress = ref('');
-const lookupAgentId = ref('');
-const lookupRunId = ref('');
-const startSnapshotId = ref('');
-const reviewVersion = ref(1);
-const grants = ref('');
-const publicReadonly = ref(false);
-const suiteId = ref<'m1-smoke-v1' | 'capabilities-v1'>('m1-smoke-v1');
-const capabilityId = ref<components['schemas']['EvaluationCreate']['capability_id']>('anchor_record');
-const queryTxHash = ref('');
-const targetContract = ref('');
-const recordExecutor = ref('');
-const recordRequestId = ref('');
-const recordHash = ref('');
-const idempotencyKey = ref(crypto.randomUUID());
-const agent = ref<AgentView | null>(null);
-const agents = ref<AgentView[]>([]);
-const snapshots = ref<AgentSnapshot[]>([]);
-const snapshot = ref<AgentSnapshot | null>(null);
-const bindings = ref<ExecutorBinding[]>([]);
-const associations = ref<ReadonlyIdentityAssociation[]>([]);
-const evaluation = ref<EvaluationRun | null>(null);
-const report = ref<ReportView | null>(null);
-const reportJob = ref<components['schemas']['JobView'] | null>(null);
-let acceptedReportJob: AcceptedJob | null = null;
-let missingReportAttempts = 0;
-const history = ref<ReportView[]>([]);
-const comparisonId = ref('');
-const anchor = ref<components['schemas']['AnchorReceipt'] | null>(null);
-const observations = ref<Observation[]>([]);
-const verification = ref<RecordVerificationResult[]>([]);
-const plan = ref<RunPlan | null>(null);
-const busy = ref(false);
-const message = ref('');
-const error = ref('');
-const taskEvidence = ref<components['schemas']['EvidencePacket'] | null>(null);
-const evidenceSections = ref<ReturnType<typeof taskEvidenceSections> | null>(null);
-const verifierImport = ref<VerifierCliResult | null>(null);
-const verifierFileName = ref('');
-const verifierImportError = ref('');
-let pollTimer: ReturnType<typeof setTimeout> | undefined;
-let pollAbort: AbortController | undefined;
-let runGeneration = 0;
-let agentGeneration = 0;
-let evidenceGeneration = 0;
-let awaitingReport = false;
-let verifierImportGeneration = 0;
-const labels: Record<Connection, string> = { checking: '正在连接平台', connected: '平台进程已连接', unavailable: '平台尚未连接' };
-const sampleSections = computed(() => report.value ? reportSampleSections(report.value) : null);
-const comparison = computed(() => history.value.find(item => item.report_id === comparisonId.value));
-const comparisonReason = computed(() => report.value && comparison.value ? reportComparison(report.value, comparison.value) : null);
-const verifierHashState = computed(() => verifierHashMatch(verifierImport.value, report.value?.report_hash ?? null));
-const verifierHashLabel = computed(() => ({ MATCH: 'MATCH：与当前平台报告摘要一致', MISMATCH: 'MISMATCH：与当前平台报告摘要不一致，不能归因到当前报告', NO_HASH: '未提供 report_hash，无法确认对应当前报告', NO_REPORT: '尚未选择平台报告，无法比对 report_hash' }[verifierHashState.value]));
-const declaredCapabilities = computed(() => {
-  const value = snapshot.value?.core.normalized_metadata.capabilities;
-  return Array.isArray(value) ? value.filter(item => typeof item === 'string').join('、') : '未提供结构化能力声明';
-});
-const executorState = computed(() => snapshot.value?.core.source_type === 'public_registry' ? 'UNKNOWN（公共只读关联不证明执行者）' : bindings.value.some(item => item.status === 'VERIFIED') ? 'VERIFIED（历史签名已核验，非当前授权）' : 'UNKNOWN');
-const isTerminal = computed(() => evaluation.value ? terminalStatuses.has(evaluation.value.status) : false);
-function short(value: string | null | undefined): string { return value ? value.length > 22 ? `${value.slice(0, 12)}…${value.slice(-6)}` : value : '—'; }
-function newEvaluationKey() { idempotencyKey.value = crypto.randomUUID(); }
-function notice(cause: unknown) { error.value = cause instanceof Error ? cause.message : '请求失败。'; }
-function clearNotice() { error.value = ''; message.value = ''; }
-function resetVerifierImport() { verifierImportGeneration += 1; verifierImport.value = null; verifierFileName.value = ''; verifierImportError.value = ''; }
-async function action(work: () => Promise<void>): Promise<boolean> { clearNotice(); busy.value = true; try { await work(); return true; } catch (cause) { notice(cause); return false; } finally { busy.value = false; } }
-function requireOperator() { if (!operatorToken.value.trim()) throw new Error('此操作需要本次会话的本地 Operator token。'); }
-async function refreshConnection() { connection.value = 'checking'; connection.value = await checkConnection(); }
-async function listAgents() { agents.value = await requestAllPages<AgentPage>('/api/v1/agents'); }
-async function registerAgent() { await action(async () => {
-  requireOperator();
-  const created = await requestJson<AgentView>('/api/v1/agents', { method: 'POST', token: operatorToken.value,
-    body: { agent_ref: { namespace: 'eip155', chain_id: chainId.value.trim(), registry_address: registryAddress.value.trim(), agent_id: agentNumber.value.trim() } } satisfies components['schemas']['AgentCreate'] });
-  await listAgents(); if (await loadAgent(created.id)) message.value = 'Agent 已登记，可刷新身份快照。';
-}); }
-async function refreshAgent() { await action(async () => {
-  requireOperator(); if (!agent.value) return;
-  const queued = await requestJson<AcceptedJob>(`/api/v1/agents/${agent.value.id}/refresh`, { method: 'POST', token: operatorToken.value, body: {} });
-  message.value = `身份刷新任务 ${queued.job_id} 已排队，完成后重新查询 Agent。`;
-}); }
-async function loadAgent(id = lookupAgentId.value) { return action(async () => {
-  if (!id.trim()) throw new Error('请输入 Agent UUID。');
-  const generation = ++agentGeneration;
-  clearRunContext();
-  agent.value = null; snapshot.value = null; snapshots.value = []; bindings.value = []; associations.value = []; history.value = []; startSnapshotId.value = '';
-  const value = await requestJson<AgentView>(`/api/v1/agents/${encodeURIComponent(id.trim())}`);
-  if (generation !== agentGeneration) return;
-  agent.value = value; lookupAgentId.value = value.id; publicReadonly.value = value.source_type === 'public_registry';
-  const [versions, reports] = await Promise.all([
-    requestAllPages<SnapshotPage>(`/api/v1/agents/${value.id}/snapshots`),
-    requestAllPages<ReportPage>(`/api/v1/agents/${value.id}/reports`),
-  ]);
-  if (generation !== agentGeneration) return;
-  snapshots.value = versions; history.value = reports;
-  if (value.current_snapshot_id) await loadSnapshot(value.current_snapshot_id);
-  message.value = 'Agent 和历史记录已从平台加载。';
-}); }
-async function loadSnapshot(id: string) {
-  snapshot.value = null; bindings.value = []; associations.value = []; startSnapshotId.value = '';
-  const generation = ++agentGeneration;
-  const value = await requestJson<AgentSnapshot>(`/api/v1/snapshots/${encodeURIComponent(id)}`);
-  if (generation !== agentGeneration) return;
-  snapshot.value = value; startSnapshotId.value = value.snapshot_id;
-  if (value.core.source_type === 'public_registry') {
-    const reads = await Promise.all(value.core.endpoints.filter(endpoint => endpoint.protocol !== 'controlled-http-v1').map(endpoint => optionalJson<ReadonlyIdentityAssociation>(`/api/v1/snapshots/${value.snapshot_id}/readonly-association?protocol=${endpoint.protocol}`)));
-    if (generation === agentGeneration) associations.value = reads.filter((item): item is ReadonlyIdentityAssociation => item !== null);
-  } else {
-    const proofs = await requestJson<ExecutorBinding[]>(`/api/v1/snapshots/${value.snapshot_id}/bindings`);
-    if (generation === agentGeneration) bindings.value = proofs;
+const view = ref<'browse' | 'detail' | 'submit'>('browse')
+const agents = ref<AgentSummary[]>([])
+const search = ref('')
+const statusFilter = ref<'all' | 'COMPLETE' | 'PARTIAL' | 'NOT_EVALUATED'>('all')
+const scopeFilter = ref('all')
+const directorySort = ref<'updated' | 'score-desc' | 'score-asc' | 'name'>('score-desc')
+const scopeLabels = {
+  prediction: '历史预测', liquidity: '历史增仓', generic: '通用服务',
+  unknown: '范围待确认', unreported: '尚无报告范围',
+}
+const nameOrder = new Intl.Collator('zh-CN', { numeric: true, sensitivity: 'base' })
+const directoryLoading = ref(true)
+const directoryError = ref<ApiError | null>(null)
+const pageLoading = ref(false)
+const pageError = ref<ApiError | null>(null)
+const detail = ref<AgentDetail | null>(null)
+const report = ref<EvaluationReport | null>(null)
+const reportId = ref('')
+const reference = ref('')
+const submitting = ref(false)
+const submissionError = ref<ApiError | null>(null)
+const job = ref<EvaluationJob | null>(null)
+const jobError = ref<ApiError | null>(null)
+const completedCount = computed(() => agents.value.filter(agent => agent.latest_report?.scores.status === 'COMPLETE').length)
+const exampleAgent = computed(() => agents.value.find(agent => agent.latest_report && agent.registration_reference.startsWith('eip155:'))
+  ?? agents.value.find(agent => agent.registration_reference.startsWith('eip155:')))
+const scopeOptions = computed(() => {
+  const present = new Set(agents.value.map(evaluationScope))
+  return (Object.keys(scopeLabels) as Array<keyof typeof scopeLabels>)
+    .filter(value => present.has(value)).map(value => ({ value, label: scopeLabels[value] }))
+})
+const hasDirectoryConditions = computed(() => search.value !== '' || statusFilter.value !== 'all'
+  || scopeFilter.value !== 'all' || directorySort.value !== 'score-desc')
+const matches = computed(() => {
+  const needle = search.value.trim().toLocaleLowerCase()
+  return agents.value.filter(agent => [agent.name, agent.description, agent.registration_reference, agent.key]
+    .some(value => value.toLocaleLowerCase().includes(needle))
+    && (statusFilter.value === 'all' || evaluationStatus(agent) === statusFilter.value)
+    && (scopeFilter.value === 'all' || evaluationScope(agent) === scopeFilter.value))
+    .sort(compareAgents)
+})
+const jobActive = computed(() => job.value?.status === 'QUEUED' || job.value?.status === 'RUNNING')
+const stages = ['QUEUED', 'COLLECTING', 'VERIFYING', 'REPORTING'] as const
+let routeVersion = 0
+let routeAbort: AbortController | undefined
+let pollingGeneration = 0
+let pollTimer: ReturnType<typeof setTimeout> | undefined
+
+function evaluationStatus(agent: AgentSummary) {
+  return agent.latest_report?.scores.status ?? 'NOT_EVALUATED'
+}
+
+function evaluationScope(agent: AgentSummary): keyof typeof scopeLabels {
+  if (!agent.latest_report) return 'unreported'
+  switch (agent.latest_report.scores.policy_version) {
+    case 'prediction-history-v1':
+    case 'prediction-history-v2': return 'prediction'
+    case 'liquidity-history-v1': return 'liquidity'
+    case 'service-contract-v1': return 'generic'
+    default: return 'unknown'
   }
 }
-function stopPolling() { if (pollTimer) clearTimeout(pollTimer); pollTimer = undefined; pollAbort?.abort(); pollAbort = undefined; }
-function clearRunContext() {
-  stopPolling(); const generation = ++runGeneration;
-  evaluation.value = null; report.value = null; anchor.value = null; observations.value = []; verification.value = []; plan.value = null;
-  taskEvidence.value = null; evidenceSections.value = null; resetVerifierImport(); lookupRunId.value = '';
-  awaitingReport = false; acceptedReportJob = null; reportJob.value = null; missingReportAttempts = 0;
-  return generation;
+
+function compareAgents(left: AgentSummary, right: AgentSummary): number {
+  const byName = () => nameOrder.compare(left.name, right.name) || nameOrder.compare(left.key, right.key)
+  if (directorySort.value === 'name') return byName()
+  if (directorySort.value === 'score-desc' || directorySort.value === 'score-asc') {
+    const a = left.latest_report?.scores.overall
+    const b = right.latest_report?.scores.overall
+    if (a == null && b != null) return 1
+    if (a != null && b == null) return -1
+    if (a != null && b != null && a !== b) return directorySort.value === 'score-asc' ? a - b : b - a
+  }
+  const a = left.latest_report ? Date.parse(left.latest_report.generated_at) : NaN
+  const b = right.latest_report ? Date.parse(right.latest_report.generated_at) : NaN
+  if (Number.isNaN(a) && !Number.isNaN(b)) return 1
+  if (!Number.isNaN(a) && Number.isNaN(b)) return -1
+  return (!Number.isNaN(a) && !Number.isNaN(b) && a !== b) ? b - a : byName()
 }
-async function refreshRun(id: string, generation: number, current?: EvaluationRun) {
-  const base = `/api/v1/evaluations/${encodeURIComponent(id)}`;
-  const run = current ?? await requestJson<EvaluationRun>(base);
-  const [obs, runPlan, results, runReport] = await Promise.all([
-    optionalJson<Observation[]>(`${base}/observations`), optionalJson<RunPlan>(`${base}/plan`),
-    optionalJson<RecordVerificationResult | RecordVerificationResult[]>(`${base}/verification`), optionalJson<ReportView>(`${base}/report`),
-  ]);
-  if (generation !== runGeneration) return null;
-  evaluation.value = run; observations.value = obs ?? []; plan.value = runPlan;
-  if (report.value?.report_id !== runReport?.report_id) resetVerifierImport();
-  verification.value = results ? Array.isArray(results) ? results : [results] : []; report.value = runReport;
-  if (awaitingReport && acceptedReportJob && !runReport) {
-    const job = await requestJson<components['schemas']['JobView']>(acceptedReportJob.status_url, { token: operatorToken.value });
-    if (generation !== runGeneration) return null;
-    reportJob.value = job;
-    if (job.state === 'FAILED' || job.state === 'CANCELLED') {
-      awaitingReport = false;
-      throw new Error(`报告任务 ${job.state}：${job.reason_code ?? '后端未返回原因'}`);
-    }
-    if (job.state === 'SUCCEEDED' && ++missingReportAttempts > 5) {
-      awaitingReport = false;
-      throw new Error('报告任务已完成但报告仍不可读取，请重新查询并检查平台日志。');
-    }
-  }
-  if (runReport) {
-    await updateIfCurrent(optionalJson<components['schemas']['AnchorReceipt']>(`/api/v1/reports/${runReport.report_id}/anchor`),
-      () => generation === runGeneration && report.value?.report_id === runReport.report_id,
-      value => { anchor.value = value; awaitingReport = false; });
-  }
-  if (generation !== runGeneration) return null;
-  if (awaitingReport) {
-    pollTimer = setTimeout(() => { refreshRun(id, generation).catch(cause => {
-      if (generation === runGeneration) { notice(cause); stopPolling(); }
-    }); }, 2000);
-  }
-  return run;
+
+function clearDirectoryConditions() {
+  search.value = ''
+  statusFilter.value = 'all'
+  scopeFilter.value = 'all'
+  directorySort.value = 'score-desc'
 }
-async function loadEvaluation(id = lookupRunId.value) { return action(async () => {
-  if (!id.trim()) throw new Error('请输入 Run UUID。');
-  const generation = clearRunContext(); lookupRunId.value = id.trim();
-  await updateIfCurrent(refreshRun(id.trim(), generation), () => generation === runGeneration, loaded => {
-    activeTab.value = 'evaluation';
-    if (loaded && !terminalStatuses.has(loaded.status)) {
-      pollAbort = new AbortController();
-      const signal = pollAbort.signal;
-      pollTimer = setTimeout(() => {
-        pollEvaluation(id.trim(), { signal, onUpdate: async run => { await refreshRun(id.trim(), generation, run); } }).catch(cause => {
-          if (!signal.aborted) { notice(cause); stopPolling(); }
-        });
-      }, 2000);
-    }
-  });
-}); }
-async function startEvaluation() { await action(async () => {
-  requireOperator();
-  const request = evaluationRequest({ snapshotId: startSnapshotId.value, reviewVersion: reviewVersion.value, grantIds: grants.value.split(/[\s,]+/).filter(Boolean), publicReadonly: publicReadonly.value,
-    suiteId: suiteId.value, capabilityId: capabilityId.value, queryTxHash: queryTxHash.value, targetContract: targetContract.value,
-    recordExecutor: recordExecutor.value, recordRequestId: recordRequestId.value, recordHash: recordHash.value });
-  const accepted = await requestJson<AcceptedEvaluation>(request.path, { method: 'POST', token: operatorToken.value, body: request.body, idempotencyKey: idempotencyKey.value });
-  if (await loadEvaluation(accepted.run_id)) message.value = `评价已排队：${accepted.run_id}。后端仍核对授权、快照和配额。`;
-}); }
-async function cancelEvaluation() { await action(async () => {
-  requireOperator(); if (!evaluation.value) return;
-  const id = evaluation.value.run_id; const generation = runGeneration;
-  const isCurrent = () => generation === runGeneration && evaluation.value?.run_id === id;
-  await updateIfCurrent(requestJson<EvaluationRun>(`/api/v1/evaluations/${id}/cancel`, { method: 'POST', token: operatorToken.value, body: { reason: 'Cancelled from local operator dashboard' } }), isCurrent, () => {});
-  if (!isCurrent()) return;
-  const reloadGeneration = runGeneration + 1;
-  if (await loadEvaluation(id) && runGeneration === reloadGeneration && evaluation.value?.run_id === id) message.value = '取消请求已提交；已发生的任务和证据保留。';
-}); }
-async function requestReport() { await action(async () => {
-  requireOperator(); if (!evaluation.value) return;
-  const id = evaluation.value.run_id; const generation = runGeneration;
-  const isCurrent = () => generation === runGeneration && evaluation.value?.run_id === id;
-  await updateIfCurrent(requestJson<AcceptedJob>(`/api/v1/evaluations/${id}/report`, { method: 'POST', token: operatorToken.value }), isCurrent,
-    accepted => { acceptedReportJob = accepted; reportJob.value = null; missingReportAttempts = 0; awaitingReport = true; stopPolling(); });
-  if (!isCurrent()) return;
-  await updateIfCurrent(refreshRun(id, generation), isCurrent, () => { message.value = '报告生成任务已排队。'; });
-}); }
-async function selectReport(item: ReportView) {
-  const generation = clearRunContext(); report.value = item;
-  activeTab.value = 'evidence';
+
+function stopPolling() {
+  pollingGeneration += 1
+  if (pollTimer !== undefined) clearTimeout(pollTimer)
+  pollTimer = undefined
+}
+
+function navigate(parameters: Record<string, string> = {}) {
+  const query = new URLSearchParams(parameters).toString()
+  history.pushState(null, '', location.pathname + (query ? '?' + query : ''))
+  void loadRoute()
+  window.scrollTo({ top: 0, behavior: 'instant' })
+}
+
+function openAgent(key: string, id?: string) {
+  navigate(id ? { agent: key, report: id } : { agent: key })
+}
+
+function openSubmission(value?: string) {
+  if (value !== undefined) reference.value = value.startsWith('eip155:') ? value : ''
+  submissionError.value = null
+  navigate({ view: 'submit' })
+}
+
+async function loadAgents() {
+  directoryLoading.value = true
+  directoryError.value = null
+  try { agents.value = await getAgents() }
+  catch (error) { directoryError.value = asApiError(error) }
+  finally { directoryLoading.value = false }
+}
+
+function applyJob(updated: EvaluationJob) {
+  job.value = updated
+  jobError.value = null
+  stopPolling()
+  if (updated.status === 'COMPLETE' && updated.candidate_key && updated.report_id) {
+    void loadAgents()
+    openAgent(updated.candidate_key, updated.report_id)
+  } else if (updated.status === 'QUEUED' || updated.status === 'RUNNING') {
+    const generation = pollingGeneration
+    pollTimer = setTimeout(() => { void pollJob(updated.id, generation) }, 2000)
+  }
+}
+
+async function pollJob(id: string, generation: number) {
+  if (generation !== pollingGeneration) return
   try {
-    await updateIfCurrent(optionalJson<components['schemas']['AnchorReceipt']>(`/api/v1/reports/${item.report_id}/anchor`),
-      () => generation === runGeneration && report.value?.report_id === item.report_id, value => { anchor.value = value; });
-  } catch (cause) { notice(cause); }
-}
-async function importVerifierFile(event: Event) {
-  const input = event.target as HTMLInputElement;
-  const file = input.files?.[0];
-  input.value = '';
-  const generation = ++verifierImportGeneration;
-  verifierImport.value = null; verifierImportError.value = ''; verifierFileName.value = file?.name ?? '';
-  if (!file) return;
-  try {
-    const result = await readVerifierCliFile(file);
-    if (generation === verifierImportGeneration) verifierImport.value = result;
-  } catch (cause) {
-    if (generation === verifierImportGeneration) verifierImportError.value = cause instanceof Error ? cause.message : 'Verifier 文件读取失败。';
+    const updated = await getJob(id)
+    if (generation === pollingGeneration) applyJob(updated)
+  } catch (error) {
+    if (generation === pollingGeneration) {
+      jobError.value = asApiError(error)
+      stopPolling()
+    }
   }
 }
-async function loadTaskEvidence(evidenceId: string) { await action(async () => {
-  if (!report.value) return;
-  const reportId = report.value.report_id; const generation = runGeneration; const selectedEvidence = ++evidenceGeneration;
-  taskEvidence.value = null; evidenceSections.value = null;
-  await updateIfCurrent(requestJson<components['schemas']['EvidencePacket']>(`/api/v1/reports/${reportId}/evidence/${evidenceId}`),
-    () => generation === runGeneration && selectedEvidence === evidenceGeneration && report.value?.report_id === reportId,
-    value => { evidenceSections.value = taskEvidenceSections(value); taskEvidence.value = value; });
-}); }
-async function downloadEvidence() { await action(async () => {
-  if (!report.value) return;
-  const reportId = report.value.report_id; const url = URL.createObjectURL(await downloadBundle(reportId));
-  const link = document.createElement('a'); link.href = url; link.download = `report-${reportId}.zip`; link.click(); URL.revokeObjectURL(url);
-  message.value = '证据包已开始下载。';
-}); }
-onMounted(() => { refreshConnection(); listAgents().catch(notice); });
-onUnmounted(() => { stopPolling(); ++runGeneration; ++agentGeneration; });
+
+async function resumeJob() {
+  if (!job.value || !jobActive.value) return
+  jobError.value = null
+  await pollJob(job.value.id, pollingGeneration)
+}
+
+async function loadRoute() {
+  const version = ++routeVersion
+  stopPolling()
+  routeAbort?.abort()
+  routeAbort = new AbortController()
+  const signal = routeAbort.signal
+  const parameters = new URLSearchParams(location.search)
+  pageError.value = null
+  pageLoading.value = false
+  if (parameters.has('agent')) {
+    view.value = 'detail'
+    detail.value = null
+    report.value = null
+    pageLoading.value = true
+    try {
+      const found = await getAgent(parameters.get('agent')!, signal)
+      if (version !== routeVersion) return
+      detail.value = found
+      reportId.value = parameters.get('report') || found.agent.latest_report?.id || found.reports[0]?.id || ''
+      if (reportId.value) {
+        if (!found.reports.some(item => item.id === reportId.value)) {
+          throw new ApiError('这份报告不属于当前 Agent，请选择下面已有的报告。', 'Report identifier is not in this agent’s report history')
+        }
+        const selected = await getReport(reportId.value, signal)
+        if (version === routeVersion) report.value = selected
+      }
+    } catch (error) {
+      if (version === routeVersion && !signal.aborted) pageError.value = asApiError(error)
+    } finally { if (version === routeVersion) pageLoading.value = false }
+  } else if (parameters.get('view') === 'submit' || parameters.has('job')) {
+    view.value = 'submit'
+    job.value = null
+    jobError.value = null
+    if (parameters.has('job')) {
+      pageLoading.value = true
+      try {
+        const updated = await getJob(parameters.get('job')!, signal)
+        if (version === routeVersion) applyJob(updated)
+      } catch (error) {
+        if (version === routeVersion && !signal.aborted) pageError.value = asApiError(error)
+      } finally { if (version === routeVersion) pageLoading.value = false }
+    }
+  } else view.value = 'browse'
+}
+
+async function submit() {
+  if (!reference.value.trim() || submitting.value) return
+  submitting.value = true
+  submissionError.value = null
+  const version = routeVersion
+  try {
+    const created = await submitEvaluation({ reference: reference.value.trim() })
+    if (version === routeVersion) navigate({ view: 'submit', job: created.id })
+  } catch (error) {
+    if (version === routeVersion) submissionError.value = asApiError(error)
+  } finally { submitting.value = false }
+}
+
+onMounted(() => {
+  void loadAgents()
+  void loadRoute()
+  window.addEventListener('popstate', loadRoute)
+})
+onBeforeUnmount(() => {
+  stopPolling()
+  routeAbort?.abort()
+  window.removeEventListener('popstate', loadRoute)
+})
 </script>
 
 <template>
-  <main class="shell">
-    <header class="hero">
-      <div><p class="eyebrow">WEB3 AGENT REPUTATION · LOCAL DEMO</p><h1>Agent 声誉评价工作台</h1><p>身份、真实履约、独立链上核验与冻结证据，使用平台真实 API。</p></div>
-      <div class="connection" :class="connection"><span class="dot"></span>{{ labels[connection] }}<button class="link-button" @click="refreshConnection">重试</button></div>
-    </header>
-    <section class="operator card"><label>本地 Operator token（仅当前页面内存）<input v-model="operatorToken" type="password" autocomplete="off" placeholder="写操作需要 Operator 认证" /></label><small>后端继续执行身份、授权、配额和免费只读策略校验。</small></section>
-    <nav class="tabs" aria-label="评价模块"><button :class="{ selected: activeTab === 'agent' }" @click="activeTab = 'agent'">Agent 与身份</button><button :class="{ selected: activeTab === 'evaluation' }" @click="activeTab = 'evaluation'">任务评价</button><button :class="{ selected: activeTab === 'evidence' }" @click="activeTab = 'evidence'">声誉与证据</button><button :class="{ selected: activeTab === 'history' }" @click="activeTab = 'history'">历史对比</button></nav>
-    <p v-if="message" class="notice success" role="status">{{ message }}</p><p v-if="error" class="notice error" role="alert">{{ error }}</p><p v-if="busy" role="status">正在请求平台…</p>
+  <div class="app-shell">
+    <a class="skip-link" href="#main">跳到主要内容</a>
+    <header class="site-header"><div class="header-inner">
+      <a href="?" class="brand" @click.prevent="navigate()"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="m16 3 11 6.5v13L16 29 5 22.5v-13L16 3Z" stroke="currentColor" stroke-width="1.6"/><path d="m10.5 16 3.7 3.7 7.3-7.4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Agent 声誉<span class="brand-subtitle">WEB3 · 多源证据评价</span></span></a>
+      <nav aria-label="主导航"><button :aria-current="view !== 'submit' ? 'page' : undefined" @click="navigate()">浏览 Agent</button><button :aria-current="view === 'submit' ? 'page' : undefined" @click="openSubmission()">接入并评价</button></nav>
+      <span class="local-indicator"><i aria-hidden="true"></i>本机运行</span>
+    </div></header>
 
-    <section v-if="activeTab === 'agent'" class="stack">
-      <article class="card">
-        <div class="section-heading"><div><p class="eyebrow">ERC-8004</p><h2>Agent 管理</h2></div><button :disabled="busy" @click="action(listAgents)">刷新列表</button></div>
-        <div v-if="agents.length" class="agent-list"><button v-for="item in agents" :key="item.id" class="agent-choice" :disabled="busy" @click="loadAgent(item.id)"><strong>Agent #{{ item.agent_ref.agent_id }} · {{ short(item.id) }}</strong><span>{{ item.source_type === 'controlled' ? '受控 Agent' : item.source_type === 'public_registry' ? '真实第三方 Agent' : '证据重放' }} · {{ item.status }}</span></button></div><p v-else class="empty">尚无已登记 Agent。</p>
-        <div class="form-grid"><label>Agent UUID<input v-model="lookupAgentId" /></label><button :disabled="busy" @click="loadAgent()">查询</button></div>
-        <details><summary>登记 Agent</summary><div class="form-grid three"><label>Chain ID<input v-model="chainId" /></label><label>Registry address<input v-model="registryAddress" /></label><label>链上 Agent ID<input v-model="agentNumber" /></label></div><button :disabled="busy || !operatorToken" @click="registerAgent">登记</button></details>
-      </article>
-      <article class="card">
-        <div class="section-heading"><h2>身份、版本与能力声明</h2><button v-if="agent" :disabled="busy || !operatorToken" @click="refreshAgent">刷新链上身份</button></div>
-        <p v-if="!agent" class="empty">选择 Agent 后显示实际身份状态。</p>
-        <template v-else>
-          <div class="facts"><div><span>ERC-8004 身份</span><strong>{{ agent.agent_ref.chain_id }} / #{{ agent.agent_ref.agent_id }}</strong><small>{{ agent.agent_ref.registry_address }}</small></div><div><span>平台身份状态</span><strong>{{ agent.status }}</strong></div><div><span>当前快照 UUID</span><strong>{{ agent.current_snapshot_id ?? '尚未采集' }}</strong></div></div>
-          <label v-if="snapshots.length" class="history-select">查看快照版本<select :value="snapshot?.snapshot_id" @change="action(() => loadSnapshot(($event.target as HTMLSelectElement).value))"><option v-for="item in snapshots" :key="item.snapshot_id" :value="item.snapshot_id">{{ item.core.captured_at }} · revision {{ item.core.registry_revision }} · {{ short(item.snapshot_hash) }}</option></select></label>
-          <template v-if="snapshot">
-            <div class="facts"><div><span>Owner</span><strong>{{ snapshot.core.owner }}</strong></div><div><span>链上读取</span><strong>Block {{ snapshot.core.read_block_number }}</strong><small>{{ short(snapshot.core.read_block_hash) }}</small></div><div><span>执行者绑定</span><strong>{{ executorState }}</strong><small>声明执行者：{{ snapshot.core.declared_executor ?? 'UNKNOWN' }}</small></div></div>
-            <p>能力声明：{{ declaredCapabilities }}</p><p class="hint">能力声明与支持端点是待评价输入，业务履约由任务证据核验。</p>
-            <div class="capabilities"><span v-for="endpoint in snapshot.core.endpoints" :key="endpoint.endpoint_id" class="pill">{{ endpoint.endpoint_id }} · {{ endpoint.protocol }} · {{ endpoint.scheme }}://{{ endpoint.host }}:{{ endpoint.port }}{{ endpoint.path }}</span></div>
-            <div v-for="item in bindings" :key="item.binding_id" class="observation"><strong>{{ item.status }}</strong><span>Executor {{ item.message.executor }}</span><span>{{ item.reason_code ?? '历史签名已核验' }}</span><small>绑定期限（Unix 秒）{{ item.message.deadline }} · 当前执行仍由后端检查时效与授权</small></div>
-            <div v-for="item in associations" :key="item.protocol" class="observation"><strong>{{ item.protocol }}</strong><span>注册 {{ item.registration_outcome }} · 端点 {{ item.endpoint_outcome }}</span><span>Executor {{ item.executor_outcome }}</span><small>{{ item.registration_reason ?? item.endpoint_reason ?? item.executor_reason }}</small></div>
-          </template>
+    <main id="main" class="main-container">
+      <template v-if="view === 'browse'">
+        <section class="directory-heading"><div><p class="eyebrow">公开 Agent · 可追溯的评价</p><h1>看清服务表现，读懂评分依据。</h1><p class="page-description">从实际业务与链上记录出发，了解每个 Agent 做了什么、结果如何，以及哪些能力还没有被核验。</p></div><button class="primary-button" @click="openSubmission()">接入 Agent <span aria-hidden="true">↗</span></button></section>
+        <section v-if="!directoryLoading && !directoryError" class="directory-stats" aria-label="目录概况"><div><strong>{{ agents.length }}</strong><span>已记录的公共 Agent</span></div><div><strong>{{ completedCount }}</strong><span>已有完整范围分</span></div><p>每个分数都对应一份具体范围的报告。<br>暂不能评价的对象，也保留缺项与后续线索。</p></section>
+        <div class="directory-toolbar">
+          <label class="search-field"><svg aria-hidden="true" viewBox="0 0 20 20" fill="none"><circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="m13 13 4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><span class="sr-only">搜索 Agent</span><input v-model="search" type="search" placeholder="搜索名称、能力或注册标识" /></label>
+          <div class="directory-filters">
+            <label class="directory-filter"><span>评价状态</span><select v-model="statusFilter"><option value="all">全部状态</option><option value="COMPLETE">完整评价</option><option value="PARTIAL">部分评价</option><option value="NOT_EVALUATED">待评价</option></select></label>
+            <label class="directory-filter"><span>评价范围</span><select v-model="scopeFilter"><option value="all">全部范围</option><option v-for="option in scopeOptions" :key="option.value" :value="option.value">{{ option.label }}</option></select></label>
+            <label class="directory-filter sort-filter"><span>排序方式</span><select v-model="directorySort"><option value="score-desc">综合分从高到低</option><option value="score-asc">综合分从低到高</option><option value="updated">最近更新</option><option value="name">名称顺序</option></select></label>
+          </div>
+          <div v-if="!directoryLoading && !directoryError" class="directory-results"><p role="status" aria-live="polite" aria-atomic="true">显示 <strong>{{ matches.length }}</strong> / {{ agents.length }} 个 Agent</p><button v-if="hasDirectoryConditions" class="text-button" @click="clearDirectoryConditions">清空条件</button></div>
+          <p class="directory-comparison-note">综合分只用于相同评价范围的比较，样本与时间见报告。最近更新以最新报告时间为准。</p>
+        </div>
+        <p v-if="directoryLoading" class="loading-state" role="status"><span class="spinner" aria-hidden="true"></span>正在读取 Agent 目录…</p>
+        <ErrorNotice v-else-if="directoryError" :error="directoryError"><button class="text-button" @click="loadAgents">重新读取目录</button></ErrorNotice>
+        <section v-else-if="!matches.length" class="empty-state panel"><h2>{{ agents.length ? '没有符合条件的 Agent' : '目录中还没有 Agent' }}</h2><p>{{ agents.length ? '可以调整搜索词、评价状态或范围，也可以清空条件查看全部对象。' : '提交公开注册信息后，平台会检查资料并推进评价。' }}</p><button v-if="agents.length && hasDirectoryConditions" class="secondary-button" @click="clearDirectoryConditions">清空条件</button><button v-else class="primary-button" @click="openSubmission()">接入 Agent</button></section>
+        <section v-else class="agent-grid" aria-label="Agent 目录"><article v-for="agent in matches" :key="agent.key" class="agent-card">
+          <header>
+            <div class="agent-card-top"><span class="agent-avatar" aria-hidden="true">{{ agent.name.slice(0, 2).toUpperCase() }}</span><span class="report-status" :class="{ complete: evaluationStatus(agent) === 'COMPLETE' }">{{ evaluationStatus(agent) === 'COMPLETE' ? '本范围已评分' : evaluationStatus(agent) === 'PARTIAL' ? '部分评价' : '待评价' }}</span></div>
+            <h2><a :href="'?agent=' + encodeURIComponent(agent.key)" @click.prevent="openAgent(agent.key)">{{ agent.name }}</a></h2>
+            <p v-if="agent.latest_report" class="card-scope">{{ scopeLabels[evaluationScope(agent)] }}</p>
+          </header>
+          <div class="agent-card-body">
+            <template v-if="agent.latest_report">
+              <div class="card-score"><strong>{{ score(agent.latest_report.scores.overall) }}</strong><span>本范围综合分</span></div>
+              <p class="card-description">{{ agent.latest_report.scope }}</p>
+              <p class="muted small card-updated">更新于 {{ when(agent.latest_report.generated_at) }}</p>
+            </template>
+            <template v-else>
+              <p class="card-description">{{ agent.description }}</p>
+              <p class="unscored-note">尚无足够证据形成完整评分。详情中保留了已核实事实、缺项和下一步。</p>
+            </template>
+          </div>
+          <a class="card-link" :href="'?agent=' + encodeURIComponent(agent.key)" @click.prevent="openAgent(agent.key)">{{ agent.latest_report ? '阅读评价报告' : '查看资料与缺项' }}<span aria-hidden="true">→</span></a>
+        </article></section>
+      </template>
+
+      <template v-else-if="view === 'detail'">
+        <button class="back-link" @click="navigate()"><span aria-hidden="true">←</span> 返回 Agent 目录</button>
+        <p v-if="pageLoading && !detail" class="loading-state" role="status"><span class="spinner" aria-hidden="true"></span>正在读取 Agent 与报告…</p>
+        <template v-if="detail"><section class="detail-heading"><div><p class="eyebrow">Agent 详情</p><h1>{{ detail.agent.name }}</h1><p class="page-description">{{ detail.agent.description }}</p></div><button class="secondary-button" @click="openSubmission(detail.agent.registration_reference)">{{ detail.reports.length ? '发起重新评价' : '提交资料发起评价' }}</button></section>
+          <details class="identity-details"><summary>身份与资料来源</summary><p class="multiline">{{ detail.agent.registration_reference.startsWith('eip155:') ? '完整注册标识' : '注册资料线索' }}：{{ detail.agent.registration_reference }}</p><EvidenceList v-if="detail.candidate" :sources="detail.candidate.source_urls" /></details>
+          <div v-if="detail.reports.length" class="report-toolbar"><label for="report-history">报告历史 <span class="muted">{{ detail.reports.length }} 份</span></label><select id="report-history" :value="reportId" @change="openAgent(detail.agent.key, ($event.target as HTMLSelectElement).value)"><option v-for="item in detail.reports" :key="item.id" :value="item.id">{{ when(item.generated_at) }} · {{ item.scores.status === 'COMPLETE' ? '本范围完整评分' : '部分评价' }}</option></select></div>
+          <p v-if="pageLoading" class="loading-state" role="status"><span class="spinner" aria-hidden="true"></span>正在读取所选报告…</p>
+          <ReportView v-if="report" :key="reportId" :report="report" :report-id="reportId" />
+          <section v-else-if="!pageLoading && !detail.reports.length" class="panel candidate-panel"><span class="report-status">尚未形成完整评价</span><h2>先看已经核实什么，还缺什么。</h2><p class="section-description">目前没有足够证据发布完整三维分。以下内容帮助了解资料状态，不会换算成零分。</p><template v-if="detail.candidate"><div class="candidate-checks"><section v-for="check in detail.candidate.checks" :key="check.code"><div class="row-between"><h3>{{ checkLabel[check.code] }}</h3><StatusBadge :verdict="check.status" /></div><p>{{ check.explanation }}</p><details class="technical"><summary>这项判断的证据</summary><EvidenceList :sources="check.evidence" /></details></section></div><section class="next-actions"><h3>接下来需要什么</h3><ul><li v-for="(action, index) in detail.candidate.next_actions" :key="index">{{ action }}</li></ul></section></template><p v-else class="empty-inline">暂未保存详细资料检查记录。可通过接入入口提交完整注册信息。</p></section>
         </template>
-      </article>
-    </section>
+        <ErrorNotice v-if="pageError" :error="pageError" />
+      </template>
 
-    <section v-else-if="activeTab === 'evaluation'" class="stack">
-      <article class="card"><h2>启动授权评价</h2><div class="form-grid three"><label>快照 UUID<input v-model="startSnapshotId" /></label><label>已确认 review version<input v-model.number="reviewVersion" type="number" min="1" /></label><label>已有授权 grant UUID（逗号分隔）<input v-model="grants" /></label></div><label class="inline"><input v-model="publicReadonly" type="checkbox" />公共第三方免费只读（HTTP 与 MCP 两个授权）</label><div v-if="!publicReadonly" class="form-grid three"><label>本地评价套件<select v-model="suiteId" @change="suiteId === 'm1-smoke-v1' && (capabilityId = 'anchor_record')"><option value="m1-smoke-v1">M1 本地写入演示</option><option value="capabilities-v1">三类能力模板</option></select></label><label>评价能力<select aria-label="评价能力" v-model="capabilityId" :disabled="suiteId === 'm1-smoke-v1'"><option value="anchor_record">anchor_record</option><option value="get_tx_status">get_tx_status</option><option value="verify_record">verify_record</option></select></label><label v-if="capabilityId !== 'get_tx_status'">目标合约（可空，使用后端本地配置）<input v-model="targetContract" /></label></div><label v-if="!publicReadonly && capabilityId === 'get_tx_status'">Query tx_hash<input v-model="queryTxHash" placeholder="0x + 64位hex，本地测试链交易" /></label><div v-if="!publicReadonly && capabilityId === 'verify_record'" class="form-grid three"><label>Record executor<input v-model="recordExecutor" /></label><label>Record request_id<input v-model="recordRequestId" /></label><label>Record hash<input v-model="recordHash" /></label></div><p class="hint">本地三类任务只使用测试链；公共 Agent 使用固定免费只读套件。能力、输入或授权不匹配由后端拒绝。</p><div class="form-grid"><label>Idempotency key<input v-model="idempotencyKey" /></label><button :disabled="busy || !operatorToken" @click="startEvaluation">启动评价</button></div><button class="link-button" @click="newEvaluationKey">开始一项新评价时生成新 key</button></article>
-      <article class="card"><h2>任务进度</h2><div class="form-grid"><label>Run UUID<input v-model="lookupRunId" /></label><button :disabled="busy" @click="loadEvaluation()">加载 / 刷新</button></div><p v-if="!evaluation" class="empty">尚未加载任务。</p><template v-else><div class="facts"><div><span>运行状态</span><strong>{{ evaluation.status }}</strong></div><div><span>阶段</span><strong>{{ evaluation.stage }}</strong></div><div><span>进度 / UNKNOWN</span><strong>{{ evaluation.settled }} / {{ evaluation.planned }} · {{ evaluation.unknown }}</strong></div></div><p class="hint">非终态每 2 秒更新。任务被接受、返回成功交易、业务 PASS 是三个独立事实。</p><div class="buttons"><button :disabled="busy || isTerminal || !operatorToken" @click="cancelEvaluation">取消评价</button><button :disabled="busy || !isTerminal || !!report || !operatorToken" @click="requestReport">生成冻结报告</button><button :disabled="!report" @click="activeTab = 'evidence'">查看声誉与证据</button></div><p v-if="plan">已确认能力：{{ plan.confirmed_capabilities.join('、') }} · 套件 {{ plan.suite_id }}</p><div class="table-wrap"><table><thead><tr><th>任务 / 尝试</th><th>Agent 执行观测</th><th>HTTP</th><th>接受</th><th>失败原因</th><th>耗时</th></tr></thead><tbody><tr v-for="item in observations" :key="item.observation_id"><td>{{ short(item.slot_id) }} / {{ item.attempt_no }}</td><td>{{ item.dispatch_state }}</td><td>{{ item.http_status ?? '—' }}</td><td>{{ item.accepted ? '已接受' : '未接受' }}</td><td>{{ item.reason_code ?? '—' }}</td><td>{{ item.latency_ms == null ? '未测得' : `${item.latency_ms} ms` }}</td></tr></tbody></table></div><p v-if="!observations.length" class="empty">尚无任务执行观测。</p><p v-if="reportJob" class="hint">报告任务 {{ reportJob.state }} · {{ reportJob.reason_code ?? '无失败原因' }}</p><h3>平台独立链上核验</h3><div v-for="(item, index) in verification" :key="index" class="observation"><strong>{{ item.outcome }}</strong><span>{{ item.reason_code ?? '断言通过' }}</span><span>任务匹配 {{ item.task_link.match_status }}</span><small>执行者 {{ item.task_link.executor ?? 'UNKNOWN' }} · 链上区块 {{ item.task_link.block_number ?? '—' }} · 核验交易 {{ item.task_link.verified_tx_hash ?? '无核验交易' }}</small></div><p v-if="!verification.length" class="empty">核验尚未完成。</p></template></article>
-    </section>
-
-    <section v-else-if="activeTab === 'evidence'" class="stack">
-      <article class="card"><div class="section-heading"><h2>声誉、充分度与关键风险</h2><button :disabled="!report || busy" @click="downloadEvidence">下载 Evidence Bundle</button></div><p v-if="!report" class="empty">尚未选择冻结报告。</p><template v-else><div class="score-head"><strong>{{ report.core.scores.evaluation_state }}</strong><span>综合分：{{ scoreLabel(report.core.scores.overall_score_bp) }}</span></div><div class="dimensions"><div v-for="dimension in dimensionLabels" :key="dimension.key"><span>{{ dimension.label }}</span><strong>{{ report.core.scores.dimensions[dimension.key]?.state ?? 'UNKNOWN' }}</strong><small>{{ scoreLabel(report.core.scores.dimensions[dimension.key]?.score_bp) }}</small><small>观测分 {{ scoreLabel(report.core.scores.dimensions[dimension.key]?.observed_score_bp) }}</small><small>覆盖 {{ report.core.scores.dimensions[dimension.key]?.coverage_bp ?? '—' }} bp · 样本比例 {{ report.core.scores.dimensions[dimension.key]?.sample_bp ?? '—' }} bp</small></div></div><p>证据充分度 {{ report.core.scores.sufficiency_bp }} bp · 建议 {{ report.core.scores.advice }}</p><p>任务分布：{{ report.core.task_counts ? JSON.stringify(report.core.task_counts) : '历史格式无四态摘要' }}</p><p>风险：{{ report.core.risk_assessment?.conclusion ?? (report.core.scores.critical_conflict ? '关键冲突' : '历史格式无独立风险评估') }}</p><div v-for="risk in report.core.risk_assessment?.critical_findings ?? []" :key="risk.assertion_id" class="notice error"><strong>{{ risk.reason_code }}</strong> · 任务 {{ risk.slot_id }}<p>规则 {{ risk.rule_id }} · 证据 {{ risk.evidence_refs.join('、') }}</p></div><p v-if="report.core.evidence_sufficiency">充分度门槛 {{ report.core.evidence_sufficiency.gate_status }} · 未覆盖声明 {{ report.core.evidence_sufficiency.uncovered_claims?.join('、') || '无' }} · 缺失证据 {{ report.core.evidence_sufficiency.missing_evidence?.join('、') || '无' }}</p><p class="hint">{{ [...report.core.scores.limitations, ...report.core.limitations].join('；') }}</p></template></article>
-      <article v-if="report && sampleSections" class="card"><details><summary>实际样本数与能力覆盖（后端统计）</summary><p class="hint">planned 为计划数，decided 为可判定数，responded 为响应数，accepted 为接受数，passed / correct 为通过数；这些是实际数量，bp 为比例。covered_classes / required_classes 为已覆盖 / 要求用例类别，tested_claim_count / claim_count 为已测试 / 声明能力数量。</p><h3>执行观测与能力样本</h3><pre v-if="Object.keys(sampleSections.statistics).length">{{ JSON.stringify(sampleSections.statistics, null, 2) }}</pre><p v-else class="empty">历史报告未提供实际样本统计。</p><h3>三维充分度与能力覆盖数量</h3><pre v-if="sampleSections.dimensions">{{ JSON.stringify(sampleSections.dimensions, null, 2) }}</pre><p v-else class="empty">历史报告未提供维度样本与覆盖明细。</p><h3>每项能力的样本与用例覆盖</h3><pre v-if="sampleSections.capabilities?.length">{{ JSON.stringify(sampleSections.capabilities, null, 2) }}</pre><p v-else class="empty">报告未提供能力样本与用例覆盖明细。</p></details></article>
-      <article v-if="report" class="card"><h2>冻结报告与任务证据</h2><div class="facts"><div><span>Report / version</span><strong>{{ short(report.report_id) }} / {{ report.core.schema_version }}</strong></div><div><span>报告摘要</span><strong>{{ report.report_hash }}</strong></div><div><span>链上锚定</span><strong>{{ anchor?.status === 'NOT_REQUESTED' ? 'UNANCHORED / NOT_REQUESTED' : anchor?.status ?? '锚定状态未查询' }}</strong><small>{{ anchor?.tx_hash ?? '无已确认锚定交易' }}</small></div></div><p>规则 {{ report.core.scoring_rule_version ?? '历史规则' }} · policy {{ report.core.policy_version }} · {{ short(report.core.policy_hash) }}</p><p class="hint">锚定发生在本地测试链；只有 CONFIRMED 才表示该链已确认。</p><details v-for="task in report.core.task_results ?? []" :key="task.slot_id"><summary>{{ task.capability_id }} · {{ task.outcome }} · {{ task.reason_code ?? 'PASS' }}</summary><p>任务 {{ task.slot_id }} · 输入证据 {{ task.input_evidence_id }} · rule {{ task.rule_version }}</p><button :disabled="busy" @click="loadTaskEvidence(task.input_evidence_id)">读取冻结任务输入、响应与链上证据</button><template v-for="assertion in report.core.assertions.filter(item => item.slot_id === task.slot_id)" :key="assertion.assertion_id"><p>{{ assertion.rule_id }}：{{ assertion.outcome }} / {{ assertion.reason_code ?? 'PASS' }} · 关键 {{ assertion.critical ? '是' : '否' }}</p><pre>{{ JSON.stringify({ expected: assertion.expected, observed: assertion.observed }, null, 2) }}</pre><small>证据引用 {{ assertion.evidence_refs.join('、') }}</small></template></details><p v-if="!report.core.task_results?.length" class="hint">历史报告没有逐任务摘要，下载原 Evidence Bundle 使用兼容 Verifier 复核。</p></article>
-      <article v-if="taskEvidence && evidenceSections" class="card"><h2>冻结任务输入与原始证据</h2><p>内容来自当前报告 manifest 内的已脱敏证据，并经后端重新校验摘要。证据摘要 {{ taskEvidence.record.blob_hash }}</p><h3>任务输入</h3><pre>{{ JSON.stringify(evidenceSections.input, null, 2) }}</pre><h3>Agent 响应</h3><pre>{{ JSON.stringify(evidenceSections.response, null, 2) }}</pre><h3>链上证据</h3><pre>{{ JSON.stringify(evidenceSections.chain, null, 2) }}</pre></article>
-      <article class="card"><h2>独立 Verifier 结果（本地导入）</h2><p>用户导入的独立 CLI 结果：文件只在本地读取，不上传平台，也不代表后端或可信 RPC 已确认。</p><label>Verifier CLI JSON（最大 1 MiB）<input type="file" accept="application/json,.json" @change="importVerifierFile" /></label><p v-if="verifierFileName" class="hint">已选择 {{ verifierFileName }}</p><p v-if="verifierImportError" class="notice error" role="alert">{{ verifierImportError }}</p><template v-if="verifierImport"><div class="facts"><div><span>CLI 顶层状态</span><strong>{{ verifierImport.status }}</strong><small v-if="verifierImport.code">{{ verifierImport.code }}</small></div><div><span>离线证据状态</span><strong>{{ verifierImport.offline ?? '未提供' }}</strong></div><div><span>当前报告摘要比对</span><strong>{{ verifierHashLabel }}</strong><small v-if="verifierImport.reportHash">CLI {{ verifierImport.reportHash }}</small></div></div><p v-if="verifierImport.message" class="notice error">Verifier 失败原因：{{ verifierImport.message }}</p><div v-if="verifierImport.taskResults.length" class="table-wrap"><table><thead><tr><th>任务</th><th>离线结果</th><th>原因</th><th>可信链状态</th></tr></thead><tbody><tr v-for="task in verifierImport.taskResults" :key="task.slotId"><td>{{ task.capabilityId }} · {{ task.slotId }}</td><td>{{ task.outcome }}</td><td>{{ task.reasonCode ?? '—' }}</td><td>{{ task.liveChain?.status ?? '未提供' }}<span v-if="task.liveChain?.outcome"> · 当前 {{ task.liveChain.outcome }}</span><small v-if="task.liveChain?.historicalOutcome">历史 {{ task.liveChain.historicalOutcome }} / {{ task.liveChain.historicalReasonCode ?? '—' }}</small><small>{{ task.liveChain?.reasonCode ?? task.liveChain?.reason ?? '—' }}</small></td></tr></tbody></table></div><p>任务计数比对：{{ verifierImport.taskCountComparison ?? '未提供' }} · 评价断言比对：{{ verifierImport.assessmentComparison ?? '未提供' }}</p><p v-if="verifierImport.taskCounts">Verifier 任务计数：{{ JSON.stringify(verifierImport.taskCounts) }}</p><p v-if="verifierImport.anchor">锚定核验：{{ verifierImport.anchor.status }}<span v-if="verifierImport.anchor.reason"> · {{ verifierImport.anchor.reason }}</span><span v-if="verifierImport.anchor.confirmations != null"> · confirmations {{ verifierImport.anchor.confirmations }}</span></p></template></article>
-      <article v-if="report" class="card"><h2>独立 Verifier 复核</h2><p>页面显示平台独立任务断言。下载 ZIP 后，可在独立进程重判任务并复算分数；离线通过只证明冻结证据内部一致性。</p><pre>uv run --all-packages reputation-verify report-{{ report.report_id }}.zip</pre><p>受控本地链：使用操作者信任的 RPC 核查当前链状态和锚定。</p><pre>uv run --all-packages reputation-verify report-{{ report.report_id }}.zip --rpc-url http://127.0.0.1:8545</pre><p class="hint">公共第三方报告的业务链为 Base，应使用可信 Base RPC 作为 --task-rpc-url；报告锚定链与任务链可不同。此页面没有将未运行的 CLI 复核显示为 PASS。</p></article>
-    </section>
-
-    <section v-else class="stack"><article class="card"><h2>同一 Agent 的历史评价</h2><p v-if="!agent" class="empty">先选择 Agent。</p><p v-else-if="!history.length" class="empty">该 Agent 尚无冻结评价报告。</p><template v-else><div class="table-wrap"><table><thead><tr><th>时间 / 快照</th><th>范围 / 规则</th><th>状态 / 综合分</th><th>风险 / 充分度</th><th></th></tr></thead><tbody><tr v-for="item in history" :key="item.report_id"><td>{{ item.core.evaluated_at }}<br />{{ short(item.core.snapshot_hash) }}</td><td>{{ item.core.profile }} / {{ item.core.schema_version }}</td><td>{{ item.core.scores.evaluation_state }}<br />{{ scoreLabel(item.core.scores.overall_score_bp) }}</td><td>{{ item.core.scores.critical_conflict ? '关键风险' : '无已确认关键风险' }} / {{ item.core.scores.sufficiency_bp }} bp</td><td><button @click="selectReport(item)">查看</button></td></tr></tbody></table></div><label v-if="report" class="history-select">与当前报告比较<select v-model="comparisonId"><option value="">选择报告</option><option v-for="item in history.filter(item => item.report_id !== report?.report_id)" :key="item.report_id" :value="item.report_id">{{ item.core.evaluated_at }} · {{ short(item.report_id) }}</option></select></label><template v-if="report && comparison"><p v-if="comparisonReason" class="notice error">{{ comparisonReason }}</p><p v-else class="notice success">当前报告与所选报告规则和评价范围一致，可比较已形成的正式评分。</p><div v-if="!comparisonReason" class="dimensions"><div v-for="dimension in dimensionLabels" :key="dimension.key"><span>{{ dimension.label }}</span><strong>{{ scoreLabel(comparison.core.scores.dimensions[dimension.key]?.score_bp) }} → {{ scoreLabel(report.core.scores.dimensions[dimension.key]?.score_bp) }}</strong></div></div><p v-if="!comparisonReason">充分度 {{ comparison.core.scores.sufficiency_bp }} → {{ report.core.scores.sufficiency_bp }} bp；关键风险 {{ comparison.core.scores.critical_conflict ? '有' : '无' }} → {{ report.core.scores.critical_conflict ? '有' : '无' }}</p><p v-else>所选报告：{{ comparison.core.scores.evaluation_state }}，充分度 {{ comparison.core.scores.sufficiency_bp }} bp，关键风险{{ comparison.core.scores.critical_conflict ? '有' : '无' }}。当前报告：{{ report.core.scores.evaluation_state }}，充分度 {{ report.core.scores.sufficiency_bp }} bp，关键风险{{ report.core.scores.critical_conflict ? '有' : '无' }}。</p></template></template></article></section>
-  </main>
+      <template v-else>
+        <section class="submission-heading"><p class="eyebrow">接入 Agent · 自动推进评价</p><h1>提交公开注册信息，<br>让评价回到真实证据。</h1><p class="page-description">平台自动收集资料、匹配合适的评价方案并核验结果。资料不足或暂不支持时，会直接说明原因。</p></section>
+        <div class="submission-layout"><section class="panel submission-form-panel"><h2>接入并产生评价</h2><form @submit.prevent="submit"><label for="agent-reference">完整注册标识或注册页面链接</label><textarea id="agent-reference" v-model="reference" rows="3" required spellcheck="false" placeholder="粘贴完整注册标识，或公开注册页面的 HTTPS 链接" :disabled="submitting" aria-describedby="reference-hint"></textarea><p id="reference-hint" class="muted small">需要能够明确定位到链、注册合约与 Agent ID 的信息。</p><button v-if="exampleAgent && !reference" type="button" class="example-button" @click="reference = exampleAgent.registration_reference">使用目录中的真实示例：{{ exampleAgent.name }}</button><button class="primary-button submit-button" type="submit" :disabled="submitting || !reference.trim()"><span v-if="submitting" class="spinner" aria-hidden="true"></span>{{ submitting ? '正在提交…' : '提交并启动评价' }}<span v-if="!submitting" aria-hidden="true">→</span></button></form><ErrorNotice v-if="submissionError" :error="submissionError" /></section>
+          <aside class="submission-guide"><p class="eyebrow">提交之后</p><ol><li><span>01</span><div><h3>收集公开资料</h3><p>定位注册身份、功能声明、服务接口与执行线索。</p></div></li><li><span>02</span><div><h3>独立核验结果</h3><p>按适用方案核对实际服务和可归属的链上记录。</p></div></li><li><span>03</span><div><h3>阅读具体结论</h3><p>报告解释得分、样本与边界；缺少证据的部分明确列出。</p></div></li></ol></aside></div>
+        <p v-if="pageLoading" class="loading-state" role="status"><span class="spinner" aria-hidden="true"></span>正在读取评价进度…</p><ErrorNotice v-if="pageError" :error="pageError" />
+        <section v-if="job" class="panel job-panel" aria-live="polite"><div class="row-between wrap"><div><p class="eyebrow">本次评价进度</p><h2>{{ jobLabel[job.status] }}</h2></div><span class="report-status" :class="{ complete: job.status === 'COMPLETE' }">{{ stageLabel[job.stage] }}</span></div><p class="job-message">{{ job.message }}</p>
+          <ol v-if="jobActive" class="job-stages" aria-label="评价阶段"><li v-for="(stage, index) in stages" :key="stage" :class="{ current: job.stage === stage, done: stages.indexOf(job.stage as typeof stages[number]) > index }"><span>{{ String(index + 1).padStart(2, '0') }}</span>{{ stageLabel[stage] }}</li></ol>
+          <p v-if="jobActive && !jobError" class="muted small"><span class="spinner small-spinner" aria-hidden="true"></span>正在自动读取进度，完成后会打开报告。</p><ErrorNotice v-if="jobError" :error="jobError"><button v-if="jobActive" class="text-button" @click="resumeJob">重新读取进度</button></ErrorNotice>
+          <button v-if="job.status === 'COMPLETE' && job.candidate_key && job.report_id" class="primary-button" @click="openAgent(job.candidate_key, job.report_id)">打开评价报告 →</button>
+          <details class="technical"><summary>本次提交记录</summary><p class="multiline">提交信息：{{ job.reference }}</p><p>创建于 {{ when(job.created_at) }}<br>更新于 {{ when(job.updated_at) }}</p><p>任务标识：<code>{{ job.id }}</code></p></details>
+        </section>
+      </template>
+    </main>
+    <footer class="site-footer"><div><span>Web3 Agent 声誉评价</span><p>公开资料 · 实际核验 · 可追溯证据</p></div><p>分数适用于各份报告列明的业务范围与样本时间。</p></footer>
+  </div>
 </template>
-
-<style>
-.card, .facts > div, .dimensions > div { min-width: 0; }
-:root { font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #172b35; background: #eef4f3; } * { box-sizing: border-box; } body { margin: 0; } button, input, select { font: inherit; } button { border: 0; border-radius: 8px; padding: 10px 16px; background: #176b68; color: white; cursor: pointer; } button:disabled { cursor: default; opacity: .5; } input, select { width: 100%; border: 1px solid #bdcfcc; border-radius: 7px; padding: 10px; color: #172b35; background: #fbfdfc; } .inline { display: flex; align-items: center; gap: 8px; }.inline input { width: auto; } label { display: grid; gap: 7px; color: #48626a; font-size: 13px; } small { overflow-wrap: anywhere; color: #668087; display: block; margin-top: 5px; }
-.shell { max-width: 1180px; margin: 0 auto; padding: 40px 24px 72px; } .hero { display: flex; gap: 24px; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; } .hero h1 { font-size: clamp(30px, 5vw, 48px); letter-spacing: -.03em; margin: 6px 0 10px; } .hero p, .hint { color: #577078; line-height: 1.7; } .eyebrow { margin: 0; color: #4c7d7a; font-size: 12px; font-weight: 700; letter-spacing: .12em; }.hint { font-size: 13px; }
-.connection { white-space: nowrap; display: flex; align-items: center; gap: 8px; background: #fff; border: 1px solid #d3e0df; border-radius: 999px; padding: 9px 12px; font-size: 13px; } .dot { width: 9px; height: 9px; border-radius: 50%; background: #d49a3a; }.connected .dot { background: #2b9b75; }.unavailable .dot { background: #c24d53; }.link-button { background: none; color: #176b68; padding: 0; text-decoration: underline; }
-.card { background: #fff; border: 1px solid #d4e1df; border-radius: 14px; padding: 22px; box-shadow: 0 8px 28px #173d3a0b; }.operator { margin-bottom: 20px; }.tabs { display: flex; flex-wrap: wrap; gap: 6px; border-bottom: 1px solid #cadbd8; margin-bottom: 22px; }.tabs button { background: transparent; color: #557078; border-radius: 8px 8px 0 0; }.tabs button.selected { color: #176b68; background: #dcecea; font-weight: 700; }.stack { display: grid; gap: 18px; }.section-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }.section-heading h2 { margin: 5px 0 18px; }.form-grid { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: end; margin: 16px 0; }.form-grid.three { grid-template-columns: repeat(3, 1fr); }.history-select { margin: 20px 0; }.buttons { display: flex; flex-wrap: wrap; gap: 8px; }
-.notice { padding: 12px 14px; border-radius: 8px; }.success { background: #e4f5ec; color: #1c6548; }.error { background: #fbe8e8; color: #8c3038; }.pill { display: inline-block; padding: 5px 8px; border-radius: 7px; color: #176b68; background: #e2f0ed; font-size: 12px; overflow-wrap: anywhere; }.facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }.facts div, .dimensions div { background: #f4f8f7; border-radius: 9px; padding: 12px; }.facts span, .dimensions span { display: block; color: #668087; font-size: 12px; margin-bottom: 5px; }.facts strong { overflow-wrap: anywhere; font-size: 14px; }.capabilities { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 18px; }.empty { color: #788f94; }.observation { display: grid; grid-template-columns: 1fr 2fr 1fr; gap: 10px; padding: 12px 0; border-top: 1px solid #e7efed; font-size: 13px; overflow-wrap: anywhere; }.observation small { grid-column: 1 / -1; }.agent-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 9px; margin-bottom: 14px; }.agent-choice { display: grid; gap: 4px; text-align: left; background: #f4f8f7; color: #172b35; }.agent-choice span { color: #60787f; font-size: 12px; }
-.score-head { display: flex; gap: 18px; align-items: baseline; margin-bottom: 16px; }.score-head strong { font-size: 22px; }.dimensions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }.dimensions strong { display: block; font-size: 15px; } details { margin-top: 18px; border-top: 1px solid #e2ecea; padding-top: 15px; } summary { color: #176b68; cursor: pointer; font-weight: 650; } pre { background: #172b35; color: #d9efea; padding: 16px; border-radius: 8px; overflow: auto; max-height: 300px; font-size: 12px; }.table-wrap { overflow-x: auto; } table { width: 100%; border-collapse: collapse; text-align: left; margin-top: 16px; font-size: 13px; } th, td { border-bottom: 1px solid #e2ecea; padding: 10px; } th { color: #668087; font-weight: 600; }
-@media (max-width: 760px) { .hero { display: block; }.connection { display: inline-flex; }.form-grid, .form-grid.three, .facts, .dimensions { grid-template-columns: 1fr; }.observation { grid-template-columns: 1fr; gap: 4px; }.shell { padding: 28px 15px 48px; } }
-</style>

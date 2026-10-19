@@ -1,1 +1,104 @@
-"""Deterministic evaluation core; foundation reference implementation."""
+"""Pure reputation rules and shared data types."""
+
+from reputation_core.admission import (
+    AdmissionCheck,
+    AdmissionReport,
+    CandidateAdmission,
+    CandidateRecord,
+    CheckCode,
+    MeasurementPurpose,
+    ProbeObservation,
+    Verdict,
+    assess_candidate,
+)
+from reputation_core.claims import (
+    BusinessClaim,
+    ClaimCitation,
+    DeclarationAnalysis,
+    SourceDocument,
+    validate_analysis,
+)
+from reputation_core.liquidity import LiquidityVerification, verify_increase
+from reputation_core.disclosure import DisclosureVerification, verify_disclosure
+from reputation_core.behavior import BehaviorVerification, StepVerification, verify_behavior
+from reputation_core.planning import (
+    LiquidityHistoryDescriptor, PlanSelection, PredictionHistoryDescriptor, PredictionToolDescriptor,
+    prediction_tool_supported, select_plan, select_prediction_plan,
+)
+from reputation_core.prediction import BinaryPrediction
+from reputation_core.reporting import CapabilityCoverage, EvaluationReport, ReportFinding, SampleExplanation
+from reputation_core.prediction_chain import MarketSettlementVerification, PredictionChainVerification
+from reputation_core.scoring import (
+    AVAILABILITY_LATENCY_WEIGHT,
+    AVAILABILITY_SUCCESS_WEIGHT,
+    DIMENSION_WEIGHTS,
+    LATENCY_FULL_SCORE_MS,
+    LATENCY_ZERO_SCORE_MS,
+    MIN_DECISIVE_SAMPLES,
+    PLANNED_SAMPLES,
+    POLICY_VERSION,
+    PREDICTION_POLICY_VERSION,
+    PREDICTION_EVIDENCE_POLICY_VERSION,
+    PREDICTION_POLICY_VERSIONS,
+    SERVICE_CONTRACT_POLICY_VERSION,
+    PolicyVersion,
+    DimensionScore,
+    ScoredSample,
+    ScoringOutcome,
+    calculate_scores,
+)
+
+__all__ = [
+    "AVAILABILITY_LATENCY_WEIGHT",
+    "AVAILABILITY_SUCCESS_WEIGHT",
+    "AdmissionCheck",
+    "AdmissionReport",
+    "BusinessClaim",
+    "BinaryPrediction",
+    "BehaviorVerification",
+    "CandidateAdmission",
+    "CandidateRecord",
+    "CapabilityCoverage",
+    "CheckCode",
+    "ClaimCitation",
+    "DeclarationAnalysis",
+    "DIMENSION_WEIGHTS",
+    "DimensionScore",
+    "DisclosureVerification",
+    "EvaluationReport",
+    "LATENCY_FULL_SCORE_MS",
+    "LATENCY_ZERO_SCORE_MS",
+    "LiquidityVerification",
+    "LiquidityHistoryDescriptor",
+    "MeasurementPurpose",
+    "MarketSettlementVerification",
+    "MIN_DECISIVE_SAMPLES",
+    "PLANNED_SAMPLES",
+    "POLICY_VERSION",
+    "PREDICTION_POLICY_VERSION",
+    "PREDICTION_EVIDENCE_POLICY_VERSION",
+    "PREDICTION_POLICY_VERSIONS",
+    "SERVICE_CONTRACT_POLICY_VERSION",
+    "PredictionChainVerification",
+    "PredictionHistoryDescriptor",
+    "PredictionToolDescriptor",
+    "PolicyVersion",
+    "PlanSelection",
+    "ProbeObservation",
+    "SourceDocument",
+    "ScoredSample",
+    "ScoringOutcome",
+    "SampleExplanation",
+    "ReportFinding",
+    "StepVerification",
+    "Verdict",
+    "assess_candidate",
+    "calculate_scores",
+    "select_plan",
+    "select_prediction_plan",
+    "prediction_tool_supported",
+    "validate_analysis",
+    "verify_increase",
+    "verify_disclosure",
+    "verify_behavior",
+]

@@ -1,1 +1,0 @@
-{"capability_id":"identity-read","method":"POST","origin":"https://mainnet.base.org","path":"/","protocol":"erc8004-public-readonly-v1","request_json":{"id":3,"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["latest",false]},"started_at":"2026-10-11T04:30:41.188Z"}

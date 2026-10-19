@@ -1,0 +1,6 @@
+{
+  "chain_id": 56,
+  "rpc_url": "https://bsc-dataseed.bnbchain.org",
+  "registry": "0x8004a169fb4a3325136eb29fa0ceb6d2e539a432",
+  "source": "https://docs.bnbchain.org/bnb-smart-chain/developers/json_rpc/json-rpc-endpoint/"
+}

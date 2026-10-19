@@ -1,31 +1,20 @@
 {
-  "name": "reputation-web",
-  "private": true,
+  "name": "web3-agent-reputation-web",
   "version": "0.1.0",
+  "private": true,
   "type": "module",
-  "packageManager": "pnpm@10.12.4",
-  "engines": {
-    "node": ">=22.12.0 <23"
-  },
+  "packageManager": "pnpm@11.25.0",
+  "engines": { "node": ">=22.12.0" },
   "scripts": {
-    "dev": "vite --host 127.0.0.1",
-    "build": "vue-tsc --noEmit && vite build",
-    "test": "vitest run && pnpm test:server",
-    "test:server": "node --test tests/vite-server.integration.mjs",
-    "test:browser": "node tests/dashboard.browser.cjs",
-    "generate:types": "openapi-typescript ../../packages/schemas/generated/openapi.json -o src/api/generated/schema.ts"
+    "dev": "vite",
+    "build": "vue-tsc --noEmit -p tsconfig.json && vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 5175 --strictPort"
   },
-  "dependencies": {
-    "vue": "3.5.22"
-  },
+  "dependencies": { "vue": "3.5.44" },
   "devDependencies": {
-    "@types/node": "22.18.11",
-    "@vitejs/plugin-vue": "6.0.1",
-    "openapi-typescript": "7.10.1",
-    "playwright": "1.56.1",
+    "@vitejs/plugin-vue": "6.0.10",
     "typescript": "5.9.3",
-    "vite": "7.3.2",
-    "vitest": "3.2.4",
-    "vue-tsc": "3.1.1"
+    "vite": "8.3.4",
+    "vue-tsc": "3.3.13"
   }
 }

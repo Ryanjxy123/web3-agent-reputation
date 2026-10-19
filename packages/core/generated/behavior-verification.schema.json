@@ -1,0 +1,191 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "StepVerification": {
+      "additionalProperties": false,
+      "properties": {
+        "role": {
+          "enum": [
+            "wrap",
+            "swap",
+            "increase"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "verdict": {
+          "$ref": "#/$defs/Verdict"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "transaction_hash": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Transaction Hash"
+        },
+        "block_number": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Block Number"
+        },
+        "transaction_index": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Transaction Index"
+        },
+        "block_timestamp": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Block Timestamp"
+        },
+        "amount_in": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Amount In"
+        },
+        "amount_out": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Amount Out"
+        },
+        "amount0": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Amount0"
+        },
+        "amount1": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Amount1"
+        },
+        "liquidity_delta": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Liquidity Delta"
+        }
+      },
+      "required": [
+        "role",
+        "verdict",
+        "reason"
+      ],
+      "title": "StepVerification",
+      "type": "object"
+    },
+    "Verdict": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNKNOWN",
+        "NOT_APPLICABLE"
+      ],
+      "title": "Verdict",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "verdict": {
+      "$ref": "#/$defs/Verdict"
+    },
+    "reason": {
+      "title": "Reason",
+      "type": "string"
+    },
+    "wrap": {
+      "$ref": "#/$defs/StepVerification"
+    },
+    "swap": {
+      "$ref": "#/$defs/StepVerification"
+    },
+    "increase": {
+      "$ref": "#/$defs/StepVerification"
+    },
+    "elapsed_seconds": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Elapsed Seconds"
+    }
+  },
+  "required": [
+    "verdict",
+    "reason",
+    "wrap",
+    "swap",
+    "increase"
+  ],
+  "title": "BehaviorVerification",
+  "type": "object"
+}

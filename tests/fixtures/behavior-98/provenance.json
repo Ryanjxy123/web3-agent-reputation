@@ -1,0 +1,56 @@
+{
+  "purpose": "Offline rule regression only; not new public evaluation samples.",
+  "source_run": "runtime/liquidity-history-20261018T051729Z-35dc93d7",
+  "responses": [
+    {
+      "source": "runtime/liquidity-history-20261018T051729Z-35dc93d7/history-98-wrap-transaction.response.bin",
+      "fixture": "wrap-transaction.json",
+      "sha256": "6f47d3314279047055ee23f21943300f1187c95e6feb162d9448c39fd49c789c"
+    },
+    {
+      "source": "runtime/liquidity-history-20261018T051729Z-35dc93d7/history-98-wrap-receipt.response.bin",
+      "fixture": "wrap-receipt.json",
+      "sha256": "f26ef92a161723a04c70d34d4ab54b4b691fe0f2b7af9fa656f270955fbf2e58"
+    },
+    {
+      "source": "runtime/liquidity-history-20261018T051729Z-35dc93d7/history-98-wrap-block.response.bin",
+      "fixture": "wrap-block.json",
+      "sha256": "5f32dea0ac66b2c377aa902c699ab18999e80fb7aeee2ee75516f1e509df807e"
+    },
+    {
+      "source": "runtime/liquidity-history-20261018T051729Z-35dc93d7/history-98-swap-transaction.response.bin",
+      "fixture": "swap-transaction.json",
+      "sha256": "2cca74f8aaadd3cb1005fe02b752e3bc480b72689a45b725f3b3cf57e0def9b6"
+    },
+    {
+      "source": "runtime/liquidity-history-20261018T051729Z-35dc93d7/history-98-swap-receipt.response.bin",
+      "fixture": "swap-receipt.json",
+      "sha256": "7b32cd7d1dff6d6176c161c621b8f51f093f8adc7520ae103468f7d73b3bb21e"
+    },
+    {
+      "source": "runtime/liquidity-history-20261018T051729Z-35dc93d7/history-98-swap-block.response.bin",
+      "fixture": "swap-block.json",
+      "sha256": "4c1aeeef29c637024bed0be52d5895f522efcca2d7e17336aacdb147928f5793"
+    },
+    {
+      "source": "runtime/liquidity-history-20261018T051729Z-35dc93d7/history-98-increase-transaction.response.bin",
+      "fixture": "increase-transaction.json",
+      "sha256": "ace33c24aa067e91cb5ce25a4596948e9a8f359c0bfc918ca09b44b51961edff"
+    },
+    {
+      "source": "runtime/liquidity-history-20261018T051729Z-35dc93d7/history-98-increase-receipt.response.bin",
+      "fixture": "increase-receipt.json",
+      "sha256": "1434d7cdb01715d8ceea6e5cb6f2fc5ccc6e9074bd7e93174484b9df4dde37c7"
+    },
+    {
+      "source": "runtime/liquidity-history-20261018T051729Z-35dc93d7/history-98-increase-block.response.bin",
+      "fixture": "increase-block.json",
+      "sha256": "8a74e9ac95bdb132a728641f57e523f104048fcef5d3af141acbf35ba2f44940"
+    },
+    {
+      "source": "runtime/liquidity-history-20261018T051729Z-35dc93d7/confirmation-head.response.bin",
+      "fixture": "confirmation-head.json",
+      "sha256": "4747fc5ec894b7c63458788d8d4293254d694461edaacd3b85031c22d9e1fc4a"
+    }
+  ]
+}
