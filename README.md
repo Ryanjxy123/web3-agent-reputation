@@ -37,11 +37,19 @@ REPUTATION_ZAN_KEY_FILE=runtime/secrets/zan-rpc-url.txt
 
 ## 启动与打开网站
 
-首次使用先建表；此命令不导入示例分数：
+首次使用先建表：
 
 ```powershell
 uv run --env-file .env --no-sync python scripts/import_local_report.py --initialize
 ```
+
+再导入随项目提供的10个真实完整评分及公开证据；此步骤离线核验，不请求RPC或LLM：
+
+```powershell
+uv run --env-file .env --no-sync python scripts/public_reports.py import data/public-reports-v1.tar.gz
+```
+
+数据包恢复公开原件到原runtime相对目录，由已有核验器重建分数后入库；不会覆盖不同内容的本地文件，也不包含个人账号或数据库。
 
 打开第一个终端，启动网页和API：
 
@@ -96,7 +104,9 @@ RPC不是任意供应商网关：链、端点与认证方式由后台固定白�
 
 开发机已完成10个不同真实公共Agent的完整范围评分，综合分29.8–98.71：9个复用历史预测方案，1个历史增仓特例。具体对象、真实退出码及限制见[STATUS.md](STATUS.md)。范围评分不代表Agent全部能力，历史交付文件可访问也不等于实时推理在线。
 
-**首次克隆并初始化数据库后，目录为空是正常结果。** Git不包含`runtime/`、个人数据库、历史响应、原始证据或已发布报告，也不包含`apps/web/dist`和依赖目录。不能仅凭仓库代码复现开发机的38个候选、46份报告和10个已评分对象。
+**仓库包含经过审计的完整评分发布包**`data/public-reports-v1.tar.gz`，覆盖10个不同真实Agent的最新完整报告及核验必需公开证据。按上文导入后即可浏览；只浏览和核验这些已有结果不需要配置RPC或LLM密钥。
+
+未导入前新数据库为空。公开包不等于开发机的整个runtime或数据库：不包含个人密钥、私有配置、费用流水、临时日志、旧试运行报告，也不把38个候选和46份历史报告冒称全已随包分发。前端dist和依赖仍需自行安装/构建。
 
 可以在网页提交受支持身份自行取证，或导入自己合法取得的完整证据包。导入时须保留所有被manifest引用的原件及相对目录；仅有一份report.json不能替代完整证据：
 
@@ -116,4 +126,4 @@ uv run --env-file .env --no-sync python scripts/import_local_report.py runtime/Y
 
 部分真实集成验收依赖未入Git的证据和独立PostgreSQL，缺少条件时应显示NOT_RUN/BLOCKED，不把skip当作完整集成通过。只运行必要受影响验证，复用已有有效结果。
 
-目标仓库：[Ryanjxy123/web3-agent-reputation](https://github.com/Ryanjxy123/web3-agent-reputation)。本次通过重构PR替换项目实现，保留远程历史，不强推main；个人密钥、运行目录和数据库始终不上传。
+目标仓库：[Ryanjxy123/web3-agent-reputation](https://github.com/Ryanjxy123/web3-agent-reputation)。本次通过重构PR替换项目实现，保留远程历史，不强推main；个人密钥、私有运行目录和数据库不上传，已完成评分以独立公开证据包交付。

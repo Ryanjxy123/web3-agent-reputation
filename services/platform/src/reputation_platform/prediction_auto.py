@@ -67,7 +67,7 @@ def _report(root: Path, origin: dict):
 
         supplement_inputs = validate_registration_supplement(root, identity_run, root/origin['history_run'])
     if origin.get('translation_run'):
-        translations, translation_refs = load_verified_translations(root / origin['translation_run'])
+        translations, translation_refs = load_verified_translations(root / origin['translation_run'], root=root)
     report, background, reader = build_prediction_report(
         history_run=root / origin['history_run'], plan_run=root / origin['plan_run'],
         availability_run=root / origin['availability_run'] if origin.get('availability_run') else None,

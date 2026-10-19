@@ -4,3 +4,7 @@
 *.example text eol=lf
 .gitignore text eol=lf
 .gitattributes text eol=lf
+
+# Preserve the original bytes referenced by published report manifests.
+configs/pilots/olas-predict-2198-v1.json -text whitespace=cr-at-eol
+configs/pilots/olas-predict-2235-v1.json -text whitespace=cr-at-eol
