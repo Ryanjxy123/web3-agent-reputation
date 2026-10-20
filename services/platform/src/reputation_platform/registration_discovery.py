@@ -4,6 +4,7 @@ import base64
 from datetime import datetime, timezone
 import hashlib
 import json
+import math
 from pathlib import Path
 import re
 from urllib.parse import unquote_to_bytes, urlsplit
@@ -106,7 +107,8 @@ def _uri(uri: str) -> tuple[str, bytes | str]:
 
 
 class DiscoveryEvidence:
-    def __init__(self, root: Path, run: Path, proxy: str | None = None, enabled: bool = False, heartbeat=None):
+    def __init__(self, root: Path, run: Path, proxy: str | None = None, enabled: bool = False, heartbeat=None,
+                 *, timeout_seconds: float = 15, max_requests: int | None = None):
         self.root = root.resolve()
         self.run = (self.root / run).resolve()
         if (not self.run.is_relative_to(self.root / 'runtime') or self.run == self.root / 'runtime'
@@ -114,8 +116,14 @@ class DiscoveryEvidence:
             raise ValueError('Discovery output must be a public runtime subdirectory')
         if enabled and not proxy:
             raise ValueError('Public discovery requires an explicit operator proxy')
+        if (isinstance(timeout_seconds, bool) or not isinstance(timeout_seconds, (int, float))
+            or not math.isfinite(timeout_seconds) or not 0 < timeout_seconds <= 45):
+            raise ValueError('Public request timeout must be finite and in (0, 45] seconds')
+        if max_requests is not None and (type(max_requests) is not int or not 1 <= max_requests <= 64):
+            raise ValueError('Scoped discovery request budget must be an integer in 1..64')
         self.run.mkdir(parents=True, exist_ok=True)
         self.proxy, self.enabled, self.heartbeat = proxy, enabled, heartbeat
+        self.timeout_seconds, self.max_requests = timeout_seconds, max_requests
         self.inputs, self.request_count = {}, 0
         self.config = _configuration(self.root)
         self._remember(self.root / RPC_CONFIG)
@@ -150,20 +158,25 @@ class DiscoveryEvidence:
         plan = self.run / f'{key}.request-plan.json'
         _write(plan, {'created_at': datetime.now(timezone.utc).isoformat(), 'key': key, 'url': url,
             'method': method, 'json': body, 'headers': headers, 'measurement_purpose': purpose.value,
-            'execution_enabled': self.enabled, 'retries': 0, 'rpc_configuration_source': 'operator-static-not-metadata' if rpc else None})
+            'execution_enabled': self.enabled, 'retries': 0, 'timeout_seconds': self.timeout_seconds,
+            'max_body_bytes': 1048576, 'rpc_configuration_source': 'operator-static-not-metadata' if rpc else None})
         references = [self._remember(plan)]
         stop = self.root / 'runtime/prediction-network-stops' / (parsed.hostname + '.json')
-        if not self.enabled or stop.is_file():
+        budget_exhausted = self.max_requests is not None and self.request_count >= self.max_requests
+        if not self.enabled or stop.is_file() or budget_exhausted:
             skip = self.run / f'{key}.skip.json'
-            _write(skip, {'request_sent': False, 'reason': 'public_reads_disabled' if not self.enabled else 'host_stopped'})
+            _write(skip, {'request_sent': False, 'reason': ('public_reads_disabled' if not self.enabled else
+                   'host_stopped' if stop.is_file() else 'request_budget_exhausted')})
             references.append(self._remember(skip))
             return {'raw': b'', 'response_file': None, 'evidence': references, 'observation': None}
         target = PublicTarget(key, url, method, purpose=purpose, json_body=body, headers=headers)
         credential = load_zan_key_file(fallback=rpc['credential_file']) if rpc and rpc['authentication'] == 'zan' else None
-        with SafeHttpClient((target,), enabled=True, proxy=self.proxy, max_requests=1,
-                            zan_key_url_file=credential, pin_public_dns=True) as client:
-            observed = client.fetch(key, self.run)
+        # Reserve before transport: a failed evidence write must not refund a sent request.
         self.request_count += 1
+        with SafeHttpClient((target,), enabled=True, proxy=self.proxy, max_requests=1,
+                            zan_key_url_file=credential, pin_public_dns=True,
+                            timeout_seconds=self.timeout_seconds) as client:
+            observed = client.fetch(key, self.run)
         references.append(self._remember(self.run / f'{key}.observation.json'))
         response_file, raw = None, b''
         if observed.response_file:

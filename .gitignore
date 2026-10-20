@@ -10,6 +10,7 @@ secrets/
 *.pfx
 
 # Local data and runtime
+# Includes private platform-config/llm.json, LLM/ZAN credential pointers and secrets/.
 runtime/
 artifacts/
 evidence/

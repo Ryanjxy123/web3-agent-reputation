@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, computed_field, model_validator
 
 from reputation_core.admission import MeasurementPurpose, Verdict
 from reputation_core.scoring import (
-    POLICY_VERSION, SERVICE_CONTRACT_POLICY_VERSION, PolicyVersion,
+    POLICY_VERSION, SERVICE_POLICY_VERSIONS, PolicyVersion,
     ScoredSample, ScoringOutcome, calculate_scores,
 )
 
@@ -31,6 +31,9 @@ class CapabilityCoverage(BaseModel):
     sample_ids: list[str]
     findings: list[ReportFinding]
     missing_evidence: list[str]
+    capability_type: str | None = None
+    checker_id: str | None = None
+    checker_version: str | None = None
 
 
 class SampleExplanation(BaseModel):
@@ -66,7 +69,7 @@ class EvaluationReport(BaseModel):
 
     @model_validator(mode="after")
     def bind_service_contract_capabilities(self) -> Self:
-        if self.policy_version != SERVICE_CONTRACT_POLICY_VERSION:
+        if self.policy_version not in SERVICE_POLICY_VERSIONS:
             return self
         capabilities = {item.capability_id: item for item in self.capabilities}
         if len(capabilities) != len(self.capabilities):

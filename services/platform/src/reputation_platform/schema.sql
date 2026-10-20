@@ -57,6 +57,17 @@ CREATE UNIQUE INDEX IF NOT EXISTS evaluation_jobs_active_reference
 CREATE INDEX IF NOT EXISTS evaluation_jobs_claim ON evaluation_jobs(created_at, id)
     WHERE status IN ('QUEUED','RUNNING');
 
+CREATE TABLE IF NOT EXISTS worker_heartbeats (
+    worker_id text PRIMARY KEY,
+    mode text NOT NULL CHECK (mode IN ('public-off','scoped','online')),
+    scope_reference text,
+    stopped boolean NOT NULL DEFAULT false,
+    started_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+    last_seen_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+    CHECK ((mode='scoped' AND scope_reference IS NOT NULL)
+        OR (mode<>'scoped' AND scope_reference IS NULL))
+);
+
 CREATE OR REPLACE FUNCTION reject_published_evidence_change() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
     RAISE EXCEPTION 'Published evidence is append-only' USING ERRCODE = '55000';

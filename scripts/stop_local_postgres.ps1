@@ -7,10 +7,10 @@ $configDirectory = [IO.Path]::GetFullPath((Join-Path $runtimeDirectory 'platform
 $toolDirectory = 'D:\web3-runtime\tools\postgresql-17.11\pgsql\bin'
 $markerFile = Join-Path $configDirectory 'postgres-instance.json'
 $pgCtl = Join-Path $toolDirectory 'pg_ctl.exe'
+$nativePathEncoding = [Text.Encoding]::GetEncoding((Get-WinSystemLocale).TextInfo.ANSICodePage)
 
-if ((Split-Path $projectRoot -Leaf) -ne 'block_chain_new_new' -or
-    -not (Test-Path -LiteralPath (Join-Path $projectRoot 'pyproject.toml'))) {
-    throw 'Run the script from the independent block_chain_new_new project.'
+if (-not (Test-Path -LiteralPath (Join-Path $projectRoot 'pyproject.toml'))) {
+    throw 'Run the script from the web3-agent-reputation project.'
 }
 foreach ($directory in @($runtimeDirectory, $dataDirectory, $configDirectory)) {
     if ((Test-Path -LiteralPath $directory) -and
@@ -26,7 +26,7 @@ if (-not (Test-Path -LiteralPath $markerFile -PathType Leaf) -or
     -not (Test-Path -LiteralPath (Join-Path $dataDirectory 'PG_VERSION') -PathType Leaf)) {
     throw 'The data directory is not a confirmed project PostgreSQL instance.'
 }
-$marker = Get-Content -LiteralPath $markerFile -Raw | ConvertFrom-Json
+$marker = Get-Content -LiteralPath $markerFile -Raw -Encoding UTF8 | ConvertFrom-Json
 if ($marker.purpose -ne 'web3-reputation-local-postgres-v1' -or
     $marker.project_root -ne $projectRoot -or $marker.data_directory -ne $dataDirectory -or
     $marker.tool_directory -ne $toolDirectory -or $marker.port -ne 55438 -or
@@ -43,7 +43,7 @@ if ($LASTEXITCODE -eq 3) {
     exit 0
 }
 if ($LASTEXITCODE -ne 0) { throw 'The project PostgreSQL status could not be confirmed.' }
-$pidLines = @(Get-Content -LiteralPath (Join-Path $dataDirectory 'postmaster.pid'))
+$pidLines = @([IO.File]::ReadAllLines((Join-Path $dataDirectory 'postmaster.pid'), $nativePathEncoding))
 $serverProcessId = [int]$pidLines[0]
 $serverProcess = Get-Process -Id $serverProcessId -ErrorAction Stop
 if ($pidLines.Count -lt 4 -or [IO.Path]::GetFullPath($pidLines[1]) -ne $dataDirectory -or

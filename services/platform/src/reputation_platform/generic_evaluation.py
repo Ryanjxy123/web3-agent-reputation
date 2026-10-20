@@ -8,7 +8,7 @@ import secrets
 
 from reputation_core import MeasurementPurpose, ProbeObservation, Verdict
 from reputation_core.reporting import EvaluationReport
-from reputation_core.scoring import SERVICE_CONTRACT_POLICY_VERSION
+from reputation_core.scoring import SERVICE_CONTRACT_POLICY_VERSION, SERVICE_FULFILLMENT_POLICY_VERSION
 from reputation_platform.evaluation_report import render_evaluation_report
 from reputation_platform.settings import PROJECT_ROOT
 
@@ -35,9 +35,21 @@ def verify_generic_report_sources(root: Path, report: EvaluationReport, hashes: 
         raise ValueError("A complete report requires chain-verified registration")
     endpoints = {item["endpoint"] for item in identity["services"]
                  if str(item.get("name", "")).casefold() == "mcp" and item.get("endpoint")}
-    from reputation_platform.mech_task_evidence import verify_mech_task_samples
+    from reputation_platform.mech_task_evidence import PLAN_NAME as MECH_PLAN_NAME, verify_mech_task_samples
 
-    verified_tasks = verify_mech_task_samples(root, report, hashes)
+    verified_tasks = (verify_mech_task_samples(root, report, hashes)
+                      if any(Path(name).name == MECH_PLAN_NAME for name in hashes) else set())
+    from reputation_platform.query_checker import verify_query_samples
+
+    verified_queries = verify_query_samples(root, report, hashes)
+    from reputation_platform.position_checker import verify_position_samples
+
+    verified_positions = verify_position_samples(root, report, hashes)
+    from reputation_platform.position_fulfillment import verify_position_fulfillment_samples
+
+    verified_fulfillment = verify_position_fulfillment_samples(root, report, hashes)
+    if report.policy_version == SERVICE_FULFILLMENT_POLICY_VERSION and not verified_fulfillment:
+        raise ValueError('Observable fulfillment policy requires independently verified query tasks')
     def retained(name: str) -> bytes:
         path = (root / name).resolve()
         if (not path.is_relative_to(root.resolve()) or name not in hashes
@@ -69,7 +81,9 @@ def verify_generic_report_sources(root: Path, report: EvaluationReport, hashes: 
     plans, observed_files, stopped_urls = {}, set(), set()
     for explanation in report.samples:
         sample = explanation.sample
-        if sample.purpose == MeasurementPurpose.BEHAVIORAL and sample.sample_id in verified_tasks:
+        if sample.purpose == MeasurementPurpose.BEHAVIORAL and sample.sample_id in verified_tasks | verified_fulfillment:
+            continue
+        if sample.purpose == MeasurementPurpose.FUNCTIONAL and sample.sample_id in verified_queries | verified_positions | verified_fulfillment:
             continue
         if sample.purpose != MeasurementPurpose.AVAILABILITY:
             raise ValueError("This generic adapter has not yet supplied business-task verification")
@@ -167,16 +181,18 @@ def verify_generic_report_sources(root: Path, report: EvaluationReport, hashes: 
             or observation.observed_at > report.generated_at):
             raise ValueError("Protocol sample differs from its actual retained response")
     for name, plan in plans.items():
-        actual = [item.sample.sample_id for item in report.samples if name in item.sample.evidence]
+        actual = [item.sample.sample_id for item in report.samples
+                  if item.sample.purpose == MeasurementPurpose.AVAILABILITY and name in item.sample.evidence]
         if actual != [slot['key'] for slot in plan['slots']]:
             raise ValueError("The report must preserve every planned availability slot in order")
     return identity["canonical"]
 
 
 def evaluate_generic(repo, job: dict, worker: str, canonical: str, proxy: str,
-                     *, root: Path = PROJECT_ROOT) -> None:
+                     *, root: Path = PROJECT_ROOT, request_timeout_seconds: float = 15) -> None:
     from reputation_platform.protocol_evaluation import collect_protocol_evaluation
     from reputation_platform.mech_task_evidence import collect_mech_tasks
+    from reputation_platform.checker_dispatch import collect_business_checks
     from reputation_platform.mech_task_collection import collect_mech_history
     from reputation_platform.registration_discovery import (
         DiscoveryEvidence, discover_registration, verify_registration_proof,
@@ -189,10 +205,11 @@ def evaluate_generic(repo, job: dict, worker: str, canonical: str, proxy: str,
         "started_at": started.isoformat(), "registration_reference": canonical,
         "policy_version": SERVICE_CONTRACT_POLICY_VERSION, "job_id": job["id"],
         "scope": "Registered documents, protocol discovery and applicable evidence-backed evaluation",
-        "business_calls": False, "mainnet_writes": False, "retries": 0,
+        "business_calls": "Only reviewed capability adapters; otherwise none", "mainnet_writes": False, "retries": 0,
     })
     evidence = DiscoveryEvidence(root, run, proxy, enabled=True,
-        heartbeat=lambda: repo.renew_job(job["id"], worker, job["fencing_token"]))
+        heartbeat=lambda: repo.renew_job(job["id"], worker, job["fencing_token"]),
+        timeout_seconds=request_timeout_seconds, max_requests=64)
     registration = discover_registration(canonical, evidence)
     try:
         identity = verify_registration_proof(root, registration["proof_path"], canonical)
@@ -212,14 +229,24 @@ def evaluate_generic(repo, job: dict, worker: str, canonical: str, proxy: str,
     if evaluate_auto_prediction(repo, job, worker, registration, evidence):
         return
     capabilities, samples, limitations = collect_protocol_evaluation(registration, evidence)
-    task_capabilities, task_samples, task_limits = collect_mech_tasks(registration, evidence)
-    if not (run / "generic-mech-task-plan.json").exists():
+    task_capabilities, task_samples, task_limits = collect_business_checks(registration, evidence)
+    policy_version = (SERVICE_FULFILLMENT_POLICY_VERSION if any(
+        item.checker_id == 'query.pancakeswap-v3-position' and item.checker_version == 'v2'
+        for item in task_capabilities) else SERVICE_CONTRACT_POLICY_VERSION)
+    if not (run / "generic-mech-task-plan.json").exists() and not any(
+        capability.checker_id == 'query.pancakeswap-v3-position' for capability in task_capabilities
+    ):
         repo.set_job_stage(job["id"], worker, job["fencing_token"], "COLLECTING",
             "接口资料已保留，正在检查是否存在可核验的公开任务历史；本次不创建付费任务或链上交易。")
         if collect_mech_history(registration, evidence) is not None:
-            task_capabilities, task_samples, task_limits = collect_mech_tasks(registration, evidence)
+            recovered, recovered_samples, recovered_limits = collect_mech_tasks(registration, evidence)
+            task_capabilities.extend(recovered)
+            task_samples.extend(recovered_samples)
+            task_limits.extend(recovered_limits)
     operations = {item.operation for item in task_capabilities}
     for task in task_capabilities:
+        if task.checker_id is not None:
+            continue
         metadata_findings = [finding for item in capabilities if item.operation == task.operation for finding in item.findings]
         task.findings = [*metadata_findings, *task.findings]
     capabilities = [item for item in capabilities if item.operation not in operations] + task_capabilities
@@ -234,7 +261,7 @@ def evaluate_generic(repo, job: dict, worker: str, canonical: str, proxy: str,
     task_times = [item.observed_at for item in task_samples if item.observed_at is not None]
     window = f"本次取证：{started.isoformat()} 至 {finished.isoformat()}"
     if task_times:
-        window += f"；已核历史任务：{min(task_times).isoformat()} 至 {max(task_times).isoformat()}"
+        window += f"；业务任务观测：{min(task_times).isoformat()} 至 {max(task_times).isoformat()}"
     inputs = dict(evidence.inputs)
     for name in ("configs/generic-rpc.json", "docs/adr/0010-service-contract-policy.md",
                  "docs/adr/0011-shared-task-delivery-evidence.md"):
@@ -243,24 +270,24 @@ def evaluate_generic(repo, job: dict, worker: str, canonical: str, proxy: str,
         if path.is_file():
             inputs[path.relative_to(root).as_posix()] = hashlib.sha256(path.read_bytes()).hexdigest()
     report = EvaluationReport(
-        policy_version=SERVICE_CONTRACT_POLICY_VERSION, candidate_key=key,
+        policy_version=policy_version, candidate_key=key,
         name=registration["name"], registration_reference=canonical, generated_at=finished,
-        scope=("公开注册、协议接口与历史任务：访问体验及逐功能履约证据"
+        scope=("公开注册、协议接口与已列明业务任务：访问体验及逐功能独立核验证据"
                if task_samples else "公开注册资料与已声明协议接口：自动发现、访问体验及逐功能证据覆盖"),
         scope_exclusions=["仅协议发现不代表具体业务已正确完成", "未实际调用的功能及未绑定的交易不作通过判断"],
         evaluation_window=window,
-        approach="由注册身份自动采集资料，按协议复用发现与任务核验规则；复用历史原件或只读取得公开历史，分别记录实际范围及缺项。",
+        approach="由注册身份自动采集资料，按能力匹配已审阅Checker；只读执行业务或核验历史原件，从原始证据独立重建，分别记录实际范围及缺项。",
         samples=samples, capabilities=capabilities,
         source_references=sorted(inputs),
         limitations=list(dict.fromkeys([*registration["limitations"], *limitations,
-            "实际业务答案正确性的通用证据尚未就绪；不以协议或任务格式合规代替功能通过。"])),
+            "仅列明Checker及关联任务具备对应业务判据；其余声明不以协议或格式合规代替功能通过。"])),
     )
     _save(run / "report.json", report.model_dump(mode="json"))
     with (run / "report.html").open("x", encoding="utf-8") as stream:
         stream.write(render_evaluation_report(report))
     _save(run / "manifest.json", {
         "schema_version": "generic-report-manifest-v1", "started_at": started.isoformat(),
-        "completed_at": finished.isoformat(), "policy_version": SERVICE_CONTRACT_POLICY_VERSION,
+        "completed_at": finished.isoformat(), "policy_version": policy_version,
         "inputs": [{"path": name, "sha256": digest} for name, digest in sorted(inputs.items())],
         "outputs": [{"path": (run / name).relative_to(root).as_posix(),
             "sha256": hashlib.sha256((run / name).read_bytes()).hexdigest()}

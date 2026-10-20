@@ -1,0 +1,12 @@
+{
+  "schema_version": "position-read-tasks-v1",
+  "chain": 56,
+  "npm": "0x46a15b0b27311cedf172ab29e4f4766fbe7f4364",
+  "factory": "0x0bfbcf9fa4f9c56b0f40a671ad40e0805a091865",
+  "position_ids": ["7637521", "1", "1061890", "2329346", "4312849", "5968095", "7686767"],
+  "selection_rule": "先验历史NFT7637521，加同一已认证NPM快照按floor((totalSupply-1)*k/5),k=0..5枚举的六个NFT；不按Agent答案选择或替换。正式执行对全部ID重新独立核验，失效任务保留UNKNOWN。",
+  "selection_source": {
+    "path": "runtime/cross-provider-checker-20261020/oracle-enumeration/result.json",
+    "sha256": "f0af8095ef30991d17822c479fd2313131d9a52b4e82cb35984bb10eca7778a9"
+  }
+}

@@ -96,6 +96,9 @@ export type CapabilityCoverage = {
   "sample_ids": Array<string>;
   "findings": Array<ReportFinding>;
   "missing_evidence": Array<string>;
+  "capability_type"?: string | null;
+  "checker_id"?: string | null;
+  "checker_version"?: string | null;
 };
 
 export type SampleExplanation = {
@@ -121,7 +124,7 @@ export type ScoredSample = {
 };
 
 export type ScoringOutcome = {
-  "policy_version"?: "liquidity-history-v1" | "prediction-history-v1" | "prediction-history-v2" | "service-contract-v1";
+  "policy_version"?: "liquidity-history-v1" | "prediction-history-v1" | "prediction-history-v2" | "service-contract-v1" | "service-fulfillment-v1";
   "availability": DimensionScore;
   "functional": DimensionScore;
   "behavioral": DimensionScore;
@@ -304,7 +307,7 @@ export type MarketSettlementVerification = {
 
 export type EvaluationReport = {
   "schema_version"?: "evaluation-report-v1";
-  "policy_version"?: "liquidity-history-v1" | "prediction-history-v1" | "prediction-history-v2" | "service-contract-v1";
+  "policy_version"?: "liquidity-history-v1" | "prediction-history-v1" | "prediction-history-v2" | "service-contract-v1" | "service-fulfillment-v1";
   "candidate_key": string;
   "name": string;
   "registration_reference": string;

@@ -65,8 +65,10 @@ def _badge(verdict: Verdict) -> str:
     return f'<span class="badge {css}">{label}</span>'
 
 
-def _dimension(purpose: MeasurementPurpose, score: DimensionScore) -> str:
+def _dimension(purpose: MeasurementPurpose, score: DimensionScore, *, fulfillment=False) -> str:
     label, weight = PURPOSES[purpose]
+    if fulfillment and purpose == MeasurementPurpose.BEHAVIORAL:
+        label = '可观察服务履约'
     value = f"{score.value:.2f}" if score.value is not None else "待评价"
     unit = '<span class="unit">/ 100</span>' if score.value is not None else ""
     denominator = score.passed + score.failed
@@ -120,6 +122,8 @@ def _capabilities(report: EvaluationReport) -> str:
             f'<section class="sample-group"><h3>{_text(capability.operation)}</h3>'
             f'<p class="multiline">{_text(capability.description)}</p>'
             f'<p class="muted">声明或发现的协议：{_text(capability.protocol)}</p>'
+            f'<p class="muted">能力类型：{_text(capability.capability_type or "未记录")}；Checker：'
+            f'{_text(capability.checker_id or "未记录")} / {_text(capability.checker_version or "未记录")}</p>'
             f'<h4>本次实际业务判定范围</h4><p class="multiline">'
             f'{_text(capability.tested_scope or "尚未形成实际业务判定范围。")}</p>'
             f'<h4>资料与核验发现</h4><ul class="checks">{findings}</ul>'
@@ -141,7 +145,9 @@ def render_evaluation_report(report: EvaluationReport) -> str:
     unknown = sum(score.unknown for score in dimensions.values())
     failed = sum(score.failed for score in dimensions.values())
     prediction = report.policy_version in ('prediction-history-v1', 'prediction-history-v2')
-    generic = report.policy_version == 'service-contract-v1'
+    fulfillment = report.policy_version == 'service-fulfillment-v1'
+    generic = report.policy_version in ('service-contract-v1', 'service-fulfillment-v1')
+    behavior_label = '可观察服务履约' if fulfillment else '交易行为可靠性'
     coverage_intro = ""
     if scores.status == "COMPLETE":
         status = "本次范围内已完成评价"
@@ -156,7 +162,7 @@ def render_evaluation_report(report: EvaluationReport) -> str:
                         f'{scores.behavioral.passed} 项通过、{scores.behavioral.failed} 项未通过；具体输出差异与链上发现见逐条结果。')
         elif generic:
             finding = (f'本次 {scores.functional.observed} 个不同任务的功能声明核验有 {scores.functional.passed} 条通过、'
-                       f'{scores.functional.failed} 条未通过；另外 {scores.behavioral.observed} 个任务的真实交易履约核验有 '
+                       f'{scores.functional.failed} 条未通过；另外 {scores.behavioral.observed} 个任务的{"可观察服务履约" if fulfillment else "真实交易履约"}核验有 '
                        f'{scores.behavioral.passed} 条通过、{scores.behavioral.failed} 条未通过。')
         elif scores.functional.failed == 0 and scores.behavioral.failed == 0:
             finding = "本次抽查的增仓结果披露和三步交易均能与链上证据对应。"
@@ -191,9 +197,11 @@ def render_evaluation_report(report: EvaluationReport) -> str:
         first = next((index for index, item in enumerate(report.samples, 1) if item.sample.verdict in wanted), None)
         if first is not None:
             representatives.add(first)
-    cards = "".join(_dimension(purpose, dimension) for purpose, dimension in dimensions.items())
+    cards = "".join(_dimension(purpose, dimension, fulfillment=fulfillment) for purpose, dimension in dimensions.items())
     groups = []
     for purpose, (label, _) in PURPOSES.items():
+        if purpose == MeasurementPurpose.BEHAVIORAL:
+            label = behavior_label
         samples = [_sample(item, index, expanded=index in representatives)
                    for index, item in enumerate(report.samples, 1) if item.sample.purpose == purpose]
         groups.append(f'<section class="sample-group"><h3>{label} · {len(samples)} 条核验记录</h3>'
@@ -216,6 +224,9 @@ def render_evaluation_report(report: EvaluationReport) -> str:
                              + (f'本轮已有 {scores.behavioral.observed} 条履约样本，结论见逐条记录。' if scores.behavioral.observed
                                 else '本轮尚无可独立核验的交易履约评分样本。'))
         behavioral_threshold = ('成功回执本身不足以证明任务完成。得分为通过任务数 ÷ 确定结论任务数 × 100，需七个确定结论。')
+        if fulfillment:
+            behavioral_method = '使用另七个互斥真实查询任务，从认证端点、冻结请求、独立对象存在性和完整原始交付重建请求关联、业务对象绑定、必需交付字段及30秒观测窗口；不比较业务事实真值，不证明内部计算或全部行为。'
+            behavioral_threshold = '错请求或错对象、可归责的契约拒绝及错误交付记失败。网络、依赖故障和仅本地观测迟到无法归责时为UNKNOWN；七个确定结论才评分。本政策与历史交易履约含义不同。'
         availability_intro = ((f'本轮对已确认适配的MCP tools/list工具发现接口保留 {scores.availability.observed} 个可用性槽位，'
                                '核对真实请求、协议结果与延迟；结论仅限该发现接口，未外推至具体业务工具。')
                               if scores.availability.observed else
@@ -270,7 +281,7 @@ a{{color:#145e83;text-underline-offset:3px;overflow-wrap:anywhere}}a:focus-visib
 <section><h3>服务可用性</h3><p>{_text(availability_intro)}得分由 80% 成功率与 20% 延迟表现组成；成功率的分母仅包括通过和未通过。</p>
 <p class="p95">本次成功响应 p95：{p95}</p><p>p95 表示至少 95% 的成功请求在这一耗时内完成，按样本排序取最近秩。不超过 1000 毫秒时延迟项满分，达到 10000 毫秒为零，中间线性计算。这是本机经既定代理线路的访问体验，包含网络和代理耗时。</p></section>
 <section><h3>功能声明一致性</h3><p>{_text(functional_method)}</p><p>{_text(functional_threshold)}</p></section>
-<section><h3>交易行为可靠性</h3><p>{_text(behavioral_method)}</p><p>{_text(behavioral_threshold)}</p></section></div>
+<section><h3>{behavior_label}</h3><p>{_text(behavioral_method)}</p><p>{_text(behavioral_threshold)}</p></section></div>
 <p class="muted">“无法判断（UNKNOWN）”表示证据或核验条件不足，不记为失败，也不进入判分分母；“不适用”单独保留。可用性至少需 8 个确定结论。三维齐全后，综合分按 30% / 40% / 30% 加权。</p></section>
 <section class="panel"><h2>每条样本实际发生了什么</h2><p class="muted">{_text(sample_intro)}</p>{"".join(groups)}</section>
 <section class="panel"><h2>报告的适用边界与当前限制</h2><div class="boundaries"><section><h3>本次未覆盖</h3>{_items(report.scope_exclusions)}</section>

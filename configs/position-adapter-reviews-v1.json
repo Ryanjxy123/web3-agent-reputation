@@ -1,0 +1,560 @@
+{
+  "schema_version": "position-adapter-reviews-v1",
+  "capability": "query.pancakeswap-v3-position",
+  "limitations": [
+    "Published source review is not a deployment attestation.",
+    "Only the exact free read operation and minimal position/chain input are authorized; pricing/report/act/wallet/signature/delegation paths are excluded."
+  ],
+  "adapters": [
+    {
+      "id": "brain.position-look/v2",
+      "endpoint": "https://brainonbnb.com/mcp",
+      "protocol": "MCP",
+      "tool": "pancakeswap_position_look",
+      "provider": "Brain/BOBAI",
+      "chain": 56,
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "position": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_mapping": "mcp-position-look/v1",
+      "safety": {
+        "reviewed": true,
+        "free": true,
+        "read_only": true,
+        "signing": false,
+        "mainnet_writes": false,
+        "delegation": false
+      },
+      "review_dependencies": [
+        {
+          "path": "configs/generic-rpc.json",
+          "sha256": "20b2e077d834ad9bfb4bfc43e2bf4f29f3998eefd887a268c152245f15732da5"
+        },
+        {
+          "path": "runtime/checker-candidate-research-20261019/protocol-other/brain-source-tree.response.bin",
+          "sha256": "c531e3144f1329725b0dc865a0b44ed5dcc9ab82daafea2eecffe7af107d68ef"
+        },
+        {
+          "path": "runtime/checker-query-safety-20261019/manifest.json",
+          "sha256": "ffebce85011cf2e94b194cb940a6d75f0d16bf348a4cd4f11aa7a319122420f1"
+        },
+        {
+          "path": "runtime/checker-query-safety-20261019/source-01.observation.json",
+          "sha256": "2ef0c97db1d43fdb24f61c8f2534d34fc3da5b50a35631842918d9310d2a6ca5"
+        },
+        {
+          "path": "runtime/checker-query-safety-20261019/source-01.request-plan.json",
+          "sha256": "9335e82e38bf05f2d6ded7c594b9962443f77f7877abddac891ca0be2c3897e8"
+        },
+        {
+          "path": "runtime/checker-query-safety-20261019/source-01.response.bin",
+          "sha256": "467f18302612f0dc6fadb8d385f8ae2222665bc4178620c3c04ea636d89b0bf2"
+        },
+        {
+          "path": "runtime/checker-query-safety-20261019/source-01.source.txt",
+          "sha256": "c8855ab9fbe96ca85e8b92c7f9e2564fdca0a587ddbb93a42a54d47daeaaedd9"
+        },
+        {
+          "path": "runtime/checker-query-safety-20261019/source-02.observation.json",
+          "sha256": "3a310f6216b1ba2ad3b5bad245dd68079ce7bb57dd9439d1bb578cbc5a5942b4"
+        },
+        {
+          "path": "runtime/checker-query-safety-20261019/source-02.request-plan.json",
+          "sha256": "48663fcb32f2a2b6858a7530a7f41360f2d7c4608d7cd248141167819dd1b832"
+        },
+        {
+          "path": "runtime/checker-query-safety-20261019/source-02.response.bin",
+          "sha256": "27771f27a2b59aeeaba9086be4aca2f4c64623e6dba86dcff01d64cf570af168"
+        },
+        {
+          "path": "runtime/checker-query-safety-20261019/source-03.observation.json",
+          "sha256": "3b0622a687a959dcdaa6e9c9ba41157baada6eca9a6fb6adad714304290e23f7"
+        },
+        {
+          "path": "runtime/checker-query-safety-20261019/source-03.request-plan.json",
+          "sha256": "37118dba3e4c7184916f4fd853b5149a97b0584120b22d18a4af2acd9876127d"
+        },
+        {
+          "path": "runtime/checker-query-safety-20261019/source-03.response.bin",
+          "sha256": "cd4d2886bc6fec020b050149a1b6ef8daffc9b9f547aef7c95c4f3347e782a3d"
+        },
+        {
+          "path": "runtime/checker-query-safety-20261019/source-03.source.txt",
+          "sha256": "c345475e2a2e3b8190ead6c44191f979760f534d3cedcc4bab132fb2798016f6"
+        },
+        {
+          "path": "runtime/checker-query-safety-20261019/source-04.observation.json",
+          "sha256": "7633b3cd5ab76c508bc9a24385a9828421536f75cf98edc23436cce25aac39a0"
+        },
+        {
+          "path": "runtime/checker-query-safety-20261019/source-04.request-plan.json",
+          "sha256": "cccef5ce141178142d75d5730c87ad9274aff6e473f0abdcd134c81a2c9252e7"
+        },
+        {
+          "path": "runtime/checker-query-safety-20261019/source-04.response.bin",
+          "sha256": "e9669087bbd5fadbbb9a5adae3b183b27938f5df43b174608415259859723089"
+        },
+        {
+          "path": "runtime/checker-query-safety-20261019/source-04.source.txt",
+          "sha256": "c84d3d319c680e9c1a9390455a637988d62eaac6d7638266ff5c7350fd0f00da"
+        },
+        {
+          "path": "runtime/checker-query-safety-20261019/source-05.observation.json",
+          "sha256": "3dbc3f8205af218cb0ae0646e021a5e7bc734b98dee0e995a346b0d1e35d77c9"
+        },
+        {
+          "path": "runtime/checker-query-safety-20261019/source-05.request-plan.json",
+          "sha256": "0ea082e7ed5de54ee8e1a3ccb5a83ccee8435ff8807839a661bd99f269ebac71"
+        },
+        {
+          "path": "runtime/checker-query-safety-20261019/source-05.response.bin",
+          "sha256": "513e24199c6d196186a8de1e7bd0daf10fcf2dac5f253c257f8de91d086b2ebd"
+        },
+        {
+          "path": "runtime/checker-query-safety-20261019/source-05.source.txt",
+          "sha256": "2dca0222aefccba4fd5118b79b6b87a7a5d2d94d90bcf47ab6634ce90c865b9c"
+        },
+        {
+          "path": "runtime/checker-query-safety-20261019/source-06.observation.json",
+          "sha256": "0248d37398fbf8b869886973d9b463ac013af7926e810b56ab45e6da93a50b5b"
+        },
+        {
+          "path": "runtime/checker-query-safety-20261019/source-06.request-plan.json",
+          "sha256": "ae58e698af8272507485f089c304f9f04e0547e1ae210782f929a8a687bf7558"
+        },
+        {
+          "path": "runtime/checker-query-safety-20261019/source-06.response.bin",
+          "sha256": "a2936122ae70bdf9f360ca9524dfc2d90b608fcf80c70438cab345cfb6ca63b8"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/brain-source-review/plan.json",
+          "sha256": "5f137b9645221ae9e9e25ed5d7b0596f4599a3e4710578d0d31aea514d402c8b"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/brain-source-review/results.json",
+          "sha256": "80053efd038e8b344ab38fd81824baa64164866078adf073aab996f480ee16e8"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/brain-source-review/REVIEW.md",
+          "sha256": "c95f59e62c4c98b81a699285872c36f492b30453bd3e8762c64b2cc157a36538"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/brain-source-review/source-01.observation.json",
+          "sha256": "38de916ec5909ca7be70b8693b15b9e5ed619b76097623a68afdc602e0b57646"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/brain-source-review/source-01.response.bin",
+          "sha256": "3608af6ad998fe8e55a28d88e69311e83b234d61b40084fba34cccc9cd715c00"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/brain-source-review/source-01.source.txt",
+          "sha256": "3d718589885773ce0fc2a405c4d33d735f228e68a4f1948495f9970c6f69b939"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/brain-source-review/source-02.observation.json",
+          "sha256": "0c56a7ce1063f2a2822341c8fd136392857db7a0d296a749546652da7f7db812"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/brain-source-review/source-02.response.bin",
+          "sha256": "af6f2714ac7eb18662a1f0b5fd3e12fba57ad9cb7158e36b04f3801070cd9922"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/brain-source-review/source-02.source.txt",
+          "sha256": "3d8940508ca9ea6d4c7574248ff60a0fd8178be74d01cf0816b5a8482ad0bdf5"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/brain-source-review/source-03.observation.json",
+          "sha256": "ca89d7b4d917314826378468f9ef72f142f0fc1f97b9729f7f56e430e34f3c53"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/brain-source-review/source-03.response.bin",
+          "sha256": "abdf4bab7d755b5e4ee51dd3eb8fd95bed61e08348edc87403baf76b1a1e7dc3"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/brain-source-review/source-03.source.txt",
+          "sha256": "d454605e357cc43924be3f659ac03af6de6c7ce0819603de0578e6c03022c9c3"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/brain-source-review/source-04.observation.json",
+          "sha256": "6795b350dccc33444b389638ce45bb7af63baf9e88b01ff07bbf298a1c506e05"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/brain-source-review/source-04.response.bin",
+          "sha256": "4182d1c3732e228730f734374ba4b2910ec5e6b2d9d870f349f9d01127b19603"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/brain-source-review/source-04.source.txt",
+          "sha256": "84a87dc8c08747ef5c8d6e0d4a56366bb42f1c465b7381e4208db1441254c881"
+        }
+      ]
+    },
+    {
+      "id": "hallmark.range-analyse/v2",
+      "endpoint": "https://hallmark-agents.vercel.app/a2a/rebalancer",
+      "protocol": "A2A",
+      "tool": "analyse",
+      "provider": "Hallmark",
+      "chain": 56,
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "tokenId": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]*)$"
+          },
+          "chainId": {
+            "type": "integer",
+            "minimum": 56,
+            "maximum": 97
+          },
+          "widthBps": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100000
+          },
+          "driftToleranceBps": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000
+          },
+          "wallet": {
+            "type": "string",
+            "pattern": "^0x[0-9a-fA-F]{40}$"
+          }
+        },
+        "required": [
+          "tokenId"
+        ],
+        "additionalProperties": false
+      },
+      "output_mapping": "a2a-range-analysis/v1",
+      "safety": {
+        "reviewed": true,
+        "free": true,
+        "read_only": true,
+        "signing": false,
+        "mainnet_writes": false,
+        "delegation": false
+      },
+      "review_dependencies": [
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/a2a-runtime.ts",
+          "sha256": "8522d574f084935c91daf77d67822cee08ba6d80c74ef4b106bce648da1cf57e"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/api-index.ts",
+          "sha256": "25d2226d1c56d0775a0ad06fbf8479a1efd8fe3e32d2895470e8f32722ec6a80"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/app.ts",
+          "sha256": "37b36df9f2bb4b49fb6ec55d0f8fdcb9ca854a3c7890c5a28f77e2f1d643a3c4"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/chain-clients.ts",
+          "sha256": "1945e9811f33dbc4c5bcc6c939349a15f0015fef77b54a0c262d1f46a2f92439"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/client.ts",
+          "sha256": "dacb496d0f4d5efde96bde3c89d9664fbb97829a62d8c3be453de921b65c9ee2"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/decode_sources.py",
+          "sha256": "2ca25bad2a97b245b029e9d7ad369e9dfc64baf76096fd2cc456ea73dd746304"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-a2a-runtime.observation.json",
+          "sha256": "f4360a9fac0ea519dc5ae71f992c30e9afb98dfc8a16500e7fdf143196bbae84"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-a2a-runtime.request-plan.json",
+          "sha256": "74652697a07c409f172eeae94c98dbd1081164b250e647bde7de9865e1498c0a"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-a2a-runtime.response.bin",
+          "sha256": "7e8ee539995b7ca754992f8f824c4569c73913f289515f8292ddb2ac7cd0518a"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-agentstreet.observation.json",
+          "sha256": "78d22c5de883c876f0d41150dff1737bf56ceaf2aea68e51ef42248bdb9dade3"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-agentstreet.request-plan.json",
+          "sha256": "3fc457358d417252d1d710eb7d8a5c7a6b5d565ec8b46af3a1374ca09e5dd637"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-agentstreet.response.bin",
+          "sha256": "1bb0880a4c5660b51ff92008c3056ea44cbc892a8b435a9a6fa48b707b6219cf"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-api-index.observation.json",
+          "sha256": "754a69ffca42aec8a39d49ce3037a9018cd2b3d36f3146d43288333ead15c896"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-api-index.request-plan.json",
+          "sha256": "5512f18f9073d51d4c154c5b433b9d7b6796b4d5858c378b966638e8f8eb45d3"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-api-index.response.bin",
+          "sha256": "eee80f478a2bf10470fb090110972a68787a84740d86817a754376bad11fe731"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-app.observation.json",
+          "sha256": "b4c89dfe5fe70e06bff275fceb8de54212710f6030df1f221465d881fd27ccdd"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-app.request-plan.json",
+          "sha256": "d7350c42631d192a22507e811c25cd0f804457283ef7ce8218a5046032f7ea6f"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-app.response.bin",
+          "sha256": "aba28cd563510bf06f4e6892ed8a21161dfff23774cd01e01ce7b4190669271f"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-chain-clients.observation.json",
+          "sha256": "46ca1a27103253e11d38f47362bc8d29c0fa7c0e205c95d21d30221b21199a20"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-chain-clients.request-plan.json",
+          "sha256": "41620859d8cce8a33121eb58e775b9142076f0c0859a4307d566c781bef290fe"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-chain-clients.response.bin",
+          "sha256": "65dcd6cba795cf6f4ae84263e280816a326538e336159414c152291f147e6bf4"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-client.observation.json",
+          "sha256": "37529ef5340f5eb444f519686682b60a101438c9b0ecb7bf3b34664d536adcd7"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-client.request-plan.json",
+          "sha256": "51f46907794d94b917b4a15b592caa05f067db70eeb9fc5b68f483b29cfe30bc"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-client.response.bin",
+          "sha256": "d519911dc161c3f87d564281d313f4b9c76ea0983f4bc16d2a4bad1e170ed7ca"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-invoke.observation.json",
+          "sha256": "a4cfef5432ade79f0fc2976ba75703da02216da45cd41645c5357ccaa446a270"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-invoke.request-plan.json",
+          "sha256": "39d92ada4611e5a93646c36b419002b5a936b4d166ad2306917c60c5a1c1227c"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-invoke.response.bin",
+          "sha256": "e900ac16f4964908e8eae7bdc8962a9bce0637b96d876de0a104844d6f89058a"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-narrative.observation.json",
+          "sha256": "03d2e52cdee6b9d2f57c83e0bb33a5385bf7bde1e58cbe8eaf488e2bd1bbc011"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-narrative.request-plan.json",
+          "sha256": "0e6fda3a2d14233b0a5b006a7a3acb3a3ce3e5aae43b3b147b60a8b2208f93e5"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-narrative.response.bin",
+          "sha256": "35392301976b2c79ebf68f5ac9413d2825a6210778ded913fdb2b8a5e87f7c36"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-pancake.observation.json",
+          "sha256": "a65a153b605e8e3820d4db5885977b643f696831ddebf5718b513c9aa938dcb3"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-pancake.request-plan.json",
+          "sha256": "e0f99a6ce007de9fad89cb2f3ca5c1eda9498fe5319416196432eddddb0f6a9b"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-pancake.response.bin",
+          "sha256": "8d3373906cf67d6d3267781bc38aa512d4b5de5e3127f555179af31c1fd72cf9"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-prices.observation.json",
+          "sha256": "c623b1e4a409da95ae0f7c00da34e3516eba5e512fa4e20f0c8b8fc5ab5b6f98"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-prices.request-plan.json",
+          "sha256": "1ebcb77051a2196cd75cfb8eaca4a6e82e6b4a310ef096d9e9180b2fdc4adc17"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-prices.response.bin",
+          "sha256": "4610b1300b9034de249ba770863dc958b19bbd3010c9bb79311bc3113001bc1a"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-provider-home.observation.json",
+          "sha256": "534d6466b31b387899536cf20f04b5a7c9734c4c535633c80db21b96e02405a3"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-provider-home.request-plan.json",
+          "sha256": "a45cb1ea23ec80b785170b3c12778ae2acd013b4b69c156735163e8a619b94ef"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-provider-home.response.bin",
+          "sha256": "071591cd4bfd5e8f870a78e7d6246cde733f504f259112f575fe080f260e0da3"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-rebalancer-analyse.observation.json",
+          "sha256": "d0fd401dd5cc297652bd22497d6ef54cd8b71522a65f382fefbf214cb4fc7db4"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-rebalancer-analyse.request-plan.json",
+          "sha256": "19baa6b59310c218f6606d32011339eb167e3edbbbd179dcbabbe309a7b8afc2"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-rebalancer-analyse.response.bin",
+          "sha256": "468a1fc82901c113654e769e5ca6470049608e898f972d134cb554cad0cfe711"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-rebalancer-index.observation.json",
+          "sha256": "6e542e324b4e85ff7fb35dfc6ecb64fb324b60cf7288685438bbdfaa996e111c"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-rebalancer-index.request-plan.json",
+          "sha256": "131987e360b9849244ff2ef405df16f9f8d23dec6098fca81c0fd1066499510d"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-rebalancer-index.response.bin",
+          "sha256": "0ea35d4d891ae6a034391839c716932654b8687a773a79e96219103dee22d206"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-schema.observation.json",
+          "sha256": "a31aa0253400eebbae21acb142000853cccf454876fdaa2aba4094d2e450f0ef"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-schema.request-plan.json",
+          "sha256": "9617f702e226cb1d82e0b128a37ab30ef5564c38215cc13ab684504bc18c2194"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-schema.response.bin",
+          "sha256": "b8b380c1660985ffa7325cfe8f88f30095ecd944a43bfd288309c718defd1361"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-server.observation.json",
+          "sha256": "997bc1f33a43b5f6764fcbb1477beaef0ba6e91000fc66f98be7b631666f97ca"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-server.request-plan.json",
+          "sha256": "079250d76dbd6609d6b489cc12ec24ec4e3fac4587e2bc3a51308c53a1f793e5"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-server.response.bin",
+          "sha256": "f04a28037c8da4e465c92235640b8ed887057d97193d548f2eb75978495986c2"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-source-tree.observation.json",
+          "sha256": "e1b6223ed58220c2b4ac2022a90ae5d3f55da7172a1afa1da21cbe23a8abb68e"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-source-tree.request-plan.json",
+          "sha256": "21fa111a6f4b9946f5e2e089009837a2974de65067f8248dfebb1deeb7bf74c3"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-source-tree.response.bin",
+          "sha256": "ca29561ff8620f5e1c5f49deca332549786b2b2ff666bbf150f1d4bc7a9dd004"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-tokens.observation.json",
+          "sha256": "df6e33ba26b48e22e3889e8d614dd3d4abf526f5d24fb10d7479df5029f93874"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-tokens.request-plan.json",
+          "sha256": "3a4ffc3421c6ae05d00cb38df4739116f360ccbf2e607b6b5671bd7908255447"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-tokens.response.bin",
+          "sha256": "32ea8847bacd65179e84c265bf1fdf686e75061056c76a4c5d43db2636b8bd36"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-usd.observation.json",
+          "sha256": "20e797613e23b50f34a16cd21bd5cce8c6d8b0ad0f4e701c7477eef7c59ecad5"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-usd.request-plan.json",
+          "sha256": "e4b112b726b7951b45cb79cc1ea9e5344aa8eab767795059ebc80340d5b840be"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/document-usd.response.bin",
+          "sha256": "e0b73cff6076cc054ef651f4a1aeb64534ba3c0885d3be87e9ef109f4cbc827c"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/fetch_document.py",
+          "sha256": "5fd31b2581e38fff34e820646a55cf3011e7ae51fe8e553f0726b48d8f054141"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/finalize_manifest.py",
+          "sha256": "05b1a7166731e94ef21daad4162cb6880a0155c54cfaa4b28b2ef7449a208413"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/findings.md",
+          "sha256": "e7603325abac371f0d555b75c8335fff8b376b4d3711941d5be845bd071bd251"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/invoke.ts",
+          "sha256": "8306d617d06c5659a8ecb2d46a4398d463fcffb81850995125d1b4824ab26d2c"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/manifest.json",
+          "sha256": "6a08caceb75fe990aec07b8fbd08904ea460c19d07adea77edac7b12c4615186"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/narrative.ts",
+          "sha256": "065d02985f1df59f901a3487c1ee7439803427ba32bd4747cf1d116b24e28d86"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/pancake.ts",
+          "sha256": "bf877b035896d63d016dbf05aac1b8704edc4925a3467dfac265731d676ccd13"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/prices.ts",
+          "sha256": "a6568f1491ad1bd9738039eaf5111197fe1c937278dfa4442b1f6cb5b91502e0"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/rebalancer-analyse.ts",
+          "sha256": "d7f0ab848bb681581c00924e35203399a68f74681d0b1690a90b4818722c7356"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/rebalancer-index.ts",
+          "sha256": "9d01331471ff894cf4fb95d1d026d73455d85356e9ab9549f7cb337e221eaf77"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/review.json",
+          "sha256": "ade0f56073eace0dbd2065c4954bf5c6c5020caa75b4652c8ffd29170750009d"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/schema.ts",
+          "sha256": "899ffe9c2a05dbfe5fc4eab8f88f6bcd68d12939296887edf1f56b0d65b3d519"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/scope-extension-app.json",
+          "sha256": "ccc3b9b7aaf28be804f89eb555d1587a6645f3a5cd746ae3bed484fe24d02028"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/server.ts",
+          "sha256": "61a69fe3ff258bc227468994c6253e262a1f94509738dd50bc3641492ea44e9b"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/source-verification.json",
+          "sha256": "1553623a13328ca01302cd2cacaee422256b73d83d26be37238101ad2fec6494"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/tokens.ts",
+          "sha256": "6f61c70fb965dff6a5f80094f5432b7b8db37edae66cbb6745b10aa9c9961809"
+        },
+        {
+          "path": "runtime/cross-provider-checker-20261020/hallmark-source-preflight/usd.ts",
+          "sha256": "c16de6bc2ac40c199aa53cc72205f516c833a722ac7979641dc03aa83ccc0cde"
+        }
+      ]
+    }
+  ]
+}

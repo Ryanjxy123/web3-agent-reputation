@@ -13,7 +13,9 @@ PREDICTION_POLICY_VERSION = "prediction-history-v1"
 PREDICTION_EVIDENCE_POLICY_VERSION = "prediction-history-v2"
 PREDICTION_POLICY_VERSIONS = (PREDICTION_POLICY_VERSION, PREDICTION_EVIDENCE_POLICY_VERSION)
 SERVICE_CONTRACT_POLICY_VERSION = "service-contract-v1"
-PolicyVersion = Literal["liquidity-history-v1", "prediction-history-v1", "prediction-history-v2", "service-contract-v1"]
+SERVICE_FULFILLMENT_POLICY_VERSION = "service-fulfillment-v1"
+SERVICE_POLICY_VERSIONS = (SERVICE_CONTRACT_POLICY_VERSION, SERVICE_FULFILLMENT_POLICY_VERSION)
+PolicyVersion = Literal["liquidity-history-v1", "prediction-history-v1", "prediction-history-v2", "service-contract-v1", "service-fulfillment-v1"]
 DIMENSION_WEIGHTS = {
     MeasurementPurpose.AVAILABILITY: 0.30,
     MeasurementPurpose.FUNCTIONAL: 0.40,
@@ -116,7 +118,7 @@ def _dimension_score(purpose: MeasurementPurpose, samples: list[ScoredSample],
 
 def calculate_scores(samples: list[ScoredSample], *, policy_version: PolicyVersion = POLICY_VERSION) -> ScoringOutcome:
     """Score disjoint measurement tasks; unknown evidence never becomes a zero."""
-    if policy_version not in (POLICY_VERSION, *PREDICTION_POLICY_VERSIONS, SERVICE_CONTRACT_POLICY_VERSION):
+    if policy_version not in (POLICY_VERSION, *PREDICTION_POLICY_VERSIONS, *SERVICE_POLICY_VERSIONS):
         raise ValueError("unsupported scoring policy")
     grouped = {purpose: [] for purpose in DIMENSION_WEIGHTS}
     sample_ids, task_keys = set(), set()

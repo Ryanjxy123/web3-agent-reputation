@@ -13,6 +13,7 @@ from reputation_core.application import (
 from reputation_core.reporting import EvaluationReport
 from reputation_platform.db import EvidenceIntegrityError, Repository
 from reputation_platform.settings import PROJECT_ROOT, load_database_url
+from reputation_platform.runtime_status import RuntimeStatus, unavailable_runtime
 
 
 def create_app(repository: Repository | None = None) -> FastAPI:
@@ -37,6 +38,13 @@ def create_app(repository: Repository | None = None) -> FastAPI:
     @app.get("/api/agents", response_model=list[AgentSummary])
     def list_agents():
         return repo.list_agents()
+
+    @app.get('/api/runtime', response_model=RuntimeStatus)
+    def runtime():
+        try:
+            return repo.runtime_status()
+        except psycopg.Error:
+            return unavailable_runtime()
 
     @app.get("/api/agents/{key}", response_model=AgentDetail)
     def get_agent(key: str):

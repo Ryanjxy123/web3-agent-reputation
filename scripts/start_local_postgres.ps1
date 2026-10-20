@@ -15,10 +15,11 @@ $postgres = Join-Path $toolDirectory 'postgres.exe'
 $pgCtl = Join-Path $toolDirectory 'pg_ctl.exe'
 $psql = Join-Path $toolDirectory 'psql.exe'
 $utf8 = New-Object Text.UTF8Encoding($false)
+# Windows PostgreSQL writes native paths using the system ANSI code page.
+$nativePathEncoding = [Text.Encoding]::GetEncoding((Get-WinSystemLocale).TextInfo.ANSICodePage)
 
-if ((Split-Path $projectRoot -Leaf) -ne 'block_chain_new_new' -or
-    -not (Test-Path -LiteralPath (Join-Path $projectRoot 'pyproject.toml'))) {
-    throw 'Run the script from the independent block_chain_new_new project.'
+if (-not (Test-Path -LiteralPath (Join-Path $projectRoot 'pyproject.toml'))) {
+    throw 'Run the script from the web3-agent-reputation project.'
 }
 foreach ($directory in @($runtimeDirectory, $dataDirectory, $configDirectory)) {
     if ((Test-Path -LiteralPath $directory) -and
@@ -39,7 +40,7 @@ if ($LASTEXITCODE -ne 0 -or $version -notmatch 'PostgreSQL\) 17\.11(?:\s|$)') {
 $versionFile = Join-Path $dataDirectory 'PG_VERSION'
 $initialized = Test-Path -LiteralPath $versionFile -PathType Leaf
 if (Test-Path -LiteralPath $markerFile -PathType Leaf) {
-    $marker = Get-Content -LiteralPath $markerFile -Raw | ConvertFrom-Json
+    $marker = Get-Content -LiteralPath $markerFile -Raw -Encoding UTF8 | ConvertFrom-Json
     if ($marker.purpose -ne 'web3-reputation-local-postgres-v1' -or
         $marker.project_root -ne $projectRoot -or $marker.data_directory -ne $dataDirectory -or
         $marker.tool_directory -ne $toolDirectory -or $marker.port -ne $port -or
@@ -66,7 +67,7 @@ if ($listeners.Count -gt 0) {
     if (-not $initialized -or -not (Test-Path -LiteralPath $pidFile -PathType Leaf)) {
         throw 'Port 55438 is occupied; the existing process will not be changed.'
     }
-    $pidLines = @(Get-Content -LiteralPath $pidFile)
+    $pidLines = @([IO.File]::ReadAllLines($pidFile, $nativePathEncoding))
     $serverProcessId = [int]$pidLines[0]
     $serverProcess = Get-Process -Id $serverProcessId -ErrorAction Stop
     $controlStatus = & $pgCtl -D $dataDirectory status 2>&1
@@ -183,10 +184,15 @@ try {
     & (Join-Path $toolDirectory 'pg_isready.exe') -h 127.0.0.1 -p 55438 -U reputation -d postgres -t 5 | Out-Null
     if ($LASTEXITCODE -ne 0) { throw 'The project PostgreSQL readiness check failed.' }
     $psqlArguments = @('-h', '127.0.0.1', '-p', '55438', '-U', 'reputation', '-w', '-X', '-A', '-t', '-v', 'ON_ERROR_STOP=1')
-    $identity = & $psql @psqlArguments -d postgres -c "SELECT current_setting('data_directory'), current_setting('port'), current_setting('listen_addresses'), current_setting('server_version_num');"
+    # Hex avoids PowerShell/psql transcoding of PostgreSQL's native Windows path.
+    $identity = & $psql @psqlArguments -d postgres -c "SELECT encode(current_setting('data_directory')::bytea, 'hex'), current_setting('port'), current_setting('listen_addresses'), current_setting('server_version_num');"
     if ($LASTEXITCODE -ne 0) { throw 'The project PostgreSQL authentication check failed.' }
     $fields = ($identity.Trim() -split '\|')
-    if ($fields.Count -ne 4 -or [IO.Path]::GetFullPath($fields[0]) -ne $dataDirectory -or
+    $pathBytes = @(for ($index = 0; $index -lt $fields[0].Length; $index += 2) {
+        [Convert]::ToByte($fields[0].Substring($index, 2), 16)
+    })
+    $reportedDirectory = $nativePathEncoding.GetString([byte[]]$pathBytes)
+    if ($fields.Count -ne 4 -or [IO.Path]::GetFullPath($reportedDirectory) -ne $dataDirectory -or
         $fields[1] -ne '55438' -or $fields[2] -ne '127.0.0.1' -or $fields[3] -ne '170011') {
         throw 'The authenticated PostgreSQL identity does not match the expected project instance.'
     }

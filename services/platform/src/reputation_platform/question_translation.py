@@ -10,7 +10,9 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from reputation_core import ProbeObservation
-from reputation_platform.model_analysis import ENDPOINT, MODEL
+from reputation_platform.llm import (
+    LEGACY_CONFIG, LLMConfig, evidence_url, fingerprint, request_body, response_text, validate_record,
+)
 from reputation_platform.safe_http import PublicTarget
 from reputation_platform.settings import PROJECT_ROOT
 
@@ -230,30 +232,24 @@ question_sha256与original_question必须逐字回显给定值，包括空白、
 """
 
 
-def translation_target(key: str, questions: list[QuestionMaterial]) -> PublicTarget:
+def translation_target(key: str, questions: list[QuestionMaterial],
+                       config: LLMConfig = LEGACY_CONFIG) -> PublicTarget:
     if not questions:
         raise ValueError("A translation request requires actual fixed questions")
-    return PublicTarget(key, ENDPOINT, "POST", json_body={
-        "model": MODEL, "instructions": TRANSLATION_INSTRUCTIONS,
-        "input": json.dumps({"questions": [{"question_sha256": question.question_sha256,
-                                             "original_question": question.original_question} for question in questions]},
-                            ensure_ascii=False),
-        "reasoning": {"effort": "none"}, "max_output_tokens": 8192, "stream": False,
-        "tools": [], "tool_choice": "none",
-        "text": {"format": {"type": "json_schema", "name": "prediction_question_translation",
-                             "schema": TranslationBatch.model_json_schema()}},
-    })
+    return PublicTarget(key, config.endpoint, "POST", json_body=request_body(
+        TRANSLATION_INSTRUCTIONS,
+        {"questions": [{"question_sha256": question.question_sha256,
+                        "original_question": question.original_question} for question in questions]},
+        TranslationBatch.model_json_schema(), "prediction_question_translation", config.record()))
 
 
-def parse_translations(response: dict, questions: list[QuestionMaterial]) -> list[QuestionTranslation]:
-    if response.get("status") != "completed" or response.get("error"):
-        raise ValueError("Translation response did not complete")
-    outputs = response.get("output", [])
-    if any(item.get("type") not in ("message", "reasoning") for item in outputs):
-        raise ValueError("Unexpected model tool output")
-    text = "".join(part["text"] for item in outputs if item.get("type") == "message"
-                   for part in item.get("content", []) if part.get("type") == "output_text")
-    batch = TranslationBatch.model_validate_json(text)
+def parse_translations(response: dict, questions: list[QuestionMaterial],
+                       api_style: str = "responses") -> list[QuestionTranslation]:
+    text = response_text(response, api_style)
+    try:
+        batch = TranslationBatch.model_validate_json(text)
+    except ValueError:
+        raise ValueError("LLM translation JSON failed schema validation") from None
     expected = {question.question_sha256: question.original_question for question in questions}
     if (len(batch.translations) != len(expected)
             or {item.question_sha256 for item in batch.translations} != set(expected)):
@@ -267,10 +263,21 @@ def parse_translations(response: dict, questions: list[QuestionMaterial]) -> lis
 
 
 def verify_cached_translation(cached: Path, question: QuestionMaterial,
-                              root: Path = PROJECT_ROOT) -> tuple[QuestionTranslation, list[TranslationSource]]:
+                              root: Path = PROJECT_ROOT, *, config: LLMConfig | None = None
+                              ) -> tuple[QuestionTranslation, list[TranslationSource]]:
     """Rebuild one cached translation from its retained provider request and response."""
     cached = public_file(cached, root)
     data = json.loads(cached.read_bytes())
+    record = validate_record(data["llm_config"]) if "llm_config" in data else LEGACY_CONFIG.record()
+    if config is not None and record != config.record():
+        raise ValueError("Cached translation belongs to a different LLM configuration")
+    cache_root = (root / "runtime/question-translation-cache").resolve()
+    expected_name = f"{question.question_sha256}.translation.json"
+    allowed_parents = {cache_root / fingerprint(record)}
+    if record == LEGACY_CONFIG.record():
+        allowed_parents.add(cache_root)
+    if cached.name != expected_name or cached.parent not in allowed_parents:
+        raise ValueError("Cached translation is outside its LLM configuration namespace")
     translated = QuestionTranslation.model_validate(data["translation"])
     if (translated.question_sha256 != question.question_sha256
             or translated.original_question != question.original_question
@@ -287,14 +294,18 @@ def verify_cached_translation(cached: Path, question: QuestionMaterial,
     if (not questions or len({item.question_sha256 for item in questions}) != len(questions)
             or any(question_digest(item.original_question) != item.question_sha256 for item in questions)):
         raise ValueError("Cached provider batch has changed or duplicated original questions")
-    expected_request = translation_target(observation.request_key, questions).json_body
-    if (observation.url != ENDPOINT or observation.method != "POST"
+    expected_request = request_body(TRANSLATION_INSTRUCTIONS,
+        {"questions": [{"question_sha256": item.question_sha256,
+                        "original_question": item.original_question} for item in questions]},
+        TranslationBatch.model_json_schema(), "prediction_question_translation", record)
+    expected_url = evidence_url(record) if "llm_config" in data else LEGACY_CONFIG.endpoint
+    if (observation.url != expected_url or observation.method != "POST"
             or observation.http_status != 200 or observation.error_kind or not observation.body_complete
             or observation.response_sha256 != proof.sha256 or not observation.response_file
             or (observation_file.parent / observation.response_file).resolve() != response_file
             or json.loads(observation.request_json) != expected_request):
         raise ValueError("Cached translation request does not match its retained observation")
-    parsed = parse_translations(json.loads(response_file.read_bytes()), questions)
+    parsed = parse_translations(json.loads(response_file.read_bytes()), questions, record["api_style"])
     if translated not in parsed:
         raise ValueError("Cached translation differs from the retained provider response")
     return translated, [reference(cached, root), proof, observation_proof]
@@ -337,8 +348,11 @@ def load_verified_translations(run: Path, root: Path = PROJECT_ROOT) -> tuple[di
         claimed = QuestionTranslation(question_sha256=question.question_sha256,
             original_question=question.original_question, question_zh=question.question_zh,
             plain_language_zh=question.plain_language_zh)
-        cached_name = f"runtime/question-translation-cache/{question.question_sha256}.translation.json"
-        cached = [item for item in question.translation_evidence if item.path == cached_name]
+        cache_root = root / "runtime/question-translation-cache"
+        cached_name = f"{question.question_sha256}.translation.json"
+        cached = [item for item in question.translation_evidence
+                  if Path(item.path).name == cached_name
+                  and (root / item.path).resolve().is_relative_to(cache_root.resolve())]
         if len(cached) != 1:
             raise ValueError("Translated material must reference its unique retained translation cache")
         translated, proofs = verify_cached_translation(checked_source(cached[0].model_dump(), root), question, root)

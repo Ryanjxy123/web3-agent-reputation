@@ -33,6 +33,64 @@ class _RecordingStream(httpcore.NetworkStream):
 
 
 class PinnedHTTPTests(unittest.TestCase):
+    def test_certificate_setup_precedes_request_budget(self) -> None:
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        clock = [0.0]
+
+        def configure_context():
+            clock[0] += 20
+            return context
+
+        public = (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 443))
+        target = PublicTarget("public", "https://example.org/document.json")
+        with TemporaryDirectory() as temporary, patch("time.monotonic", side_effect=lambda: clock[0]), patch(
+            "httpcore.default_ssl_context", side_effect=configure_context,
+        ), patch("httpcore._sync.connection.default_ssl_context", side_effect=configure_context), patch(
+            "socket.getaddrinfo", return_value=[public],
+        ), patch.object(httpcore.SyncBackend, "connect_tcp", return_value=_RecordingStream(False)), SafeHttpClient(
+            (target,), enabled=True, pin_public_dns=True,
+        ) as client:
+            observation = client.fetch("public", Path(temporary))
+        self.assertIsNone(observation.error_kind)
+        self.assertEqual(observation.elapsed_ms, 0)
+
+    def test_fake_ip_uses_checked_dns_with_origin_tls(self) -> None:
+        target = PublicTarget("public", "https://example.org/document.json")
+        fake = (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("198.18.0.72", 443))
+        stream = _RecordingStream(True)
+        with TemporaryDirectory() as temporary, patch("socket.getaddrinfo", return_value=[fake]), patch(
+            "reputation_platform.pinned_http._doh_addresses", return_value=["93.184.216.34"],
+        ) as doh, patch.object(httpcore.SyncBackend, "connect_tcp", return_value=stream), SafeHttpClient(
+            (target,), enabled=True, proxy="http://127.0.0.1:7897", pin_public_dns=True,
+        ) as client:
+            observation = client.fetch("public", Path(temporary))
+        self.assertIsNone(observation.error_kind)
+        self.assertEqual(doh.call_args.args[:2], ("example.org", "http://127.0.0.1:7897"))
+        self.assertIn(b"CONNECT 93.184.216.34:443", stream.writes[0])
+        self.assertEqual(stream.tls, ("example.org", True, ssl.CERT_REQUIRED))
+        self.assertIn(b"Host: example.org", b"".join(stream.writes))
+
+    def test_fake_ip_never_allows_private_mixed_or_unproxied_destinations(self) -> None:
+        from reputation_platform.pinned_http import PinnedBackend
+
+        for ips, proxy, answer in (
+            (["198.18.0.72"], None, ["93.184.216.34"]),
+            (["198.18.0.72", "93.184.216.34"], "http://127.0.0.1:7897", ["93.184.216.34"]),
+            (["198.18.0.72", "127.0.0.1"], "http://127.0.0.1:7897", ["93.184.216.34"]),
+            (["127.0.0.1"], "http://127.0.0.1:7897", ["93.184.216.34"]),
+            (["198.18.0.72"], "http://127.0.0.1:7897", ["127.0.0.1"]),
+        ):
+            with self.subTest(ips=ips, proxy=proxy, answer=answer):
+                backend = PinnedBackend(frozenset({"example.org"}), proxy)
+                addresses = [(socket.AF_INET, socket.SOCK_STREAM, 6, "", (ip, 443)) for ip in ips]
+                with patch("socket.getaddrinfo", return_value=addresses), patch(
+                    "reputation_platform.pinned_http._doh_addresses", return_value=answer,
+                ) as doh, patch.object(httpcore.SyncBackend, "connect_tcp") as dial:
+                    with self.assertRaises(PermissionError):
+                        backend.connect_tcp("example.org", 443, timeout=15)
+                dial.assert_not_called()
+                self.assertEqual(doh.call_count, int(ips == ["198.18.0.72"] and proxy is not None))
+
     def test_checked_ip_keeps_origin_tls_host_and_allowed_protocol_headers(self) -> None:
         targets = (
             PublicTarget("pinned", "https://example.org/document.json", headers={

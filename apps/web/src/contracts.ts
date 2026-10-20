@@ -2,6 +2,7 @@
 export type {
   AgentDetail,
   AgentSummary,
+  CapabilityCoverage,
   CheckCode,
   DimensionScore,
   EvaluationJob,

@@ -1,6 +1,66 @@
 # 新项目执行计划
 
-2026-10-19：`REFACTOR_PUBLICATION`已完成，下一task_id=`PR_REVIEW`。[重构PR #17](https://github.com/Ryanjxy123/web3-agent-reputation/pull/17)已推送并转为ready for review，base=`main`、head=`codex/rebuild-reputation-platform`，不自动合并。旧父仓库origin已备份移除，新项目独立origin指向原目标仓库；两边提交历史保留，CODEOWNERS与PR模板未改。
+## 2026-10-20 最新本地优化提交与合并
+
+task_id=`PUBLISH_LOCAL_OPTIMIZATIONS_20261020`。用户已明确授权将当前最新优化提交并合并到main；使用`codex/commit-latest-optimizations-20261020`任务分支推送和PR合并。交付包括现有Query/Position评价、可观察服务履约、运行状态与能力覆盖、LLM/ZAN安全网络及Windows启动修复，以及配套契约、配置、测试和文档。
+
+本次提交前实测：Position 60项、Query 37项、LLM 78项、评分边界1项均通过；Python编译及Vue类型检查/生产构建通过。既有真实评价、PostgreSQL/API验收沿用上述实现阶段有效记录，不重新评价Agent。暂存内容经路径与秘密检查；`.bootstrap-incoming/`保留本地，密钥、数据库和私有runtime不发布。Git发布状态以本次PR为准，下方“未commit/push”等均为各历史阶段的当时记录。
+
+## 2026-10-20 完整能力评价（真实闭环完成，运行边界保留）
+
+task_id=`COMPLETE_CAPABILITY_EVALUATION`。ADR-0020及`service-fulfillment-v1`已实施；共享Position/v2、自动冻结7F/7B、审阅契约匹配完成。Brain #49467与Hallmark #338475分别新增真实COMPLETE报告，均A80/F100/B100/S94，各63公开只读请求/14业务调用。两份生产来源重放、14份历史报告保护、最终34次loopback API检查及Vue类型/构建通过；LLM网络49项及相关9项通过。目录移除跨政策综合分排序，展示报告范围分及能力覆盖。
+
+数据库13 Agent/16报告/12完整报告/12完整不同身份/0活动任务；API/PG在线，两次限定Worker已退出，常驻Worker与浏览器视觉仍受此前审批拒绝限制，人工步骤已给出。Clawdia、旧固定Activity及两份旧v1 PARTIAL保留原义，不移用新成绩。审阅配置以不可变版本扩展，新run冻结路径、旧run按v1兼容；不修改任何已发布依赖。不commit/push/reset。实测收据见 `runtime/complete-capability-20261020/`，最终报告为 `docs/runbooks/COMPLETE_CAPABILITY_EVALUATION_20261020.md`。
+
+后续先完成允许范围内的人工视觉与常驻Worker运行，再按真实契约/独立证据扩展提供方或业务类别；未知工具、动态状态、异步Task及Routing不能只靠相似Schema自动获准执行。
+
+## 2026-10-20 跨提供方 V3 Position Checker（本轮完成，边界保留）
+
+task_id=`CROSS_PROVIDER_CHECKER_VALIDATION`。候选可行性→真实pilot→共享Oracle/Adapter→预冻七NFT→受控自动Collector→来源复核/正式入库/API已完成。最终Brain #49467与Hallmark #338475各7F PASS/F100，A93.37/93.68，B/综合null。Hallmark单次自动发布；Brain首次发布错误修复后，同job复用原件恢复，0业务重试。旧12报告保持，新增两报告后13Agent/14报告/0活动任务。
+
+必要测试、独立审计、生产来源重放、API及Vue构建通过；LLM旧失败和fixture skip未掩盖。浏览器策略停止及默认public-off Worker恢复被自动审批拒绝已记录，当前API在线但无常驻Worker。后续先人工视觉验收/按允许方式恢复默认Worker；扩展新提供方须先认证和安全审阅Adapter，不扩大万能Judge或改变评分政策。未commit/push/reset。全过程见[本轮报告](docs/runbooks/CROSS_PROVIDER_CHECKER_VALIDATION_20261019.md)。
+
+## 2026-10-19 能力 Checker 渐进扩展（本轮实施与验收完成，保留限制）
+
+task_id=`CAPABILITY_CHECKER_EXPANSION`。已先核实代码、历史和基线，再调查20个真实Agent，完成首个ERC20交易记录查询Checker、来源Verifier与最小静态分派，复用现有Prediction/Mech/增仓路径。Brain BNB #49467实际只读调用一次，产生1个F事实PASS；正式报告`888f98ca-0bc7-4a58-9de2-1f0626bc40a5`已入库，Agent key=`agent-e9357377962d8c944359ca49`。A/F/B/综合均null、PARTIAL，未用重复查询或Mock凑7个任务。
+
+最终30项Query工程测试（含Checker元数据冒用负例）、Vue构建、真实API/附件及浏览器验收通过；现有10份完整历史报告和2290报告的原件、分数、数据库记录及附件映射保持不变，2290的88项输入来源回放通过。最终数据库12 Agent/12报告/5作业；常驻Worker保持public-off，提交准确返回NEEDS_INFO。既有LLM正常回归仍有超时失败，诊断结果不替代其回归通过。评分政策、既有未提交修改保留，本轮不commit/push。实际范围与收据见[实施报告](docs/runbooks/CHECKER_EXPANSION_20261019.md)。
+
+下一步先寻找第二独立提供方的同语义、可认证且安全查询对象，取得7个不同F任务所需真实证据；两提供方复用、Routing及任意Agent自动完整评价尚未达成。Routing缺安全任务约束和独立预期，保持探索；不默认开启常驻公开Worker，不新增无真实对象的Checker。
+
+## 2026-10-19 历史评价审计与 Base 2290 单对象接入（单次完成，常驻公开执行受阻）
+
+已从10份发布报告、14,696个去重依赖、数据库与Git还原真实流程；本轮只评价Base #2290，0模型/业务工具/交易。最小修复为通用公网采集复用安全Fake-IP解析，以及Worker单身份范围参数。2290真实22次只读、MCP/A2A资料取得，IPFS注册原件超时；实际报告PARTIAL，A90.87、F/B/综合null。10份旧分重算与DB/附件回归保持一致；5项必要Mock测试及浏览器通过。
+
+单次Worker已exit0，API/PG健康、0活动任务。自动审批拒绝常驻公开Worker（仅返回blocked by policy，无具体原因），现已恢复public-off常驻Worker；不能声称后续网页提交已持续开启实时评价。下一步只在明确允许的执行范围/费用条件下开启所需Worker；业务扩展仍缺安全任务执行、独立正确性判据及可归属履约。完整结论与代码位置见[审计报告](docs/runbooks/HISTORICAL_EVALUATION_AND_AGENT2290_20261019.md)。未提交或推送。
+
+## 2026-10-19 ZAN Base 本地配置（已完成）
+
+task_id=`ZAN_BASE_LOCAL_20261019`：保存用户授权的Base凭证到Git忽略文件；沿用Key文件/本地路径指针机制自动读取。ZAN域名实测为Fake-IP，复用已验证的安全代理/DNS/IP固定传输，仅接入已通过ZAN只读作用域校验的请求。实际验证eth_chainId、eth_blockNumber、进程配置可用性及10份历史报告；不评价Agent、不发交易、不修改其他网络配置、不提交或推送。
+
+已完成：本地秘密文件与路径指针、Python跨平台自动选择、启动器自动导出凭证路径。SafeHttpClient实测8453/区块52,804,922，实际DiscoveryEvidence/_rpc再次8453，共3次只读调用，0交易/模型/Agent评价。原网站保持在线；0活动任务时只重载默认public-off Worker并在进程内验证配置，10份历史报告/附件与3个前端资源未变。用户后续只需轮换聊天暴露的ZAN Key并替换本地文件；公开评价开关未启用。详见[ZAN配置说明](docs/runbooks/ZAN_CONFIGURATION.md)。
+
+## 2026-10-19 LLM 网络可迁移性（已完成）
+
+task_id=`PORTABLE_LLM_NETWORK_20261019`：仅为可信后台 LLM 配置增加自动代理识别、Fake-IP 安全诊断/解析和固定公网目标连接；复用 httpx/httpcore 代理能力，不再手写 LLM CONNECT/SOCKS，不改系统/Clash 配置或原 RPC/Agent 路径。使用本地已有凭证、指定 `gpt-6-luna`，先无推理检查，真实推理另获用户确认。保留所有既有未提交改动，不提交或推送。
+
+已在本机自动读取系统 HTTP 代理，安全处理 Fake-IP，GET models HTTP200 且列出指定模型；用户单独授权后一次 Chat Completions 返回 HTTP200 / OK，模型一致、usage 11+5=16 token、0重试。10份历史报告/附件及前端资源回归通过，运行中服务未中断。新传输仅用于 LLM；跨平台模拟与实际限制见 STATUS 和 LLM 配置说明。迁移后填写各自私密 JSON/Key，安装锁定依赖，先运行免费 `scripts/check_llm_connection.py`；RPC 网络保持原边界。
+
+## 2026-10-19 通用 LLM 配置（已完成）
+
+task_id=`CONFIGURABLE_LLM_20261019` 已完成：仅调整 LLM 配置、协议适配、凭证作用域及缓存证据；评分、RPC、Agent 接入和前端业务保持原规则。44 个必要测试、历史翻译原件核验及新旧 API 十报告回归通过；本轮未调用付费 API，未提交或推送。
+
+复用 SafeHttpClient，新增轻量 Chat Completions / Responses 适配；统一使用本地 `runtime/platform-config/llm.json`，兼容旧 Key 变量和无新版配置时的旧 DeepSeek 请求。新缓存按模型、协议、端点及配置版本隔离，历史证据按原配置核验。实际测试、限制和切换命令见 [LLM 配置说明](docs/runbooks/LLM_CONFIGURATION.md) 与 STATUS。
+
+## 2026-10-19 本机同步与复现（已完成）
+
+`LOCAL_SYNC_VERIFY_20261019`已完成：main已fast-forward到PR #17合并后的`3a680f3`，最终fetch复核HEAD与origin/main一致。旧审计分支、旧库与本地.env保留；本轮不提交、不推送。
+
+已安装锁定依赖、构建前端、建立独立PG55438，完整离线核验并导入10份评分，真实API/附件及浏览器展示通过。修复仅限3个Windows启动/停止脚本的旧目录名、中文路径编码和API子进程清理；评分规则、LLM接口未改。详细实测、命令和限制见[本机核验报告](docs/runbooks/LOCAL_VERIFICATION_20261019.md)。API7754与默认public-off worker保持运行。
+
+下一task_id=`LIVE_EVALUATION_CONFIG`：只有需要新实时评价时，才处理本机Mihomo Fake-IP DNS、填写被Git忽略的个人DeepSeek/ZAN文件，并在用户确认付费调用后启用公开worker。此依赖不阻碍查看已导入结果；本轮没有付费模型调用或链上交易。
+
+## 原开发机历史交付记录
 
 README已写清安装、建库、公开评分导入、API/worker启动、网站`http://127.0.0.1:7754/`及自备RPC/LLM凭证。已上传`data/public-reports-v1.tar.gz`与摘要：10个不同真实Agent完整报告、14,737个公开文件、16,452,062B，包SHA `6f0daa102d5f03d123adfa327a224a85d4e16340644769ac01d4f2613db8ff76`。工作文件、Git blob和全新Git目录中的包哈希一致；不上传个人密钥、私有配置或数据库。全包秘密审计exit0，记录`runtime/public-reports-archive-audit-20261019T014325Z-3e23d85b/result.json`。
 

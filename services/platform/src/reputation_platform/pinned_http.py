@@ -9,6 +9,8 @@ from urllib.parse import urlsplit
 import httpcore
 import httpx
 
+from reputation_platform.llm_network import _FAKE_IP, _doh_addresses
+
 
 @contextmanager
 def _mapped_errors():
@@ -39,14 +41,21 @@ class PinnedBackend(httpcore.NetworkBackend):
     def connect_tcp(self, host, port, timeout=None, local_address=None, socket_options=None):
         if host not in self.hosts or port != 443:
             raise PermissionError("Origin is outside the pinned HTTPS scope")
+        deadline = time.monotonic() + (timeout if timeout is not None else 15)
         addresses = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
         ips = [ipaddress.ip_address(item[4][0]) for item in addresses]
-        if not ips or any(not ip.is_global for ip in ips):
+        # Reuse independent DNS only for an all-Fake-IP answer and our fixed operator proxy.
+        if ips and all(ip in _FAKE_IP for ip in ips) and self.proxy:
+            ips = [ipaddress.ip_address(ip) for ip in _doh_addresses(
+                host, "http://127.0.0.1:7897", max(0, deadline - time.monotonic()))]
+        if not ips or any(not ip.is_global or ip.is_multicast for ip in ips):
             raise PermissionError("Origin resolved to a non-public destination")
         ip = str(ips[0])
         destination = self.proxy or (ip, port)
-        deadline = time.monotonic() + (timeout if timeout is not None else 15)
-        stream = self.backend.connect_tcp(*destination, timeout=timeout,
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise httpcore.ConnectTimeout("Pinned HTTPS DNS deadline reached")
+        stream = self.backend.connect_tcp(*destination, timeout=remaining,
             local_address=local_address, socket_options=socket_options)
         if self.proxy is None:
             return stream
@@ -93,6 +102,7 @@ class PinnedHTTPTransport(httpx.BaseTransport):
     def __init__(self, urls: tuple[str, ...], proxy: str | None) -> None:
         hosts = frozenset(httpx.URL(url).raw_host.decode("ascii") for url in urls)
         self.pool = httpcore.ConnectionPool(network_backend=PinnedBackend(hosts, proxy),
+            ssl_context=httpcore.default_ssl_context(),
             max_connections=4, max_keepalive_connections=0, http2=False, retries=0)
 
     def handle_request(self, request: httpx.Request) -> httpx.Response:
