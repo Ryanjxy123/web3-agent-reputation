@@ -1,5 +1,11 @@
 # 新项目执行计划
 
+## 2026-10-20 本机同步远程最新版并恢复运行
+
+task_id=`RUN_REMOTE_MAIN_20261020`已完成。按用户请求fetch并将本地main快进至`origin/main=1675d55`（PR #18），旧本地改动保留在`codex/teacher-demo-20261020=339a902`。当前运行代码为远程版本，仅在`codex/run-remote-main-20261020`追加本机运行交接文档，未push。原数据库已备份并保留，兼容新增worker心跳表；前端重建、依赖同步完成。
+
+19:59北京时间本机API7754 PID34156、独立worker PID36172运行，PG55438 PID44748保持；延续本会话既有公共只读授权，worker实核online、0排队/运行。当前38候选/47报告/10完整身份，2359仍84.39，用户49467报告仍为原PARTIAL。远程开发机记录的Brain #49467与Hallmark #338475两份新完整报告及原件未随Git发布，本机尚无这两份报告；不能把远程13/16/12快照当本机数量。运行记录`runtime/remote-update-20261020T115301Z/`，下一task_id=`LOCAL_MANUAL_REVIEW`；两份新报告需来源机提供公开证据包后再核验导入。
+
 ## 2026-10-20 最新本地优化提交与合并
 
 task_id=`PUBLISH_LOCAL_OPTIMIZATIONS_20261020`。用户已明确授权将当前最新优化提交并合并到main；使用`codex/commit-latest-optimizations-20261020`任务分支推送和PR合并。交付包括现有Query/Position评价、可观察服务履约、运行状态与能力覆盖、LLM/ZAN安全网络及Windows启动修复，以及配套契约、配置、测试和文档。

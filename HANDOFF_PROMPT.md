@@ -1,5 +1,9 @@
 # 当前工作交接
 
+2026-10-20 19:59北京时间本机更新：已按用户要求拉取`origin/main=1675d55`（PR18）并运行该版；本地main已快进，旧339a902及演示稿保留在原分支。当前`codex/run-remote-main-20261020`只记本机运行状态、未push。API7754 PID34156/独立worker PID36172，PG55438 PID44748；以`runtime/remote-update-20261020T115301Z/process.json`为准。该目录含更新前真实PG备份、文档备份与启动核对。38候选/47报告/10完整，原评分保留；新心跳表兼容初始化，worker按本会话既有只读授权online、0在途。RPC子进程使用原机既有凭证路径，LLM原配置未换。
+
+注意下面远程开发机13候选/16报告/12完整及常驻worker审批阻断，均不代表本机当前状态。本机缺Brain #49467新94分报告`0812985f-8777-4629-8fba-3db4b3e1e65a`、Hallmark #338475新94分报告`c88165ca-df10-4cb2-aeb2-6e8680c605c2`与原件，Git公开包仍10份。新增源码已到位，结果须由来源机交付公开证据包后核验导入。所有启动/构建/依赖最终exit0，完整收据与已遇环境问题见STATUS。用户打开的Word及锁文件仍在原位，不覆盖或加入提交；下一任务本人试用。
+
 2026-10-19：`REFACTOR_PUBLICATION`已完成，下一task_id=`PR_REVIEW`。[重构PR #17](https://github.com/Ryanjxy123/web3-agent-reputation/pull/17)已推送并转为ready for review，base=`main`、head=`codex/rebuild-reputation-platform`，不自动合并。旧父仓库origin已备份移除，新项目独立origin指向原目标仓库；两边提交历史保留，CODEOWNERS与PR模板未改。
 
 README已写清安装、建库、公开评分导入、API/worker启动、网站`http://127.0.0.1:7754/`及自备RPC/LLM凭证。已上传`data/public-reports-v1.tar.gz`与摘要：10个不同真实Agent完整报告、14,737个公开文件、16,452,062B，包SHA `6f0daa102d5f03d123adfa327a224a85d4e16340644769ac01d4f2613db8ff76`。工作文件、Git blob和全新Git目录中的包哈希一致；不上传个人密钥、私有配置或数据库。全包秘密审计exit0，记录`runtime/public-reports-archive-audit-20261019T014325Z-3e23d85b/result.json`。

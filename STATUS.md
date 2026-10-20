@@ -1,5 +1,15 @@
 # 新项目当前状态
 
+## 2026-10-20 19:59 本机同步及重启
+
+`RUN_REMOTE_MAIN_20261020`完成：fetch默认main，快进本地main至`1675d55a904e838765ac0ecf0ebadd3dfa2baf06`，旧本地4提交保留在`codex/teacher-demo-20261020=339a902`。当前`codex/run-remote-main-20261020`仅追加本机运行文档，业务代码与远程一致，未push。Git更新前0active、38 Agent/47报告/37作业，真实PG备份2,745,049B及演示文档副本保存在`runtime/remote-update-20261020T115301Z/`。Word原件正被用户打开，Git未能删除且后续覆盖/哈希尝试被锁拒绝；原件和锁文件留原位，演示稿Markdown已恢复，未强制关闭Word。
+
+已完成锁定依赖同步（新增socksio1.0.0）、前端构建（`index-DwYgf_7f.js`/`index-yFNXHPiP.css`）和`.venv/Scripts/python.exe -X utf8 scripts/import_local_report.py --initialize`，最终exit0。uv不在当前PATH的尝试exit1；改用既有uv后遇C/D盘临时文件移动失败exit2，再将本进程缓存/临时目录设为项目runtime同盘后成功。只兼容新增`worker_heartbeats`，未清库或重导报告。
+
+当前API PID34156/worker PID36172各自独立后台运行，PG PID44748未动；记录同目录`process.json`。按本会话既有公共只读授权恢复online，零新评价、付费调用、签名或写链。RPC仅在子进程配置既有凭证文件路径，LLM复用原路径指针及deepseek-flash/responses；未复制密钥、切换供应商或验证中转站真实调用。远程文档的另一开发机审批阻断与13/16/12数量是其历史环境，不能覆盖本机实核结果。
+
+必要启动核对`.venv/Scripts/python.exe -X utf8 runtime/check_remote_update_20261020.py` exit0，原件`startup-check.json`：首页/新JS200、SHA同dist，DBready、workeronline且心跳新鲜，0queued/0running；原38/47/37保持，10完整身份；2359=84.39、2267=29.8、用户49467原PARTIAL均可读。早先检查脚本误用2267对象键导致StopIteration，随后按完整注册身份定位，仅补本轮启动核对；未重跑旧评分/测试。两份远程新增报告UUID及对应runtime目录本机均不存在，原10报告公开包未扩展，故暂不能展示远程新12完整。下一task_id=`LOCAL_MANUAL_REVIEW`，待来源机交付新增报告与公开原件后按既有门核验导入。
+
 ## 2026-10-20 最新本地优化发布
 
 用户已授权提交当前本地最新优化并通过PR合并到main。发布分支为`codex/commit-latest-optimizations-20261020`，起点为PR #17合并后的`3a680f3`；现有正式源码、生成契约、配置、测试和配套文档纳入本次提交，保留远程历史。
