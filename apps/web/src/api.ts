@@ -24,6 +24,12 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export const getAgents = () => request<AgentSummary[]>('/agents')
+export type RuntimeStatus = {
+  api: 'ok'; database: 'ready' | 'unavailable'; queued: number | null; running: number | null
+  worker: { state: 'public-off' | 'scoped' | 'online' | 'stopped' | 'unavailable'; last_seen_at: string | null; scope_reference: string | null }
+  observed_at: string
+}
+export const getRuntimeStatus = () => request<RuntimeStatus>('/runtime')
 export const getAgent = (key: string, signal?: AbortSignal) => request<AgentDetail>('/agents/' + encodeURIComponent(key), { signal })
 export const getReport = (id: string, signal?: AbortSignal) => request<EvaluationReport>('/reports/' + encodeURIComponent(id), { signal })
 export const getJob = (id: string, signal?: AbortSignal) => request<EvaluationJob>('/jobs/' + encodeURIComponent(id), { signal })

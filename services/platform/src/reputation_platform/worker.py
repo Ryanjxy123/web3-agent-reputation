@@ -179,7 +179,8 @@ def evaluate_prediction(repo: Repository, job: dict, worker: str, profile: dict,
                       candidate_key=profile["candidate_key"], report_directory=report)
 
 
-def evaluate(repo: Repository, job: dict, worker: str, profiles: list[dict], *, enabled: bool, proxy: str | None) -> None:
+def evaluate(repo: Repository, job: dict, worker: str, profiles: list[dict], *, enabled: bool, proxy: str | None,
+             request_timeout_seconds: float = 15) -> None:
     canonical = normalize_reference(job["reference"])
     if canonical is None:
         repo.finalize_job(job["id"], worker, job["fencing_token"], status="UNSUPPORTED",
@@ -195,7 +196,7 @@ def evaluate(repo: Repository, job: dict, worker: str, profiles: list[dict], *, 
             raise ValueError("An enabled evaluation requires an explicit operator proxy")
         from reputation_platform.generic_evaluation import evaluate_generic
 
-        evaluate_generic(repo, job, worker, canonical, proxy)
+        evaluate_generic(repo, job, worker, canonical, proxy, request_timeout_seconds=request_timeout_seconds)
         return
     if len(matches) != 1:
         raise ValueError("Operator profile identity is ambiguous")
@@ -237,34 +238,55 @@ def main() -> None:
     parser.add_argument("--once", action="store_true", help="Handle at most one queued job")
     parser.add_argument("--profiles", type=Path, default=RUNTIME / "platform-config/profiles.json")
     parser.add_argument("--enable-public-readonly", action="store_true")
+    parser.add_argument("--public-reference", help="Allow external reads only for this identity; other jobs stay public-off")
     parser.add_argument("--proxy")
+    parser.add_argument("--public-request-timeout", type=float, default=15,
+                        help="Per-request seconds (up to 45); above 15 requires --once and --public-reference")
     args = parser.parse_args()
     if args.enable_public_readonly and not args.proxy:
         parser.error("Read-only execution requires an explicit --proxy")
+    public_reference = normalize_reference(args.public_reference) if args.public_reference else None
+    if args.public_reference and (public_reference is None or not args.enable_public_readonly):
+        parser.error("--public-reference requires a valid registration and --enable-public-readonly")
+    if not 0 < args.public_request_timeout <= 45 or (
+        args.public_request_timeout > 15 and not (args.once and public_reference)):
+        parser.error("A timeout above 15 seconds requires a scoped --once evaluation; maximum 45")
     profiles = json.loads(args.profiles.read_text(encoding="utf-8")) if args.profiles.is_file() else []
     repo = Repository(load_database_url())
     worker = "worker-" + secrets.token_hex(12)
-    while True:
-        job = repo.claim_job(worker)
-        if job is None:
+    mode = 'scoped' if public_reference else 'online' if args.enable_public_readonly else 'public-off'
+    repo.worker_heartbeat(worker, mode, public_reference)
+    try:
+        while True:
+            repo.worker_heartbeat(worker, mode, public_reference)
+            job = repo.claim_job(worker)
+            if job is None:
+                if args.once:
+                    return
+                time.sleep(2)
+                continue
+            try:
+                enabled = args.enable_public_readonly and (
+                    public_reference is None or normalize_reference(job["reference"]) == public_reference)
+                evaluate(repo, job, worker, profiles, enabled=enabled, proxy=args.proxy,
+                         request_timeout_seconds=args.public_request_timeout)
+            except LeaseLostError:
+                print("Lease changed; the obsolete worker did not publish a result", flush=True)
+            except Exception as error:
+                # Exception messages may contain private connection settings; record the class only.
+                print(f"job={job['id']}; platform_error={type(error).__name__}", flush=True)
+                try:
+                    repo.finalize_job(job["id"], worker, job["fencing_token"], status="FAILED",
+                        message="平台本次未能完成证据处理，原始记录已保留。这不代表 Agent 的业务失败，已有报告仍可查看。")
+                except LeaseLostError:
+                    pass
             if args.once:
                 return
-            time.sleep(2)
-            continue
+    finally:
         try:
-            evaluate(repo, job, worker, profiles, enabled=args.enable_public_readonly, proxy=args.proxy)
-        except LeaseLostError:
-            print("Lease changed; the obsolete worker did not publish a result", flush=True)
+            repo.worker_heartbeat(worker, mode, public_reference, stopped=True)
         except Exception as error:
-            # Exception messages may contain private connection settings; record the class only.
-            print(f"job={job['id']}; platform_error={type(error).__name__}", flush=True)
-            try:
-                repo.finalize_job(job["id"], worker, job["fencing_token"], status="FAILED",
-                    message="平台本次未能完成证据处理，原始记录已保留。这不代表 Agent 的业务失败，已有报告仍可查看。")
-            except LeaseLostError:
-                pass
-        if args.once:
-            return
+            print(f"worker_stop_heartbeat_error={type(error).__name__}", flush=True)
 
 
 if __name__ == "__main__":

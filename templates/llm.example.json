@@ -1,0 +1,6 @@
+{
+  "base_url": "https://YOUR_LLM_HOST/YOUR_API_PREFIX",
+  "api_key_file": "runtime/secrets/llm-api-key.txt",
+  "model": "YOUR_MODEL_ID",
+  "api_style": "chat_completions"
+}

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { EvaluationReport, MeasurementPurpose } from '../contracts'
+import { capabilityDimension } from '../capability'
 import { score, when } from '../format'
 import EvidenceList from './EvidenceList.vue'
 import ScoreCard from './ScoreCard.vue'
@@ -8,13 +9,14 @@ import StatusBadge from './StatusBadge.vue'
 
 const props = defineProps<{ report: EvaluationReport; reportId: string }>()
 const isPrediction = computed(() => ['prediction-history-v1', 'prediction-history-v2'].includes(props.report.scores.policy_version ?? ''))
-const isGeneric = computed(() => props.report.scores.policy_version === 'service-contract-v1')
+const isFulfillment = computed(() => String(props.report.scores.policy_version) === 'service-fulfillment-v1')
+const isGeneric = computed(() => ['service-contract-v1', 'service-fulfillment-v1'].includes(props.report.scores.policy_version ?? ''))
 const capabilities = computed(() => (props.report.capabilities ?? []).filter(item => item.operation !== '未提供可识别操作'))
 const probability = (value: number) => new Intl.NumberFormat('zh-CN', { style: 'percent', maximumFractionDigits: 6 }).format(value)
 const dimensions = computed(() => [
-  { purpose: 'availability' as const, title: '服务可用性', weight: '30%', dimension: props.report.scores.availability },
-  { purpose: 'functional' as const, title: '功能声明一致性', weight: '40%', dimension: props.report.scores.functional },
-  { purpose: 'behavioral' as const, title: '交易行为可靠性', weight: '30%', dimension: props.report.scores.behavioral },
+  { purpose: 'availability' as const, title: 'A · 服务可用性', weight: '30%', dimension: props.report.scores.availability },
+  { purpose: 'functional' as const, title: 'F · 功能声明一致性', weight: '40%', dimension: props.report.scores.functional },
+  { purpose: 'behavioral' as const, title: isFulfillment.value ? 'B · 可观察服务履约' : 'B · 交易行为可靠性', weight: '30%', dimension: props.report.scores.behavioral },
 ])
 const representatives = computed(() => {
   const indices = new Set<number>()
@@ -31,8 +33,23 @@ const representatives = computed(() => {
 })
 const samplesFor = (purpose: MeasurementPurpose) => props.report.samples
   .map((item, index) => ({ item, index })).filter(({ item }) => item.sample.purpose === purpose)
-const samplesForCapability = (capabilityId: string) => props.report.samples
-  .map((item, index) => ({ item, index })).filter(({ item }) => item.capability_id === capabilityId)
+const capabilityCoverage = computed(() => capabilities.value.map(capability => {
+  const samples = props.report.samples.map((item, index) => ({ item, index }))
+    .filter(({ item }) => item.capability_id === capability.capability_id)
+  const scores = dimensions.value.map(item => {
+    const records = samples.filter(record => record.item.sample.purpose === item.purpose)
+    return { ...item, bound: capabilityDimension(props.report, capability, item.purpose), count: records.length,
+      counts: ['PASS', 'FAIL', 'UNKNOWN', 'NOT_APPLICABLE'].map(verdict => records.filter(record => record.item.sample.verdict === verdict).length) }
+  })
+  return {
+    ...capability, samples, scores,
+    overall: scores.every(item => item.bound?.value != null) ? props.report.scores.overall : null,
+    functional: samples.filter(({ item }) => item.sample.purpose === 'functional').length,
+    behavioral: samples.filter(({ item }) => item.sample.purpose === 'behavioral').length,
+  }
+}))
+const capabilitiesWithBusinessSamples = computed(() => capabilityCoverage.value
+  .filter(item => item.functional > 0 || item.behavioral > 0).length)
 const capabilityNames = computed(() => capabilities.value.slice(0, 3).map(item => item.operation).join('、'))
 const missingEvidence = computed(() => [...new Set([
   ...capabilities.value.flatMap(item => item.missing_evidence), ...props.report.limitations,
@@ -41,11 +58,11 @@ const conclusion = computed(() => {
   const scores = props.report.scores
   if (isGeneric.value) {
     if (scores.status === 'COMPLETE') {
-      return `本次范围内，${scores.functional.observed} 个不同任务的功能声明核验有 ${scores.functional.passed} 条通过、${scores.functional.failed} 条未通过；另外 ${scores.behavioral.observed} 个任务的真实交易履约核验有 ${scores.behavioral.passed} 条通过、${scores.behavioral.failed} 条未通过。三维样本充分，综合分为 ${score(scores.overall)} 分。`
+      return `本次范围内，${scores.functional.observed} 个不同任务的功能声明核验有 ${scores.functional.passed} 条通过、${scores.functional.failed} 条未通过；另外 ${scores.behavioral.observed} 个任务的${isFulfillment.value ? '可观察服务履约' : '真实交易履约'}核验有 ${scores.behavioral.passed} 条通过、${scores.behavioral.failed} 条未通过。三维样本充分，综合分为 ${score(scores.overall)} 分。`
     }
     const pending = dimensions.value.filter(item => item.dimension.value === null).map(item => item.title).join('、')
     if (scores.status === 'PARTIAL') {
-      return `本次已有 ${props.report.samples.length} 条实际评价样本；${pending}仍缺足够的证据或确定结论，暂不计算综合分。`
+      return `本次保留 ${props.report.samples.length} 条核验记录；${pending}仍缺足够的证据或确定结论，暂不计算综合分。`
     }
     return capabilities.value.length
       ? `本次已整理 ${capabilities.value.length} 项功能的资料与协议信息，尚无达到评分条件的实际采样，三维分数与综合分均待评价。`
@@ -78,33 +95,39 @@ const conclusion = computed(() => {
 <template>
   <div class="report-content">
     <section class="report-lead panel">
-      <div class="row-between wrap"><span class="eyebrow">本次评价结论</span><span class="report-status" :class="{ complete: report.scores.status === 'COMPLETE' }">{{ report.scores.status === 'COMPLETE' ? '本范围完整评分' : report.scores.status === 'PARTIAL' ? '部分评价' : '待评价' }}</span></div>
-      <div class="report-conclusion"><div><h2>{{ conclusion }}</h2><p class="lead-scope">{{ report.scope }}</p></div><div class="overall-block"><strong>{{ score(report.scores.overall) }}</strong><span>本范围综合分<span v-if="report.scores.overall !== null"> / 100</span></span></div></div>
+      <div class="row-between wrap"><span class="eyebrow">本次评价结论</span><span class="report-status" :class="{ complete: report.scores.status === 'COMPLETE' }">{{ report.scores.status === 'COMPLETE' ? '本范围完整评分' : report.scores.status === 'PARTIAL' ? '部分评价' : '待评价' }} · {{ report.scores.status }}</span></div>
+      <div class="report-conclusion"><div><h2>{{ conclusion }}</h2><p class="lead-scope">{{ report.scope }}</p></div><div class="overall-block"><strong>{{ score(report.scores.overall) }}</strong><span>本报告范围综合分 S<span v-if="report.scores.overall !== null"> / 100</span></span></div></div>
       <template v-if="isGeneric"><p v-if="capabilities.length" class="section-description">本次已识别：{{ capabilityNames }}<template v-if="capabilities.length > 3">等 {{ capabilities.length }} 项功能</template>。资料与协议发现用于确定可测范围，业务结论对应下方实际任务及独立核验。</p><p v-if="missingEvidence.length" class="section-description">当前缺项：{{ missingEvidence.slice(0, 2).join('；') }}<template v-if="missingEvidence.length > 2">。其余 {{ missingEvidence.length - 2 }} 项见各功能与报告限制。</template></p></template>
       <p v-if="isPrediction" class="section-description">本次评价公开历史交付入口、已结算问题的预测概率，以及另一组任务的链上归属与交付。历史文件可读不表示实时推理服务可用；不同业务范围的分数不能直接排名。</p>
-      <dl class="report-meta"><div><dt>样本时间范围</dt><dd>{{ report.evaluation_window }}</dd></div><div><dt>报告生成时间</dt><dd>{{ when(report.generated_at) }}</dd></div><div class="full"><dt>评价方式</dt><dd>{{ report.approach }}</dd></div></dl>
+      <p v-if="capabilities.length" class="section-description">本报告记录 {{ capabilities.length }} 项声明或发现的能力，其中 {{ capabilitiesWithBusinessSamples }} 项有关联功能或履约样本。结论限于已列明的任务与证据。</p>
+      <p v-else class="section-description">本报告未记录逐能力关联，已评分范围以报告说明和样本为准。</p>
+      <p v-if="isFulfillment" class="section-description">B 衡量认证服务在预定任务与时限下的可观察履约，不证明全部链上或链下行为；其语义与旧交易履约政策不同，应按同一政策及范围比较。</p>
+      <dl class="report-meta"><div class="full"><dt>评分政策版本</dt><dd><code>{{ report.scores.policy_version }}</code></dd></div><div><dt>样本时间范围</dt><dd>{{ report.evaluation_window }}</dd></div><div><dt>报告生成时间</dt><dd>{{ when(report.generated_at) }}</dd></div><div class="full"><dt>评价方式</dt><dd>{{ report.approach }}</dd></div></dl>
     </section>
 
     <section class="score-grid" aria-label="三维评价分数">
       <ScoreCard v-for="item in dimensions" :key="item.purpose" :title="item.title" :weight="item.weight" :dimension="item.dimension" />
     </section>
 
-    <section v-if="isGeneric || (isPrediction && capabilities.length)" class="panel">
+    <section v-if="isGeneric || capabilities.length" class="panel">
       <div class="section-heading"><div><p class="eyebrow">按功能查看已测范围</p><h2>发现了什么，哪些已有业务证据</h2></div></div>
-      <p class="section-description">功能声明、协议发现和实际业务结果分别记录。资料完整或输出格式符合约定，只能支持对应检查；业务正确性需要适用的独立判据，交易履约需要任务与真实链上证据绑定。</p>
+      <p class="section-description">功能声明、协议发现和实际业务结果分别记录。F 需要适用的独立业务判据；B 依照本报告政策核验履约。下列能力只在该维度全部样本明确关联时展示对应分数；服务入口采样未关联具体能力时，A 仅在报告范围内展示。</p>
       <p v-if="!capabilities.length" class="empty-inline">本轮尚无可列明的功能范围；资料来源与缺项见报告限制。</p>
-      <section v-for="capability in capabilities" :key="capability.capability_id" class="sample-group">
-        <div class="sample-group-heading"><h3>{{ capability.operation }}</h3><span>{{ samplesForCapability(capability.capability_id).length }} 条关联样本</span></div>
+      <details v-for="capability in capabilityCoverage" :key="capability.capability_id" class="capability-item" :open="capability.functional > 0 || capability.behavioral > 0">
+        <summary class="sample-group-heading wrap"><h3>{{ capability.operation }}</h3><span>{{ capability.samples.length }} 条关联样本</span><span class="report-status">{{ capability.functional || capability.behavioral ? '有关联业务样本' : '尚无业务样本' }}</span></summary>
+        <div class="capability-body">
         <p class="section-description multiline">{{ capability.description }}</p>
-        <dl class="report-meta"><div><dt>声明或发现的协议</dt><dd>{{ capability.protocol }}</dd></div><div class="full"><dt>本次实际业务判定范围</dt><dd>{{ capability.tested_scope || '尚未形成实际业务判定范围。' }}</dd></div></dl>
+        <dl class="capability-score-summary"><div v-for="item in capability.scores" :key="item.purpose"><dt>{{ item.title }}</dt><dd>{{ item.bound ? score(item.bound.value) : '未单独评分' }}</dd><p class="muted small">关联 {{ item.count }} 条<br>PASS {{ item.counts[0] }} · FAIL {{ item.counts[1] }}<br>UNKNOWN {{ item.counts[2] }} · N_A {{ item.counts[3] }}</p></div><div><dt>能力范围综合分 S</dt><dd>{{ capability.overall === null ? '未单独评分' : score(capability.overall) }}</dd></div></dl>
+        <dl class="report-meta"><div><dt>能力类型</dt><dd>{{ capability.capability_type || '未记录' }}</dd></div><div><dt>Checker / 版本</dt><dd><code>{{ capability.checker_id || '未记录' }}</code> / {{ capability.checker_version || '未记录' }}</dd></div><div><dt>声明或发现的协议</dt><dd>{{ capability.protocol }}</dd></div><div><dt>本报告关联的业务样本</dt><dd>F 功能 {{ capability.functional }} 条 · B 履约 {{ capability.behavioral }} 条</dd></div><div class="full"><dt>本次实际业务判定范围</dt><dd>{{ capability.tested_scope || '尚未形成实际业务判定范围。' }}</dd></div></dl>
         <h4>资料与核验发现</h4>
         <ul v-if="capability.findings.length" class="finding-list"><li v-for="(finding, index) in capability.findings" :key="index"><div class="row-between"><strong>{{ finding.label }}</strong><StatusBadge :verdict="finding.verdict" /></div><p>{{ finding.explanation }}</p></li></ul>
         <p v-else class="empty-inline">本轮尚无分项发现。</p>
         <h4>对应的实际任务</h4>
-        <ul v-if="samplesForCapability(capability.capability_id).length"><li v-for="{ item, index } in samplesForCapability(capability.capability_id)" :key="item.sample.sample_id"><a :href="`#sample-${index + 1}`">样本 {{ String(index + 1).padStart(2, '0') }} · {{ item.title }}</a> <StatusBadge :verdict="item.sample.verdict" /></li></ul>
+        <ul v-if="capability.samples.length"><li v-for="{ item, index } in capability.samples" :key="item.sample.sample_id"><a :href="`#sample-${index + 1}`">样本 {{ String(index + 1).padStart(2, '0') }} · {{ item.title }}</a> <StatusBadge :verdict="item.sample.verdict" /></li></ul>
         <p v-else class="empty-inline">本轮没有该功能的实际业务评分样本，当前仅展示资料及缺项。</p>
         <h4>仍缺哪些证据</h4><ul v-if="capability.missing_evidence.length"><li v-for="(missing, index) in capability.missing_evidence" :key="index" class="multiline">{{ missing }}</li></ul><p v-else class="empty-inline">本项未另列证据缺口，结论限于上方已测范围。</p>
-      </section>
+        </div>
+      </details>
     </section>
 
     <section class="panel method-panel">
@@ -115,6 +138,7 @@ const conclusion = computed(() => {
         <div v-else-if="isGeneric"><h3>实际调用是否兑现了所测声明</h3><p>功能维度使用 7 个不同任务，核对声明的操作、实际输入输出绑定、约定格式和明确限制；需要业务正确性判据时，用独立证据核验结果。</p><p>只有格式符合约定，不能判定整个业务功能通过；缺少必要判据时保留无法判断。评价范围按各功能及任务列明。</p></div>
         <div v-else><h3>公布的结果是否准确</h3><p>功能维度核对历史增仓公布的资产用量和执行后流动性。用固定区块状态与事件顺序独立复算，精确比较实际结果。</p><p>这次评价的是这些具体披露，不涵盖全部策略能力。</p></div>
         <div v-if="isPrediction"><h3>交付能否归属于这个 Agent</h3><p>行为维度使用另外 7 个不同问题，核对真实请求和交付交易、链上事件、任务号、内容摘要，以及任务当时的执行控制权。</p><p>请求者、优先接单者、实际交付者与服务钱包分别核实；接手其他服务的请求时，还要满足交付窗口与授权。成功回执本身不能证明完整履约。</p></div>
+        <div v-else-if="isFulfillment"><h3>另外一组查询任务是否按约履行</h3><p>行为维度使用与 F 互斥的另外 7 个真实任务，核对认证端点、请求标识与任务对象绑定、完整业务交付及调用前冻结的时限。</p><p>B 不重复检验业务事实真值，不以 HTTP 成功或 Agent 自报完成判 PASS。归责明确的违约记 FAIL；无法归责的网络或平台故障为 UNKNOWN。同步 Message 仅证明实际保留的请求与交付，不冒充 A2A Task 状态历史。</p></div>
         <div v-else-if="isGeneric"><h3>另外一组任务是否真实履约</h3><p>行为维度使用另外 7 个不同任务，核验任务与链实例、执行者、调用目标和参数、回执、事件及确认状态的完整对应。</p><p>执行归属需独立证据；注册持有人或收款地址不自动等于执行者。成功回执本身不足以证明任务完成，只读功能不虚构执行交易。</p></div>
         <div v-else><h3>公开操作是否可靠完成</h3><p>行为维度使用另一组互不重复的运行记录，逐笔核验包装原生币、兑换和最终增仓的完整公开步骤。</p><p>每笔都要核对身份、目标、资产流向、调用限制与链上结果。</p></div>
       </div>

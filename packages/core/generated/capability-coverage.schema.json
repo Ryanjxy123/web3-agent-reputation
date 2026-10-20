@@ -77,6 +77,42 @@
       },
       "title": "Missing Evidence",
       "type": "array"
+    },
+    "capability_type": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Capability Type"
+    },
+    "checker_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Checker Id"
+    },
+    "checker_version": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Checker Version"
     }
   },
   "required": [

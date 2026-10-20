@@ -1,6 +1,107 @@
 # 新项目当前状态
 
-2026-10-19：`REFACTOR_PUBLICATION`已完成，下一task_id=`PR_REVIEW`。[重构PR #17](https://github.com/Ryanjxy123/web3-agent-reputation/pull/17)已推送并转为ready for review，base=`main`、head=`codex/rebuild-reputation-platform`，不自动合并。旧父仓库origin已备份移除，新项目独立origin指向原目标仓库；两边提交历史保留，CODEOWNERS与PR模板未改。
+## 2026-10-20 最新本地优化发布
+
+用户已授权提交当前本地最新优化并通过PR合并到main。发布分支为`codex/commit-latest-optimizations-20261020`，起点为PR #17合并后的`3a680f3`；现有正式源码、生成契约、配置、测试和配套文档纳入本次提交，保留远程历史。
+
+提交前实际验证全部exit0：`test_position_*.py` 60项（437.832秒）、`test_query_*.py` 37项（67.850秒）、`test_llm*.py` 78项、`test_scoring.py` 1项；Python源码编译、Vue类型检查与Vite生产构建通过，暂存diff无空白错误。既有真实报告、来源重放及PostgreSQL/API检查复用本页此前有效回执，不因Git发布重复业务采集；未声称全仓测试或新视觉验收通过。
+
+发布内容经过秘密与文件范围检查；`.bootstrap-incoming/README.md`为既存临时文件，仅保留本地。个人凭证、数据库和私有runtime不入Git，原10报告公开包保留，新两报告仍为README说明的本机数据。本次仅发布版本，不启动Worker或改变运行开关。Git提交与合并结果以本次PR为准，下方各阶段“未提交/未推送”等表述保留其历史含义。
+
+## 2026-10-20 完整能力评价（已完成，受阻运行项如实保留）
+
+新增`service-fulfillment-v1`及共享Position/v2：A核协议发现，F核独立静态事实，B用另一组任务核可观察服务交付。Brain新报告`0812985f-8777-4629-8fba-3db4b3e1e65a`、Hallmark新报告`c88165ca-df10-4cb2-aeb2-6e8680c605c2`均正式COMPLETE，A80/F100/B100/S94；各10A/7F/7B、63公开请求/14业务调用，零业务重试。Brain首次平台来源分派错误修复后仅恢复原件发布；Hallmark单次自动DONE。分数只属于本次协议发现与仓位查询范围。
+
+最终独立审计PASS：13 Agent、16报告、12完整报告、12个完整不同身份、9作业、0活动；两新报告通过禁网禁DB生产来源重放，六守卫均0，14份旧报告发布字段/哈希/分数/映射保持。15136历史原件已有全SHA PASS，最终逐件尺寸/mtime复查后复用该回执，没有重复旧报告全链重放。LLM网络49项及相关9项、Checker/来源/Worker状态定向测试通过；没有声称全仓库测试通过。
+
+最终34次loopback API/证据访问验收、Vue类型检查/构建、真实目录排序及能力归属断言通过；目录只按最近更新/名称排序，不混排不同政策的综合分。API/PG在线；限定Worker正常退出，心跳如实显示stopped，无常驻Worker。Clawdia和旧固定Activity缺项已按原件调查，原PARTIAL不变。当前审阅配置与依赖保持不可变，新增版本路径由后台选择并冻结，不靠改写旧配置扩展。
+
+版本选择修复后16项相关回归通过；另1项独立生产测试重放两份真实报告，在部署默认选择失效时仍按旧intent复核成功，六个网络/DB守卫0，旧原件/report/manifest未改。证据`runtime/complete-capability-20261020/review-version-tests.log`、`review-version-production-replay.json`。
+
+常驻Worker启动此前被自动审批拒绝（仅`blocked by policy`）；浏览器因无法可靠识别Windows当前URL而停止。本轮未绕过，人工Worker命令和桌面/390×844清单已提供，持续运行和视觉验收未标为通过。未commit/push/reset。证据及限制详见 `docs/runbooks/COMPLETE_CAPABILITY_EVALUATION_20261020.md`。
+
+## 2026-10-20 跨提供方 V3 Position Checker（真实报告完成，保留运行限制）
+
+已按指定顺序核验，HeyAnon因认证IPFS文档504/429停止，采用Brain/BOBAI BSC #49467与Hallmark BSC #338475。两方共用`query.pancakeswap-v3-position/v1`及同一静态oracle，只有MCP/A2A Adapter不同；核心无Agent ID分支。冻结同七个NFT后，两方各七次真实业务调用、七任务PASS，F均100；A分别93.37/93.68，B和综合null，均PARTIAL。只核token0/token1、fee、tickLower/tickUpper及任务归属，不代表全能力或履约认证。
+
+Hallmark由现有Worker单次自动COMPLETE，报告`b4139624-7434-405b-a1dc-19e0328584f4`。Brain自动采集全部完成后首次发布因generic误把共享证据F计入A而失败；修复一处purpose过滤、3项真实原件回归后，同job经新fence及正式来源门恢复发布，0业务重试、原件SHA不变，报告`bb885c5a-b8f0-42c0-94b0-42b10dfc4fc0`；首次失败回执保留，不称首次无故障。两次各48逻辑请求（仓位阶段27），0费用/模型/签名/写入/委托。
+
+Position完整34项及后续20项/最终13项受影响回归通过；独立19场景补审通过。两新报告及旧2290/旧ERC20经生产来源门离线重放通过，0socket。16项loopback API/证据权限/当前dist一致性通过，Vue类型检查与build通过。12份旧报告DB行、report/manifest原字节、分数及附件映射不变，现有13 Agent/14报告/7作业/0活动任务。既有LLM网络23项仍有1个失败子断言、4个ConnectTimeout，旧预测fixture2项skip，均如实保留。
+
+**运行限制**：API/PG健康，两次scoped Worker已退出；恢复默认public-off常驻Worker被自动审批拒绝（仅`blocked by policy`），当前无常驻Worker，后续提交会等待队列消费，未启用常驻公开执行。浏览器sky因无法可靠识别Windows当前URL而策略停止，无视觉验收或截图；已提供五场景人工链接与步骤。新提供方需要认证、安全审阅和Adapter白名单，工具同名不能自动获得许可。未commit/push/reset，初始改动保持。完整证据和查看方式见[本轮报告](docs/runbooks/CROSS_PROVIDER_CHECKER_VALIDATION_20261019.md)。
+
+## 2026-10-19 能力 Checker 渐进扩展（本轮完成，未达成项保留）
+
+task_id=`CAPABILITY_CHECKER_EXPANSION`。实际范围和阶段收据见[实施与验收报告](docs/runbooks/CHECKER_EXPANSION_20261019.md)。先完成代码/历史基线与20个真实身份调查，再实现有真实对象的Query事实闭环；保留开工前未提交修改，不commit/push。
+
+- 新增`query.erc20-transfer-record` / `v1`确定性Checker及来源Verifier，通过最小静态分派接入通用评价；现有Prediction优先路径、Mech历史与增仓逻辑复用。能力结构仅兼容增加类型及Checker元数据，评分权重、样本门槛、数据库schema和API路由未改。
+- Brain BNB #49467链注册及data JSON认证后，仅调用一次`bobai_activity({})`。六次可信RPC独立重建指定交易的ERC20转入金额11768.639803124515570716，half-up为11769，与真实披露一致，**1个F任务PASS**。A/F/B及综合均null，报告PARTIAL，不代表全能力或执行归属通过。
+- 报告`888f98ca-0bc7-4a58-9de2-1f0626bc40a5`已通过正式来源复核并入库，Agent key=`agent-e9357377962d8c944359ca49`。真实数据库最终**12 Agent/12报告/5作业**；API六项检查、公共附件摘要及私密证据拒绝通过，收据`runtime/checker-expansion-20261019/real-api-acceptance.json`。常驻Worker仍public-off，实际提交终态NEEDS_INFO/DONE，没有借本轮启用长期公开执行。
+- Vue继续使用原页面，突出policy、实际能力类型/Checker、关联F/B样本、PASS/FAIL/UNKNOWN/N_A、范围、缺项和时间；提交文案改为“提交评价请求”，进度来自真实job。前端类型检查/构建与真实浏览器验收通过，覆盖历史完整报告、2290 PARTIAL、新Query报告和public-off结果，截图保存在本轮runtime目录。
+- **最终30项Query工程测试通过**，含Checker元数据冒用负例，与真实单F验收分开。既有离线回归执行103项，记录2个失败子断言、8个错误、3项跳过；既有LLM正常回归存在超时失败，诊断不能替代回归通过，不称全套测试通过。旧pilot原件缺失的跳过及依赖隔离库的`test_local_platform`未运行均保留；5项开工基线通过记录不覆盖这些限制。
+- 原10份完整报告及2290共**11份既有报告**的report/manifest原字节、复算分数、数据库行及证据映射不变；2290完整88项输入及来源回放通过，收据`runtime/checker-expansion-20261019/final-history-regression.json`。没有重复全部历史链语义导入；既有评分与证据未覆盖或改写。
+- **未达成**：两个不同提供方复用同一Checker、7个独立确定F任务、Routing正式F/B评价、任意Agent自动完整评价。Degen/Arena仍缺同一对象上的可信绑定与同语义oracle；Routing缺安全dry-run/候选约束及独立期望，未执行业务。下一步先补这些真实可测条件与LLM回归问题，不靠新Checker数量、重复任务或Mock补业务成果。
+
+## 2026-10-19 历史审计与 Base 2290（已完成，保留历史）
+
+已完成历史审计与2290单次真实接入，详见[中文报告](docs/runbooks/HISTORICAL_EVALUATION_AND_AGENT2290_20261019.md)。历史10份是9个Gnosis历史预测+1个BSC增仓特例，不是10次实时调用业务；LLM不直接给分。14,696去重依赖摘要一致，10份旧分重算一致，原10份数据库JSON、来源摘要、report/manifest及每份一附件回归保持不变。
+
+最小代码修改为pinned_http安全Fake-IP解析复用、worker的--public-reference；3项传输+2项身份范围Mock测试通过，不计业务证据。2290作业e7dcb405-22a3-4dd4-ae0f-5515048c468a实际COMPLETE/DONE，报告7377ee9b-df72-410c-9bd7-f9df6067f4d9评分PARTIAL：A90.87（10PASS/p95 5109ms），F/B/综合null。Base链注册在52806533固定块核实，IPFS注册文档超时；MCP三工具及A2A三skill真实读取，不代表业务正确。22次公开只读，0LLM、0tools/call、0签名/链上写入。新原件在runtime/generic-evaluation-20261019T093532Z-805ea72f，回归收据在runtime/agent2290-audit-20261019/result.json。
+
+本机API7754/PG健康，11 Agent/11报告/10完整身份/0活动任务。浏览器展示PARTIAL、A90.87及其余维度待评价，控制台无已记录warn/error。单次Workerexit0；启动常驻公开Worker被自动审批拒绝（blocked by policy，未提供具体原因），已恢复默认public-off Worker，当前后续提交不会自动发起公开取证。未完成任意Agent业务判据、元数据CID认证及持续公开执行；不声称具备任意ERC-8004完整自动评分。未提交/推送，保留开始时全部既有修改。
+
+## 2026-10-19 ZAN Base 本地配置（已完成）
+
+- task_id=`ZAN_BASE_LOCAL_20261019`，COMPLETE。用户授权URL只保存到`secrets/zan-base-rpc.txt`，私密路径指针`runtime/platform-config/zan-key-file.txt`指向该文件。两个路径经git check-ignore确认，git ls-files均未跟踪；未覆盖任何既有凭证。249个Git候选路径及本轮核验收据中现用ZAN URL/Token命中0。
+- Python选择顺序为CLI/env、本地指针、存在的约定secrets文件、历史配置fallback、旧默认文件；环境和指针相对路径以PROJECT_ROOT为准，保留旧CLI行为。PowerShell启动器未显式配置时通过同一函数自动导出REPUTATION_ZAN_KEY_FILE给子进程，退出恢复原终端环境。队员使用约定secrets文件即可自动读取，Linux/macOS Python逻辑相同。
+- api.zan.top本机DNS全部Fake-IP。仅已通过固定端点及只读方法校验的ZAN请求复用现有安全传输；ZAN专用proxy/DNS变量与LLM独立，自动读取标准env/系统代理，HTTPS DNS回退后全部公网校验、固定数字IP、原域名Host/TLS、禁重定向。未改Gnosis/Agent网络路径、BSC端点配置、Mihomo或系统DNS。加强ZAN JSON转义Key回显及私密库日志脱敏。
+- SafeHttpClient真实eth_chainId=0x2105/8453、eth_blockNumber=52,804,922，均HTTP200；收据`runtime/zan-base-check-20261019T083949Z-4ae403ed/result.json`。实际Worker采集所用DiscoveryEvidence/_rpc再次8453，证明历史配置旧路径由本地指针覆盖；收据`runtime/zan-base-production-check-20261019T084224Z-f7c24aad/result.json`。共3次只读RPC，0交易、0Agent评价、0模型调用。
+- 原API7754/数据库未重启。确认0活动任务并核对原Worker路径/启动时间后，只重载启动器所用的原worker入口，维持public-off；新包装进程PID55148、实际Worker PID30100，在进程内确认凭证有效且环境路径匹配，启动验证未发RPC，stderr为空。最新身份收据`runtime/zan-base-verification-20261019/worker-reload.json`及`worker-startup-check.json`；不要再用旧PID24208或更早48036停止进程。
+- API健康HTTP200/数据库ready，10份历史报告/各一附件与3个前端资源回归通过，原分和证据SHA未变；`runtime/llm-verification-20261019/api-regression.json`中的`zan_base_existing_api`。最终0活动任务，记录`runtime/zan-base-verification-20261019/final-health.json`。
+- 5项ZAN配置/网络/作用域/脱敏测试通过；旧LLM/缓存/网络76项覆盖中发现脱敏响应格式兼容问题，修复后受影响29项LLM及5项ZAN重测通过，另5项原HTTP/pinned/provider边界通过。Python编译、启动器PS语法与git diff --check通过。未重复运行未改业务的全量验收，未真机测试Linux/macOS或BSC账号权限。
+- Base RPC已具备只读查询条件，公开worker开关保持关闭；新增Agent能否完整评价仍取决于身份/接口/证据及已有方案支持。唯一需要用户操作的是在ZAN控制台轮换聊天中暴露的Key，再替换秘密文件的一行URL，无需改源码。没有提交或推送。
+
+## 2026-10-19 LLM 网络可迁移性（已完成）
+
+- task_id=`PORTABLE_LLM_NETWORK_20261019`，实现及本机连接验证完成。根因：SafeHttpClient 使用 trust_env=False，旧固定传输仅允许旧本机代理端口；本机标准代理环境变量为空、Windows系统静态代理存在，系统 DNS 返回198.18/15 Fake-IP。仅修改 LLM 连接，原 RPC/Agent 网络路径、Mihomo/Clash与系统 DNS 均未修改。
+- 新增 LLM 专用传输与代理选择，复用 httpcore HTTP/HTTPS/SOCKS5 协议、stdlib环境/系统设置。仅全Fake-IP且有代理时允许固定 Cloudflare IP 的证书验证 HTTPS DNS 回退；A/AAAA 全部公网后固定数字 IP CONNECT/SOCKS，保留原 Host/TLS，HTTPS代理两层证书分别验证，不跟随重定向、不重试。私网/混合结果/异常DNS继续拒绝。诊断、异常与LLM上下文的第三方日志均脱敏。
+- 本机免费 GET models HTTP200，`gpt-6-luna`在列表中；自动采用系统HTTP代理、检测Fake-IP、独立HTTPS DNS和公网IP固定均实测通过。收据 `runtime/llm-network-check-20261019T082940Z-d7ffe29c/result.json`，推理数0。
+- 用户明确授权一次最低成本推理后，仅一次真实 Chat Completions HTTP200，模型一致、返回OK、usage输入11/输出5/合计16 token，无重试、无Agent评价或链上交易。收据 `runtime/llm-network-verification-20261019/inference-once/result.json`。本地 `runtime/platform-config/llm.json` 已配置指定模型，复用原Key文件；本轮没有复制Key。此前聊天中暴露的Key仍需用户轮换。
+- 既有API7754未重启，健康/数据库ready、10份COMPLETE报告/各一附件及3个前端资源回归通过，评分与证据摘要未变。新增脚本会直接加载新网络代码；不需要为免费检查重启网站或Worker。健康回归收据仍存 `runtime/llm-verification-20261019/api-regression.json` 的 `portable_network_existing_api`。
+- 当前网络真机验证仅 Windows 系统HTTP代理+Fake-IP；直连公网DNS、HTTP/HTTPS/SOCKS5、NO_PROXY、SSRF及异常路径由Mock覆盖。Linux/macOS真机、远端认证代理尚未实测；不执行PAC/WPAD，不支持socks5h远程DNS。同步系统DNS调用的等待时间由操作系统控制，其后的DoH/连接/正文受统一剩余超时约束。可信代理必须支持数字目标；独立DNS不可达时保持拒绝。
+- 最终76项LLM/缓存/网络单元与集成测试全部通过，其中40项为本轮网络覆盖；另6项原HTTP/Provider/pinned/ZAN边界测试通过。锁文件检查、受影响Python编译、git diff --check通过；未为无关功能重复全量验收。models GET必须显式启用、无body、端点/方法精确授权，构造后篡改也拒绝。
+- `.env*`本地文件、runtime/secrets和私密JSON经check-ignore，实际敏感路径未跟踪；246个Git候选路径的现用私人Base URL/Key精确扫描命中0。未提交、未推送；原RPC网络限制和启用公开worker的门禁保留。
+
+## 2026-10-19 先前中转站接入预检（历史）
+
+以下为当时记录，现已由上方代码层网络适配和本机实测替代；未执行当时拟议的 Clash 配置修改。
+
+- 用户授权测试一组新中转站连接，Key 已写入 Git 忽略且未跟踪的本地 `runtime/secrets/llm-api-key.txt`，没有输出或提交秘密。供应商地址只保存在私密诊断中；模型尚待确认，活动 JSON 仍为占位配置，未启用真实调用。
+- 系统 DNS 将目标解析到 Fake-IP 保留网段，受控固定 IP HTTPS 预检以 `non_public_dns_destination` 拒绝；密钥发送0次、生成请求0次。已准备仅排除该域名的 DNS 修改方案，等待用户授权后才修改本机 Clash Verge 配置，不关闭 SSRF/HTTPS 校验。网站健康且数据库ready。
+- 此阻塞与 ZAN 无关：LLM 独立连通性无需 RPC；已有10份报告浏览也无需新凭证。新评价按目标网络/证据路径使用公开 Gnosis RPC 或当前固定 ZAN BSC/Base 配置。
+
+## 2026-10-19 通用 LLM 配置（前轮记录）
+
+- task_id=`CONFIGURABLE_LLM_20261019`，COMPLETE。已实现统一私密 JSON / 环境覆盖、通用 Chat Completions、保留 Responses 与旧 Key 变量；不增加 SDK，不改评分、RPC 或前端业务。main 仍为 `3a680f3`，没有提交或推送。
+- 新请求只向精确后台配置端点发送 Key；强制 HTTPS、公网 DNS/IP 固定、无重定向、原超时/大小/停止规则。公开证据使用配置指纹代替私密 URL；JSON 转义回显也在解码后检测并丢弃，避免 Key/路径泄露。超时不自动重试。
+- 翻译缓存按模型、协议、端点和配置版本隔离；无新配置元数据的历史缓存冻结旧请求核验，不读取当前环境。92 份旧缓存、9 份旧翻译材料离线核验通过，0 外呼。
+- 已创建被忽略的 `runtime/platform-config/llm.json`，仅含占位符；真实 Key 未填写。模板和使用说明见 [LLM 配置说明](docs/runbooks/LLM_CONFIGURATION.md)。`.env`、`.env.*.local`、runtime 私密目录与 secrets 均经 check-ignore 核实；现用敏感路径没有被跟踪，跟踪文本和公开归档的凭证模式扫描未发现真实秘密。
+- 44 个必要单元测试通过：LLM 29、缓存/离线声明 7、原凭证/引用/HTTP/DNS/RPC/评分边界 8。92/9 历史翻译原件核验通过；旧真实声明投影/observation 缺失，完整资产重建 NOT_RUN，Mock 两协议重建通过。`git diff --check` 与受影响 Python 编译通过。
+- 7754 原服务与临时 7755 新代码 API 的 10 Agent / 10 报告 / 各一附件均 HTTP200，原分及字节摘要一致；3 个前端资源字节一致，私密路径404。浏览器实际看到10完整范围分及2235报告三维分数，控制台未记录 warning/error。收据 `runtime/llm-verification-20261019/api-regression.json` 和 `historical-translation-regression.json`。
+- 既有 7754 平台保持运行；临时新 API 已清理并释放端口，没有重导报告、提交任务、数据库清理或链上操作。确认0活动任务、核对旧进程路径与启动时间后仅重载默认 public-off Worker（新PID24208），错误日志为空；健康接口仍数据库ready、0活动任务。当前进程收据 `runtime/llm-verification-20261019/worker-reload.json`，不要用旧PID直接停止进程。JSON 后续由每次脚本启动读取；环境覆盖变更按 runbook 重启。真实模型 API/账号可用性 NOT_RUN；目前只含占位配置，后续真实调用须另获费用授权。
+
+## 2026-10-19 本机同步与复现（已完成）
+
+- task_id=`LOCAL_SYNC_VERIFY_20261019`，COMPLETE。当前本机目录`D:/大三上/软件前沿技术/区块链竞赛/web3-agent-reputation`，main=`3a680f3c5c82b51d3cc0b6fd51eb32bbb1cc9b39`；fetch、switch main、ff-only同步成功，最终远程关系0/0。保留旧审计分支和原本忽略、现在未跟踪的.bootstrap-incoming/README.md。本轮没有commit/push。
+- `uv sync --locked`、pnpm11.25.0锁定安装、Vue typecheck/Vite8.3.4 build均exit0。Python3.12.4、Node22.17.0、PG17.11。旧.env不含新版REPUTATION配置，保持原样；新库使用Git忽略的platform-config连接文件。
+- 最小脚本修复：去除3处block_chain_new_new目录名限制，保留marker/路径/进程身份检查；PG中文原生路径用ASCII hex与ANSI解码，PID读取同步修正、marker显式UTF8；PowerShell7启动器终止本次API进程树。真实幂等PG启动及7755临时API/worker --once/退出端口释放均PASS。
+- 独立PG127.0.0.1:55438初始化建表成功，旧runtime/postgres未复用。公开包完整离线核验导入exit0，约13分钟，10份COMPLETE报告、14,723个新runtime文件、0网络请求。收据：`runtime/public-report-restore-799c7827ca73c01faec650e5573d2ad7/result.json`。
+- 真实socket验收exit0：10/10 Agent详情、报告及各一份附件200且SHA一致；0活动任务；构建资源逐字节一致；配置文件直接访问和证据接口越界均404。记录`runtime/local-verification-20261019/api-verification.json`。浏览器显示10个完整范围分，排序/搜索/低分报告三维图示与样本说明通过；控制台无记录的warning/error。默认worker的真实提交终态NEEDS_INFO/DONE，未公网调用或生成新分数。
+- CI同款评分边界用例1 passed、3个PS脚本语法PASS、git diff --check通过；未扩大成依赖原开发机私有资料的全量验收。实际服务API7754与默认public-off worker保持运行，日志/PID/截图在`runtime/local-verification-20261019/`。
+- 当前限制：本机无DeepSeek/ZAN凭证；Gnosis/ZAN/8004scan/DeepSeek域名被Mihomo DNS解析到198.18.0.x，单次Gnosis只读尝试被destination_policy_blocked，未取得远程链ID。不关闭SSRF防护；新实时评价/付费LLM/ZAN凭证链路NOT_RUN/BLOCKED，无链上交易。已有10份真实历史归档不代表本轮重新执行实时Agent业务。
+- 下一task_id=`LIVE_EVALUATION_CONFIG`，等待用户按需处理DNS/本地凭证并确认付费调用；继续查看现有结果无需外部账号。完整中文报告和可复用启动命令见[本机核验报告](docs/runbooks/LOCAL_VERIFICATION_20261019.md)。
+
+## 原开发机历史交付记录
 
 README已写清安装、建库、公开评分导入、API/worker启动、网站`http://127.0.0.1:7754/`及自备RPC/LLM凭证。已上传`data/public-reports-v1.tar.gz`与摘要：10个不同真实Agent完整报告、14,737个公开文件、16,452,062B，包SHA `6f0daa102d5f03d123adfa327a224a85d4e16340644769ac01d4f2613db8ff76`。工作文件、Git blob和全新Git目录中的包哈希一致；不上传个人密钥、私有配置或数据库。全包秘密审计exit0，记录`runtime/public-reports-archive-audit-20261019T014325Z-3e23d85b/result.json`。
 

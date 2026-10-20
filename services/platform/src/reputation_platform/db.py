@@ -17,8 +17,9 @@ from psycopg.types.json import Jsonb
 from reputation_core.admission import CandidateRecord
 from reputation_core.application import AgentDetail, AgentSummary, EvaluationJob, ReportSummary, normalize_reference
 from reputation_core.reporting import EvaluationReport
-from reputation_core.scoring import SERVICE_CONTRACT_POLICY_VERSION, ScoringOutcome
+from reputation_core.scoring import SERVICE_POLICY_VERSIONS, ScoringOutcome
 from reputation_platform.settings import PROJECT_ROOT
+from reputation_platform.runtime_status import HEARTBEAT_MAX_AGE_SECONDS, RuntimeStatus, worker_status
 
 _T = TypeVar("_T")
 
@@ -71,6 +72,33 @@ class Repository:
     def health(self) -> bool:
         with self._connect() as connection:
             return connection.execute("SELECT 1 AS ready").fetchone()["ready"] == 1
+
+    def worker_heartbeat(self, worker: str, mode: str, scope_reference: str | None = None, *, stopped: bool = False) -> None:
+        if not isinstance(worker, str) or not worker.strip() or mode not in ('public-off', 'scoped', 'online'):
+            raise ValueError('A heartbeat requires a worker identity and supported mode')
+        canonical = normalize_reference(scope_reference) if scope_reference is not None else None
+        if (mode == 'scoped' and (canonical is None or canonical != scope_reference)
+            or mode != 'scoped' and scope_reference is not None or type(stopped) is not bool):
+            raise ValueError('A scoped heartbeat requires only a canonical public registration reference')
+        with self._connect() as connection:
+            connection.execute("""INSERT INTO worker_heartbeats(worker_id,mode,scope_reference,stopped)
+                VALUES (%s,%s,%s,%s) ON CONFLICT(worker_id) DO UPDATE SET mode=EXCLUDED.mode,
+                scope_reference=EXCLUDED.scope_reference,stopped=EXCLUDED.stopped,last_seen_at=clock_timestamp()""",
+                (worker, mode, canonical, stopped))
+
+    def runtime_status(self) -> RuntimeStatus:
+        with self._connect() as connection:
+            counts = connection.execute("""SELECT clock_timestamp() AS observed_at,
+                count(*) FILTER (WHERE status='QUEUED') AS queued,
+                count(*) FILTER (WHERE status='RUNNING') AS running FROM evaluation_jobs""").fetchone()
+            exists = connection.execute("SELECT to_regclass('worker_heartbeats') AS relation").fetchone()['relation']
+            row = connection.execute("""SELECT mode,scope_reference,stopped,last_seen_at FROM worker_heartbeats
+                ORDER BY (NOT stopped AND last_seen_at BETWEEN clock_timestamp()-(%s * interval '1 second')
+                    AND clock_timestamp()) DESC,last_seen_at DESC LIMIT 1""",
+                (HEARTBEAT_MAX_AGE_SECONDS,)).fetchone() if exists else None
+            observed_at = connection.execute('SELECT clock_timestamp() AS now').fetchone()['now']
+        return RuntimeStatus(database='ready', queued=counts['queued'], running=counts['running'],
+                             worker=worker_status(row, observed_at), observed_at=observed_at)
 
     def _runtime_file(self, value: str | Path) -> Path:
         path = (self.root / value).resolve()
@@ -129,7 +157,7 @@ class Repository:
         _, hashes = self._manifest(directory)
         report_path = self._runtime_file(directory / "report.json")
         report = _validated_report(json.loads(report_path.read_bytes()))
-        if report.policy_version == SERVICE_CONTRACT_POLICY_VERSION:
+        if report.policy_version in SERVICE_POLICY_VERSIONS:
             from reputation_platform.generic_evaluation import verify_generic_report_sources
 
             registration_reference = verify_generic_report_sources(self.root, report, hashes)
@@ -340,6 +368,8 @@ class Repository:
                 (self._lease_seconds(lease_seconds), UUID(str(job_id)), worker, fence)).fetchone()
             if row is None:
                 raise LeaseLostError("Evaluation lease is no longer owned by this worker")
+            connection.execute("""UPDATE worker_heartbeats SET last_seen_at=clock_timestamp()
+                WHERE worker_id=%s AND NOT stopped""", (worker,))
         return self._lease(row)
 
     def set_job_stage(self, job_id: str, worker: str, fence: int, stage: str, message: str,

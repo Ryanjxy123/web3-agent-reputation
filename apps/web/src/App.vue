@@ -1,19 +1,25 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import type { AgentDetail, AgentSummary, EvaluationJob, EvaluationReport } from './contracts'
-import { ApiError, asApiError, getAgent, getAgents, getJob, getReport, submitEvaluation } from './api'
+import { ApiError, asApiError, getAgent, getAgents, getJob, getReport, getRuntimeStatus, submitEvaluation } from './api'
+import type { RuntimeStatus } from './api'
 import { checkLabel, jobLabel, score, stageLabel, when } from './format'
 import ErrorNotice from './components/ErrorNotice.vue'
+import AgentCoverage from './components/AgentCoverage.vue'
 import EvidenceList from './components/EvidenceList.vue'
 import ReportView from './components/ReportView.vue'
 import StatusBadge from './components/StatusBadge.vue'
 
 const view = ref<'browse' | 'detail' | 'submit'>('browse')
+const runtime = ref<RuntimeStatus | null>(null)
+const runtimeError = ref(false)
+const runtimeLoading = ref(false)
+const workerLabels = { 'public-off': '在线 · 公开取证关闭', scoped: '在线 · 限定身份', online: '在线 · 公开只读已启用', stopped: '已停止', unavailable: '没有有效在线心跳' }
 const agents = ref<AgentSummary[]>([])
 const search = ref('')
 const statusFilter = ref<'all' | 'COMPLETE' | 'PARTIAL' | 'NOT_EVALUATED'>('all')
 const scopeFilter = ref('all')
-const directorySort = ref<'updated' | 'score-desc' | 'score-asc' | 'name'>('score-desc')
+const directorySort = ref<'updated' | 'name'>('updated')
 const scopeLabels = {
   prediction: '历史预测', liquidity: '历史增仓', generic: '通用服务',
   unknown: '范围待确认', unreported: '尚无报告范围',
@@ -26,6 +32,9 @@ const pageError = ref<ApiError | null>(null)
 const detail = ref<AgentDetail | null>(null)
 const report = ref<EvaluationReport | null>(null)
 const reportId = ref('')
+const coverageReports = ref<Array<{ id: string; report: EvaluationReport }>>([])
+const coverageLoading = ref(false)
+const coverageIncomplete = ref(false)
 const reference = ref('')
 const submitting = ref(false)
 const submissionError = ref<ApiError | null>(null)
@@ -40,7 +49,7 @@ const scopeOptions = computed(() => {
     .filter(value => present.has(value)).map(value => ({ value, label: scopeLabels[value] }))
 })
 const hasDirectoryConditions = computed(() => search.value !== '' || statusFilter.value !== 'all'
-  || scopeFilter.value !== 'all' || directorySort.value !== 'score-desc')
+  || scopeFilter.value !== 'all' || directorySort.value !== 'updated')
 const matches = computed(() => {
   const needle = search.value.trim().toLocaleLowerCase()
   return agents.value.filter(agent => [agent.name, agent.description, agent.registration_reference, agent.key]
@@ -55,6 +64,22 @@ let routeVersion = 0
 let routeAbort: AbortController | undefined
 let pollingGeneration = 0
 let pollTimer: ReturnType<typeof setTimeout> | undefined
+let runtimeTimer: ReturnType<typeof setTimeout> | undefined
+let runtimeDisposed = false
+
+async function loadRuntime() {
+  if (runtimeLoading.value) return
+  if (runtimeTimer !== undefined) clearTimeout(runtimeTimer)
+  runtimeLoading.value = true
+  try {
+    runtime.value = await getRuntimeStatus()
+    runtimeError.value = false
+  } catch { runtimeError.value = true }
+  finally {
+    runtimeLoading.value = false
+    if (!runtimeDisposed) runtimeTimer = setTimeout(() => { void loadRuntime() }, 15000)
+  }
+}
 
 function evaluationStatus(agent: AgentSummary) {
   return agent.latest_report?.scores.status ?? 'NOT_EVALUATED'
@@ -62,11 +87,12 @@ function evaluationStatus(agent: AgentSummary) {
 
 function evaluationScope(agent: AgentSummary): keyof typeof scopeLabels {
   if (!agent.latest_report) return 'unreported'
-  switch (agent.latest_report.scores.policy_version) {
+  switch (String(agent.latest_report.scores.policy_version)) {
     case 'prediction-history-v1':
     case 'prediction-history-v2': return 'prediction'
     case 'liquidity-history-v1': return 'liquidity'
-    case 'service-contract-v1': return 'generic'
+    case 'service-contract-v1':
+    case 'service-fulfillment-v1': return 'generic'
     default: return 'unknown'
   }
 }
@@ -74,13 +100,6 @@ function evaluationScope(agent: AgentSummary): keyof typeof scopeLabels {
 function compareAgents(left: AgentSummary, right: AgentSummary): number {
   const byName = () => nameOrder.compare(left.name, right.name) || nameOrder.compare(left.key, right.key)
   if (directorySort.value === 'name') return byName()
-  if (directorySort.value === 'score-desc' || directorySort.value === 'score-asc') {
-    const a = left.latest_report?.scores.overall
-    const b = right.latest_report?.scores.overall
-    if (a == null && b != null) return 1
-    if (a != null && b == null) return -1
-    if (a != null && b != null && a !== b) return directorySort.value === 'score-asc' ? a - b : b - a
-  }
   const a = left.latest_report ? Date.parse(left.latest_report.generated_at) : NaN
   const b = right.latest_report ? Date.parse(right.latest_report.generated_at) : NaN
   if (Number.isNaN(a) && !Number.isNaN(b)) return 1
@@ -92,7 +111,7 @@ function clearDirectoryConditions() {
   search.value = ''
   statusFilter.value = 'all'
   scopeFilter.value = 'all'
-  directorySort.value = 'score-desc'
+  directorySort.value = 'updated'
 }
 
 function stopPolling() {
@@ -158,6 +177,18 @@ async function resumeJob() {
   await pollJob(job.value.id, pollingGeneration)
 }
 
+async function loadCoverage(found: AgentDetail, selected: EvaluationReport, version: number, signal: AbortSignal) {
+  coverageReports.value = [{ id: reportId.value, report: selected }]
+  coverageLoading.value = found.reports.length > 1
+  const results = await Promise.allSettled(found.reports.filter(item => item.id !== reportId.value)
+    .map(async item => ({ id: item.id, report: await getReport(item.id, signal) })))
+  if (version !== routeVersion) return
+  coverageReports.value.push(...results.flatMap(result => result.status === 'fulfilled' ? [result.value] : []))
+  coverageReports.value.sort((a, b) => Date.parse(b.report.generated_at) - Date.parse(a.report.generated_at))
+  coverageIncomplete.value = results.some(result => result.status === 'rejected')
+  coverageLoading.value = false
+}
+
 async function loadRoute() {
   const version = ++routeVersion
   stopPolling()
@@ -171,6 +202,9 @@ async function loadRoute() {
     view.value = 'detail'
     detail.value = null
     report.value = null
+    coverageReports.value = []
+    coverageLoading.value = false
+    coverageIncomplete.value = false
     pageLoading.value = true
     try {
       const found = await getAgent(parameters.get('agent')!, signal)
@@ -182,7 +216,10 @@ async function loadRoute() {
           throw new ApiError('这份报告不属于当前 Agent，请选择下面已有的报告。', 'Report identifier is not in this agent’s report history')
         }
         const selected = await getReport(reportId.value, signal)
-        if (version === routeVersion) report.value = selected
+        if (version === routeVersion) {
+          report.value = selected
+          void loadCoverage(found, selected, version, signal)
+        }
       }
     } catch (error) {
       if (version === routeVersion && !signal.aborted) pageError.value = asApiError(error)
@@ -217,11 +254,14 @@ async function submit() {
 }
 
 onMounted(() => {
+  void loadRuntime()
   void loadAgents()
   void loadRoute()
   window.addEventListener('popstate', loadRoute)
 })
 onBeforeUnmount(() => {
+  runtimeDisposed = true
+  if (runtimeTimer !== undefined) clearTimeout(runtimeTimer)
   stopPolling()
   routeAbort?.abort()
   window.removeEventListener('popstate', loadRoute)
@@ -238,6 +278,7 @@ onBeforeUnmount(() => {
     </div></header>
 
     <main id="main" class="main-container">
+      <section class="runtime-strip" aria-label="平台实时运行状态"><div class="runtime-line"><span>API：{{ runtimeError ? '状态读取失败' : runtime ? '在线' : '正在读取' }}</span><span>数据库：{{ runtimeError || !runtime ? '待确认' : runtime.database === 'ready' ? '就绪' : '不可用' }}</span><span>Worker：{{ runtimeError || !runtime ? '待确认' : workerLabels[runtime.worker.state] }}</span><span>作业：排队 {{ runtimeError ? '—' : runtime?.queued ?? '—' }} · 处理中 {{ runtimeError ? '—' : runtime?.running ?? '—' }}</span><button class="text-button" :disabled="runtimeLoading" @click="loadRuntime">刷新状态</button></div><p v-if="runtimeError" class="muted small">无法读取当前运行状态，请刷新；已有报告可继续查看。</p><template v-else-if="runtime"><p v-if="runtime.worker.state === 'unavailable' || runtime.worker.state === 'stopped'" class="muted small">当前没有已确认在线的 Worker，新的请求可能等待队列处理。</p><p v-else-if="runtime.worker.state === 'public-off'" class="muted small">Worker 可处理请求并说明缺项；当前公开取证关闭，不会自动调用外部 Agent。</p><p v-else-if="runtime.worker.state === 'scoped'" class="muted small multiline">公开取证仅限身份：{{ runtime.worker.scope_reference }}</p><p class="muted small">状态读取于 {{ when(runtime.observed_at) }}<template v-if="runtime.worker.last_seen_at"> · 最近心跳 {{ when(runtime.worker.last_seen_at) }}</template></p></template></section>
       <template v-if="view === 'browse'">
         <section class="directory-heading"><div><p class="eyebrow">公开 Agent · 可追溯的评价</p><h1>看清服务表现，读懂评分依据。</h1><p class="page-description">从实际业务与链上记录出发，了解每个 Agent 做了什么、结果如何，以及哪些能力还没有被核验。</p></div><button class="primary-button" @click="openSubmission()">接入 Agent <span aria-hidden="true">↗</span></button></section>
         <section v-if="!directoryLoading && !directoryError" class="directory-stats" aria-label="目录概况"><div><strong>{{ agents.length }}</strong><span>已记录的公共 Agent</span></div><div><strong>{{ completedCount }}</strong><span>已有完整范围分</span></div><p>每个分数都对应一份具体范围的报告。<br>暂不能评价的对象，也保留缺项与后续线索。</p></section>
@@ -246,10 +287,10 @@ onBeforeUnmount(() => {
           <div class="directory-filters">
             <label class="directory-filter"><span>评价状态</span><select v-model="statusFilter"><option value="all">全部状态</option><option value="COMPLETE">完整评价</option><option value="PARTIAL">部分评价</option><option value="NOT_EVALUATED">待评价</option></select></label>
             <label class="directory-filter"><span>评价范围</span><select v-model="scopeFilter"><option value="all">全部范围</option><option v-for="option in scopeOptions" :key="option.value" :value="option.value">{{ option.label }}</option></select></label>
-            <label class="directory-filter sort-filter"><span>排序方式</span><select v-model="directorySort"><option value="score-desc">综合分从高到低</option><option value="score-asc">综合分从低到高</option><option value="updated">最近更新</option><option value="name">名称顺序</option></select></label>
+            <label class="directory-filter sort-filter"><span>排序方式</span><select v-model="directorySort"><option value="updated">最近更新</option><option value="name">名称顺序</option></select></label>
           </div>
           <div v-if="!directoryLoading && !directoryError" class="directory-results"><p role="status" aria-live="polite" aria-atomic="true">显示 <strong>{{ matches.length }}</strong> / {{ agents.length }} 个 Agent</p><button v-if="hasDirectoryConditions" class="text-button" @click="clearDirectoryConditions">清空条件</button></div>
-          <p class="directory-comparison-note">综合分只用于相同评价范围的比较，样本与时间见报告。最近更新以最新报告时间为准。</p>
+          <p class="directory-comparison-note">分数仅适用于报告列明的能力、政策与样本。目录按最新报告时间或名称排列。</p>
         </div>
         <p v-if="directoryLoading" class="loading-state" role="status"><span class="spinner" aria-hidden="true"></span>正在读取 Agent 目录…</p>
         <ErrorNotice v-else-if="directoryError" :error="directoryError"><button class="text-button" @click="loadAgents">重新读取目录</button></ErrorNotice>
@@ -280,7 +321,8 @@ onBeforeUnmount(() => {
         <p v-if="pageLoading && !detail" class="loading-state" role="status"><span class="spinner" aria-hidden="true"></span>正在读取 Agent 与报告…</p>
         <template v-if="detail"><section class="detail-heading"><div><p class="eyebrow">Agent 详情</p><h1>{{ detail.agent.name }}</h1><p class="page-description">{{ detail.agent.description }}</p></div><button class="secondary-button" @click="openSubmission(detail.agent.registration_reference)">{{ detail.reports.length ? '发起重新评价' : '提交资料发起评价' }}</button></section>
           <details class="identity-details"><summary>身份与资料来源</summary><p class="multiline">{{ detail.agent.registration_reference.startsWith('eip155:') ? '完整注册标识' : '注册资料线索' }}：{{ detail.agent.registration_reference }}</p><EvidenceList v-if="detail.candidate" :sources="detail.candidate.source_urls" /></details>
-          <div v-if="detail.reports.length" class="report-toolbar"><label for="report-history">报告历史 <span class="muted">{{ detail.reports.length }} 份</span></label><select id="report-history" :value="reportId" @change="openAgent(detail.agent.key, ($event.target as HTMLSelectElement).value)"><option v-for="item in detail.reports" :key="item.id" :value="item.id">{{ when(item.generated_at) }} · {{ item.scores.status === 'COMPLETE' ? '本范围完整评分' : '部分评价' }}</option></select></div>
+          <AgentCoverage v-if="coverageReports.length" :reports="coverageReports" :expected="detail.reports.length" :selected-id="reportId" :loading="coverageLoading" :incomplete="coverageIncomplete" @select="openAgent(detail.agent.key, $event)" />
+          <div v-if="detail.reports.length" class="report-toolbar"><label for="report-history">报告历史 <span class="muted">{{ detail.reports.length }} 份</span></label><select id="report-history" :value="reportId" @change="openAgent(detail.agent.key, ($event.target as HTMLSelectElement).value)"><option v-for="item in detail.reports" :key="item.id" :value="item.id">{{ when(item.generated_at) }} · {{ item.scores.status === 'COMPLETE' ? '本范围完整评分' : '部分评价' }} · {{ item.scope }}</option></select></div>
           <p v-if="pageLoading" class="loading-state" role="status"><span class="spinner" aria-hidden="true"></span>正在读取所选报告…</p>
           <ReportView v-if="report" :key="reportId" :report="report" :report-id="reportId" />
           <section v-else-if="!pageLoading && !detail.reports.length" class="panel candidate-panel"><span class="report-status">尚未形成完整评价</span><h2>先看已经核实什么，还缺什么。</h2><p class="section-description">目前没有足够证据发布完整三维分。以下内容帮助了解资料状态，不会换算成零分。</p><template v-if="detail.candidate"><div class="candidate-checks"><section v-for="check in detail.candidate.checks" :key="check.code"><div class="row-between"><h3>{{ checkLabel[check.code] }}</h3><StatusBadge :verdict="check.status" /></div><p>{{ check.explanation }}</p><details class="technical"><summary>这项判断的证据</summary><EvidenceList :sources="check.evidence" /></details></section></div><section class="next-actions"><h3>接下来需要什么</h3><ul><li v-for="(action, index) in detail.candidate.next_actions" :key="index">{{ action }}</li></ul></section></template><p v-else class="empty-inline">暂未保存详细资料检查记录。可通过接入入口提交完整注册信息。</p></section>
@@ -289,11 +331,11 @@ onBeforeUnmount(() => {
       </template>
 
       <template v-else>
-        <section class="submission-heading"><p class="eyebrow">接入 Agent · 自动推进评价</p><h1>提交公开注册信息，<br>让评价回到真实证据。</h1><p class="page-description">平台自动收集资料、匹配合适的评价方案并核验结果。资料不足或暂不支持时，会直接说明原因。</p></section>
-        <div class="submission-layout"><section class="panel submission-form-panel"><h2>接入并产生评价</h2><form @submit.prevent="submit"><label for="agent-reference">完整注册标识或注册页面链接</label><textarea id="agent-reference" v-model="reference" rows="3" required spellcheck="false" placeholder="粘贴完整注册标识，或公开注册页面的 HTTPS 链接" :disabled="submitting" aria-describedby="reference-hint"></textarea><p id="reference-hint" class="muted small">需要能够明确定位到链、注册合约与 Agent ID 的信息。</p><button v-if="exampleAgent && !reference" type="button" class="example-button" @click="reference = exampleAgent.registration_reference">使用目录中的真实示例：{{ exampleAgent.name }}</button><button class="primary-button submit-button" type="submit" :disabled="submitting || !reference.trim()"><span v-if="submitting" class="spinner" aria-hidden="true"></span>{{ submitting ? '正在提交…' : '提交并启动评价' }}<span v-if="!submitting" aria-hidden="true">→</span></button></form><ErrorNotice v-if="submissionError" :error="submissionError" /></section>
+        <section class="submission-heading"><p class="eyebrow">接入 Agent · 提交评价请求</p><h1>提交公开注册信息，<br>让评价回到真实证据。</h1><p class="page-description">平台按身份、能力与可用证据选择适用的评价方式。公开取证是否执行取决于后台当前配置；尚未开启、资料不足或暂不支持时，任务会说明实际原因。</p></section>
+        <div class="submission-layout"><section class="panel submission-form-panel"><h2>提交 Agent 评价请求</h2><form @submit.prevent="submit"><label for="agent-reference">完整注册标识或注册页面链接</label><textarea id="agent-reference" v-model="reference" rows="3" required spellcheck="false" placeholder="粘贴完整注册标识，或公开注册页面的 HTTPS 链接" :disabled="submitting" aria-describedby="reference-hint"></textarea><p id="reference-hint" class="muted small">需要能够明确定位到链、注册合约与 Agent ID 的信息。公开取证关闭时，仅保留请求并说明原因。</p><button v-if="exampleAgent && !reference" type="button" class="example-button" @click="reference = exampleAgent.registration_reference">使用目录中的真实示例：{{ exampleAgent.name }}</button><button class="primary-button submit-button" type="submit" :disabled="submitting || !reference.trim()"><span v-if="submitting" class="spinner" aria-hidden="true"></span>{{ submitting ? '正在提交…' : '提交评价请求' }}<span v-if="!submitting" aria-hidden="true">→</span></button></form><ErrorNotice v-if="submissionError" :error="submissionError" /></section>
           <aside class="submission-guide"><p class="eyebrow">提交之后</p><ol><li><span>01</span><div><h3>收集公开资料</h3><p>定位注册身份、功能声明、服务接口与执行线索。</p></div></li><li><span>02</span><div><h3>独立核验结果</h3><p>按适用方案核对实际服务和可归属的链上记录。</p></div></li><li><span>03</span><div><h3>阅读具体结论</h3><p>报告解释得分、样本与边界；缺少证据的部分明确列出。</p></div></li></ol></aside></div>
         <p v-if="pageLoading" class="loading-state" role="status"><span class="spinner" aria-hidden="true"></span>正在读取评价进度…</p><ErrorNotice v-if="pageError" :error="pageError" />
-        <section v-if="job" class="panel job-panel" aria-live="polite"><div class="row-between wrap"><div><p class="eyebrow">本次评价进度</p><h2>{{ jobLabel[job.status] }}</h2></div><span class="report-status" :class="{ complete: job.status === 'COMPLETE' }">{{ stageLabel[job.stage] }}</span></div><p class="job-message">{{ job.message }}</p>
+        <section v-if="job" class="panel job-panel" aria-live="polite"><div class="row-between wrap"><div><p class="eyebrow">本次评价进度</p><h2>{{ jobLabel[job.status] }}</h2></div><span class="report-status" :class="{ complete: job.status === 'COMPLETE' }">{{ stageLabel[job.stage] }}</span></div><p class="job-message">{{ job.message }}</p><p class="muted small">状态更新于 {{ when(job.updated_at) }}</p>
           <ol v-if="jobActive" class="job-stages" aria-label="评价阶段"><li v-for="(stage, index) in stages" :key="stage" :class="{ current: job.stage === stage, done: stages.indexOf(job.stage as typeof stages[number]) > index }"><span>{{ String(index + 1).padStart(2, '0') }}</span>{{ stageLabel[stage] }}</li></ol>
           <p v-if="jobActive && !jobError" class="muted small"><span class="spinner small-spinner" aria-hidden="true"></span>正在自动读取进度，完成后会打开报告。</p><ErrorNotice v-if="jobError" :error="jobError"><button v-if="jobActive" class="text-button" @click="resumeJob">重新读取进度</button></ErrorNotice>
           <button v-if="job.status === 'COMPLETE' && job.candidate_key && job.report_id" class="primary-button" @click="openAgent(job.candidate_key, job.report_id)">打开评价报告 →</button>

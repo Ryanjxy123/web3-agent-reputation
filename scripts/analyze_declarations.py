@@ -15,7 +15,7 @@ sys.path[:0] = [str(ROOT / "packages/core/src"), str(ROOT / "services/platform/s
 from reputation_core import SourceDocument
 from reputation_platform.model_analysis import BALANCE_ENDPOINT, declaration_target, parse_declarations
 from reputation_platform.safe_http import PublicTarget, SafeHttpClient
-from reputation_platform.settings import load_llm_key_file
+from reputation_platform.settings import load_llm_config, load_llm_key_file
 
 
 def write_json(path: Path, value: object) -> None:
@@ -65,13 +65,14 @@ def main() -> int:
     directory = args.review.resolve()
     if not directory.is_relative_to(RUNTIME) or not directory.is_dir():
         parser.error("Review material must be an existing directory inside this project's runtime")
-    if args.execute and not args.proxy:
-        parser.error("Execution requires an explicit --proxy")
+    try:
+        config = load_llm_config()
+    except (RuntimeError, ValueError):
+        parser.error("Invalid local LLM configuration; check the configuration template")
     materials = sources_from_review(directory, args.candidates)
-    requests = [declaration_target("analysis-" + key, sources) for key, sources in materials]
+    requests = [declaration_target("analysis-" + key, sources, config) for key, sources in materials]
     print(json.dumps({"execution_enabled": args.execute, "candidates": [key for key, _ in materials],
-                      "model": "deepseek-flash", "fee_cap": None, "request_cap": None,
-                      "authorization": "existing balance; notify on insufficient balance",
+                      "llm_config": config.record(),
                       "source_characters": {key: sum(len(source.text) for source in sources) for key, sources in materials}},
                      ensure_ascii=False))
     if not args.execute:
@@ -80,28 +81,29 @@ def main() -> int:
     run = RUNTIME / f"model-analysis-{now:%Y%m%dT%H%M%SZ}-{secrets.token_hex(4)}"
     run.mkdir()
     write_json(run / "manifest.json", {"started_at": now.isoformat(), "material_directory": str(directory.relative_to(ROOT)),
-        "authorization": "user 2026-10-18: existing DeepSeek balance, no extra fee/request caps",
-        "model": "deepseek-flash", "candidates": [key for key, _ in materials], "retries": 0,
+        "llm_config": config.record(), "candidates": [key for key, _ in materials], "retries": 0,
         "scores_computed": False, "key_material_recorded": False})
-    targets = (PublicTarget("balance-before", BALANCE_ENDPOINT), *requests,
-               PublicTarget("balance-after", BALANCE_ENDPOINT))
+    targets = ((PublicTarget("balance-before", BALANCE_ENDPOINT), *requests,
+               PublicTarget("balance-after", BALANCE_ENDPOINT)) if config.is_legacy else tuple(requests))
     results = []
     stopped = None
     with SafeHttpClient(targets, enabled=True, proxy=args.proxy, provider_key_file=load_llm_key_file(args.key_file),
+                        provider_config=config, pin_public_dns=True,
                         max_requests=len(targets), timeout_seconds=60) as client:
         try:
-            balance = payload(run, client.fetch("balance-before", run))
-            if balance.get("is_available") is not True:
-                raise RuntimeError("DeepSeek balance is insufficient")
+            if config.is_legacy:
+                balance = payload(run, client.fetch("balance-before", run))
+                if balance.get("is_available") is not True:
+                    raise RuntimeError("DeepSeek balance is insufficient")
             for (key, sources), target in zip(materials, requests):
                 write_json(run / f"{key}.sources.json", [source.model_dump() for source in sources])
                 write_json(run / f"{key}.intent.json", {"request_key": target.key,
                     "prepared_at": datetime.now(timezone.utc).isoformat(), "request_body": target.json_body})
                 response = payload(run, client.fetch(target.key, run))
                 try:
-                    analysis, rejected = parse_declarations(response, sources)
+                    analysis, rejected = parse_declarations(response, sources, config.api_style)
                 except ValueError as exc:
-                    results.append({"candidate": key, "status": "INVALID_OUTPUT", "reason": str(exc), "usage": response.get("usage")})
+                    results.append({"candidate": key, "status": "INVALID_OUTPUT", "reason": "LLM output failed validation", "usage": response.get("usage")})
                     print(f"{key}: INVALID_OUTPUT (retained; no retry)")
                     continue
                 write_json(run / f"{key}.analysis.json", analysis.model_dump())
@@ -110,10 +112,11 @@ def main() -> int:
                                 "rejected_claims": len(rejected),
                                 "usage": response.get("usage"), "model": response.get("model")})
                 print(f"{key}: validated_claims={len(analysis.claims)}")
-            after = payload(run, client.fetch("balance-after", run))
-            print("balance_available=" + str(after.get("is_available")))
+            if config.is_legacy:
+                after = payload(run, client.fetch("balance-after", run))
+                print("balance_available=" + str(after.get("is_available")))
         except (RuntimeError, ValueError, PermissionError) as exc:
-            stopped = str(exc)
+            stopped = "LLM request stopped: " + type(exc).__name__
             print(stopped)
     write_json(run / "result.json", {"results": results, "stopped_reason": stopped, "scores_computed": False})
     print("evidence_directory=" + str(run))
@@ -121,4 +124,7 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    try:
+        raise SystemExit(main())
+    except (RuntimeError, ValueError, OSError):
+        raise SystemExit("LLM operation failed; check local configuration and retained observation error_kind") from None

@@ -11,12 +11,13 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT / "packages/core/src"), str(ROOT / "services/platform/src")]
 
 from reputation_platform.model_analysis import BALANCE_ENDPOINT
+from reputation_platform.llm import LEGACY_CONFIG, LLMConfig
 from reputation_platform.question_translation import (
     QuestionMaterials, TranslationBatch, parse_translations,
     prepare_questions, reference, translation_target, verify_cached_translation,
 )
 from reputation_platform.safe_http import PublicTarget, SafeHttpClient
-from reputation_platform.settings import load_llm_key_file
+from reputation_platform.settings import load_llm_config, load_llm_key_file
 
 CACHE = ROOT / "runtime/question-translation-cache"
 
@@ -26,13 +27,18 @@ def write_json(path: Path, value: object) -> None:
         json.dump(value, stream, ensure_ascii=False, indent=2)
 
 
-def apply_cache(materials: QuestionMaterials) -> list:
+def cache_directory(config: LLMConfig) -> Path:
+    return CACHE if config.is_legacy else CACHE / config.fingerprint
+
+
+def apply_cache(materials: QuestionMaterials, config: LLMConfig = LEGACY_CONFIG) -> list:
     pending = []
+    cache = cache_directory(config)
     for question in materials.questions:
-        cached = CACHE / f"{question.question_sha256}.translation.json"
-        attempted = CACHE / f"{question.question_sha256}.attempt.json"
+        cached = cache / f"{question.question_sha256}.translation.json"
+        attempted = cache / f"{question.question_sha256}.attempt.json"
         if cached.is_file():
-            translated, proofs = verify_cached_translation(cached, question)
+            translated, proofs = verify_cached_translation(cached, question, config=config)
             question.question_zh, question.plain_language_zh = translated.question_zh, translated.plain_language_zh
             question.translation_status = "TRANSLATED"
             question.translation_evidence = proofs
@@ -61,18 +67,22 @@ def main() -> int:
     parser.add_argument("--proxy")
     parser.add_argument("--key-file", type=Path)
     args = parser.parse_args()
-    if args.execute and not args.proxy:
-        parser.error("Execution requires an explicit proxy")
+    try:
+        config = load_llm_config()
+    except (ValueError, RuntimeError, OSError):
+        parser.error("Invalid or unreadable local LLM configuration")
+    cache = cache_directory(config)
     now = datetime.now(timezone.utc)
     materials = prepare_questions(args.bundles, now)
-    pending = apply_cache(materials)
+    pending = apply_cache(materials, config)
     batches = [pending[index:index + 7] for index in range(0, len(pending), 7)]
-    targets = [translation_target(f"translate-batch-{index + 1:03d}", batch) for index, batch in enumerate(batches)]
+    targets = [translation_target(f"translate-batch-{index + 1:03d}", batch, config) for index, batch in enumerate(batches)]
     run = ROOT / "runtime" / f"question-translation-{now:%Y%m%dT%H%M%SZ}-{secrets.token_hex(4)}"
     run.mkdir()
     manifest = {"created_at": now.isoformat(), "execution_enabled": args.execute,
         "purpose": "Chinese reading aid; never probability evaluation, task execution or scoring",
         "question_count": len(materials.questions), "pending_question_count": len(pending),
+        "llm_config": config.record(),
         "batch_size": 7, "retries": 0, "scores_computed": False, "key_material_recorded": False,
         "inputs": [source.model_dump() for source in materials.sources]}
     write_json(run / "manifest.json", manifest)
@@ -81,29 +91,33 @@ def main() -> int:
     write_json(run / "prepared-materials.json", materials.model_dump(mode="json"))
     results, stopped, attempted_calls = [], None, 0
     if args.execute and targets:
-        CACHE.mkdir(exist_ok=True)
-        scoped = (PublicTarget("balance-before", BALANCE_ENDPOINT), *targets, PublicTarget("balance-after", BALANCE_ENDPOINT))
-        with SafeHttpClient(scoped, enabled=True, proxy=args.proxy, max_requests=len(scoped),
-                            timeout_seconds=60, provider_key_file=load_llm_key_file(args.key_file)) as client:
-            try:
-                balance, _ = payload(client, "balance-before", run)
-                if balance.get("is_available") is not True:
-                    raise RuntimeError("DeepSeek balance is insufficient; no automatic top-up")
+        cache.mkdir(parents=True, exist_ok=True)
+        scoped = ((PublicTarget("balance-before", BALANCE_ENDPOINT), *targets,
+                   PublicTarget("balance-after", BALANCE_ENDPOINT)) if config.is_legacy else tuple(targets))
+        try:
+            with SafeHttpClient(scoped, enabled=True, proxy=args.proxy, max_requests=len(scoped),
+                                timeout_seconds=60, provider_config=config, pin_public_dns=True,
+                                provider_key_file=load_llm_key_file(args.key_file)) as client:
+                if config.is_legacy:
+                    balance, _ = payload(client, "balance-before", run)
+                    if balance.get("is_available") is not True:
+                        raise RuntimeError("DeepSeek balance is insufficient; no automatic top-up")
                 for batch, target in zip(batches, targets):
                     batch_questions = [{"question_sha256": item.question_sha256,
                                         "original_question": item.original_question} for item in batch]
                     write_json(run / f"{target.key}.intent.json", {"request_body": target.json_body})
                     for question in batch:
-                        write_json(CACHE / f"{question.question_sha256}.attempt.json",
+                        write_json(cache / f"{question.question_sha256}.attempt.json",
                                    {"question_sha256": question.question_sha256,
                                     "original_question": question.original_question,
+                                    "llm_config": config.record(),
                                     "run": run.relative_to(ROOT).as_posix(), "request_key": target.key})
                     attempted_calls += 1
                     response, response_file = payload(client, target.key, run)
                     try:
-                        translations = parse_translations(response, batch)
+                        translations = parse_translations(response, batch, config.api_style)
                     except ValueError as error:
-                        results.append({"request_key": target.key, "status": "INVALID_OUTPUT", "reason": str(error),
+                        results.append({"request_key": target.key, "status": "INVALID_OUTPUT", "reason": type(error).__name__,
                                         "usage": response.get("usage")})
                         for question in batch:
                             question.translation_status = "REVIEW_REQUIRED"
@@ -112,8 +126,9 @@ def main() -> int:
                     proof = reference(response_file)
                     observation_proof = reference(run / f"{target.key}.observation.json")
                     for translated in translations:
-                        cached = CACHE / f"{translated.question_sha256}.translation.json"
+                        cached = cache / f"{translated.question_sha256}.translation.json"
                         write_json(cached, {"translation": translated.model_dump(), "batch_questions": batch_questions,
+                                            "llm_config": config.record(),
                                             "provider_response": proof.model_dump(),
                                             "provider_observation": observation_proof.model_dump(), "model": response.get("model")})
                         question = by_digest[translated.question_sha256]
@@ -123,15 +138,16 @@ def main() -> int:
                         materials.sources.extend(question.translation_evidence)
                     results.append({"request_key": target.key, "status": "TRANSLATED", "question_count": len(translations),
                                     "usage": response.get("usage"), "model": response.get("model")})
-                after, _ = payload(client, "balance-after", run)
-                if after.get("is_available") is not True:
-                    stopped = "DeepSeek balance is insufficient; notify operator, no automatic top-up"
-            except (RuntimeError, ValueError, OSError) as error:
-                stopped = str(error)
+                if config.is_legacy:
+                    after, _ = payload(client, "balance-after", run)
+                    if after.get("is_available") is not True:
+                        stopped = "DeepSeek balance is insufficient; notify operator, no automatic top-up"
+        except (RuntimeError, ValueError, OSError) as error:
+            stopped = "LLM execution stopped: " + type(error).__name__
     for question in materials.questions:
-        if question.translation_status != "TRANSLATED" and (CACHE / f"{question.question_sha256}.attempt.json").is_file():
+        if question.translation_status != "TRANSLATED" and (cache / f"{question.question_sha256}.attempt.json").is_file():
             question.translation_status = "REVIEW_REQUIRED"
-            question.translation_evidence = [reference(CACHE / f"{question.question_sha256}.attempt.json")]
+            question.translation_evidence = [reference(cache / f"{question.question_sha256}.attempt.json")]
             materials.sources.extend(question.translation_evidence)
     write_json(run / "materials.json", materials.model_dump(mode="json"))
     write_json(run / "result.json", {"results": results, "stopped_reason": stopped,
@@ -146,4 +162,7 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    try:
+        raise SystemExit(main())
+    except (RuntimeError, ValueError, OSError):
+        raise SystemExit("LLM operation failed; check local configuration and retained observation error_kind") from None

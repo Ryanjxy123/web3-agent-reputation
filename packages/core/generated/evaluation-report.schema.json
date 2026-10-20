@@ -76,6 +76,42 @@
           },
           "title": "Missing Evidence",
           "type": "array"
+        },
+        "capability_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Capability Type"
+        },
+        "checker_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Checker Id"
+        },
+        "checker_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Checker Version"
         }
       },
       "required": [
@@ -325,7 +361,8 @@
             "liquidity-history-v1",
             "prediction-history-v1",
             "prediction-history-v2",
-            "service-contract-v1"
+            "service-contract-v1",
+            "service-fulfillment-v1"
           ],
           "title": "Policy Version",
           "type": "string"
@@ -395,7 +432,8 @@
         "liquidity-history-v1",
         "prediction-history-v1",
         "prediction-history-v2",
-        "service-contract-v1"
+        "service-contract-v1",
+        "service-fulfillment-v1"
       ],
       "title": "Policy Version",
       "type": "string"

@@ -45,6 +45,24 @@
         }
       }
     },
+    "/api/runtime": {
+      "get": {
+        "summary": "Runtime",
+        "operationId": "runtime_api_runtime_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/agents/{key}": {
       "get": {
         "summary": "Get Agent",
@@ -477,6 +495,39 @@
             },
             "type": "array",
             "title": "Missing Evidence"
+          },
+          "capability_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capability Type"
+          },
+          "checker_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checker Id"
+          },
+          "checker_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checker Version"
           }
         },
         "additionalProperties": false,
@@ -667,7 +718,8 @@
               "liquidity-history-v1",
               "prediction-history-v1",
               "prediction-history-v2",
-              "service-contract-v1"
+              "service-contract-v1",
+              "service-fulfillment-v1"
             ],
             "title": "Policy Version",
             "default": "liquidity-history-v1"
@@ -876,6 +928,64 @@
         ],
         "title": "ReportSummary"
       },
+      "RuntimeStatus": {
+        "properties": {
+          "api": {
+            "type": "string",
+            "const": "ok",
+            "title": "Api",
+            "default": "ok"
+          },
+          "database": {
+            "type": "string",
+            "enum": [
+              "ready",
+              "unavailable"
+            ],
+            "title": "Database"
+          },
+          "queued": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Queued"
+          },
+          "running": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Running"
+          },
+          "worker": {
+            "$ref": "#/components/schemas/WorkerStatus"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Observed At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "database",
+          "queued",
+          "running",
+          "worker",
+          "observed_at"
+        ],
+        "title": "RuntimeStatus"
+      },
       "SampleExplanation": {
         "properties": {
           "sample": {
@@ -1010,7 +1120,8 @@
               "liquidity-history-v1",
               "prediction-history-v1",
               "prediction-history-v2",
-              "service-contract-v1"
+              "service-contract-v1",
+              "service-fulfillment-v1"
             ],
             "title": "Policy Version",
             "default": "liquidity-history-v1"
@@ -1105,6 +1216,50 @@
           "NOT_APPLICABLE"
         ],
         "title": "Verdict"
+      },
+      "WorkerStatus": {
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "public-off",
+              "scoped",
+              "online",
+              "stopped",
+              "unavailable"
+            ],
+            "title": "State"
+          },
+          "last_seen_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Seen At"
+          },
+          "scope_reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scope Reference"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "state"
+        ],
+        "title": "WorkerStatus"
       }
     }
   }

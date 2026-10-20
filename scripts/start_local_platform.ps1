@@ -12,9 +12,8 @@ $python = Join-Path $projectRoot '.venv/Scripts/python.exe'
 $profilesFile = Join-Path $projectRoot 'runtime/platform-config/profiles.json'
 $logDirectory = Join-Path $projectRoot 'runtime/platform-logs'
 
-if ((Split-Path $projectRoot -Leaf) -ne 'block_chain_new_new' -or
-    -not (Test-Path -LiteralPath (Join-Path $projectRoot 'pyproject.toml') -PathType Leaf)) {
-    throw 'Run this launcher from the independent block_chain_new_new project.'
+if (-not (Test-Path -LiteralPath (Join-Path $projectRoot 'pyproject.toml') -PathType Leaf)) {
+    throw 'Run this launcher from the web3-agent-reputation project.'
 }
 if (-not (Test-Path -LiteralPath $python -PathType Leaf)) {
     throw 'The project .venv Python is missing.'
@@ -60,6 +59,7 @@ if ($listeners.Count -gt 0) {
 
 $previousUtf8 = [Environment]::GetEnvironmentVariable('PYTHONUTF8', 'Process')
 $previousEncoding = [Environment]::GetEnvironmentVariable('PYTHONIOENCODING', 'Process')
+$previousZanKeyFile = [Environment]::GetEnvironmentVariable('REPUTATION_ZAN_KEY_FILE', 'Process')
 $apiProcess = $null
 $apiStartTicks = $null
 $http = $null
@@ -70,6 +70,11 @@ try {
     [Environment]::SetEnvironmentVariable('PYTHONIOENCODING', 'utf-8', 'Process')
     Push-Location -LiteralPath $projectRoot
     $locationPushed = $true
+    if ($null -eq $previousZanKeyFile) {
+        $localZanKeyFile = & $python -c 'from reputation_platform.settings import load_zan_key_file; print(load_zan_key_file())'
+        if ($LASTEXITCODE -ne 0) { throw 'Invalid local ZAN credential path configuration.' }
+        [Environment]::SetEnvironmentVariable('REPUTATION_ZAN_KEY_FILE', [string]$localZanKeyFile, 'Process')
+    }
     New-Item -ItemType Directory -Path $logDirectory -Force | Out-Null
     $runName = 'platform-' + [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssZ') + '-' + [Guid]::NewGuid().ToString('N').Substring(0, 8)
     $stdout = Join-Path $logDirectory ($runName + '.api.stdout.log')
@@ -131,7 +136,7 @@ try {
     try {
         if ($null -ne $apiProcess -and -not $apiProcess.HasExited -and
             $apiProcess.StartTime.ToUniversalTime().Ticks -eq $apiStartTicks) {
-            $apiProcess.Kill()
+            $apiProcess.Kill($true)
             $apiProcess.WaitForExit(5000) | Out-Null
         }
     } finally {
@@ -139,5 +144,6 @@ try {
         if ($locationPushed) { Pop-Location }
         [Environment]::SetEnvironmentVariable('PYTHONUTF8', $previousUtf8, 'Process')
         [Environment]::SetEnvironmentVariable('PYTHONIOENCODING', $previousEncoding, 'Process')
+        [Environment]::SetEnvironmentVariable('REPUTATION_ZAN_KEY_FILE', $previousZanKeyFile, 'Process')
     }
 }

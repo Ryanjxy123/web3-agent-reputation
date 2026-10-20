@@ -73,7 +73,8 @@
         "liquidity-history-v1",
         "prediction-history-v1",
         "prediction-history-v2",
-        "service-contract-v1"
+        "service-contract-v1",
+        "service-fulfillment-v1"
       ],
       "title": "Policy Version",
       "type": "string"

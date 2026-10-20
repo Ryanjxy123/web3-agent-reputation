@@ -6,7 +6,7 @@
 
 本文件规定本目录的执行顺序。父目录的安全与 Git 约束继续适用；父项目的 M0/M1 等历史任务不属于新项目的自动开工范围。与用户后续明确要求冲突时，以用户要求为准。
 
-日常命令和 Git 操作以 `D:/xjtu_project/block_chain_new/block_chain_new_new` 为工作目录。旧项目只在解决具体问题时按需参考，不扫描整套旧代码，不默认迁入旧对象清单、评分或待办。
+日常命令和 Git 操作以 `git rev-parse --show-toplevel` 核实的仓库根目录为工作目录；当前本机目录为 `D:/大三上/软件前沿技术/区块链竞赛/web3-agent-reputation`。旧项目只在解决具体问题时按需参考，不扫描整套旧代码，不默认迁入旧对象清单、评分或待办。
 
 ## 长期执行原则（2026-10-18 用户明确要求）
 
@@ -59,7 +59,7 @@
 
 ## Git 与交付
 
-- 2026-10-19 用户已授权将旧父仓库断开origin、新项目连接`https://github.com/Ryanjxy123/web3-agent-reputation.git`并提交重构PR。只推`codex/rebuild-reputation-platform`任务分支，不强推main；保留远程历史，当前PR等待review。本次还须发布已完成的真实完整评分及必要公开证据，个人密钥/数据库/私有配置不上传；不能将整个runtime的忽略规则当作排除评分交付的理由。
+- 2026-10-19 用户已授权新项目连接`https://github.com/Ryanjxy123/web3-agent-reputation.git`并提交重构PR，PR #17已合并。2026-10-20 用户进一步明确授权提交当前本地最新优化并合并到main；本次使用`codex/commit-latest-optimizations-20261020`任务分支，经PR合并，保留远程历史、不强推。个人密钥/数据库/私有配置不上传；既有10份真实完整评分公开包保留，新报告的分发范围以README为准。
 
 - 本目录为独立仓库。Git 操作前核实顶层目录、分支、未提交修改和 remote。
 - 任务分支使用 `codex/` 前缀；不猜提交身份、不改全局 Git 配置。

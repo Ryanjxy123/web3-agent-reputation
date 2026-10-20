@@ -14,7 +14,8 @@ sys.path[:0] = [str(ROOT / 'packages/core/src'), str(ROOT / 'services/platform/s
 
 from analyze_declarations import sources_from_review
 from reputation_core import DeclarationAnalysis, ProbeObservation, SourceDocument, validate_analysis
-from reputation_platform.model_analysis import ENDPOINT, catalog_operations, parse_declarations
+from reputation_platform.llm import LEGACY_CONFIG, evidence_url, request_body, validate_record
+from reputation_platform.model_analysis import catalog_operations, declaration_instructions, parse_declarations
 
 PAIRS = [
     ('runtime/model-review-20261017T182601Z-ccb0ed3d', 'runtime/model-reviewed-20261018T045116Z-10a85dc4'),
@@ -116,12 +117,17 @@ def validated_asset(review_run: Path, analysis_run: Path, key: str, expected_sou
     saved_sources = [SourceDocument.model_validate(item) for item in load(original_run / f'{key}.sources.json')]
     if saved_sources != expected_sources:
         raise ValueError('Model inputs differ from digest-bound source review')
-    observed, response = observation(original_run / f'analysis-{key}.observation.json', url=ENDPOINT)
+    configured = 'llm_config' in original_manifest
+    record = validate_record(original_manifest['llm_config']) if configured else LEGACY_CONFIG.record()
+    observed, response = observation(original_run / f'analysis-{key}.observation.json',
+        url=evidence_url(record) if configured else LEGACY_CONFIG.endpoint)
     request = json.loads(observed.request_json)
-    if (observed.method != 'POST' or request.get('tools') != [] or request.get('tool_choice') != 'none'
-        or json.loads(request['input']) != {'sources': [source.model_dump() for source in expected_sources]}):
+    expected_request = request_body(declaration_instructions(expected_sources),
+        {'sources': [source.model_dump() for source in expected_sources]},
+        DeclarationAnalysis.model_json_schema(), 'declaration_analysis', record)
+    if (observed.method != 'POST' or request != expected_request):
         raise ValueError('Retained declaration request did not use these exact source documents without tools')
-    derived, rejected = parse_declarations(load(response), expected_sources)
+    derived, rejected = parse_declarations(load(response), expected_sources, record['api_style'])
     stored = validate_analysis(DeclarationAnalysis.model_validate(load(analysis_run / f'{key}.analysis.json')), expected_sources)
     if derived != stored:
         raise ValueError('Accepted analysis differs from its retained provider response: ' + key)
