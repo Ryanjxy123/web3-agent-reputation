@@ -1,5 +1,11 @@
 # 新项目执行计划
 
+## 2026-10-20 两份仓位评价公开补充包（打包与验收完成）
+
+task_id=`PUBLISH_POSITION_REPORTS_20261020`。按用户要求，将Brain/Hallmark两份最新完整评价及核验必需的公开原件以`data/public-reports-position-v2.tar.gz`独立补充包交付：2报告、612文件、1,607,688B；保留原10报告包不变，README给出追加导入和展示步骤。两个包合计12个不同Agent的完整结果，仅发布既有结果，未发起新评价或模型调用。
+
+精确报告ID导出、依赖闭包和秘密检查通过；冻结审阅配置已恢复与两份manifest精确匹配的原CRLF，Git保留例外和CI回归防止再次改字节。5项定向测试通过；干净暂存检出、离线来源恢复、真实隔离PostgreSQL导入及13项API/前端资源检查通过，原生产Agent/报告/作业未改。发布采用`codex/publish-position-reports-20261020`任务分支及PR；后续队友更新main并执行README中的补充包导入命令，无需重新测评。
+
 ## 2026-10-20 最新本地优化提交与合并
 
 task_id=`PUBLISH_LOCAL_OPTIMIZATIONS_20261020`。用户已明确授权将当前最新优化提交并合并到main；使用`codex/commit-latest-optimizations-20261020`任务分支推送和PR合并。交付包括现有Query/Position评价、可观察服务履约、运行状态与能力覆盖、LLM/ZAN安全网络及Windows启动修复，以及配套契约、配置、测试和文档。
