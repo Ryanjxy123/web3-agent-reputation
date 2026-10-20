@@ -77,13 +77,20 @@ def check_report(repo: Repository, item: dict):
     return report
 
 
-def export_package(root: Path, output: Path) -> dict:
+def export_package(root: Path, output: Path, report_ids: list[UUID | str] | None = None) -> dict:
+    requested_ids = None if report_ids is None else {UUID(str(value)) for value in report_ids}
+    if requested_ids == set():
+        raise ValueError("Select at least one report ID")
     repo = Repository(load_database_url(), root)
-    with repo._connect() as connection:
-        rows = connection.execute("""SELECT r.*, a.registration_reference FROM reports r
+    query = """SELECT r.*, a.registration_reference FROM reports r
             JOIN agents a ON a.key=r.agent_key
-            WHERE r.validated_json->'scores'->>'status'='COMPLETE'
-            ORDER BY r.generated_at DESC,r.imported_at DESC,r.id""").fetchall()
+            WHERE r.validated_json->'scores'->>'status'='COMPLETE'"""
+    parameters = ()
+    if requested_ids is not None:
+        query += " AND r.id = ANY(%s)"
+        parameters = (list(requested_ids),)
+    with repo._connect() as connection:
+        rows = connection.execute(query + " ORDER BY r.generated_at DESC,r.imported_at DESC,r.id", parameters).fetchall()
     selected = {}
     for row in rows:
         canonical = normalize_reference(row["registration_reference"])
@@ -92,6 +99,8 @@ def export_package(root: Path, output: Path) -> dict:
         selected.setdefault(canonical, row)
     if not selected:
         raise ValueError("The database contains no complete report to publish")
+    if requested_ids is not None and {UUID(str(row["id"])) for row in selected.values()} != requested_ids:
+        raise ValueError("Selected report IDs must all be complete and represent distinct canonical identities")
     files, reports = {}, []
 
     def remember(name: str, expected: str | None = None):
@@ -252,6 +261,8 @@ def main() -> int:
     export = subcommands.add_parser("export", help="Export the real database's latest complete report per identity")
     export.add_argument("--output", type=Path, required=True)
     export.add_argument("--root", type=Path, default=ROOT)
+    export.add_argument("--report-id", type=UUID, action="append",
+                        help="Export only this complete report ID; repeat for distinct identities")
     for name in ("verify", "import"):
         restore = subcommands.add_parser(name, help="Verify offline and write missing public runtime files; never overwrite conflicts")
         restore.add_argument("archive", type=Path)
@@ -261,7 +272,7 @@ def main() -> int:
     args = parser.parse_args()
     try:
         if args.command == "export":
-            result = export_package(args.root.resolve(), args.output.resolve())
+            result = export_package(args.root.resolve(), args.output.resolve(), args.report_id)
         else:
             import_db = args.command == "import" or args.import_db
             if args.initialize and not import_db:
