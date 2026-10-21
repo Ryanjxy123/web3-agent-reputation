@@ -1,5 +1,11 @@
 # 新项目当前状态
 
+## 2026-10-21 老师反馈认知与改进文档
+
+`TEACHER_FEEDBACK_REVIEW_20261021`完成，输出`docs/research/WEB3_AGENT_TEACHER_FEEDBACK_20261021.md`及12页Word`Web3_Agent认知与平台改进建议_20261021.docx`。官方一手资料14项（含项目原政策/源码），区分广义Web3 Agent与竞赛主展示的链上执行Agent；当前九个Mech研究交付、Brain363709真实包装/兑换/增仓特例、查询B语义偏移及scope替代功能简介的问题均按原件/源码核实。候选生态仅作调查入口，未虚报新增可评分实例；框架、退役产品、旧报告能力映射缺字段分别说明。
+
+本轮只新增上述文档并更新PLAN/STATUS/HANDOFF，不修改应用源码、配置、评分、数据库或已发布原件，不启停服务。工程测试NOT_RUN（纯文档，不需重跑）。使用打包文档运行时生成，隐藏独立Word只读导出并由打包render_docx.py栅格化，命令均exit0；初稿标题继承装饰线/斜体已修正，最终12页全部逐页检查。内容独立审阅通过，收据`runtime/teacher-feedback-document-20261021/qa-result.json`，最终Word SHA `bbfb5e9a9404dc6105f87334d01294374cf4d76ec4635edc0897237a22c573e6`。下一task_id=`REVIEW_CHAIN_EXECUTION_PLAN`，等用户讨论方案后再推进实现；本地文档提交、未push。原演示稿及Word锁文件保留不纳入提交。
+
 ## 2026-10-20 19:59 本机同步及重启
 
 `RUN_REMOTE_MAIN_20261020`完成：fetch默认main，快进本地main至`1675d55a904e838765ac0ecf0ebadd3dfa2baf06`，旧本地4提交保留在`codex/teacher-demo-20261020=339a902`。当前`codex/run-remote-main-20261020`仅追加本机运行文档，业务代码与远程一致，未push。Git更新前0active、38 Agent/47报告/37作业，真实PG备份2,745,049B及演示文档副本保存在`runtime/remote-update-20261020T115301Z/`。Word原件正被用户打开，Git未能删除且后续覆盖/哈希尝试被锁拒绝；原件和锁文件留原位，演示稿Markdown已恢复，未强制关闭Word。
