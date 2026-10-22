@@ -16,6 +16,8 @@ from psycopg.types.json import Jsonb
 
 from reputation_core.admission import CandidateRecord
 from reputation_core.application import AgentDetail, AgentSummary, EvaluationJob, ReportSummary, normalize_reference
+from reputation_core.chain_review import AgentChainEvidence
+from reputation_core.chain_view import ReportChainEvidence
 from reputation_core.reporting import EvaluationReport
 from reputation_core.scoring import SERVICE_POLICY_VERSIONS, ScoringOutcome
 from reputation_platform.settings import PROJECT_ROOT
@@ -232,7 +234,7 @@ class Repository:
     def _insert_report(self, connection, imported: _ImportedReport) -> ReportSummary:
         report = imported.report
         self._upsert_agent(connection, key=report.candidate_key, name=report.name,
-                           reference=imported.registration_reference, description=report.scope)
+                           reference=imported.registration_reference)
         for candidate, directory, source_hash in imported.candidates:
             self._insert_candidate(connection, candidate, directory, source_hash)
         row = connection.execute("""INSERT INTO reports(id,agent_key,generated_at,source_directory,
@@ -271,11 +273,21 @@ class Repository:
         with self._connect() as connection:
             rows = connection.execute("SELECT * FROM agents ORDER BY lower(name),key").fetchall()
             reports = connection.execute("SELECT * FROM reports ORDER BY generated_at DESC,imported_at DESC,id").fetchall()
+            snapshots = connection.execute("SELECT DISTINCT ON(agent_key) agent_key,validated_json FROM agent_chain_evidence ORDER BY agent_key,generated_at DESC,imported_at DESC").fetchall()
         grouped = {}
+        profiles = {row['agent_key']: AgentChainEvidence.model_validate_json(json.dumps(row['validated_json'])).profile for row in snapshots}
+        references = {row['key']: row['registration_reference'] for row in rows}
         for row in reports:
             grouped.setdefault(row["agent_key"], []).append(self._summary(row))
+            if row['agent_key'] not in profiles or profiles[row['agent_key']].role == 'unverified':
+                from reputation_platform.agent_profiles import profile_from_report
+                profile = profile_from_report(self.root, {**row, 'registration_reference': references[row['agent_key']]})
+                if row['agent_key'] not in profiles or profile.role != 'unverified':
+                    profiles[row['agent_key']] = profile
         return [AgentSummary(key=row["key"], name=row["name"], registration_reference=row["registration_reference"],
-            description=row["description"], report_count=len(grouped.get(row["key"], [])),
+            description=profiles[row['key']].business_summary if row['key'] in profiles else '',
+            profile=profiles.get(row['key']), report_count=len(grouped.get(row["key"], [])),
+            complete_report_count=sum(item.scores.status == 'COMPLETE' for item in grouped.get(row['key'], [])),
             latest_report=grouped[row["key"]][0] if grouped.get(row["key"]) else None) for row in rows]
 
     def get_agent(self, key: str) -> AgentDetail | None:
@@ -287,10 +299,58 @@ class Repository:
                                          (key,)).fetchall()
             candidate = connection.execute("SELECT validated_json FROM candidate_metadata WHERE agent_key=%s ORDER BY imported_at DESC,id LIMIT 1",
                                            (key,)).fetchone()
+            snapshot = connection.execute("SELECT validated_json FROM agent_chain_evidence WHERE agent_key=%s ORDER BY generated_at DESC,imported_at DESC LIMIT 1", (key,)).fetchone()
         summaries = [self._summary(item) for item in reports]
+        profile = AgentChainEvidence.model_validate_json(json.dumps(snapshot['validated_json'])).profile if snapshot else None
+        if profile is None and reports:
+            from reputation_platform.agent_profiles import profile_from_report
+            for item in reports:
+                current = profile_from_report(self.root, {**item, 'registration_reference': row['registration_reference']})
+                if profile is None or current.role != 'unverified':
+                    profile = current
+                if profile.role != 'unverified':
+                    break
         return AgentDetail(agent=AgentSummary(key=key, name=row["name"], registration_reference=row["registration_reference"],
-            description=row["description"], report_count=len(summaries), latest_report=summaries[0] if summaries else None),
+            description=profile.business_summary if profile else '', profile=profile,
+            complete_report_count=sum(item.scores.status == 'COMPLETE' for item in summaries),
+            report_count=len(summaries), latest_report=summaries[0] if summaries else None),
             reports=summaries, candidate=CandidateRecord.model_validate(candidate["validated_json"]) if candidate else None)
+
+    def report_chain_evidence(self, report_id: str) -> ReportChainEvidence | None:
+        with self._connect() as connection:
+            row = connection.execute("SELECT validated_json,evidence_files FROM reports WHERE id=%s", (UUID(str(report_id)),)).fetchone()
+        if row is None:
+            return None
+        from reputation_platform.report_chain_view import build_report_chain_evidence
+        try:
+            return build_report_chain_evidence(self.root, _validated_report(row['validated_json']), row['evidence_files'])
+        except (OSError, ValueError, KeyError, TypeError) as error:
+            raise EvidenceIntegrityError('Chain evidence view failed integrity validation') from error
+
+    def agent_chain_evidence(self, key: str) -> AgentChainEvidence | None:
+        with self._connect() as connection:
+            row = connection.execute("SELECT * FROM agent_chain_evidence WHERE agent_key=%s ORDER BY generated_at DESC,imported_at DESC LIMIT 1", (key,)).fetchone()
+        if row is None:
+            return None
+        path = self._runtime_file(row['snapshot_path'])
+        raw = path.read_bytes()
+        if hashlib.sha256(raw).hexdigest() != row['snapshot_sha256']:
+            raise EvidenceIntegrityError('Execution evidence snapshot changed')
+        review = AgentChainEvidence.model_validate_json(raw)
+        if review.model_dump(mode='json') != row['validated_json']:
+            raise EvidenceIntegrityError('Execution snapshot differs from its imported record')
+        return review
+
+    def agent_chain_evidence_file(self, key: str, path: str) -> Path | None:
+        with self._connect() as connection:
+            row = connection.execute("SELECT evidence_files FROM agent_chain_evidence WHERE agent_key=%s ORDER BY generated_at DESC,imported_at DESC LIMIT 1", (key,)).fetchone()
+        normalized = path.replace('\\', '/')
+        if row is None or normalized not in row['evidence_files']:
+            return None
+        resolved = self._runtime_file(normalized)
+        if _sha(resolved) != row['evidence_files'][normalized]:
+            raise EvidenceIntegrityError('Execution source changed')
+        return resolved
 
     def get_report(self, report_id: str) -> EvaluationReport | None:
         with self._connect() as connection:

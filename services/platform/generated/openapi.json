@@ -142,6 +142,135 @@
         }
       }
     },
+    "/api/reports/{report_id}/chain-evidence": {
+      "get": {
+        "summary": "Report Chain Evidence",
+        "operationId": "report_chain_evidence_api_reports__report_id__chain_evidence_get",
+        "parameters": [
+          {
+            "name": "report_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Report Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportChainEvidence"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agents/{key}/chain-evidence": {
+      "get": {
+        "summary": "Agent Chain Evidence",
+        "operationId": "agent_chain_evidence_api_agents__key__chain_evidence_get",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AgentChainEvidence"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Agent Chain Evidence Api Agents  Key  Chain Evidence Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agents/{key}/chain-evidence/file": {
+      "get": {
+        "summary": "Agent Chain File",
+        "operationId": "agent_chain_file_api_agents__key__chain_evidence_file_get",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Key"
+            }
+          },
+          {
+            "name": "path",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "title": "Path"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/reports/{report_id}/evidence": {
       "get": {
         "summary": "Get Evidence",
@@ -296,6 +425,96 @@
         ],
         "title": "AdmissionCheck"
       },
+      "AgentChainEvidence": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "chain-execution-evidence-v1",
+            "title": "Schema Version",
+            "default": "chain-execution-evidence-v1"
+          },
+          "candidate_key": {
+            "type": "string",
+            "title": "Candidate Key"
+          },
+          "registration_reference": {
+            "type": "string",
+            "title": "Registration Reference"
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Generated At"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "profile": {
+            "$ref": "#/components/schemas/AgentProfile"
+          },
+          "actions": {
+            "items": {
+              "$ref": "#/components/schemas/ChainAction"
+            },
+            "type": "array",
+            "title": "Actions"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/ReportFinding"
+            },
+            "type": "array",
+            "title": "Checks"
+          },
+          "dimensions": {
+            "items": {
+              "$ref": "#/components/schemas/ChainDimensionEvidence"
+            },
+            "type": "array",
+            "title": "Dimensions"
+          },
+          "selection": {
+            "type": "string",
+            "title": "Selection"
+          },
+          "window_summary": {
+            "type": "string",
+            "title": "Window Summary"
+          },
+          "sources": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Sources"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Limitations"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "candidate_key",
+          "registration_reference",
+          "generated_at",
+          "title",
+          "profile",
+          "actions",
+          "checks",
+          "dimensions",
+          "selection",
+          "window_summary",
+          "sources",
+          "limitations"
+        ],
+        "title": "AgentChainEvidence"
+      },
       "AgentDetail": {
         "properties": {
           "agent": {
@@ -328,6 +547,96 @@
         ],
         "title": "AgentDetail"
       },
+      "AgentProfile": {
+        "properties": {
+          "business_summary": {
+            "type": "string",
+            "title": "Business Summary"
+          },
+          "ecosystem": {
+            "type": "string",
+            "title": "Ecosystem"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "asset-execution",
+              "chain-query",
+              "research-delivery",
+              "unverified"
+            ],
+            "title": "Role"
+          },
+          "registration_chain_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Registration Chain Id"
+          },
+          "execution_chain_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Execution Chain Ids"
+          },
+          "capabilities": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Capabilities"
+          },
+          "execution_accounts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Execution Accounts"
+          },
+          "evidence_status": {
+            "type": "string",
+            "enum": [
+              "verified",
+              "declared",
+              "unverified"
+            ],
+            "title": "Evidence Status"
+          },
+          "sources": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Sources"
+          },
+          "boundary": {
+            "type": "string",
+            "title": "Boundary"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "business_summary",
+          "ecosystem",
+          "role",
+          "registration_chain_id",
+          "execution_chain_ids",
+          "capabilities",
+          "execution_accounts",
+          "evidence_status",
+          "sources",
+          "boundary"
+        ],
+        "title": "AgentProfile",
+        "description": "Source-backed business context, separate from a report and its scores."
+      },
       "AgentSummary": {
         "properties": {
           "key": {
@@ -359,6 +668,21 @@
                 "type": "null"
               }
             ]
+          },
+          "profile": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AgentProfile"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "complete_report_count": {
+            "type": "integer",
+            "title": "Complete Report Count",
+            "default": 0
           }
         },
         "additionalProperties": false,
@@ -543,6 +867,118 @@
           "missing_evidence"
         ],
         "title": "CapabilityCoverage"
+      },
+      "ChainAction": {
+        "properties": {
+          "sample_id": {
+            "type": "string",
+            "title": "Sample Id"
+          },
+          "chain_id": {
+            "type": "integer",
+            "title": "Chain Id"
+          },
+          "action": {
+            "type": "string",
+            "title": "Action"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "transaction_hash": {
+            "type": "string",
+            "title": "Transaction Hash"
+          },
+          "block_number": {
+            "type": "integer",
+            "title": "Block Number"
+          },
+          "executor": {
+            "type": "string",
+            "title": "Executor"
+          },
+          "target": {
+            "type": "string",
+            "title": "Target"
+          },
+          "method": {
+            "type": "string",
+            "title": "Method"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "verdict": {
+            "$ref": "#/components/schemas/Verdict"
+          },
+          "evidence": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Evidence"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "sample_id",
+          "chain_id",
+          "action",
+          "title",
+          "transaction_hash",
+          "block_number",
+          "executor",
+          "target",
+          "method",
+          "summary",
+          "verdict",
+          "evidence"
+        ],
+        "title": "ChainAction"
+      },
+      "ChainDimensionEvidence": {
+        "properties": {
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "availability",
+              "functional",
+              "behavioral"
+            ],
+            "title": "Purpose"
+          },
+          "verdict": {
+            "$ref": "#/components/schemas/Verdict"
+          },
+          "observed": {
+            "type": "integer",
+            "title": "Observed"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "missing_evidence": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Missing Evidence"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "purpose",
+          "verdict",
+          "observed",
+          "summary",
+          "missing_evidence"
+        ],
+        "title": "ChainDimensionEvidence"
       },
       "CheckCode": {
         "type": "string",
@@ -870,6 +1306,36 @@
           "background"
         ],
         "title": "MeasurementPurpose"
+      },
+      "ReportChainEvidence": {
+        "properties": {
+          "actions": {
+            "items": {
+              "$ref": "#/components/schemas/ChainAction"
+            },
+            "type": "array",
+            "title": "Actions"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Limitations"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "actions",
+          "summary",
+          "limitations"
+        ],
+        "title": "ReportChainEvidence"
       },
       "ReportFinding": {
         "properties": {

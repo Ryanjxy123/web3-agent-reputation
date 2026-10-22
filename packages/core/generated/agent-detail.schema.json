@@ -31,6 +31,96 @@
       "title": "AdmissionCheck",
       "type": "object"
     },
+    "AgentProfile": {
+      "additionalProperties": false,
+      "description": "Source-backed business context, separate from a report and its scores.",
+      "properties": {
+        "business_summary": {
+          "title": "Business Summary",
+          "type": "string"
+        },
+        "ecosystem": {
+          "title": "Ecosystem",
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "asset-execution",
+            "chain-query",
+            "research-delivery",
+            "unverified"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "registration_chain_id": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Registration Chain Id"
+        },
+        "execution_chain_ids": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Execution Chain Ids",
+          "type": "array"
+        },
+        "capabilities": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Capabilities",
+          "type": "array"
+        },
+        "execution_accounts": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Execution Accounts",
+          "type": "array"
+        },
+        "evidence_status": {
+          "enum": [
+            "verified",
+            "declared",
+            "unverified"
+          ],
+          "title": "Evidence Status",
+          "type": "string"
+        },
+        "sources": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Sources",
+          "type": "array"
+        },
+        "boundary": {
+          "title": "Boundary",
+          "type": "string"
+        }
+      },
+      "required": [
+        "business_summary",
+        "ecosystem",
+        "role",
+        "registration_chain_id",
+        "execution_chain_ids",
+        "capabilities",
+        "execution_accounts",
+        "evidence_status",
+        "sources",
+        "boundary"
+      ],
+      "title": "AgentProfile",
+      "type": "object"
+    },
     "AgentSummary": {
       "additionalProperties": false,
       "properties": {
@@ -63,6 +153,22 @@
               "type": "null"
             }
           ]
+        },
+        "profile": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AgentProfile"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "complete_report_count": {
+          "default": 0,
+          "title": "Complete Report Count",
+          "type": "integer"
         }
       },
       "required": [
