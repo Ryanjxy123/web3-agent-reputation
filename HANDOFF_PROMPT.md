@@ -1,5 +1,25 @@
 # 当前工作交接
 
+## 2026-10-23 当前主线（优先于下方历史记录）
+
+工作目录`D:/xjtu_project/block_chain_new/block_chain_new_new`，分支`codex/chain-execution-focus-20261023`，已合入远程main的PR #19。用户已授权直接修改，以“与区块链深度结合”为主目标；资产交易、已有签名、授权、Safe执行均属评价范围，操作者的新签名/资金/主网写入须另有具体授权。三维仍为服务可用性/功能声明一致性/交易行为可靠性，旧政策、分数和原件不变。
+
+功能提交`7f3eec2`/`6ad6976`已推送，[草稿PR #20](https://github.com/Ryanjxy123/web3-agent-reputation/pull/20)保留供用户和队友审阅，未改main；CI以该PR最新检查为准。现有未跟踪演示稿及Word锁文件保留本地。
+
+本轮已从30对象公开索引固定前10个Olas/Omen交易者，以同一规则核验注册→历史Safe权限→真实签名与内层结果→买入参数→资产流→精确CTF条件头寸ID；8样本闭合、1949/1969缺读取为UNKNOWN，不换对象。新快照是背景采证，三维尚未出分，不能拿成功买入或Safe活跃计数产生完整评分。缺当前可用性入口、独立7F/7B及全部任务尝试。规则与迁移见ADR-0021；下一阶段先确认自治可用性/任务分母所需来源，不无条件写第三类适配。
+
+本机原数据库已备份；PR #19两份查询报告已入库，当前49个公共身份、50份报告、10个链证据对象（20快照版本），12个身份有完整历史范围分。第二版仅按原calldata区分直接buy与MultiSend授权买入，并中文解释已知缺项；0网络重采/0新评分，原快照保留。公开包`data/chain-execution-evidence-v1.tar.gz`为521原件、约235KB，导入命令见README；原两个评分包不变。网页已改真实功能、业务/链分类、链上步骤与三维代表样本；原件/方法折叠，旧查询B实际含义保留。API与独立online worker收据见`runtime/background-platform-20261022T181137Z-f299421c/process.json`，不从下方历史PID推断。
+
+新证据核心在`core/omen_execution.py`，来源重放/只追加发布在`platform/chain_evidence.py`，旧报告交易视图在`platform/report_chain_view.py`；业务资料独立于report.scope。最小新测试、真实PG/HTTP与Vue构建通过，桌面/手机真实视觉通过。首次快照JSON严格枚举读取引发500已修复，原失败收据保留；旧49467排队任务按同job留审计恢复一次，现查询范围99.35分，不算资产执行新评分。下一任务`DECIDE_AUTONOMOUS_AVAILABILITY`，等用户选择后续方向。最新验收、当前队列和Git收口以STATUS最上段为准。
+
+以下均为历史阶段记录；不要恢复旧“仅文档”“Worker未运行”边界或把另一开发机数量当当前数据。
+
+2026-10-21老师反馈最新方向见`docs/research/WEB3_AGENT_TEACHER_FEEDBACK_20261021.md`及同目录12页Word。主展示应围绕Agent真实链上业务执行，不能把注册、推理交付或只读查询统一当交易行为；现有查询B的服务交付与老师原第三维有语义差别。保留九预测辅助报告，优先讲清Brain363709包装→兑换→增仓历史特例，再按群体证据选择可复用能力。页面建议中文功能→链上动作→原三维→每维代表样本→折叠原件，功能简介与report.scope分离。用户明确本轮只生成文档，因此没有改代码/配置/评分/数据库，没有新评价或工程测试；Word已逐页检查。下一任务`REVIEW_CHAIN_EXECUTION_PLAN`，先讨论方案再实现，本轮未push；旧演示稿与锁文件保留。
+
+2026-10-20 19:59北京时间本机更新：已按用户要求拉取`origin/main=1675d55`（PR18）并运行该版；本地main已快进，旧339a902及演示稿保留在原分支。当前`codex/run-remote-main-20261020`只记本机运行状态、未push。API7754 PID34156/独立worker PID36172，PG55438 PID44748；以`runtime/remote-update-20261020T115301Z/process.json`为准。该目录含更新前真实PG备份、文档备份与启动核对。38候选/47报告/10完整，原评分保留；新心跳表兼容初始化，worker按本会话既有只读授权online、0在途。RPC子进程使用原机既有凭证路径，LLM原配置未换。
+
+注意下面远程开发机13候选/16报告/12完整及常驻worker审批阻断，均不代表本机当前状态。本机缺Brain #49467新94分报告`0812985f-8777-4629-8fba-3db4b3e1e65a`、Hallmark #338475新94分报告`c88165ca-df10-4cb2-aeb2-6e8680c605c2`与原件，Git公开包仍10份。新增源码已到位，结果须由来源机交付公开证据包后核验导入。所有启动/构建/依赖最终exit0，完整收据与已遇环境问题见STATUS。用户打开的Word及锁文件仍在原位，不覆盖或加入提交；下一任务本人试用。
+
 2026-10-19：`REFACTOR_PUBLICATION`已完成，下一task_id=`PR_REVIEW`。[重构PR #17](https://github.com/Ryanjxy123/web3-agent-reputation/pull/17)已推送并转为ready for review，base=`main`、head=`codex/rebuild-reputation-platform`，不自动合并。旧父仓库origin已备份移除，新项目独立origin指向原目标仓库；两边提交历史保留，CODEOWNERS与PR模板未改。
 
 README已写清安装、建库、公开评分导入、API/worker启动、网站`http://127.0.0.1:7754/`及自备RPC/LLM凭证。已上传`data/public-reports-v1.tar.gz`与摘要：10个不同真实Agent完整报告、14,737个公开文件、16,452,062B，包SHA `6f0daa102d5f03d123adfa327a224a85d4e16340644769ac01d4f2613db8ff76`。工作文件、Git blob和全新Git目录中的包哈希一致；不上传个人密钥、私有配置或数据库。全包秘密审计exit0，记录`runtime/public-reports-archive-audit-20261019T014325Z-3e23d85b/result.json`。

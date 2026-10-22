@@ -1,0 +1,328 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "AgentProfile": {
+      "additionalProperties": false,
+      "description": "Source-backed business context, separate from a report and its scores.",
+      "properties": {
+        "business_summary": {
+          "title": "Business Summary",
+          "type": "string"
+        },
+        "ecosystem": {
+          "title": "Ecosystem",
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "asset-execution",
+            "chain-query",
+            "research-delivery",
+            "unverified"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "registration_chain_id": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Registration Chain Id"
+        },
+        "execution_chain_ids": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Execution Chain Ids",
+          "type": "array"
+        },
+        "capabilities": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Capabilities",
+          "type": "array"
+        },
+        "execution_accounts": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Execution Accounts",
+          "type": "array"
+        },
+        "evidence_status": {
+          "enum": [
+            "verified",
+            "declared",
+            "unverified"
+          ],
+          "title": "Evidence Status",
+          "type": "string"
+        },
+        "sources": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Sources",
+          "type": "array"
+        },
+        "boundary": {
+          "title": "Boundary",
+          "type": "string"
+        }
+      },
+      "required": [
+        "business_summary",
+        "ecosystem",
+        "role",
+        "registration_chain_id",
+        "execution_chain_ids",
+        "capabilities",
+        "execution_accounts",
+        "evidence_status",
+        "sources",
+        "boundary"
+      ],
+      "title": "AgentProfile",
+      "type": "object"
+    },
+    "ChainAction": {
+      "additionalProperties": false,
+      "properties": {
+        "sample_id": {
+          "title": "Sample Id",
+          "type": "string"
+        },
+        "chain_id": {
+          "title": "Chain Id",
+          "type": "integer"
+        },
+        "action": {
+          "title": "Action",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "transaction_hash": {
+          "title": "Transaction Hash",
+          "type": "string"
+        },
+        "block_number": {
+          "title": "Block Number",
+          "type": "integer"
+        },
+        "executor": {
+          "title": "Executor",
+          "type": "string"
+        },
+        "target": {
+          "title": "Target",
+          "type": "string"
+        },
+        "method": {
+          "title": "Method",
+          "type": "string"
+        },
+        "summary": {
+          "title": "Summary",
+          "type": "string"
+        },
+        "verdict": {
+          "$ref": "#/$defs/Verdict"
+        },
+        "evidence": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence",
+          "type": "array"
+        }
+      },
+      "required": [
+        "sample_id",
+        "chain_id",
+        "action",
+        "title",
+        "transaction_hash",
+        "block_number",
+        "executor",
+        "target",
+        "method",
+        "summary",
+        "verdict",
+        "evidence"
+      ],
+      "title": "ChainAction",
+      "type": "object"
+    },
+    "ChainDimensionEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "purpose": {
+          "enum": [
+            "availability",
+            "functional",
+            "behavioral"
+          ],
+          "title": "Purpose",
+          "type": "string"
+        },
+        "verdict": {
+          "$ref": "#/$defs/Verdict"
+        },
+        "observed": {
+          "title": "Observed",
+          "type": "integer"
+        },
+        "summary": {
+          "title": "Summary",
+          "type": "string"
+        },
+        "missing_evidence": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Missing Evidence",
+          "type": "array"
+        }
+      },
+      "required": [
+        "purpose",
+        "verdict",
+        "observed",
+        "summary",
+        "missing_evidence"
+      ],
+      "title": "ChainDimensionEvidence",
+      "type": "object"
+    },
+    "ReportFinding": {
+      "additionalProperties": false,
+      "properties": {
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "verdict": {
+          "$ref": "#/$defs/Verdict"
+        },
+        "explanation": {
+          "title": "Explanation",
+          "type": "string"
+        }
+      },
+      "required": [
+        "label",
+        "verdict",
+        "explanation"
+      ],
+      "title": "ReportFinding",
+      "type": "object"
+    },
+    "Verdict": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNKNOWN",
+        "NOT_APPLICABLE"
+      ],
+      "title": "Verdict",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "chain-execution-evidence-v1",
+      "default": "chain-execution-evidence-v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "candidate_key": {
+      "title": "Candidate Key",
+      "type": "string"
+    },
+    "registration_reference": {
+      "title": "Registration Reference",
+      "type": "string"
+    },
+    "generated_at": {
+      "format": "date-time",
+      "title": "Generated At",
+      "type": "string"
+    },
+    "title": {
+      "title": "Title",
+      "type": "string"
+    },
+    "profile": {
+      "$ref": "#/$defs/AgentProfile"
+    },
+    "actions": {
+      "items": {
+        "$ref": "#/$defs/ChainAction"
+      },
+      "title": "Actions",
+      "type": "array"
+    },
+    "checks": {
+      "items": {
+        "$ref": "#/$defs/ReportFinding"
+      },
+      "title": "Checks",
+      "type": "array"
+    },
+    "dimensions": {
+      "items": {
+        "$ref": "#/$defs/ChainDimensionEvidence"
+      },
+      "title": "Dimensions",
+      "type": "array"
+    },
+    "selection": {
+      "title": "Selection",
+      "type": "string"
+    },
+    "window_summary": {
+      "title": "Window Summary",
+      "type": "string"
+    },
+    "sources": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Sources",
+      "type": "array"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    }
+  },
+  "required": [
+    "candidate_key",
+    "registration_reference",
+    "generated_at",
+    "title",
+    "profile",
+    "actions",
+    "checks",
+    "dimensions",
+    "selection",
+    "window_summary",
+    "sources",
+    "limitations"
+  ],
+  "title": "AgentChainEvidence",
+  "type": "object"
+}

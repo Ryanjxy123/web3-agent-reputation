@@ -50,6 +50,23 @@ class ReportSummary(BaseModel):
     scores: ScoringOutcome
 
 
+class AgentProfile(BaseModel):
+    """Source-backed business context, separate from a report and its scores."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    business_summary: str
+    ecosystem: str
+    role: Literal["asset-execution", "chain-query", "research-delivery", "unverified"]
+    registration_chain_id: int | None
+    execution_chain_ids: list[int]
+    capabilities: list[str]
+    execution_accounts: list[str]
+    evidence_status: Literal["verified", "declared", "unverified"]
+    sources: list[str]
+    boundary: str
+
+
 class AgentSummary(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -59,6 +76,8 @@ class AgentSummary(BaseModel):
     description: str
     report_count: int
     latest_report: ReportSummary | None
+    profile: AgentProfile | None = None
+    complete_report_count: int = 0
 
 
 class AgentDetail(BaseModel):

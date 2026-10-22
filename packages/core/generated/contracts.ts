@@ -132,6 +132,19 @@ export type ScoringOutcome = {
   "status": "COMPLETE" | "PARTIAL" | "NOT_EVALUATED";
 };
 
+export type AgentProfile = {
+  "business_summary": string;
+  "ecosystem": string;
+  "role": "asset-execution" | "chain-query" | "research-delivery" | "unverified";
+  "registration_chain_id": number | null;
+  "execution_chain_ids": Array<number>;
+  "capabilities": Array<string>;
+  "execution_accounts": Array<string>;
+  "evidence_status": "verified" | "declared" | "unverified";
+  "sources": Array<string>;
+  "boundary": string;
+};
+
 export type ReportSummary = {
   "id": string;
   "candidate_key": string;
@@ -147,6 +160,8 @@ export type AgentSummary = {
   "description": string;
   "report_count": number;
   "latest_report": ReportSummary | null;
+  "profile"?: AgentProfile | null;
+  "complete_report_count"?: number;
 };
 
 export type CandidateRecord = {
@@ -156,6 +171,29 @@ export type CandidateRecord = {
   "source_urls": Array<string>;
   "checks": Array<AdmissionCheck>;
   "next_actions": Array<string>;
+};
+
+export type ChainAction = {
+  "sample_id": string;
+  "chain_id": number;
+  "action": string;
+  "title": string;
+  "transaction_hash": string;
+  "block_number": number;
+  "executor": string;
+  "target": string;
+  "method": string;
+  "summary": string;
+  "verdict": Verdict;
+  "evidence": Array<string>;
+};
+
+export type ChainDimensionEvidence = {
+  "purpose": "availability" | "functional" | "behavioral";
+  "verdict": Verdict;
+  "observed": number;
+  "summary": string;
+  "missing_evidence": Array<string>;
 };
 
 export type AdmissionReport = {
@@ -348,4 +386,26 @@ export type EvaluationSubmission = {
 export type HealthStatus = {
   "status": "ok";
   "database": "ready";
+};
+
+export type ReportChainEvidence = {
+  "actions": Array<ChainAction>;
+  "summary": string;
+  "limitations": Array<string>;
+};
+
+export type AgentChainEvidence = {
+  "schema_version"?: "chain-execution-evidence-v1";
+  "candidate_key": string;
+  "registration_reference": string;
+  "generated_at": string;
+  "title": string;
+  "profile": AgentProfile;
+  "actions": Array<ChainAction>;
+  "checks": Array<ReportFinding>;
+  "dimensions": Array<ChainDimensionEvidence>;
+  "selection": string;
+  "window_summary": string;
+  "sources": Array<string>;
+  "limitations": Array<string>;
 };

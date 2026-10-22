@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "Verdict": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNKNOWN",
+        "NOT_APPLICABLE"
+      ],
+      "title": "Verdict",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "sample_id": {
+      "title": "Sample Id",
+      "type": "string"
+    },
+    "chain_id": {
+      "title": "Chain Id",
+      "type": "integer"
+    },
+    "action": {
+      "title": "Action",
+      "type": "string"
+    },
+    "title": {
+      "title": "Title",
+      "type": "string"
+    },
+    "transaction_hash": {
+      "title": "Transaction Hash",
+      "type": "string"
+    },
+    "block_number": {
+      "title": "Block Number",
+      "type": "integer"
+    },
+    "executor": {
+      "title": "Executor",
+      "type": "string"
+    },
+    "target": {
+      "title": "Target",
+      "type": "string"
+    },
+    "method": {
+      "title": "Method",
+      "type": "string"
+    },
+    "summary": {
+      "title": "Summary",
+      "type": "string"
+    },
+    "verdict": {
+      "$ref": "#/$defs/Verdict"
+    },
+    "evidence": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Evidence",
+      "type": "array"
+    }
+  },
+  "required": [
+    "sample_id",
+    "chain_id",
+    "action",
+    "title",
+    "transaction_hash",
+    "block_number",
+    "executor",
+    "target",
+    "method",
+    "summary",
+    "verdict",
+    "evidence"
+  ],
+  "title": "ChainAction",
+  "type": "object"
+}

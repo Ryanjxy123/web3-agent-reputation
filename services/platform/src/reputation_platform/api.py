@@ -11,6 +11,8 @@ from reputation_core.application import (
     AgentDetail, AgentSummary, EvaluationJob, EvaluationSubmission, HealthStatus,
 )
 from reputation_core.reporting import EvaluationReport
+from reputation_core.chain_review import AgentChainEvidence
+from reputation_core.chain_view import ReportChainEvidence
 from reputation_platform.db import EvidenceIntegrityError, Repository
 from reputation_platform.settings import PROJECT_ROOT, load_database_url
 from reputation_platform.runtime_status import RuntimeStatus, unavailable_runtime
@@ -59,6 +61,26 @@ def create_app(repository: Repository | None = None) -> FastAPI:
         if report is None:
             raise HTTPException(status_code=404, detail="没有找到该报告。")
         return report
+
+    @app.get('/api/reports/{report_id}/chain-evidence', response_model=ReportChainEvidence)
+    def report_chain_evidence(report_id: UUID):
+        view = repo.report_chain_evidence(str(report_id))
+        if view is None:
+            raise HTTPException(status_code=404, detail='没有找到该报告。')
+        return view
+
+    @app.get('/api/agents/{key}/chain-evidence', response_model=AgentChainEvidence | None)
+    def agent_chain_evidence(key: str):
+        if repo.get_agent(key) is None:
+            raise HTTPException(status_code=404, detail='没有找到该Agent。')
+        return repo.agent_chain_evidence(key)
+
+    @app.get('/api/agents/{key}/chain-evidence/file', response_class=FileResponse)
+    def agent_chain_file(key: str, path: str = Query(min_length=1)):
+        evidence = repo.agent_chain_evidence_file(key, path)
+        if evidence is None:
+            raise HTTPException(status_code=404, detail='该Agent快照没有引用此证据。')
+        return FileResponse(evidence, media_type='application/octet-stream', filename=evidence.name)
 
     @app.get("/api/reports/{report_id}/evidence", response_class=FileResponse)
     def get_evidence(report_id: UUID, path: str = Query(min_length=1)):

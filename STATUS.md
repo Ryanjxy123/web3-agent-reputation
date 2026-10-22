@@ -1,5 +1,40 @@
 # 新项目当前状态
 
+## 2026-10-23 当前执行状态
+
+`CHAIN_EXECUTION_FOCUS_20261023`实现与本机验收完成：用户要求直接实施“与区块链深度结合”，并明确资产交易、签名等属于应考虑的业务。三维和权重不变；本轮使用公开历史证据，未动用私钥/资金或写主网。旧“仅文档、等讨论再改代码”边界已被本轮授权取代。
+
+最终当前量：49个不同公共身份、50份评价报告、10个链证据对象/20快照版本、39作业；12个身份有完整历史范围分，8个新增交易对象的样本核齐、2个缺源；0排队/0运行，worker online。
+
+已通过7897代理fetch并合入远程PR #19，保留原文档和演示稿；两份查询报告及607份缺失原件按生产门离线核验导入。当时38候选增至39、报告增至49；随后新增10交易对象并恢复1查询报告，最终量见首段。数据库备份为`runtime/chain-focus-20261023/database-before-chain-focus.backup`，2746763B。
+
+真实Olas交易者群体：官方索引30对象，固定其前10个，独立RPC核交易前历史注册/owner/阈值、官方Safe代理及单例字节码、已有ECDSA签名与内层结果、可选授权/历史allowance、买入参数、抵押资产流和精确条件头寸ID；两个配置声明由CAR/DAG认证。确定性同规则得到8PASS/2UNKNOWN（1949阈值、1969代理代码单次读取缺失），不替换、不重试凑分。已追加10证据快照，目录共49个不同身份；新对象完整分为0，原三维/权重/门槛与49份旧报告不变。背景观察不跨F/B评分分母复用。
+
+新增公开包521文件/235329B，SHA `cc753001d9c695d5cfa8822d694eeaf437b5d7555dcf7d1e71be1210a6ce7a24`；原两个评分包保留。网站已修真实功能简介、业务分类、链与授权/合约样本、默认链执行优先及同类降序、代表样本、冗余折叠和固定三维标题；旧查询B实际语义保留。新共享契约与API已生成，前端build通过。必要新测试一项（真实10对象及关键失败边界）exit0/10.750秒；Brain视图正常/篡改测试exit0/0.097秒，旧无关测试未重跑。
+
+本机PG/API/独立worker已恢复，进程收据`runtime/background-platform-20261022T181137Z-f299421c/process.json`。首次目录核查暴露快照严格枚举JSON读取问题，已修复并保留失败收据；旧49467任务因此中止后留审计恢复同job一次，现COMPLETE：A97.85/F100/B100/S99.35，仍为查询交付政策。
+
+最终原件复看发现3个直接buy对象不应统一显示MultiSend/approve路径，现已由原calldata精确区分，并中文解释1949/1969缺项；只追加10份展示修订，现10个链证据对象共20快照版本，原10版本及全部原件不变，0网络重采/0新评分。独立修订核对收据为`runtime/chain-focus-20261023/chain-view-correction.json`，初次14请求验收仍保留当时10版本的真实结果。
+
+最终真实HTTP/PG验收exit0（14个请求、附件白名单/越界拒绝、快照追加保护、原47报告及manifest/DB摘要不变、dist字节一致），收据`runtime/chain-focus-20261023/api-postgres-acceptance.json`。真实Chrome六页面/尺寸及13截图全部检查通过，0API失败/JS异常/横向溢出；报告历史竖排CSS问题修复后仅复看受影响页。最终资源`index-BpG6KMQe.js`/`index-BO9Sq-fa.css`，收据`runtime/chain-ui-20261023/qa-summary.json`。新包解压522成员（含索引）1356003B，实际秘密与私钥模式零命中。无关旧测试未重跑。
+
+下一task_id=`DECIDE_AUTONOMOUS_AVAILABILITY`，已发问题等待用户醒来选择后续完整三维群体/自治运行证据方向，不擅自改评分口径。Git后端`7f3eec2`、前端/文档`6ad6976`已push至当前Codex分支，[草稿PR #20](https://github.com/Ryanjxy123/web3-agent-reputation/pull/20)等待审阅，main未改、未自动合并；CI最新结果见PR检查。未跟踪的`docs/presentation/`及Word锁文件保留，不纳入发布。详细汇报见`docs/runbooks/CHAIN_EXECUTION_PROGRESS_20261023.md`。
+
+## 2026-10-21 老师反馈认知与改进文档
+
+`TEACHER_FEEDBACK_REVIEW_20261021`完成，输出`docs/research/WEB3_AGENT_TEACHER_FEEDBACK_20261021.md`及12页Word`Web3_Agent认知与平台改进建议_20261021.docx`。官方一手资料14项（含项目原政策/源码），区分广义Web3 Agent与竞赛主展示的链上执行Agent；当前九个Mech研究交付、Brain363709真实包装/兑换/增仓特例、查询B语义偏移及scope替代功能简介的问题均按原件/源码核实。候选生态仅作调查入口，未虚报新增可评分实例；框架、退役产品、旧报告能力映射缺字段分别说明。
+
+本轮只新增上述文档并更新PLAN/STATUS/HANDOFF，不修改应用源码、配置、评分、数据库或已发布原件，不启停服务。工程测试NOT_RUN（纯文档，不需重跑）。使用打包文档运行时生成，隐藏独立Word只读导出并由打包render_docx.py栅格化，命令均exit0；初稿标题继承装饰线/斜体已修正，最终12页全部逐页检查。内容独立审阅通过，收据`runtime/teacher-feedback-document-20261021/qa-result.json`，最终Word SHA `bbfb5e9a9404dc6105f87334d01294374cf4d76ec4635edc0897237a22c573e6`。下一task_id=`REVIEW_CHAIN_EXECUTION_PLAN`，等用户讨论方案后再推进实现；本地文档提交、未push。原演示稿及Word锁文件保留不纳入提交。
+
+## 2026-10-20 19:59 本机同步及重启
+
+`RUN_REMOTE_MAIN_20261020`完成：fetch默认main，快进本地main至`1675d55a904e838765ac0ecf0ebadd3dfa2baf06`，旧本地4提交保留在`codex/teacher-demo-20261020=339a902`。当前`codex/run-remote-main-20261020`仅追加本机运行文档，业务代码与远程一致，未push。Git更新前0active、38 Agent/47报告/37作业，真实PG备份2,745,049B及演示文档副本保存在`runtime/remote-update-20261020T115301Z/`。Word原件正被用户打开，Git未能删除且后续覆盖/哈希尝试被锁拒绝；原件和锁文件留原位，演示稿Markdown已恢复，未强制关闭Word。
+
+已完成锁定依赖同步（新增socksio1.0.0）、前端构建（`index-DwYgf_7f.js`/`index-yFNXHPiP.css`）和`.venv/Scripts/python.exe -X utf8 scripts/import_local_report.py --initialize`，最终exit0。uv不在当前PATH的尝试exit1；改用既有uv后遇C/D盘临时文件移动失败exit2，再将本进程缓存/临时目录设为项目runtime同盘后成功。只兼容新增`worker_heartbeats`，未清库或重导报告。
+
+当前API PID34156/worker PID36172各自独立后台运行，PG PID44748未动；记录同目录`process.json`。按本会话既有公共只读授权恢复online，零新评价、付费调用、签名或写链。RPC仅在子进程配置既有凭证文件路径，LLM复用原路径指针及deepseek-flash/responses；未复制密钥、切换供应商或验证中转站真实调用。远程文档的另一开发机审批阻断与13/16/12数量是其历史环境，不能覆盖本机实核结果。
+
+必要启动核对`.venv/Scripts/python.exe -X utf8 runtime/check_remote_update_20261020.py` exit0，原件`startup-check.json`：首页/新JS200、SHA同dist，DBready、workeronline且心跳新鲜，0queued/0running；原38/47/37保持，10完整身份；2359=84.39、2267=29.8、用户49467原PARTIAL均可读。早先检查脚本误用2267对象键导致StopIteration，随后按完整注册身份定位，仅补本轮启动核对；未重跑旧评分/测试。两份远程新增报告UUID及对应runtime目录本机均不存在，原10报告公开包未扩展，故暂不能展示远程新12完整。下一task_id=`LOCAL_MANUAL_REVIEW`，待来源机交付新增报告与公开原件后按既有门核验导入。
 ## 2026-10-20 两份仓位评价公开补充包
 
 用户授权上传的Brain/Hallmark两份完整评价已打入`data/public-reports-position-v2.tar.gz`，摘要为同名JSON：2份报告、612文件、8,751,447B未压缩、1,607,688B压缩，包SHA256=`c3750ac5951df6761de662d12ef04e9281958b3264aa54e1ab00a7578824eda7`。两份均A80/F100/B100/S94；使用`codex/publish-position-reports-20261020`任务分支及PR发布。原10报告包字节不变，新旧包唯一重叠路径无冲突，合计12个不同完整身份。README给出旧包后追加/新库单独导入方式及稳定Agent详情链接，跨电脑报告UUID由导入mapping返回。
