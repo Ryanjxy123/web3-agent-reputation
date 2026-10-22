@@ -4,6 +4,8 @@
 
 工作目录`D:/xjtu_project/block_chain_new/block_chain_new_new`，分支`codex/chain-execution-focus-20261023`，已合入远程main的PR #19。用户已授权直接修改，以“与区块链深度结合”为主目标；资产交易、已有签名、授权、Safe执行均属评价范围，操作者的新签名/资金/主网写入须另有具体授权。三维仍为服务可用性/功能声明一致性/交易行为可靠性，旧政策、分数和原件不变。
 
+功能提交`7f3eec2`/`6ad6976`已推送，[草稿PR #20](https://github.com/Ryanjxy123/web3-agent-reputation/pull/20)保留供用户和队友审阅，未改main；CI以该PR最新检查为准。现有未跟踪演示稿及Word锁文件保留本地。
+
 本轮已从30对象公开索引固定前10个Olas/Omen交易者，以同一规则核验注册→历史Safe权限→真实签名与内层结果→买入参数→资产流→精确CTF条件头寸ID；8样本闭合、1949/1969缺读取为UNKNOWN，不换对象。新快照是背景采证，三维尚未出分，不能拿成功买入或Safe活跃计数产生完整评分。缺当前可用性入口、独立7F/7B及全部任务尝试。规则与迁移见ADR-0021；下一阶段先确认自治可用性/任务分母所需来源，不无条件写第三类适配。
 
 本机原数据库已备份；PR #19两份查询报告已入库，当前49个公共身份、50份报告、10份新链快照，12个身份有完整历史范围分。公开分发新增`data/chain-execution-evidence-v1.tar.gz`，521原件、约235KB，导入命令见README；原两个评分包不变。网页已改真实功能简介、业务/链分类、链上步骤与三维代表样本；原件/方法折叠，旧查询B实际含义保留。API与独立online worker的进程收据见`runtime/background-platform-20261022T181137Z-f299421c/process.json`，真实状态用`/api/runtime`，不从下方历史PID推断。

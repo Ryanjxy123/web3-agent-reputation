@@ -14,7 +14,7 @@
 
 最终真实HTTP/PG验收exit0（14个请求、附件白名单/越界拒绝、快照追加保护、原47报告及manifest/DB摘要不变、dist字节一致），收据`runtime/chain-focus-20261023/api-postgres-acceptance.json`。真实Chrome六页面/尺寸及13截图全部检查通过，0API失败/JS异常/横向溢出；报告历史竖排CSS问题修复后仅复看受影响页。最终资源`index-BpG6KMQe.js`/`index-BO9Sq-fa.css`，收据`runtime/chain-ui-20261023/qa-summary.json`。新包解压522成员（含索引）1356003B，实际秘密与私钥模式零命中。无关旧测试未重跑。
 
-下一task_id=`DECIDE_AUTONOMOUS_AVAILABILITY`，已发问题等待用户醒来选择后续完整三维群体/自治运行证据方向，不擅自改评分口径。Git后端提交`7f3eec2`，前端和文档按独立批次交付；PR/CI最终状态在本轮收口记录。详见`docs/runbooks/CHAIN_EXECUTION_PROGRESS_20261023.md`。
+下一task_id=`DECIDE_AUTONOMOUS_AVAILABILITY`，已发问题等待用户醒来选择后续完整三维群体/自治运行证据方向，不擅自改评分口径。Git后端`7f3eec2`、前端/文档`6ad6976`已push至当前Codex分支，[草稿PR #20](https://github.com/Ryanjxy123/web3-agent-reputation/pull/20)等待审阅，main未改、未自动合并；CI最新结果见PR检查。未跟踪的`docs/presentation/`及Word锁文件保留，不纳入发布。详细汇报见`docs/runbooks/CHAIN_EXECUTION_PROGRESS_20261023.md`。
 
 ## 2026-10-21 老师反馈认知与改进文档
 

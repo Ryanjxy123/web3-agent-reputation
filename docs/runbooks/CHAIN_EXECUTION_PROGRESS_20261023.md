@@ -95,3 +95,7 @@ A是下一阶段真正需要对齐的标准：自治交易Agent通常没有公�
 本轮已核官方源码：Trader存在不盈利/平局/无合适市场而合理不交易的路径；staking基础活动checker看nonce变化，不是业务正确性。Optimus甚至允许KPI不足时用零价值交易补活动次数，因此“交易很多”不能直接算可用或可靠。[Trader FSM](https://github.com/valory-xyz/trader/blob/main/packages/valory/skills/decision_maker_abci/rounds.py)、[Staking Activity Checker](https://github.com/valory-xyz/autonolas-registries/blob/main/contracts/staking/StakingActivityChecker.sol)、[Optimus](https://github.com/valory-xyz/optimus)。
 
 建议醒来后先确定自治Agent A的可用性承诺及证据入口；在这之前不擅自换标准给新对象算完整分。后续跨业务优先调查Optimus真实DeFi执行实例及Polystrat交易/赎回，必须先取得多个对象的同类完整证据，再复用本轮EVM/Safe基础核验并增加业务语义。AgentKit等框架不当公共实例计数，付费/资金/新签名方案另行具体对齐。
+
+## 8. Git交付
+
+后端/公开证据提交`7f3eec2`，前端与方向文档提交`6ad6976`，已推送`codex/chain-execution-focus-20261023`并创建[草稿PR #20](https://github.com/Ryanjxy123/web3-agent-reputation/pull/20)。main未改、未自动合并，等待用户和队友审阅；CI以PR页面最新检查结果为准。本机网站运行当前任务分支，不必等待PR合并即可查看。
