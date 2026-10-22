@@ -2,11 +2,11 @@
 
 面向公开注册的 Web3 Agent，关联注册资料、自然语言功能声明、接口、合约和历史交易，生成有证据可追溯的中文评价报告。
 
-固定评价维度为**服务可用性、功能声明一致性、行为履约可靠性**，综合权重为30% / 40% / 30%。B的具体含义随版本化政策说明：历史政策核交易履约，新查询政策核可观察服务交付。资料不足时明确显示缺项，不补成0分或满分。用户在网站提交注册标识后，由平台自动匹配已支持的评价方案。
+固定评价维度为**服务可用性、功能声明一致性、交易行为可靠性**，综合权重为30% / 40% / 30%。资料不足时显示缺项，不补成0分或满分。历史查询政策B仅核可观察服务交付，页面保留这项实际范围说明，不冒充资产交易可靠性。用户提交受支持的注册标识后，平台自动匹配评价方案。
 
 这是对原项目的重新实现。当前采用Vue 3 + TypeScript前端、FastAPI API、独立worker和PostgreSQL；不需要运行原项目的微服务、合约或Docker Compose。
 
-2026-10-20已完成两家真实提供方的仓位查询完整评价：Brain #49467（MCP）与Hallmark #338475（A2A）共用Position/v2 Checker，自动冻结各7个F和7个互斥B任务，均取得A=80、F=100、B=100、综合94。新政策`service-fulfillment-v1`的B核验可观察服务交付；成绩只属于本次协议发现与仓位查询范围。LLM网络回归修复后49项及相关9项通过。详见[本轮实施报告](docs/runbooks/COMPLETE_CAPABILITY_EVALUATION_20261020.md)。API及数据库在线，两次限定Worker均已退出；常驻Worker和浏览器视觉验收仍受此前策略拒绝限制。
+2026-10-23主线改为**与区块链深度结合**。平台区分资产执行、链上查询和研究交付；新增10个真实Olas/Omen交易者的历史证据，其中8个已由同一规则核齐注册→Safe授权/签名→合约调用→资产及条件头寸到账，2个保留缺源。它们目前是链上证据快照，尚无完整声誉分；不能把只抓到的成功交易换算成100分。另保留Brain真实包装/兑换/增仓报告、九个Mech研究报告和两家仓位查询报告，合计12个不同身份的完整历史范围分。[当前规则与边界](docs/adr/0021-chain-execution-evidence.md)。
 
 ## 环境准备
 
@@ -61,6 +61,24 @@ uv run --env-file .env --no-sync python scripts/public_reports.py import data/pu
 
 补充包约1.6MB，包含两份原始报告和612个公开文件，沿用离线来源核验与事务导入，无需RPC、LLM或重新测评。两个包都导入后共有12个不同Agent的完整结果。两份新评价均为A80 / F100 / B100 / 综合94，范围限本次仓位查询。导入输出的`mapping`记录本机报告ID；源报告UUID只作来源记录，不应复制为其他电脑的固定报告链接。重复导入不会重复创建同一报告，遇不同内容的同路径文件会明确拒绝覆盖。
 
+接着导入真实资产执行的证据包（约235KB，521个公开文件）；此步骤同样离线，按原请求、哈希、历史状态和业务规则重建，不产生新评分：
+
+```powershell
+uv run --env-file .env --no-sync python scripts/chain_execution_evidence.py import data/chain-execution-evidence-v1.tar.gz
+```
+
+导入后可看[Olas交易者#219](http://127.0.0.1:7754/?agent=olas-omen-trader-219)、[缺源对象#1949](http://127.0.0.1:7754/?agent=olas-omen-trader-1949)和[Brain三步资产操作](http://127.0.0.1:7754/?agent=brain-defi)。Olas使用Service Registry注册，当前只展示历史核验；实时评分尚缺可归属服务入口和完整任务尝试范围，不混入ERC-8004自动接入流程。
+
+本机Windows已经配置项目PostgreSQL及`.venv`时，可以后台启动，关闭终端仍保留API和worker：
+
+```powershell
+powershell -File scripts/start_platform_background.ps1
+# 本会话已授权免费公共只读采证时：
+powershell -File scripts/start_platform_background.ps1 -EnablePublicReadOnly -Proxy http://127.0.0.1:7897
+```
+
+此脚本复用本项目原数据库，只绑定回环地址；不会替换已占用端口。其他环境继续使用下方两个终端入口。
+
 打开第一个终端，启动网页和API：
 
 ```powershell
@@ -83,11 +101,11 @@ uv run --env-file .env --no-sync python -m reputation_platform.worker --once --e
 
 当前受控网络实现要求本机HTTP代理`127.0.0.1:7897`，不是任意代理地址均可。上述开关只开启已支持的公开只读流程，不发起付费Agent任务、签名或链上写入。
 
-`--public-reference`限定一个规范身份，其他提交继续public-off；`--once`只处理队列中的一个作业，不按身份过滤队列，所以运行前必须核对队列。45秒上限仅允许此单次限定方式，默认仍15秒；V3 v2通用评价总预算64次、最多十四次业务调用（7F/7B）、1MiB响应、零重试，B观测窗口预定30秒。完成后单次Worker退出；当前常驻Worker恢复受此前自动审批拒绝限制，本轮没有恢复它。公开采集在系统DNS全部返回Mihomo Fake-IP且使用上述代理时，复用已验证的固定HTTPS DNS解析，仍拒绝私网/混合地址并保留IP固定和原域名TLS。预测就绪路径可能使用付费LLM翻译，需另有相应费用授权；本轮仓位评价不调用模型。`GET /api/runtime`分别返回数据库、队列和Worker心跳状态；API健康不表示Worker正在处理任务。
+`--public-reference`限定一个规范身份，其他提交继续public-off；`--once`只处理队列中的一个作业，不按身份过滤队列，运行前须核对队列。45秒超时仅允许此单次限定方式，默认15秒；V3 v2通用评价预算64次、最多十四次业务调用（7F/7B）、1MiB响应、零业务重试，B观测窗口预定30秒。单次Worker完成后退出，常驻Worker用不带`--once`的启动命令。Mihomo Fake-IP环境复用固定HTTPS DNS解析、IP固定和原域名TLS。预测任务可能使用付费LLM翻译，需相应授权；仓位查询不调用模型。`GET /api/runtime`返回数据库、队列和Worker真实心跳，API健康不代表Worker正在处理任务。
 
-本轮Checker扩展前，2026-10-19本机曾仅对Base #2290（Clawdia）完成一次真实只读接入：MCP发现接口A=90.87，F/B/综合待评价，报告PARTIAL；IPFS注册原件超时，不能将目录缓存当作已认证元数据。当前常驻Worker恢复public-off，已生成报告仍可浏览；常驻公开Worker启动被自动审批拒绝，尚未启用后续提交的持续公开评价。历史10报告未改，实际机制和能力边界见[历史审计与2290报告](docs/runbooks/HISTORICAL_EVALUATION_AND_AGENT2290_20261019.md)。
+Base #2290（Clawdia）的历史只读接入为PARTIAL：MCP发现接口A90.87，F/B/综合待评价，IPFS注册原件超时。目录缓存不能当已认证元数据；该对象仍不算完整评分。机制和原件见[历史审计](docs/runbooks/HISTORICAL_EVALUATION_AND_AGENT2290_20261019.md)。
 
-网站包含“浏览Agent声誉”和“接入Agent产生评价”两个入口。目录默认按最近更新排序，也可按名称排序，支持搜索、状态/范围筛选；各报告展示自己的范围分，不把不同政策和能力排成综合分榜单。详情包含历史报告、三维解释、样本与原始证据。可提交的规范身份示例：
+网站包含“浏览Agent”和“接入并评价”两个入口。目录默认链上资产操作优先、同类综合分降序，可按业务/状态/报告范围筛选；分数仍只属于各报告范围，不表示跨政策的全局排名。详情先说明真实功能和链上动作，再显示三维及代表样本；历史、方法和原件折叠保留。可提交的ERC-8004身份示例：
 
 ```text
 eip155:100:0x8004a169fb4a3325136eb29fa0ceb6d2e539a432:2359
@@ -122,11 +140,11 @@ RPC不是任意供应商网关：链、端点与认证方式由后台固定白�
 
 ## 数据与当前完成范围
 
-开发机现有13个Agent、16份报告，其中12份完整报告对应12个不同身份：9个历史预测、1个历史增仓特例，加Brain/Hallmark两份新仓位查询完整评价。具体对象、真实退出码及限制见[STATUS.md](STATUS.md)。范围评分不代表Agent全部能力；不同政策和能力的分数不直接排名，历史交付文件可访问也不等于实时推理在线。
+完整评分发布包对应12个不同身份：9个研究预测、1个增仓历史特例、Brain/Hallmark两份仓位查询。新增执行证据包另对应10个Olas交易者（8个样本核齐、2个缺源），尚无完整分。两类数量分开统计；多份报告不重复算身份。各机器的候选/历史报告数取决于本机数据，当前工作站实核见[STATUS.md](STATUS.md)。
 
 **仓库包含两个经过审计的完整评分发布包**：`data/public-reports-v1.tar.gz`保留原10个不同真实Agent的完整报告；`data/public-reports-position-v2.tar.gz`补充Brain/Hallmark两份最新完整仓位评价及核验必需公开证据。按上文依次导入即可浏览12个不同Agent的完整结果；只浏览和核验这些已有结果不需要配置RPC或LLM密钥。补充包摘要、源报告ID和分数见[data/public-reports-position-v2.json](data/public-reports-position-v2.json)。
 
-未导入前新数据库为空。公开包不等于开发机的整个runtime或数据库：不包含个人密钥、私有配置、费用流水、临时日志、旧试运行报告，也不把38个候选和46份历史报告冒称全已随包分发。前端dist和依赖仍需自行安装/构建。
+未导入前新数据库为空。三个包不等于开发机的整个runtime或数据库，不包含个人密钥、私有配置、费用流水、临时日志及全部试运行报告。前端dist和依赖仍需自行安装/构建。
 
 可以在网页提交受支持身份自行取证，或导入自己合法取得的完整证据包。导入时须保留所有被manifest引用的原件及相对目录；仅有一份report.json不能替代完整证据：
 
@@ -136,7 +154,7 @@ uv run --env-file .env --no-sync python scripts/import_local_report.py runtime/Y
 
 2026-10-20最新两份完整报告使用`query.pancakeswap-v3-position/v2`和`service-fulfillment-v1`，各有10A/7F/7B，A80/F100/B100/S94。导入补充包后查看[Brain详情](http://127.0.0.1:7754/?agent=agent-e9357377962d8c944359ca49)或[Hallmark详情](http://127.0.0.1:7754/?agent=agent-0e9825a984849eea12b970ac)。每方63个公开只读请求、14个业务调用，零业务重试。Hallmark单次自动发布；Brain首次遇来源分派错误，修复后复用原件恢复发布。开工14份报告与旧政策保留，包括此前v1的两份PARTIAL和旧ERC20单F报告；新两份完整报告和公开原件现通过独立补充包分发，原10报告包保持不变，其他本机试运行结果未随包分发。身份、任务、证据及边界见[本轮报告](docs/runbooks/COMPLETE_CAPABILITY_EVALUATION_20261020.md)，此前v1结果见[历史实施报告](docs/runbooks/CROSS_PROVIDER_CHECKER_VALIDATION_20261019.md)。
 
-完整预测评分仍限已核实的Fixed Price Native/Omen/IPFS证据链；V3的F只核五项静态事实，B只核请求与对象绑定、完整交付及预定观测窗口。未知提供方需要先认证、匹配真实Schema、审阅免费只读契约并获得执行许可；Clawdia路由与旧固定ERC20查询仍缺独立任务证据。当前API在线；默认public-off Worker恢复启动被自动审批拒绝，常驻Worker未运行，新提交暂留队列，可按上方默认命令手动启动。浏览器工具因无法可靠识别Windows URL而停止，桌面/手机视觉验收未完成；构建和API通过不当作视觉验收。
+完整预测评分仍限已核实的Fixed Price Native/Omen/IPFS证据链；V3的F只核五项静态事实，B只核请求/对象绑定、完整交付和预定窗口。未知提供方须先认证并审阅真实契约；Clawdia路由与旧固定ERC20查询仍缺独立任务证据。新Olas执行样本不评价盈利、选市质量、当前在线或完整失败率。桌面及390px链执行页面已完成本轮真实浏览器检查；运行状态以各机器`/api/runtime`为准，历史开发机的停机/审批记录不是当前启动状态。
 
 为同类新提供方扩展已支持的输入输出映射时，新建并审阅一个配置版本，后台用`REPUTATION_POSITION_REVIEW_CONFIG=configs/position-adapter-reviews-v2.json`选择它；路径相对仓库根目录，必须先有真实审阅文件。新评价冻结该路径，旧报告继续按自身冻结版本复核。当前v1配置及其117项证据依赖已被报告引用，不能原地追加或改写；环境变量也不代替身份认证、安全审阅和单独执行授权。第三提供方目前只有离线复用测试，没有新增真实成绩。
 
