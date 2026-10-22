@@ -34,6 +34,8 @@ jobs:
       - run: uv sync --locked --all-packages
       - name: Core scoring boundary case
         run: uv run --locked --all-packages python -m unittest discover -s tests -p test_scoring.py -v
+      - name: Public report selection and frozen dependency bytes
+        run: uv run --locked --all-packages python -m unittest discover -s tests -p test_public_reports.py -v
       - run: pnpm --dir apps/web install --frozen-lockfile
       - run: pnpm --dir apps/web run build
 

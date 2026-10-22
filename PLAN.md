@@ -11,6 +11,11 @@
 task_id=`RUN_REMOTE_MAIN_20261020`已完成。按用户请求fetch并将本地main快进至`origin/main=1675d55`（PR #18），旧本地改动保留在`codex/teacher-demo-20261020=339a902`。当前运行代码为远程版本，仅在`codex/run-remote-main-20261020`追加本机运行交接文档，未push。原数据库已备份并保留，兼容新增worker心跳表；前端重建、依赖同步完成。
 
 19:59北京时间本机API7754 PID34156、独立worker PID36172运行，PG55438 PID44748保持；延续本会话既有公共只读授权，worker实核online、0排队/运行。当前38候选/47报告/10完整身份，2359仍84.39，用户49467报告仍为原PARTIAL。远程开发机记录的Brain #49467与Hallmark #338475两份新完整报告及原件未随Git发布，本机尚无这两份报告；不能把远程13/16/12快照当本机数量。运行记录`runtime/remote-update-20261020T115301Z/`，下一task_id=`LOCAL_MANUAL_REVIEW`；两份新报告需来源机提供公开证据包后再核验导入。
+## 2026-10-20 两份仓位评价公开补充包（打包与验收完成）
+
+task_id=`PUBLISH_POSITION_REPORTS_20261020`。按用户要求，将Brain/Hallmark两份最新完整评价及核验必需的公开原件以`data/public-reports-position-v2.tar.gz`独立补充包交付：2报告、612文件、1,607,688B；保留原10报告包不变，README给出追加导入和展示步骤。两个包合计12个不同Agent的完整结果，仅发布既有结果，未发起新评价或模型调用。
+
+精确报告ID导出、依赖闭包和秘密检查通过；冻结审阅配置已恢复与两份manifest精确匹配的原CRLF，Git保留例外和CI回归防止再次改字节。5项定向测试通过；干净暂存检出、离线来源恢复、真实隔离PostgreSQL导入及13项API/前端资源检查通过，原生产Agent/报告/作业未改。发布采用`codex/publish-position-reports-20261020`任务分支及PR；后续队友更新main并执行README中的补充包导入命令，无需重新测评。
 
 ## 2026-10-20 最新本地优化提交与合并
 

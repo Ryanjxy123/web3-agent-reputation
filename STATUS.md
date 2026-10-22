@@ -15,6 +15,15 @@
 当前API PID34156/worker PID36172各自独立后台运行，PG PID44748未动；记录同目录`process.json`。按本会话既有公共只读授权恢复online，零新评价、付费调用、签名或写链。RPC仅在子进程配置既有凭证文件路径，LLM复用原路径指针及deepseek-flash/responses；未复制密钥、切换供应商或验证中转站真实调用。远程文档的另一开发机审批阻断与13/16/12数量是其历史环境，不能覆盖本机实核结果。
 
 必要启动核对`.venv/Scripts/python.exe -X utf8 runtime/check_remote_update_20261020.py` exit0，原件`startup-check.json`：首页/新JS200、SHA同dist，DBready、workeronline且心跳新鲜，0queued/0running；原38/47/37保持，10完整身份；2359=84.39、2267=29.8、用户49467原PARTIAL均可读。早先检查脚本误用2267对象键导致StopIteration，随后按完整注册身份定位，仅补本轮启动核对；未重跑旧评分/测试。两份远程新增报告UUID及对应runtime目录本机均不存在，原10报告公开包未扩展，故暂不能展示远程新12完整。下一task_id=`LOCAL_MANUAL_REVIEW`，待来源机交付新增报告与公开原件后按既有门核验导入。
+## 2026-10-20 两份仓位评价公开补充包
+
+用户授权上传的Brain/Hallmark两份完整评价已打入`data/public-reports-position-v2.tar.gz`，摘要为同名JSON：2份报告、612文件、8,751,447B未压缩、1,607,688B压缩，包SHA256=`c3750ac5951df6761de662d12ef04e9281958b3264aa54e1ab00a7578824eda7`。两份均A80/F100/B100/S94；使用`codex/publish-position-reports-20261020`任务分支及PR发布。原10报告包字节不变，新旧包唯一重叠路径无冲突，合计12个不同完整身份。README给出旧包后追加/新库单独导入方式及稳定Agent详情链接，跨电脑报告UUID由导入mapping返回。
+
+打包前发现上次Git按JSON规则统一换行，导致`configs/position-adapter-reviews-v1.json`与冻结摘要不符；现已恢复两份manifest共同证明的原CRLF，并增加单文件Git保留例外，报告/manifest/评分未改。导出仅增加可重复`--report-id`选择；默认全量行为保持，缺失/不完整/非法/去重丢失的ID拒绝。5项定向测试exit0（0.362秒），包含真实包的6项Git依赖字节回归，并纳入CI。
+
+独立干净暂存检出和真实隔离PostgreSQL验收PASS（73.344秒）：完整离线来源核验、恢复607项runtime文件、事务导入2份COMPLETE；13项API/前端资源检查为11个200及2个预期私密路径404，报告分数/摘要、每份公开附件SHA和现有已验证dist字节一致。0公网连接尝试，生产Agent/报告/作业逐行不变，自建schema按创建OID核实后移除。收据`runtime/position-package-delivery-27f729b5418a4a7d85bb7762a4573181/result.json`。前两次导入均通过，验收脚本随后因误挡Windows内部socketpair、误读AgentDetail字段分别中断；修正后重验通过，失败回执保留。HTTP为TestClient进程内检查，视觉验收NOT_RUN，未重建未改前端或重复旧10报告来源重放。
+
+公开包612文件加索引的路径/尺寸/SHA审计通过，本机LLM/ZAN/数据库秘密（含转义及URL片段）和常见凭据扫描零命中；无私密配置、数据库或日志。此前“新两报告仅本机”是补充发布前的历史状态；本次未启动Worker、采集新业务或调用模型。
 
 ## 2026-10-20 最新本地优化发布
 

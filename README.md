@@ -53,6 +53,14 @@ uv run --env-file .env --no-sync python scripts/public_reports.py import data/pu
 
 数据包约16.5MB，恢复公开原件到原runtime相对目录，由已有核验器重建分数后入库；不会覆盖不同内容的本地文件，也不包含个人账号或数据库。首次导入会离线核验约1.5万份依赖，本机Windows验证约12分钟，期间无需RPC或LLM账号。
 
+接着导入新增的Brain #49467和Hallmark #338475两份完整仓位评价；已导入旧包的队友只需执行这一条：
+
+```powershell
+uv run --env-file .env --no-sync python scripts/public_reports.py import data/public-reports-position-v2.tar.gz --initialize
+```
+
+补充包约1.6MB，包含两份原始报告和612个公开文件，沿用离线来源核验与事务导入，无需RPC、LLM或重新测评。两个包都导入后共有12个不同Agent的完整结果。两份新评价均为A80 / F100 / B100 / 综合94，范围限本次仓位查询。导入输出的`mapping`记录本机报告ID；源报告UUID只作来源记录，不应复制为其他电脑的固定报告链接。重复导入不会重复创建同一报告，遇不同内容的同路径文件会明确拒绝覆盖。
+
 打开第一个终端，启动网页和API：
 
 ```powershell
@@ -116,7 +124,7 @@ RPC不是任意供应商网关：链、端点与认证方式由后台固定白�
 
 开发机现有13个Agent、16份报告，其中12份完整报告对应12个不同身份：9个历史预测、1个历史增仓特例，加Brain/Hallmark两份新仓位查询完整评价。具体对象、真实退出码及限制见[STATUS.md](STATUS.md)。范围评分不代表Agent全部能力；不同政策和能力的分数不直接排名，历史交付文件可访问也不等于实时推理在线。
 
-**仓库包含经过审计的完整评分发布包**`data/public-reports-v1.tar.gz`，覆盖10个不同真实Agent的最新完整报告及核验必需公开证据。按上文导入后即可浏览；只浏览和核验这些已有结果不需要配置RPC或LLM密钥。
+**仓库包含两个经过审计的完整评分发布包**：`data/public-reports-v1.tar.gz`保留原10个不同真实Agent的完整报告；`data/public-reports-position-v2.tar.gz`补充Brain/Hallmark两份最新完整仓位评价及核验必需公开证据。按上文依次导入即可浏览12个不同Agent的完整结果；只浏览和核验这些已有结果不需要配置RPC或LLM密钥。补充包摘要、源报告ID和分数见[data/public-reports-position-v2.json](data/public-reports-position-v2.json)。
 
 未导入前新数据库为空。公开包不等于开发机的整个runtime或数据库：不包含个人密钥、私有配置、费用流水、临时日志、旧试运行报告，也不把38个候选和46份历史报告冒称全已随包分发。前端dist和依赖仍需自行安装/构建。
 
@@ -126,7 +134,7 @@ RPC不是任意供应商网关：链、端点与认证方式由后台固定白�
 uv run --env-file .env --no-sync python scripts/import_local_report.py runtime/YOUR_REPORT_DIRECTORY
 ```
 
-2026-10-20最新两份完整报告使用`query.pancakeswap-v3-position/v2`和`service-fulfillment-v1`，各有10A/7F/7B，A80/F100/B100/S94。查看[Brain报告](http://127.0.0.1:7754/?agent=agent-e9357377962d8c944359ca49&report=0812985f-8777-4629-8fba-3db4b3e1e65a)或[Hallmark报告](http://127.0.0.1:7754/?agent=agent-0e9825a984849eea12b970ac&report=c88165ca-df10-4cb2-aeb2-6e8680c605c2)。每方63个公开只读请求、14个业务调用，零业务重试。Hallmark单次自动发布；Brain首次遇来源分派错误，修复后复用原件恢复发布。开工14份报告与旧政策保留，包括此前v1的两份PARTIAL和旧ERC20单F报告；新报告与原件仅在本机，未加入原10报告公开包。身份、任务、证据及边界见[本轮报告](docs/runbooks/COMPLETE_CAPABILITY_EVALUATION_20261020.md)，此前v1结果见[历史实施报告](docs/runbooks/CROSS_PROVIDER_CHECKER_VALIDATION_20261019.md)。
+2026-10-20最新两份完整报告使用`query.pancakeswap-v3-position/v2`和`service-fulfillment-v1`，各有10A/7F/7B，A80/F100/B100/S94。导入补充包后查看[Brain详情](http://127.0.0.1:7754/?agent=agent-e9357377962d8c944359ca49)或[Hallmark详情](http://127.0.0.1:7754/?agent=agent-0e9825a984849eea12b970ac)。每方63个公开只读请求、14个业务调用，零业务重试。Hallmark单次自动发布；Brain首次遇来源分派错误，修复后复用原件恢复发布。开工14份报告与旧政策保留，包括此前v1的两份PARTIAL和旧ERC20单F报告；新两份完整报告和公开原件现通过独立补充包分发，原10报告包保持不变，其他本机试运行结果未随包分发。身份、任务、证据及边界见[本轮报告](docs/runbooks/COMPLETE_CAPABILITY_EVALUATION_20261020.md)，此前v1结果见[历史实施报告](docs/runbooks/CROSS_PROVIDER_CHECKER_VALIDATION_20261019.md)。
 
 完整预测评分仍限已核实的Fixed Price Native/Omen/IPFS证据链；V3的F只核五项静态事实，B只核请求与对象绑定、完整交付及预定观测窗口。未知提供方需要先认证、匹配真实Schema、审阅免费只读契约并获得执行许可；Clawdia路由与旧固定ERC20查询仍缺独立任务证据。当前API在线；默认public-off Worker恢复启动被自动审批拒绝，常驻Worker未运行，新提交暂留队列，可按上方默认命令手动启动。浏览器工具因无法可靠识别Windows URL而停止，桌面/手机视觉验收未完成；构建和API通过不当作视觉验收。
 
