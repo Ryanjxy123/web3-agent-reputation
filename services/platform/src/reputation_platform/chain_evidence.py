@@ -253,7 +253,7 @@ def build_execution_reviews(root: Path, bundle_path: Path) -> list[tuple[AgentCh
         action = ChainAction(sample_id=f'olas-omen:{service}:{tx_hash}', chain_id=100, action='prediction_market_buy',
             title='使用资产授权买入预测市场头寸', transaction_hash=tx_hash,
             block_number=int(height, 16), executor=safe, target=trade['fpmm']['id'].lower(),
-            method='Safe.execTransaction → MultiSend → approve / buy', summary=action_summary,
+            method=facts.get('execution_path', 'execTransaction：完整调用路径尚待核验'), summary=action_summary,
             verdict=verification.verdict, evidence=sources)
         review = AgentChainEvidence(candidate_key=key, registration_reference=canonical,
             generated_at=datetime.fromisoformat(summary['created_at']), title=f'Olas Omen交易Agent · 服务#{service}',
@@ -275,6 +275,7 @@ def build_execution_reviews(root: Path, bundle_path: Path) -> list[tuple[AgentCh
                 '本快照是背景采证，F/B展示同一操作的不同事实，均未加入评分分母；三维权重和已发布分数不变。',
                 'Safe在真实交易中验证已有签名；平台没有创建签名或发起交易，也未独立恢复签名公钥。',
                 '市场问题来自公开索引；资金效果由交易、事件和历史状态验证，不把问题预测、盈利或当前运行状态判为通过。',
+                '本版按原calldata分别呈现直接买入与同笔授权后买入；旧展示版本保留，原始证据、样本结论和评分均未更改。',
             ])
         reviews.append((review, dict(reader.hashes)))
     return reviews

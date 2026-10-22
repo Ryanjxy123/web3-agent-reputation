@@ -247,11 +247,16 @@ def verify_omen_execution(proof: dict, *, safe: str, service_id: int, trade: dic
         same(position_id, expected_position, "到账头寸ID与条件/方向/抵押资产独立计算不符")
         passed("实际资产变化与头寸到账", f"Safe实际支出{units(investment)} wxDAI，收到{units(tokens)}份条件头寸，费用{units(fee)} wxDAI。")
         facts.update(market=market, investment=units(investment), fee=units(fee), tokens=units(tokens), authorization=authorization,
-                     minimum_tokens=units(minimum), outcome=outcome, position_id=str(position_id), condition_id=condition)
+                     minimum_tokens=units(minimum), outcome=outcome, position_id=str(position_id), condition_id=condition,
+                     execution_path=('Safe.execTransaction → MultiSend' if words('0x' + tx['input'][10:])[3] == 1
+                                     else 'Safe.execTransaction') + (' → approve → buy' if approvals else ' → buy（沿用已有授权）'))
         return OmenExecutionVerification(Verdict.PASS, findings, facts)
     except EvidenceMismatch as error:
         findings.append(ReportFinding(label="链上事实或约束矛盾", verdict=Verdict.FAIL, explanation=str(error)))
         return OmenExecutionVerification(Verdict.FAIL, findings, facts)
     except (ValueError, KeyError, IndexError, TypeError) as error:
-        findings.append(ReportFinding(label="尚缺可判定证据", verdict=Verdict.UNKNOWN, explanation=str(error)))
+        missing = {'safe_threshold_before': '尚未取得交易前历史区块的Safe签名阈值，当前不能完成授权核验。',
+                   'safe_code': '尚未取得样本区块的账户运行时代码，当前不能确认其使用已审阅的Safe代理。'}
+        explanation = missing.get(error.args[0], '必要的独立原件尚未取得，当前无法判断。') if isinstance(error, KeyError) else str(error)
+        findings.append(ReportFinding(label="尚缺可判定证据", verdict=Verdict.UNKNOWN, explanation=explanation))
         return OmenExecutionVerification(Verdict.UNKNOWN, findings, facts)

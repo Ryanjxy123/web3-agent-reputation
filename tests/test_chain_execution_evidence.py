@@ -37,6 +37,10 @@ class ChainExecutionEvidenceTest(unittest.TestCase):
             self.assertEqual([view.actions[0].verdict.value for view, _ in reviews],
                              ['PASS', 'PASS', 'UNKNOWN', 'PASS', 'PASS', 'PASS', 'PASS', 'UNKNOWN', 'PASS', 'PASS'])
             self.assertTrue(all(not hasattr(view, 'scores') for view, _ in reviews))
+            self.assertNotIn('MultiSend', reviews[0][0].actions[0].method)
+            self.assertIn('沿用已有授权', reviews[0][0].actions[0].method)
+            self.assertIn('MultiSend → approve → buy', reviews[1][0].actions[0].method)
+            self.assertTrue(any('签名阈值' in check.explanation for check in reviews[2][0].checks))
             proof, parameters = captured[219]
             failed = deepcopy(proof)
             next(log for log in failed['receipt']['logs'] if log['topics'][0] == SAFE_SUCCESS)['topics'][0] = SAFE_FAILURE

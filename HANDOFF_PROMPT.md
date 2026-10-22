@@ -8,7 +8,7 @@
 
 本轮已从30对象公开索引固定前10个Olas/Omen交易者，以同一规则核验注册→历史Safe权限→真实签名与内层结果→买入参数→资产流→精确CTF条件头寸ID；8样本闭合、1949/1969缺读取为UNKNOWN，不换对象。新快照是背景采证，三维尚未出分，不能拿成功买入或Safe活跃计数产生完整评分。缺当前可用性入口、独立7F/7B及全部任务尝试。规则与迁移见ADR-0021；下一阶段先确认自治可用性/任务分母所需来源，不无条件写第三类适配。
 
-本机原数据库已备份；PR #19两份查询报告已入库，当前49个公共身份、50份报告、10份新链快照，12个身份有完整历史范围分。公开分发新增`data/chain-execution-evidence-v1.tar.gz`，521原件、约235KB，导入命令见README；原两个评分包不变。网页已改真实功能简介、业务/链分类、链上步骤与三维代表样本；原件/方法折叠，旧查询B实际含义保留。API与独立online worker的进程收据见`runtime/background-platform-20261022T181137Z-f299421c/process.json`，真实状态用`/api/runtime`，不从下方历史PID推断。
+本机原数据库已备份；PR #19两份查询报告已入库，当前49个公共身份、50份报告、10个链证据对象（20快照版本），12个身份有完整历史范围分。第二版仅按原calldata区分直接buy与MultiSend授权买入，并中文解释已知缺项；0网络重采/0新评分，原快照保留。公开包`data/chain-execution-evidence-v1.tar.gz`为521原件、约235KB，导入命令见README；原两个评分包不变。网页已改真实功能、业务/链分类、链上步骤与三维代表样本；原件/方法折叠，旧查询B实际含义保留。API与独立online worker收据见`runtime/background-platform-20261022T181137Z-f299421c/process.json`，不从下方历史PID推断。
 
 新证据核心在`core/omen_execution.py`，来源重放/只追加发布在`platform/chain_evidence.py`，旧报告交易视图在`platform/report_chain_view.py`；业务资料独立于report.scope。最小新测试、真实PG/HTTP与Vue构建通过，桌面/手机真实视觉通过。首次快照JSON严格枚举读取引发500已修复，原失败收据保留；旧49467排队任务按同job留审计恢复一次，现查询范围99.35分，不算资产执行新评分。下一任务`DECIDE_AUTONOMOUS_AVAILABILITY`，等用户选择后续方向。最新验收、当前队列和Git收口以STATUS最上段为准。
 
