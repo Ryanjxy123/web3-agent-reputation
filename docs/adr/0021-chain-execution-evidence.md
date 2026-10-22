@@ -11,7 +11,7 @@
 共用规则`olas-safe-omen-evidence-v1`不按Agent ID分支：
 
 1. 在交易前一区块核对Olas Service Registry的服务→Safe、配置哈希、注册实例、Safe owner/threshold。配置CAR每块重验哈希、重建UnixFS，取得链上配置所指的真实功能声明。
-2. 交易/回执/区块/事件按链号、交易哈希、区块哈希、交易位置绑定，并检查至少64块确认。EOA提交者与Safe执行账户分别展示，允许relayer提交，不把收款钱包当执行者。
+2. 交易/回执/区块/事件按链号、交易哈希、区块哈希、交易位置绑定，并检查至少64块确认。EOA提交者与Safe执行账户分别展示，不把收款钱包或relayer当执行者；当前群体由注册实例提交，若是relayer且缺独立内层签名者归属证明则UNKNOWN，不判业务失败。
 3. 核Safe代理运行时代码；预期runtime取自官方部署工厂的历史`proxyRuntimeCode()`，工厂代码与官方codeHash匹配。历史masterCopy及实现codeHash也须与官方v1.3.0一致。观察真实已有ECDSA签名和Safe内层ExecutionSuccess/Failure，不单凭外层status=1，不声称平台独立恢复了签名公钥。
 4. 解码Safe/MultiSend中的buy与可选approve；同笔授权核spender/额度，直接buy核历史allowance。比对已签金额、方向、最低接收、FPMMBuy、wxDAI实际转出及CTF实际到账。用固定块`getCollectionId(0,condition,1<<outcome)`和`getPositionId(collateral,collection)`独立绑定条件头寸ID。
 5. 另留固定买入前256块全部匹配Safe结果事件，包括内层失败。该窗口混有其它业务、不含外层回滚和未提交任务，仍不当作买入完整分母。未适配或缺原件为UNKNOWN；有完整证据的明确矛盾才FAIL。

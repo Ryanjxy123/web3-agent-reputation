@@ -167,6 +167,8 @@ def verify_omen_execution(proof: dict, *, safe: str, service_id: int, trade: dic
         if len(owners) != 1 or threshold != 1 or len(instances) != 1:
             raise ValueError("该多签阈值/实例结构尚未审阅，保留缺项")
         same(owners[0], instances[0], "历史Safe owner与注册执行实例不一致")
+        if facts['submitter'] != instances[0]:
+            raise ValueError('本笔由中继者提交，尚缺内层签名者的独立归属证明，不能直接归给注册实例。')
         passed("历史注册与执行授权", f"交易前一区块的Olas服务#{service_id}绑定此Safe；唯一注册实例也是当时1/1 Safe owner。")
 
         singleton = address(words(proof["safe_master_copy_before"])[0])

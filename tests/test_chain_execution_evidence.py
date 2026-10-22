@@ -51,6 +51,9 @@ class ChainExecutionEvidenceTest(unittest.TestCase):
             unsupported = deepcopy(proof)
             unsupported['transaction']['input'] = '0x00000000' + unsupported['transaction']['input'][10:]
             self.assertEqual(verify_omen_execution(unsupported, **parameters).verdict.value, 'UNKNOWN')
+            relayed = deepcopy(proof)
+            relayed['transaction']['from'] = relayed['receipt']['from'] = '0x' + '11' * 20
+            self.assertEqual(verify_omen_execution(relayed, **parameters).verdict.value, 'UNKNOWN')
 
             cohort_source = root / json.loads(bundle.read_bytes())['inputs']['cohort']['path']
             with cohort_source.open('ab') as stream:
