@@ -2,9 +2,17 @@
 
 ## 2026-10-23 当前执行状态
 
-当前任务`NOX_ICLONE_AUTHENTICATED_QUOTE_PREFLIGHT`，延续`SMALL_BUDGET_TRANSACTION_FEASIBILITY`：用户明确取消对外材料请求，提出小额自己参与真实交易，总预算**30元人民币，包含本金及全部实交易相关成本**。申请文案仅留档、从未发送，不再等待操作者回复。已只读核官方现货交易服务及自助任务取证机制，尚未开户、签名、充值、付款、发交易或新增评分。多个对象先各一次闭环，再决定通用适配；不保证小额充值自动带来完整三维结果。[当前可行性](docs/research/SMALL_BUDGET_TRANSACTION_FEASIBILITY_20261023.md)。
+当前任务`NOX_CONTROLLED_FIRST_JOB`，所属主线`NOX_ICLONE_BUYER_FUNDING_PREFLIGHT`：用户取消对外材料请求，改自己小额参与真实交易；最新明确“预算先别管”，原30元不再作为研究/准备的硬门槛，实际成本仍记录，具体充值和签名前给用户金额、用途与权限。用户报告已花10元买币；平台尚未创建链上任务、签交易、转账或新增评分。先两对象各一次闭环，再决定共用适配与正式样本。[当前可行性](docs/research/SMALL_BUDGET_TRANSACTION_FEASIBILITY_20261023.md)。
 
-用户现已要求实际推进Nox/iCLONE各一次的预算/证据预检，登录、签名、充值需要用户参与时明确告知。官方CLI1.0.40/SDK0.1.15仅隔离安装。两UUID详情匿名200，固定0.05/requiredFunds及需求交付已核。用户截图明确授权成功；实际诊断原请求HTTP400被CLI吞为pending，更换一次链接后token交换200/authenticated。已有买方GET200、data=[]，未创建新买方、授予signer或动资金。用户已确认仅有人民币、有海外支付卡，随后指定优先欧易；当前WAITING_OKX_WITHDRAWAL_PREVIEW，已请仅查看USDC/Base网络、最低提币及手续费。下一`NOX_ICLONE_BUYER_FUNDING_PREFLIGHT`核入金、不含mint的买方初始化及全成本，30元不变。
+官方CLI1.0.40/SDK0.1.15仅隔离安装；两UUID详情匿名200，固定0.05/requiredFunds及需求交付已核。owner已登录，普通买方已创建；服务费路径明确USDC，本金与之独立。用户确认USDC/Base可选（旧清单实际USDT），页面显示0.02USDC≈0.0199美元，最低提币额尚未知，不为查信息再要求购币。
+
+买方在用户明确批准后以JSON/no-signer路径创建：平台记录与邮箱均POST201，回读GET200、ERC8004AgentId/virtualAgentId均null、chains=[]；仅作客户，不纳入评分目录。随后经单独批准生成本地signer并提交deny-all申请，用户已官网批准，单次status=completed、实际policy=DENY_ALL。私有收据为`buyer-*.private.json`；首次create与signer命令曾被自动审批在启动前拒绝，均在用户明确批准后才执行，未绕过审批。
+
+Base固定块52975410余额ETH=0、USDC=0、account code=0；5次只读请求，初次工具误取返回字段已修复，复用成功链ID、只补余下4次。用户明确允许仅签`acp-auth`登录消息及只读预检。首次消息实际403/APPROVAL_REQUIRED，官网批准后从生产前端定义的owner GET `/wallets/approvals/{id}`取回原结果200，离线验签通过，但auth400明确消息过期。用户批准新时间戳的同类消息后，原结果GET200、离线验签、auth200、unsigned prepare200均成功，会话保存到官方keychain；无额外钱包签名。成功原件`resume-auth-prepare-2026-10-23T07-58-34.972Z.private/`。
+
+首次prepare返回Alchemy v1.1.0 delegate，与SDK0.1.15固定v1.0.0常量不同；两者均有官方部署来源，不能混签。按官方支持的`eip7702Auth.version=v1.0.0`仅另作unsigned prepare，第一次TLS建立前ECONNRESET，唯一重试HTTP201成功，delegate已与SDK一致、`feePayment.sponsored=true`；原件`version-pinned-prepare-2026-10-23T08-05-08.438Z.private/`。预检只涉及Nox建单，不能推出fund/兑换/结算免费。只读预检已完成；用户已明确批准下一`NOX_CONTROLLED_FIRST_JOB`的账户委托和仅建单取条款，需按官网逐笔审批执行：EIP-7702是账户持续委托，本次UserOp是建单执行授权，均超出登录消息范围；二者尚未签，也未充值/发链上任务。生产代码/评分未改，工程测试NOT_RUN。
+
+该份新payload离线验签摘要/重编码核对exit0，`audit.json`记录请求与响应SHA、createJob和builder逐字节相同、7702/UserOp/personal_sign摘要均匹配，0网络/0签名/0广播。已向用户提出仅专用买方委托、Nox建单并提交1USDC→WETH/0.5%滑点需求取条款的权限问题，用户已明确同意，不含充值、付款或兑换。当前准备新鲜待签payload与两项官网审批，尚未申请/签署或广播这些交易权限。本轮4份文档本地提交，私有runtime/会话/工具不入Git，未push或改main；无关`docs/presentation/`保留。
 
 用户新增明确红线：**禁止发币**。已同步AGENTS与PLAN：不发行代币/NFT、不做Agent代币化、不用tokenize/token launch、不为扩覆盖新发身份NFT；接入强制这些动作则排除。当前无发币、身份铸造或任何新链上交易。
 

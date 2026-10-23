@@ -2,13 +2,17 @@
 
 ## 2026-10-23 当前主线（优先于下方历史记录）
 
-工作目录`D:/xjtu_project/block_chain_new/block_chain_new_new`。当前任务`NOX_ICLONE_AUTHENTICATED_QUOTE_PREFLIGHT`，延续`SMALL_BUDGET_TRANSACTION_FEASIBILITY`：用户随后取消对外材料请求，改考虑自己小额真实交易，明确首轮总预算30元人民币连本金一起。不要发送申请或恢复等待操作者材料；旧申请文案状态为取消、未发送。先核Nox/iCLONE Base现货换币的当前Schema/最低额/全部费用/原始任务与真实执行关联，两个对象先各一次闭环再扩样本。30元不保证多个完整分；不以平台trade路由或直接DEX调用替代Agent履约。尚未开户、签名、充值或发交易；[当前结论](docs/research/SMALL_BUDGET_TRANSACTION_FEASIBILITY_20261023.md)。Git以STATUS及实际分支为准。
+工作目录`D:/xjtu_project/block_chain_new/block_chain_new_new`。主线`NOX_ICLONE_BUYER_FUNDING_PREFLIGHT`，当前`NOX_CONTROLLED_FIRST_JOB`：用户取消材料请求，改自己做小额真实交易；最新说“预算先别管”，原30元不作为研究/准备硬门槛，仍记实际成本并在充值/签名前给金额用途权限。用户报告已花10元买币，平台未转账/发任务/新评分。不要联系操作者。目标仍为Nox/iCLONE各一次真实任务闭环，不用平台trade或自点DEX冒充，不把一次任务当完整分。[当前结论](docs/research/SMALL_BUDGET_TRANSACTION_FEASIBILITY_20261023.md)。
 
-本轮实际进展：官方CLI1.0.40/SDK0.1.15在`runtime/nox-iclone-preflight-20261023/client/`，无Agent创建/signer/资金操作。两UUID详情在`provider-details-preauth/`匿名GET均200，固定0.05、requiredFunds及需求/交付已齐。默认交互create会引导signer后身份mint，禁止；browse会要求signer。用户截图已证明网页授权成功，CLI却把原请求HTTP400吞为pending；更换一次链接后已200/authenticated，凭证由CLI保存在本地，勿再要求重复登录。新链接收据为`auth-start-retry.private.json`，旧`auth-start.private.json`已无效。owner agent list实际200、data=[]，没有现成买方钱包。用户已确认仅有人民币，现优先欧易C2C/Web3路线；已请仅查看USDC/Base是否可选、最低提币和手续费，不下单。当前WAITING_OKX_WITHDRAWAL_PREVIEW，下一`NOX_ICLONE_BUYER_FUNDING_PREFLIGHT`，勿声称30元两单可行。
+官方CLI1.0.40/SDK0.1.15在`runtime/nox-iclone-preflight-20261023/client/`。两UUID详情匿名200；owner已登录，勿重复授权。用户确认USDC可提Base，显示0.02USDC≈0.0199美元，最低额未知；已花10元。普通买方已获批创建，record/email201、回读ERC8004与virtual ID均null/chains=[]，私有`buyer-detail.private.json`含准确UUID/钱包；该买方不计评分覆盖。signer亦经单独批准生成与申请，用户官网批准后status=completed、policy实读DENY_ALL；旧注册signer审批已结束，不另生key或复用旧链接。Base块52975410的ETH/USDC均0、code=0；未充值/转账/发任务。
+
+首次create与首次signer准备均在进程启动前被自动审批拒绝，用户随后分别明确批准才执行。用户又允许仅签`acp-auth`登录消息及只读预检，不含交易/UserOp/7702/permit。消息实际需人工审批；官网前端定义owner GET `/wallets/approvals/{id}`可取原结果，真实200并离线验签，不需再次签名或SSE。首消息过期auth400；用户批准新时间戳同类消息后auth/unsigned prepare成功，会话已存官方keychain。成功原件`resume-auth-prepare-2026-10-23T07-58-34.972Z.private/`，公开源码依据`runtime/acp-approval-public-source-20261023T074716Z/`。不要恢复旧“无恢复GET”结论或重复登录。
+
+默认prepare返回v1.1.0 delegate0x770211…0000，但SDK0.1.15固定ALCHEMY_SIGNING_CONTRACT为v1.0.0的0x690077…E139；两者均为Alchemy官方部署，不能混签。按官方支持能力显式请求v1.0.0的unsigned prepare在一次TLS故障、唯一重试后201，delegate已匹配SDK、feePayment.sponsored=true；原件`version-pinned-prepare-2026-10-23T08-05-08.438Z.private/`。仅建单预检，不保证fund/实际兑换/结算免费。只读预检已完成，当前`NOX_CONTROLLED_FIRST_JOB`已获用户明确批准：Base专用买方启用Alchemy v1.0.0、签/提交仅Nox建单并发送1USDC→WETH/0.5%滑点需求取条款，不充值/付款/兑换。两项官网逐笔审批尚未申请，先准备新鲜payload和发送前意图；7702为持续账户委托，UserOp为本次建单执行签名，均非登录消息；二者尚未签，未充值/广播/创建job，不放开DENY_ALL。禁止发币/身份铸造一直保持。
 
 已确认官方`agent list --page 1 --page-size 10 --json`是无signer的owner GET，可用于下一步。未发现两家独立预报价命令，create-job是真实写链；trade dry-run不是聘请它们。LI.FI免费报价仅是iCLONE路由预估，不保证全包成本。若必须先创建job才能报价，先向用户说明写链成本及权限，不以报价为由直接执行；fund --amount不限制额外本金，买方evaluator和本金退款路径均须核。
 
-两个上游1USDC USDC→WETH报价均200、gas约0.004美元，仅证明小额路由存在；原件`upstream-route-estimates/`，不是Agent测试。若后续买方初始化，JSON create无signer会在客户端mint前返回，但会创建后台钱包和邮箱；后台副作用/费用未有明确承诺。signer的deny-all逐笔审批有明确说明，首次custom policy可能回退ACP_ONLY，不能冒充限额授权。当前没有执行初始化。
+两个上游1USDC USDC→WETH报价均200、gas约0.004美元，仅证明小额路由存在；原件`upstream-route-estimates/`，不是Agent测试。买方采用JSON/no-signer路径，客户端在身份mint前返回，后台记录/邮箱已实建、身份字段实读null。signer保留DENY_ALL；本次连登录消息也实际触发人工审批，以403实测为准，不能按README推断消息必免审批。首次custom policy可能回退ACP_ONLY，不改策略绕过。
 
 欧易公开C2C10元起/平台交易费零，不代表当前商家一定接30元或可立即提币；本人提币费未知，不套用OKX TR表。Web3钱包和交易所资产分开；可直接提到正确ACP买方时省去中转，不把自有钱包操作当Nox/iCLONE履约，也不为钱包接入索取API Key。买方gas免费/用USDC付/需ETH须看实际prepare，当前不安排购ETH。海外卡路线已降备用，Coinbase旧Hosted Guest2026-06-30停用，不恢复旧5%游客支付假设。私人的地区与卡信息只作本地资格核查，不公开支付/实名材料。
 
