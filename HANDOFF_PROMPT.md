@@ -2,7 +2,9 @@
 
 ## 2026-10-23 当前主线（优先于下方历史记录）
 
-工作目录`D:/xjtu_project/block_chain_new/block_chain_new_new`，当前分支`codex/readonly-evidence-request-20261023`继承研究提交`dbc0e8b`。用户选择协助取得多对象只读材料，并明确没有联系人。`MULTI_AGENT_READONLY_EVIDENCE_GATE`申请准备完成：[官方渠道、中英文请求及接收清单](docs/runbooks/REQUEST_READONLY_AGENT_EVIDENCE_20261023.md)。首选用户/队友转发Zyfai官方Telegram管理员，备选Virtuals支持引荐ACP操作者。尚未对外发送、取得凭证或收到新材料；下一`RECEIVE_MULTI_AGENT_READONLY_EVIDENCE`收到后先核同一身份的服务/声明/任务/执行，再决定适配。
+工作目录`D:/xjtu_project/block_chain_new/block_chain_new_new`。当前任务`SMALL_BUDGET_TRANSACTION_FEASIBILITY`：用户随后取消对外材料请求，改考虑自己小额真实交易，明确首轮总预算30元人民币连本金一起。不要发送申请或恢复等待操作者材料；旧申请文案状态为取消、未发送。先核Nox/iCLONE Base现货换币的当前Schema/最低额/全部费用/原始任务与真实执行关联，两个对象先各一次闭环再扩样本。30元不保证多个完整分；不以平台trade路由或直接DEX调用替代Agent履约。尚未开户、签名、充值或发交易；[当前结论](docs/research/SMALL_BUDGET_TRANSACTION_FEASIBILITY_20261023.md)。Git以STATUS及实际分支为准。
+
+**竞赛红线：禁止发币。** 用户已明确要求，不发行代币/NFT、不做Agent代币化，不执行tokenize/token launch或新发身份NFT。工具有这些功能也不得调用；接入若强制相关动作则换路线，不以“身份注册”名义绕过。读取已有Agent身份与交易证据不受影响。
 
 前轮`FULL_SCORE_TRADING_AGENT_DISCOVERY`已筛查，多个完整可评交易对象的目标仍未达成，新增完整分0。两个新Venus各1业务任务，代表执行归属已实核；Celo/Agenthaus、ACP、Zyfai具体缺项见[汇总](docs/research/FULL_SCORE_TRADING_AGENT_DISCOVERY_20261023.md)，不要重扫已知缺源。86只读观察/84响应SHA一次核对通过，未改生产代码或新评分，工程测试NOT_RUN。补源方向已经用户确认，不要再次询问同一选择。
 

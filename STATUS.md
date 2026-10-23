@@ -2,7 +2,11 @@
 
 ## 2026-10-23 当前执行状态
 
-当前任务`MULTI_AGENT_READONLY_EVIDENCE_GATE`的申请准备完成：用户选择协助取得至少两个实例的只读材料，并说明目前没有联系人。已核Zyfai官方Telegram、Virtuals支持门户/Discord及iCLONE开发者线索，整理[渠道、中英文请求与接收清单](docs/runbooks/REQUEST_READONLY_AGENT_EVIDENCE_20261023.md)。Zyfai官网联系表单尚未确认可提交，SDK Issues页面显示创建受限，不声称可自动投递。由用户/队友转发具体请求后，后续`RECEIVE_MULTI_AGENT_READONLY_EVIDENCE`先核材料再适配；尚未发送、获得凭证或收到新运行材料。评分门槛不变，本轮纯文档、工程测试NOT_RUN。
+当前任务`SMALL_BUDGET_TRANSACTION_FEASIBILITY`：用户明确取消对外材料请求，提出小额自己参与真实交易，总预算**30元人民币，包含本金及全部实交易相关成本**。申请文案仅留档、从未发送，不再等待操作者回复。已只读核官方现货交易服务及自助任务取证机制，尚未开户、签名、充值、付款、发交易或新增评分。多个对象先各一次闭环，再决定通用适配；不保证小额充值自动带来完整三维结果。[当前可行性](docs/research/SMALL_BUDGET_TRANSACTION_FEASIBILITY_20261023.md)。
+
+用户新增明确红线：**禁止发币**。已同步AGENTS与PLAN：不发行代币/NFT、不做Agent代币化、不用tokenize/token launch、不为扩覆盖新发身份NFT；接入强制这些动作则排除。当前无发币、身份铸造或任何新链上交易。
+
+Nox/iCLONE的Base兑换为优先候选，标价均0.05但最低本金、当前报价、额外成本及实际服务/交付尚未核齐；如两个对象各7F+7B都用付费兑换，仅服务标价下界已为1.40USDC，不能当30元包干价。Zyfai最低10USDC/实例且低频，Wasabot杠杆10USDC门槛不适合本次预算。现有平台没有真实写任务采集器，先使用官方客户端保留自己任务原件，核多对象闭环后再作最小适配；不能把自己直接DEX交易计为第三方Agent履约。三维/门槛未改，纯可行性调查，工程测试NOT_RUN。
 
 当前任务`FULL_SCORE_TRADING_AGENT_DISCOVERY`的本轮候选筛查已完成，**多个完整可评分交易Agent的目标仍未达成，新增完整评分0**。按用户确认的顺序，先查同一身份的接口/声明/执行/足量独立任务，再适配；允许认证及授权只读材料，同提供方多实例也可，7F/7B不等于14笔交易。本轮未改生产代码、评分、前端、数据库或既有报告。
 
@@ -10,7 +14,7 @@
 
 前轮实际86次只读观察（69个200/12个404/1个401/2个307/2个连接错误），84份响应SHA一次核对通过；`runtime/full-score-trading-discovery-20261023/source-audit.json`，exit0。0签名/交易/付费/LLM/新评分作业；工程测试NOT_RUN，纯研究不重跑旧验收。补源方向现已确认，执行本页首段`MULTI_AGENT_READONLY_EVIDENCE_GATE`。
 
-Git当前分支`codex/readonly-evidence-request-20261023`继承研究提交`dbc0e8b`，本轮申请/状态文档以本地commit留存；未push/main未改，前轮草稿PR #20保留。无关`docs/presentation/`不纳入。本机运行与前轮验收记录见下文，数量是前轮交付快照，不能当作本轮新增结果。
+Git当前分支`codex/small-budget-trade-feasibility-20261023`继承`5266377`，可行性/红线与状态文档以本轮本地commit留存；未push/main未改，前轮草稿PR #20保留。文档diff/暂存检查与本地秘密扫描通过，工程测试NOT_RUN。无关`docs/presentation/`不纳入。本机运行与前轮验收记录见下文，数量是前轮交付快照，不能当作本轮新增结果。
 
 ### 前轮交付快照
 

@@ -10,13 +10,17 @@ task_id=`CHAIN_EXECUTION_FOCUS_20261023`实现与本机验收完成。用户已�
 
 本机PG/API与独立只读worker已恢复，新增包`data/chain-execution-evidence-v1.tar.gz`含521个公开原件、235329B，离线还原核验不需RPC/LLM。背景证据与原报告分开，规则见ADR-0021。必要新证据回放/失败边界、前端构建、真实HTTP/PG/附件及桌面/390px视觉通过。最终原件复看后将直接buy与MultiSend授权买入分别描述、中文说明已知缺项；只追加修订展示，不重采/改分，旧快照保留。当前49身份/50报告/10个链证据对象（20版本）/12个完整历史身份、0活动任务。
 
-当前task_id=`MULTI_AGENT_READONLY_EVIDENCE_GATE`：用户已选择协助取得多个实例的只读接口/历史导出，并说明目前没有联系人。官方渠道、可转发中英文请求及最小接收清单已备齐：[材料申请](docs/runbooks/REQUEST_READONLY_AGENT_EVIDENCE_20261023.md)。首选Zyfai官方Telegram转SDK/集成团队，备选Virtuals支持门户引荐ACP操作者；不强求前轮指定owner、不要求搭新接口。尚未向第三方发送、取得凭证或新材料；由用户/队友先转发请求。后续task_id=`RECEIVE_MULTI_AGENT_READONLY_EVIDENCE`，收到多个真实实例资料后先核验再判断适配。
+当前task_id=`SMALL_BUDGET_TRANSACTION_FEASIBILITY`：用户已取消对外材料请求，改为考虑自己作为客户的小额真实交易，并明确首轮总预算**30元人民币，含本金**。不再联系操作者或等待其提供材料。预算同时覆盖服务费、gas、DEX费用/滑点及入金/退出等成本，不能解释成每对象30元或只有手续费上限。先确认多个真实外部Agent的实时服务、最低额、报价与任务/执行证据可取，再给具体试单清单；目前未开户、签名、充值、付款或发交易，不承诺30元必能完成多个完整评分。
+
+用户进一步确认“禁止发币”为竞赛红线：不发行代币/NFT、不做Agent代币化，不使用第三方CLI的tokenize/token launch，不为凑对象新发身份NFT。若第三方接入强制这些步骤，则排除该路线。拟研究操作仅限既有资产与既有第三方Agent服务；此项已写入AGENTS长期约束，不能被后续小额预算或工具默认流程覆盖。
+
+优先核Nox/iCLONE的Base现货兑换，先确认每个对象可闭合一次任务后再扩完整样本；不把平台自带trade命令或我们直接调用DEX当它们履约。Zyfai每实例10USDC最低余额且低额低频，不适合本次30元预算；Wasabot杠杆业务暂不选。完整取样仍按原A10/F7/B7与独立任务规则，付钱不替代独立核验。详见[30元实交易可行性](docs/research/SMALL_BUDGET_TRANSACTION_FEASIBILITY_20261023.md)。此前申请文案留档，状态为取消、未发送。
 
 `FULL_SCORE_TRADING_AGENT_DISCOVERY`的选择原则保持：同一对象核验公开注册、可实测且绑定身份的服务入口、有来源交易功能声明、执行账户授权、原始任务及交易效果、独立7F/7B样本来源；多个真实对象同时具备条件后，再确定共用业务规则与协议适配。允许合法认证、获授权只读导出及同一提供方多实例；7F/7B是独立任务，非必须14笔交易。不围绕单对象编码，不以平台API、RPC在线或交易次数替代Agent可用性；现有Olas证据保留，暂不继续扩无接口样本。三维、权重、门槛与历史报告不变。
 
-前轮候选筛查已完成，多个完整可评对象的目标尚未达成，新增完整分0。两个Venus身份的代表执行归属已实核，但各仅1业务任务；Zyfai/ACP需实例级只读材料，Celo/Agenthaus未闭合。86次只读观察和84份响应SHA核对已保存，未改生产代码。补源方向已由用户选择收口，不再重复询问。[筛查汇总](docs/research/FULL_SCORE_TRADING_AGENT_DISCOVERY_20261023.md)；[前轮交付](docs/runbooks/CHAIN_EXECUTION_PROGRESS_20261023.md)。
+前轮候选筛查已完成，多个完整可评对象的目标尚未达成，新增完整分0。两个Venus身份的代表执行归属已实核，但各仅1业务任务；Zyfai/ACP缺实例级任务材料，Celo/Agenthaus未闭合。86次只读观察和84份响应SHA核对已保存，未改生产代码。当前以用户随后确认的小额自助路线调查补源，不恢复旧联系任务。[筛查汇总](docs/research/FULL_SCORE_TRADING_AGENT_DISCOVERY_20261023.md)；[前轮交付](docs/runbooks/CHAIN_EXECUTION_PROGRESS_20261023.md)。
 
-前轮分支`codex/chain-execution-focus-20261023`已合入`origin/main=14dcf6b`，功能提交`7f3eec2`/`6ad6976`已push并建立[草稿PR #20](https://github.com/Ryanjxy123/web3-agent-reputation/pull/20)。本轮分支`codex/readonly-evidence-request-20261023`继承研究提交`dbc0e8b`；本轮只作本地文档提交，未push。main未改、未自动合并。旧日期记录仅为历史。
+前轮分支`codex/chain-execution-focus-20261023`已合入`origin/main=14dcf6b`，功能提交`7f3eec2`/`6ad6976`已push并建立[草稿PR #20](https://github.com/Ryanjxy123/web3-agent-reputation/pull/20)。当前分支`codex/small-budget-trade-feasibility-20261023`继承`5266377`；本轮为可行性与红线文档的本地提交，未push。main未改、未自动合并。旧日期记录仅为历史。
 
 ## 2026-10-21 指导老师反馈与文档方案
 

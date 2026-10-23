@@ -1,3 +1,5 @@
+<!-- CANCELLED, NOT SENT: On 2026-10-23 the user chose small-budget self-service feasibility instead of outreach. Retained as a historical draft only. -->
+
 Hello Zyfai team,
 
 We are building a university blockchain project that evaluates Web3 agents using evidence across service availability, consistency with declared functionality, and transaction reliability. Before implementing an adapter, we want to establish that the method can cover multiple real deployed agents.
