@@ -14,7 +14,9 @@ task_id=`CHAIN_EXECUTION_FOCUS_20261023`实现与本机验收完成。用户已�
 
 用户已进一步指定本阶段结果：确认Nox/iCLONE在30元总预算内能否各做一次真实交易并取得可独立核验的任务证据；需要用户登录、签名或充值时给出具体步骤。本轮先固定官方客户端版本、核登录/普通账户是否触及红线、取得实时服务Schema与报价，不能为只读发现先授予交易signer；缺少用户登录时只暂停依赖该登录的查询。一次试单不冒充完整三维评分。
 
-本轮已固定CLI1.0.40/SDK0.1.15，匿名读取两个准确UUID详情均200，已核各自固定0.05服务标价、requiredFunds与输入/交付字段；仍缺实际最低本金、当前接单及全部费用。已发官方split登录链接，一次完成查询返回pending，等待用户登录；不创建Agent、不授予signer、不充值，不运行会自动身份mint的默认create引导。下一task_id=`NOX_ICLONE_AUTHENTICATED_QUOTE_PREFLIGHT`：登录后先读已有买方/任务与具体报价；报价未核前不动资金。
+本轮已固定CLI1.0.40/SDK0.1.15，匿名读取两个准确UUID详情均200，已核各自固定0.05服务标价、requiredFunds与输入/交付字段。用户截图已证明网页授权成功；诊断出CLI将原请求HTTP400错误吞成pending。更换一次链接后token交换200/authenticated，已有买方GET200但data=[]。两家上游1USDC的USDC→WETH报价均200、DEX gas估计各约0.004美元，但不是Agent接单或全包报价。用户现已确认仅持人民币，并要求优先考虑欧易C2C/Web3钱包；下一task_id=`NOX_ICLONE_BUYER_FUNDING_PREFLIGHT`：先核本人USDC/Base提币条件，再核不含mint的买方初始化和全部任务成本；未创建Agent、授予signer或动资金。
+
+欧易官方C2C写10元起/平台零交易费，但广告、本人资格、T+N、兑换和提币费用待核；已请用户仅查看USDC/Base网络、最低额及手续费，不买币。Web3钱包可辅助收款/查看交易，但不自动替代ACP买方；若可直接Base提现到已核买方，避免多一跳。ACP gas是否赞助或扣USDC取决于prepare，尚不要求先买ETH。资金工具不算被评价Agent，原Nox/iCLONE目标、30元总额及禁发币不变。
 
 源码已确认`agent list --json`可在owner登录后无signer读取已有买方；未发现两家独立预报价命令。LI.FI免费路由预估不等于iCLONE全包报价，也不能替Nox报价。若需创建真实job才能报价，先说明该前置写入及成本，不以“查询报价”名义悄悄写链。
 

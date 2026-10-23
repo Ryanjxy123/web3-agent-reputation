@@ -4,9 +4,13 @@
 
 工作目录`D:/xjtu_project/block_chain_new/block_chain_new_new`。当前任务`NOX_ICLONE_AUTHENTICATED_QUOTE_PREFLIGHT`，延续`SMALL_BUDGET_TRANSACTION_FEASIBILITY`：用户随后取消对外材料请求，改考虑自己小额真实交易，明确首轮总预算30元人民币连本金一起。不要发送申请或恢复等待操作者材料；旧申请文案状态为取消、未发送。先核Nox/iCLONE Base现货换币的当前Schema/最低额/全部费用/原始任务与真实执行关联，两个对象先各一次闭环再扩样本。30元不保证多个完整分；不以平台trade路由或直接DEX调用替代Agent履约。尚未开户、签名、充值或发交易；[当前结论](docs/research/SMALL_BUDGET_TRANSACTION_FEASIBILITY_20261023.md)。Git以STATUS及实际分支为准。
 
-本轮实际进展：官方CLI1.0.40/SDK0.1.15在`runtime/nox-iclone-preflight-20261023/client/`，仅split登录，无Agent创建/signer/资金操作。两UUID详情在`provider-details-preauth/`匿名GET均200，固定0.05、requiredFunds及需求/交付已齐，不要继续以“无auth无法读详情”为阻塞。默认交互create会引导signer后身份mint，禁止；browse会要求signer，读取用官方API纯GET。登录链接已给用户，单次complete返回pending；等用户登录后，按私有`auth-start.private.json`的requestId完成会话（不要输出token），先看本人已有买方与报价。下一`NOX_ICLONE_AUTHENTICATED_QUOTE_PREFLIGHT`，最低本金/当前接单/全部费用未齐，尚不能宣称30元两单可行。
+本轮实际进展：官方CLI1.0.40/SDK0.1.15在`runtime/nox-iclone-preflight-20261023/client/`，无Agent创建/signer/资金操作。两UUID详情在`provider-details-preauth/`匿名GET均200，固定0.05、requiredFunds及需求/交付已齐。默认交互create会引导signer后身份mint，禁止；browse会要求signer。用户截图已证明网页授权成功，CLI却把原请求HTTP400吞为pending；更换一次链接后已200/authenticated，凭证由CLI保存在本地，勿再要求重复登录。新链接收据为`auth-start-retry.private.json`，旧`auth-start.private.json`已无效。owner agent list实际200、data=[]，没有现成买方钱包。用户已确认仅有人民币，现优先欧易C2C/Web3路线；已请仅查看USDC/Base是否可选、最低提币和手续费，不下单。当前WAITING_OKX_WITHDRAWAL_PREVIEW，下一`NOX_ICLONE_BUYER_FUNDING_PREFLIGHT`，勿声称30元两单可行。
 
 已确认官方`agent list --page 1 --page-size 10 --json`是无signer的owner GET，可用于下一步。未发现两家独立预报价命令，create-job是真实写链；trade dry-run不是聘请它们。LI.FI免费报价仅是iCLONE路由预估，不保证全包成本。若必须先创建job才能报价，先向用户说明写链成本及权限，不以报价为由直接执行；fund --amount不限制额外本金，买方evaluator和本金退款路径均须核。
+
+两个上游1USDC USDC→WETH报价均200、gas约0.004美元，仅证明小额路由存在；原件`upstream-route-estimates/`，不是Agent测试。若后续买方初始化，JSON create无signer会在客户端mint前返回，但会创建后台钱包和邮箱；后台副作用/费用未有明确承诺。signer的deny-all逐笔审批有明确说明，首次custom policy可能回退ACP_ONLY，不能冒充限额授权。当前没有执行初始化。
+
+欧易公开C2C10元起/平台交易费零，不代表当前商家一定接30元或可立即提币；本人提币费未知，不套用OKX TR表。Web3钱包和交易所资产分开；可直接提到正确ACP买方时省去中转，不把自有钱包操作当Nox/iCLONE履约，也不为钱包接入索取API Key。买方gas免费/用USDC付/需ETH须看实际prepare，当前不安排购ETH。海外卡路线已降备用，Coinbase旧Hosted Guest2026-06-30停用，不恢复旧5%游客支付假设。私人的地区与卡信息只作本地资格核查，不公开支付/实名材料。
 
 **竞赛红线：禁止发币。** 用户已明确要求，不发行代币/NFT、不做Agent代币化，不执行tokenize/token launch或新发身份NFT。工具有这些功能也不得调用；接入若强制相关动作则换路线，不以“身份注册”名义绕过。读取已有Agent身份与交易证据不受影响。
 

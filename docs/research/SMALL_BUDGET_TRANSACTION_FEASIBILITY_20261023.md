@@ -2,7 +2,7 @@
 
 日期：2026-10-23。当前task_id：`NOX_ICLONE_AUTHENTICATED_QUOTE_PREFLIGHT`，延续`SMALL_BUDGET_TRANSACTION_FEASIBILITY`。
 
-用户已取消对外材料申请，改研究自己作为客户参与真实交易，总预算30元人民币连本金一起。**当前没有开户、签名、充值、付款、发交易或新增评分。** 自己下任务有机会取得此前缺的原始要求、交付和完整任务状态，但付费不保证三维证据足量或业务正确。
+用户已取消对外材料申请，改研究自己作为客户参与真实交易，总预算30元人民币连本金一起。**当前仅完成owner登录和只读预检，未创建买方Agent、授予signer、充值、付款、发交易或新增评分。** 自己下任务有机会取得此前缺的原始要求、交付和完整任务状态，但付费不保证三维证据足量或业务正确。
 
 ## 必须保持的边界
 
@@ -38,13 +38,32 @@
 - 两个精确UUID未出现在本轮各一次在线过滤语义搜索的top5结果中，返回结果还存在2999年的活动时间占位；这不能证明它们离线或在线。详情历史活动时间也不替代当前响应。没有反复搜索或通过付费任务盲探。
 - Nox没有声明resource；iCLONE多数resource直接指向LI.FI、Coingecko等第三方。读取源站只能帮助报价/独立核验，不计iCLONE的服务可用性。
 
-已审的官方split登录仅GET登录地址、之后交换owner会话；不创建Agent、邮箱、signer、身份NFT或交易。登录地址已通过对话交给用户，单次`configure complete`真实返回`pending`。**当前等待用户完成登录；无充值、签名或资金动作。** 会话链接与配置只留在忽略的私有runtime，不写入本文。后续先GET本人已有买方记录，再核必要账户/权限与单笔报价，不执行默认初始化向导。
+已审的官方split登录仅GET登录地址、之后交换owner会话；不创建Agent、邮箱、signer、身份NFT或交易。最初的`pending`不能证明用户没有登录：用户截图已显示授权成功，进一步诊断发现官方CLI会吞掉全部请求异常；原请求真实HTTP400、错误分类为invalid request。仅更换一次授权链接后，用户完成授权，token交换HTTP200，CLI明确返回`authenticated`。**当前登录已成功；没有充值、交易签名或资金动作。** 会话链接与凭证只留本地，不写入本文。
+
+随后官方`agent list --page 1 --page-size 10 --json`实际HTTP200、`data=[]`，没有已有买方Agent钱包；未创建新记录。用户已确认目前只有人民币、无链上资产；后续补充有海外支付卡及可用的欧易C2C入口，并要求优先研究欧易。实际入金成本仍须计入30元，不能把owner登录钱包直接当CLI可下单的买方钱包。
 
 登录后已确认可用的只读命令是`agent list --page 1 --page-size 10 --json`：使用owner会话GET本人Agent列表，不要求signer；JSON分支不会写Agent缓存。只输出身份、钱包和链等必要字段，完整响应和会话留本地。未过期会话为纯GET，CLI在会话过期时可能刷新token；不把它描述成交易签名。
 
 **没有发现两家的独立预报价命令。** `create-job`会真正写链，不能拿它当免费报价探测；平台`trade --dry-run`也不是这两家Agent的报价。iCLONE声明的LI.FI quote可在取得真实买方钱包后作免费路由预估，但不包含Agent全部费用、接单承诺或退款条件，也不能替使用Kyber的Nox报价。若完整报价只能在创建任务后取得，须先明确该前置写入的gas、权限及可能损耗，再告诉用户，不能为取得报价悄悄发交易。
 
 实际资金签名前还必须核对：服务费结算资产和精确金额、输入资产与本金、资金目标与输出接收账户、滑点和期限、预期最少输出、全部gas/入金/退出成本。`fund --amount`不代表本金与总费用上限；服务费与本金使用不同批准目标，禁止无限授权。显式保留买方evaluator，避免交付后跳过核验自动结算；服务费退款与本金escrow退款是不同路径，不把提供方退款声明当本金可自动取回的证明。新账户或任何待签calls若包含身份mint、tokenize或新资产发行即停止该路线。
+
+上游小额可行性已实读两次SafeHttpClient GET，均HTTP200：Base现有USDC→WETH、输入1USDC。Kyber返回约0.00041687449 WETH、gas估计0.00414美元；LI.FI返回约0.00041598571 WETH、0.5%滑点时最低0.00041390578 WETH，gas估计0.0039美元、已包含的LI.FI费用0.0025USDC。报价只对应采集时点，LI.FI使用其公开provider钱包作为估算from/to，并非本人的实际任务；两个结果均不包含ACP任务交易、批准、智能账户、入金退出成本或两家Agent服务端条件，不作为Agent可用性或履约样本。没有签署或提交返回的交易数据。原件在`runtime/nox-iclone-preflight-20261023/upstream-route-estimates/`；参数含义见[Kyber官方API](https://api-docs.kyberswap.com/aggregator-api.html)与[LI.FI官方报价API](https://docs.li.fi/api-reference/get-a-quote-for-a-token-transfer)。
+
+买方初始化与交易权限仍待具体落实：发布版JSON create会先创建平台记录、后端钱包及自动邮箱，再在signer/自动ERC8004前返回；普通交互create不可用。未找到后台零费用/无链副作用的明确承诺，不声称已经核定。后续若需CLI signer，`deny-all`有官方逐笔人工审批说明；目标allowlist不等于金额上限，且官方README提示首次绑定custom policy可能回退ACP_ONLY，不能据此保证30元预算。当前没有创建或添加signer。
+
+## 当前优先：欧易入金与钱包辅助
+
+用户已要求优先考虑欧易；将其作为可能的资金入口、钱包与记录查看工具，不更换Nox/iCLONE评价对象，不启动新的单对象评测适配。
+
+- [欧易C2C官方FAQ](https://www.okx.com/zh-hans/help/what-is-p2p-trading-cn)写明平台交易费为零、人民币最低10元起；实际广告商限额、价格、本人资格及支付费用仍以账户所见为准。因此30元未被这项公开最低额直接排除，但不是全包可行结论。[C2C限额与安全保护](https://www.okx.com/zh-hans/help/c2c-buying-limit-and-security-protection-guide)另说明部分订单存在T+N提币限制，买到不等于可立即投入试单。
+- [官方区别说明](https://www.okx.com/en-us/help/understanding-the-link-between-okx-and-web3-wallets)：交易所账户和自托管Web3钱包分别管理资产。欧易曾公告开放[USDC-Base](https://www.okx.com/en-us/help/okx-to-support-usdc-base)与[Base ETH](https://www.okx.com/en-us/help/okx-to-support-base-network)；钱包支持[Base 8453](https://web3.okx.com/onchainos/dev-docs/wallet/supported-networks)。公告不替代本人当前提币页。
+- 优先核“可用资金→Base原生USDC→已确认的ACP买方钱包”的直接路径；若可直接提到正确买方地址，可省去先入Web3钱包再转出的中间一笔。需要本人钱包作收款或人工操作时再使用OKX Web3；它不能自动替代CLI要求的买方UUID/Privy钱包。USDT、原生USDC、桥接资产和链不能混同，不能靠选择网络把USDT变成USDC。
+- **目前只请用户查看USDC/Base是否可选、最低提币量及手续费，不下C2C单、不提币。** 这些值没有从适用的公开资料核到，不套用OKX TR等其它地区费用。此后才合并核C2C所得、必要兑换、到账、任务成本与退出余量；不请求交易所API Key或私钥，也不替用户付款。
+- 买方ACP调用的gas支付由后台prepare结果决定，本地源码既不证明默认免费赞助，也未要求先持有ETH；paymaster可能用USDC等付gas，不能把出现paymaster当免费。当前不安排额外购ETH，待实际签名前核gas支付方、代币扣款和总额。服务方兑换gas仍另核。
+- 欧易可以帮助查看txHash；正式报告仍由可信RPC核任务→Agent执行→实际收款/资产变化。C2C收付款及本人钱包操作不计作Nox/iCLONE履约，也不发布私人支付信息。OKX OnchainOS/Agent Trade Kit是工具，不能据框架名称新增一个已评分公共Agent。
+
+海外卡路线降为备用：[Coinbase当前文档](https://docs.cdp.coinbase.com/onramp/onramp-overview)标明旧Hosted Guest Checkout于2026-06-30停用，[Headless替代](https://docs.cdp.coinbase.com/onramp/headless-onramp/overview)有地区及应用条件，不用旧FAQ的游客费率承诺现在可付。[Crossmint Onramp](https://docs.crossmint.com/onramp/overview)支持Base USDC与银行卡，但适用地区、此卡受理、最低额及ACP最终手续费未核齐；虚拟卡发卡地区不替代实际居住资格。没有创建支付会话、尝试扣款或要求变更实名地区。
 
 实际证据位于`runtime/nox-iclone-preflight-20261023/`（版本/原件、两个详情、两次在线搜索）及`runtime/acp-cli-source-audit-20261023T032723Z/`、`runtime/acp-two-provider-schema-research-20261023/`（固定源码）。一次试单仅能形成一个任务的证据，不冒充足量三维分。
 
@@ -58,7 +77,7 @@ CLI的普通账户/钱包、市场任务、链上身份注册和tokenize是不�
 
 ## 下一步需要先核实的事实
 
-1. 完成官方登录后，仅GET本人已有买方与可访问任务记录，确认钱包和资金条件，再核报价可获得方式；登录本身不保证有最低本金和完整报价。详情和Schema已通过匿名GET取得，不重采。普通买方流程若强制发币或身份NFT铸造则排除，不通过新身份mint绕过。
+1. 登录与已有买方检查已完成；现有资金来源已确认，优先等本人欧易USDC/Base提币条件，核实际最低额/费用/锁定，再落实不含身份mint的普通买方初始化及全成本。现有`data=[]`不掩盖。详情和Schema不重采；普通买方流程若强制发币或身份NFT铸造则排除。
 2. 能否取得自己任务的原始要求、交付和执行账户/业务交易hash；Agent服务可用性是否有合法、可重复实测的入口。只有目录在线仍不足。
 3. 取得每对象一单的具体报价及全部费用、资金流向、接收账户、期限和约束；核总预算内有退出余量。真实报价不足以证明30元可行时，不先充值碰运气。
 4. 两对象的低额任务证据闭合后，固定同一业务规则、独立样本和剩余预算，再决定完整评价。遇未知执行路径或费用超额停止依赖动作并说明，不为出分改门槛。

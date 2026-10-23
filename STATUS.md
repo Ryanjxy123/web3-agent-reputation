@@ -4,11 +4,15 @@
 
 当前任务`NOX_ICLONE_AUTHENTICATED_QUOTE_PREFLIGHT`，延续`SMALL_BUDGET_TRANSACTION_FEASIBILITY`：用户明确取消对外材料请求，提出小额自己参与真实交易，总预算**30元人民币，包含本金及全部实交易相关成本**。申请文案仅留档、从未发送，不再等待操作者回复。已只读核官方现货交易服务及自助任务取证机制，尚未开户、签名、充值、付款、发交易或新增评分。多个对象先各一次闭环，再决定通用适配；不保证小额充值自动带来完整三维结果。[当前可行性](docs/research/SMALL_BUDGET_TRANSACTION_FEASIBILITY_20261023.md)。
 
-用户现已要求实际推进Nox/iCLONE各一次的预算/证据预检，登录、签名、充值需要用户参与时明确告知。已在隔离runtime安装固定官方CLI1.0.40（gitHead fbb788…）/SDK0.1.15，无安装脚本，生产依赖未改。两个准确UUID官方详情匿名GET均200，输入/交付Schema及固定0.05/requiredFunds已核；最低实际本金、当前接单与全部费用仍未知。默认create可触发身份NFT、browse要求signer，均未使用。官方split登录链接已交用户，单次完成查询pending；当前WAITING_LOGIN。下一`NOX_ICLONE_AUTHENTICATED_QUOTE_PREFLIGHT`先读已有买方/任务和具体报价，未开户、授予signer、充值、付款或发交易。
+用户现已要求实际推进Nox/iCLONE各一次的预算/证据预检，登录、签名、充值需要用户参与时明确告知。官方CLI1.0.40/SDK0.1.15仅隔离安装。两UUID详情匿名200，固定0.05/requiredFunds及需求交付已核。用户截图明确授权成功；实际诊断原请求HTTP400被CLI吞为pending，更换一次链接后token交换200/authenticated。已有买方GET200、data=[]，未创建新买方、授予signer或动资金。用户已确认仅有人民币、有海外支付卡，随后指定优先欧易；当前WAITING_OKX_WITHDRAWAL_PREVIEW，已请仅查看USDC/Base网络、最低提币及手续费。下一`NOX_ICLONE_BUYER_FUNDING_PREFLIGHT`核入金、不含mint的买方初始化及全成本，30元不变。
 
 用户新增明确红线：**禁止发币**。已同步AGENTS与PLAN：不发行代币/NFT、不做Agent代币化、不用tokenize/token launch、不为扩覆盖新发身份NFT；接入强制这些动作则排除。当前无发币、身份铸造或任何新链上交易。
 
 已离线确认登录后可用`agent list --json`无signer读取已有买方。未发现Nox/iCLONE独立预报价命令；`create-job`是真实写链，不能当免费查询。LI.FI资源只可作iCLONE路由预估；若报价仍需前置交易，先说明gas与损耗，不擅自执行。登录并不保证马上取得全包报价。
+
+本轮上游预估已实读2次SafeHttpClient GET/2个200：现有Base USDC→WETH、1USDC档均有路由，Kyber/LI.FI估计DEX gas约0.00414/0.0039美元，LI.FI包含0.0025USDC费用；不是Agent接单、服务费或全部gas报价，也不计A/F/B。原件`runtime/nox-iclone-preflight-20261023/upstream-route-estimates/`。signer若后续必要，明确deny-all逐笔审批；custom allowlist不具金额预算且首次绑定可能回退ACP_ONLY。0新任务/签名/交易/评分，工程测试NOT_RUN。
+
+欧易研究已核：C2C官方公开最低10元/平台零交易费，但实际广告/资格/T+N及提币全费用仍需本人预览；历史公告支持USDC-Base及Base ETH，钱包支持8453、资产和交易所账户分开。若可直接提到已核ACP买方，不强制中转Web3钱包；自有钱包交易不冒充Agent履约。ACP客户端不保证免费gas，也未证明需要先买ETH，签名前看prepare的paymaster/扣款。海外卡路线备用，Coinbase旧Hosted Guest已停用；未创建任何支付会话。详见可行性文档“当前优先：欧易入金与钱包辅助”。
 
 Nox/iCLONE的Base兑换为优先候选，各固定0.05服务标价不是本金/全包价；如两个对象各7F+7B都用付费兑换，仅服务标价下界已为1.40USDC，不能当30元包干价。本轮两次在线过滤搜索均未在top5找到准确UUID，不推出离线；历史活动时间或第三方resource不能作Agent A分。Zyfai最低10USDC/实例且低频，Wasabot杠杆10USDC门槛不适合本次预算。现有平台没有真实写任务采集器，先保存自己任务原件，核多对象闭环后再作最小适配。三维/门槛未改，工程测试NOT_RUN，生产代码未改。
 
