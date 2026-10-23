@@ -10,9 +10,9 @@ task_id=`CHAIN_EXECUTION_FOCUS_20261023`实现与本机验收完成。用户已�
 
 本机PG/API与独立只读worker已恢复，新增包`data/chain-execution-evidence-v1.tar.gz`含521个公开原件、235329B，离线还原核验不需RPC/LLM。背景证据与原报告分开，规则见ADR-0021。必要新证据回放/失败边界、前端构建、真实HTTP/PG/附件及桌面/390px视觉通过。最终原件复看后将直接buy与MultiSend授权买入分别描述、中文说明已知缺项；只追加修订展示，不重采/改分，旧快照保留。当前49身份/50报告/10个链证据对象（20版本）/12个完整历史身份、0活动任务。
 
-当前主线改为主动实验与独立取证：用户提出先做一笔受控真实交易，由平台保存原始任务、报价与付款信息，独立核链和资产变化，再据结果评价。此方案可行；未充值、尚无样本只说明尚未验证，不能断言无法三维评分。不要求Agent预先返回全部评价材料或在首单前已有完整历史。覆盖优先及多对象可复用目标保持，单笔pilot先验证取证流程，不为单对象写评分规则。禁止发币/tokenize/身份NFT；用户现已同意N9T2单笔小额真实交易，要求先指导准备本人XRPL收款地址，拿到具体报价与费用后再通知充值。目前仅准备地址与报价，尚未付款或生成钱包密钥。
+当前主线改为主动实验与独立取证：用户提出先做一笔受控真实交易，由平台保存原始任务、报价与付款信息，独立核链和资产变化，再据结果评价。此方案可行；未充值、尚无样本只说明尚未验证，不能断言无法三维评分。不要求Agent预先返回全部评价材料或在首单前已有完整历史。覆盖优先及多对象可复用目标保持，单笔pilot先验证取证流程，不为单对象写评分规则。禁止发币/tokenize/身份NFT；当前按用户最新要求切换到无需XRPL钱包的交易Agent小额实验，先核现有Base/USDC路径与实际报价，费用明确后再通知充值。
 
-当前task_id=`CONTROLLED_TRANSACTION_PILOT_EXECUTION_PREP`。用户已明确“先用N9T2跑一笔小额真实交易”，无需重新选择路线。用户已实查：当前欧易Web3仅找到BNB Chain的Binance-Peg XRP、0x地址，不能作为本次原生XRPL收款地址；收款改用Xaman，由用户自己备份恢复信息，只提供公开`r`地址。欧易仍可用于已确认的Base USDC资金来源。当前XRPL基础储备1XRP，首次足额入账可激活账户；N9T2是否接受未激活目的地址和净到账量由新报价核验，不先要求充值激活。具体步骤见[单笔实验方案](docs/runbooks/CONTROLLED_TRANSACTION_PILOT_20261023.md)。地址尚未收到，未取得绑定本次地址的新报价、未确定充值金额、未签付款。既有固定三维、正式门槛和旧分数保持。
+当前task_id=`SPRAAY_FULL_EVALUATION_DESIGN`。用户最新要求完整评价Spraay全部声明，不能用单次兑换代表整体。已为公开六能力列服务可用性、独立功能判据及真实链行为实验；Spraay兑换/转账为生成方案、操作者签广播，预付计算额度则另有USDC存入/消费drawdown/退款链操作。AI/查询不伪造资产交易，API费支付不冒充业务完成；身份/入口与能力覆盖分别核清。当前先说明完整计划与费用范围，0.015USDC付费方案暂缓，未充值或动用资金。仍用固定三维、30/40/30与正式样本政策；六能力等权或改变分母尚未批准/实现。详细设计见[受控实验方案](docs/runbooks/CONTROLLED_TRANSACTION_PILOT_20261023.md)。
 
 本轮已追加独立XRPL节点采证：操作者按XRPL官方公共服务器表固定xrplcluster.com，仅一次tx查询HTTP200/exit0。公开样本在validated账本107591208中Payment成功、实际到账3.347405XRP，与提供方收据差581drops；不是只靠Agent响应或区块浏览器。原件`runtime/controlled-pilot-xrpl-read-preflight-20261023T121227Z-f0bd1be9/`。此项说明我们可自行采集关键交易结果，尚未产生自己的真实付费任务；没有新签名/资金/业务交易，主应用工程测试NOT_RUN。
 
@@ -30,7 +30,7 @@ iCLONE订单`82142`观察已收口：唯一sponsored/零转账建单交易`0x3a8
 
 前一批询价已停止，目标未达成：新增三个真实交易服务、四个零付款订单，实际接单报价0、已确认可拿齐完整评价证据的对象0。ZeroAgent的82146、Ethy的82147，以及修正流程后的GSB 82148均在需求已获平台接受并记入同job历史后REJECTED，budget均null；原因只有bytes32哈希，明文未知，不能归因为余额、费用、请求文本或协议版本。GSB首单82145在我们发送需求前已拒绝，首次需求HTTP403；修正共用时序后只补做了一单，82148只提交标准requirement、无长文本询问，仍拒绝，因此不再重试这批对象。四单建单均经可信Base RPC独立核验；GSB首单拒绝另有独立链事件核验，其余拒绝以本轮已取官方任务历史为依据。未fund、支付服务费/本金、兑换、发币、身份mint或新增评分。详细时间、原件和失败路径见[可行性记录](docs/research/SMALL_BUDGET_TRANSACTION_FEASIBILITY_20261023.md)。
 
-当前推进边界：旧报价单已按期限收口，不向旧单付款或反复重建。先准备普通收款账户及一次任务的独立采证链路，再以绑定该地址的新鲜报价核准具体资金/签名。预检要求可识别对象、明确业务与资金约定、可独立观测效果，不要求预先取得未来结果或全部正式样本；真实受控实验正用于补这些材料。多对象闭环用于正式推广与验证复用，不能被解释为禁止首单pilot。下一task_id=`N9T2_BOUND_QUOTE_AND_PAYMENT_PREFLIGHT`；当前等待用户提供公开XRPL收款地址，再核最低档新报价和资金执行单。主应用评分代码与报告未改，未充值/付款或由平台生成钱包密钥。
+当前推进边界：无需XRP钱包，不恢复N9T2或前轮过期旧单。已实际创建Spraay82153和VEGETA82154并独立查链，12:45UTC观察均OPEN、budget=null、历史2条；尚无本人接单报价，不无限轮询或重复建单。已实取Spraay直连0.015USDC费用要求及官方六能力源码；具体身份绑定、部署一致性、全部费用和授权边界须按实验核实。下一task_id=`SPRAAY_FULL_EVALUATION_SCOPE_AND_COST`，先按完整范围制定共用判据、复用有效观察并列费用，不把全部源码声明当已验证能力，不改变旧分数或直接上新生产计分方案。实际付费和资金动作仍按明确方案授权。
 
 本人欧易USDC/Base已确认，0.02USDC≈0.0199美元暂作同一显示金额，最低额未知；服务费固定路径USDC，本金另核，不先要求买ETH。工程测试NOT_RUN，生产代码/评分未改，私有runtime不发布。详见[可行性与原件索引](docs/research/SMALL_BUDGET_TRANSACTION_FEASIBILITY_20261023.md)。
 
@@ -38,7 +38,7 @@ iCLONE订单`82142`观察已收口：唯一sponsored/零转账建单交易`0x3a8
 
 前轮候选筛查已完成，多个完整可评对象的目标尚未达成，新增完整分0。两个Venus身份的代表执行归属已实核，但各仅1业务任务；Zyfai/ACP缺实例级任务材料，Celo/Agenthaus未闭合。86次只读观察和84份响应SHA核对已保存，未改生产代码。当前以用户随后确认的小额自助路线调查补源，不恢复旧联系任务。[筛查汇总](docs/research/FULL_SCORE_TRADING_AGENT_DISCOVERY_20261023.md)；[前轮交付](docs/runbooks/CHAIN_EXECUTION_PROGRESS_20261023.md)。
 
-本轮基线已纳入`origin/main=14dcf6b`（PR #19）；前轮`codex/chain-execution-focus-20261023`的功能提交`7f3eec2`/`6ad6976`已push并建立[草稿PR #20](https://github.com/Ryanjxy123/web3-agent-reputation/pull/20)，未合并。当前分支`codex/trading-agent-quotes-20261023`继承`8a85b35`；预检检查点`057afde`/`67ae6d9`及实验方案`f205c19`已本地提交；本轮5份文档补充钱包准备与下一任务、未push。main未改、未自动合并。旧日期记录仅为历史。
+本轮基线已纳入`origin/main=14dcf6b`（PR #19）；前轮`codex/chain-execution-focus-20261023`的功能提交`7f3eec2`/`6ad6976`已push并建立[草稿PR #20](https://github.com/Ryanjxy123/web3-agent-reputation/pull/20)，未合并。当前分支`codex/trading-agent-quotes-20261023`继承`8a85b35`；前一检查点`e0dce6a`已本地提交；本轮5份文档补充Base两单真实询价、官方收费与Spraay完整评价设计，未push。main未改、未自动合并。旧日期记录仅为历史。
 
 ## 2026-10-21 指导老师反馈与文档方案
 
