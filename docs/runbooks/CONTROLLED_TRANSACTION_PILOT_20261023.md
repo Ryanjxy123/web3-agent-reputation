@@ -1,8 +1,58 @@
 # 单笔真实交易受控实验
 
-日期：2026-10-23。task_id：`SPRAAY_WAIT_BASE_ETH_DEPOSIT`。状态：2.5USDC已到账，签名已修正且一次0.015USDC方案费独立核账通过，取得unsigned方案；实际approve/兑换未执行且尚未授权。
+日期：2026-10-23。task_id：`SPRAAY_REAL_SWAP_PILOT_COMPLETE`。状态：唯一真实兑换成功且独立链核通过；已追加153区块确认及费用组成证明。本单授权已消耗完，不继续付费或交易。
 
-## 最新资金授权与当前动作
+## 实验完成：真实兑换结果与三维解读
+
+**本次已成功用1USDC换到0.000419044293938828 WETH。** 这是Spraay官方网关生成方案、我方专用买方签名并自付gas执行、Uniswap V3池实际成交的一次受控实验。不是ACP旧订单82153的履约，也不宣称Spraay自主决定或代为签名交易。
+
+| 项目 | 独立核实结果 |
+| --- | --- |
+| 交易 | [BaseScan查看](https://basescan.org/tx/0xc128634a06746badd64c9e07fff97cfb486350239b7ecb7c9e50fba616e0c193)，Base8453，普通type2，本人from=to，nonce1 |
+| 成交区块 | 52987893；可信RPC核canonical receipt status1 |
+| 实际业务 | 精确1USDC→WETH，固定Router02调用官方Factory对应0.01%池0xb4cb800910b228ed3d0834cf79d697127bbb00e5 |
+| 新报价 | 预计0.000419475256337655 WETH，最低0.000417377880055966 WETH |
+| 独立预模拟 | 固定区块52987868，返回0.000418988806613433 WETH，满足最低要求；不是只对Agent字段互相比较 |
+| 实际到账 | 0.000419044293938828 WETH，较报价少约0.10274%，在0.5%滑点上限内 |
+| 资产与事件 | 同交易USDC向官方池精确Transfer1000000，WETH从池到本人419044293938828，池Swap事件相符；固定前后块余额相符 |
+| 授权 | 首次只approve1000000，执行后allowance=0，无无限授权；7702委托保持不变 |
+| 提交前预算 | 网络估计0.000001357052099443ETH，保守预算预览0.000003232160663947ETH，均低于批准的0.00001ETH；L2gasLimit213639/maxFeePerGas15046248wei |
+| 实际网络费 | 1128052393709wei = 0.000001128052393709ETH；回执L2+L1及同块oracle operator0合计与ETH余额差完全一致 |
+| 后续确认 | 区块头52988046，相距153块；不把L2确认距离说成Ethereum L1 finalized |
+
+最终已核余额：**1.47USDC + 0.000419044293938828WETH + 0.002998871947606291ETH**。两次真实方案费合计0.03USDC；1USDC本金换成自己的WETH，不是付给Agent的服务费。ETH提币费/买币成本未提供，不虚构人民币总成本。
+
+三个维度如何解释这次实验：
+
+| 固定维度 | 本次已经拿到的真实证据 | 正式评价还需什么 |
+| --- | --- | --- |
+| 服务可用性 | 合法付费请求HTTP200、status ready，返回实际可执行方案 | 按统一规则补足独立可用性样本及耗时，操作者准备/签名等待不记Agent耗时 |
+| 功能声明一致性 | 输入1USDC/WETH/本人/50bps与解码后calldata相符；独立链模拟返回可接受输出，实际成交高于minimum | 将兑换通用判据固定、关联准确注册身份，补足独立F任务；其他五项能力不能算已验证 |
+| 交易行为可靠性 | 真实canonical交易成功、池/资产流/金额/收款/授权/费用独立核齐，确认距离153 | 按任务/执行角色及统一政策补足独立B样本，不把API付费、仅生成calldata或同一事实重复计数当B成功 |
+
+结论：**兑换功能已证明具备取得正式三维评分的可行性，当前仍是一单pilot，没有创建正式三维总分。** 同任务可解释三维事实，正式F/B计分槽位仍互斥；不能把这一笔两头灌进分母。接口签名/发币授权不扩展，后续新增付费、本金或批量采样另列具体预算获准后执行。
+
+身份与范围须继续核实：缓存ACP目录身份为Spraay Batch Agent v2（019e6bd3-2987-7bea-bfcc-89c3d7b79410），A2A卡为Agent Mango，卡明确将MangoSwap/兑换和Spraay/批量转账列为不同Ethereum ERC-8004身份26345/26346。该卡url指gateway.spraay.app，但不能把品牌下身份合并计数或把本次网关样本直接归进ACP旧单；下一步先只读核注册metadata与实际入口/功能归属。返回tokenOut.symbol写ETH而地址是WETH，应向用户明确封装资产；旧_gateway.contract标签与官方QuoterV2地址也有差异，不能拿该标签当唯一真值或在未定规则下武断扣分。已完成的独立池/资产核验不依赖这些自述。
+
+原件与实际执行：
+
+- 新方案目录runtime/nox-iclone-preflight-20261023/spraay-fresh-build-for-real-swap-20261023.private/，一次新CSPRNG费用nonce，0.015USDC已结算；新费用交易0x8c105dd8468e47f24f0b3f11348c932dcedb463305105ce996fa6ade64f01900，独立证据runtime/spraay-fresh-fee-verification-20261023T141816Z-da15d203/，5读exit0。
+- 资产执行目录runtime/nox-iclone-preflight-20261023/spraay-real-swap-20261023.private/：先保存CSPRNG requestId、输入/nonce/预算、正确raw签名与hash，再fsync SEND_INTENT后一次eth_sendRawTransaction；执行exit0，14只读+1签+1广播。固定nonce与pending一致，不改delegate、不用sponsor套壳。
+- 独立业务证明runtime/spraay-real-swap-proof-20261023T141933406775Z-9c22a9/summary.json，19读exit0，9个业务检查全部true。首次回执缺operatorFee字段时保留未知。
+- 随后仅追加runtime/spraay-real-swap-finality-20261023T142345Z-6edee3cc/summary.json，4读exit0，补同块getOperatorFee(receipt.gasUsed)=0、153块距离及总费对账；没有重跑19项业务核验或覆盖旧证据。
+- 新type2执行器必要离线ABI/编码/边界检查最终exit0；首次harness仅相对Python路径ENOENT，修绝对路径后通过。主应用工程测试NOT_RUN，因为生产代码、数据库、评分/前端均未变；完整报告新增0。
+
+## 执行前记录：ETH到账与实际兑换批准
+
+用户报告ETH交易`0xfe7e859311f4f20016b51dc527b19a6ab8bf65b523b0387f84b3fcc92867bd1c`。2026-10-23北京时间22:05:11可信Base52987476核：交易成功直达同一买方，value=3000000000000000 wei（0.003ETH），75确认；当前ETH余额0.003、USDC2485000、既有Alchemy v1.0委托不变。命令`.venv/Scripts/python.exe -X utf8 runtime/read_spraay_eth_deposit_20261023.py 0xfe7e859311f4f20016b51dc527b19a6ab8bf65b523b0387f84b3fcc92867bd1c`，exit0，7次只读，原件`runtime/spraay-eth-funding-20261023T140443Z-3a7c9d2c/summary.json`。已告知用户无需继续充值。
+
+用户随后对具体问题回答“同意，执行这一次兑换”。范围为：额外一次最多0.015USDC新有效方案费；仅1USDC换既有WETH、slippage50bps、资产给本人、固定Uniswap Router02精确授权1000000；提交前网络总预估<=0.00001ETH才发出，超过停止，真实费用按链回执。gasLimit/maxFeePerGas约束L2；L1及operator不由这两个字段完全硬封顶，不能把估价说成链上绝对总上限。不改7702委托/钱包权限、不新增钱包或发币。
+
+旧方案过期且旧费nonce已消费，不复用旧授权或改写原件。新fee使用一次新CSPRNG nonce并先持久化意图；所有普通type2签/唯一广播及独立链核工具准备且审阅后再取得5分钟新报价，避免先付费后才开发。真实type2 from=to本人、value0、data只含新方案的精确USDC approve及Router兑换两call；签前可信链模拟及成本、离线raw签名恢复/字段绑定通过才发。发送前持久化nonce、raw交易hash与SEND_INTENT，网络不明查原hash，不自动重发或换nonce。
+
+新方案目录`spraay-fresh-build-for-real-swap-20261023.private/`，资产执行目录`spraay-real-swap-20261023.private/`，均位于忽略的runtime/nox-iclone-preflight-20261023/。上述是执行前记录；实际新费和本金已完成，以上方实验完成结果为准。平台与Spraay执行角色分开：Spraay生成方案，我方签名广播；后续独立核receipt、官方Factory池、USDC本金/WETH到账、授权及真实gas，不据API200宣布交易完成。
+
+## 首轮方案费授权（历史，不作为当前待办）
 
 用户已明确回答“同意，先付0.015USDC取得交易方案”。复用现有Base买方，仅支付一次官方网关固定构建请求的15000单位原生USDC；不包括兑换本金、合约授权/兑换调用、其他六功能消费、额度存款或新钱包。已独立核验用户2.5USDC入金，签名前核费用挑战不变。首次签名尝试与已核账的同nonce修正见下一节；状态不明先核USDC授权使用状态，不生成新nonce重复支付。响应只留存与解码，真实兑换及业务gas核清后再执行获准动作。完整六能力计划继续保留；本步只是兑换样本，不是整体完成。下一task_id=`SPRAAY_SWAP_EXECUTION_APPROVAL`。
 

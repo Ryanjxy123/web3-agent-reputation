@@ -12,7 +12,7 @@ task_id=`CHAIN_EXECUTION_FOCUS_20261023`实现与本机验收完成。用户已�
 
 当前主线改为主动实验与独立取证：用户提出先做一笔受控真实交易，由平台保存原始任务、报价与付款信息，独立核链和资产变化，再据结果评价。此方案可行；未充值、尚无样本只说明尚未验证，不能断言无法三维评分。不要求Agent预先返回全部评价材料或在首单前已有完整历史。覆盖优先及多对象可复用目标保持，单笔pilot先验证取证流程，不为单对象写评分规则。禁止发币/tokenize/身份NFT；当前按用户最新要求切换到无需XRPL钱包的交易Agent小额实验，先核现有Base/USDC路径与实际报价，费用明确后再通知充值。
 
-当前task_id=`SPRAAY_WAIT_BASE_ETH_DEPOSIT`。用户已入金2.5USDC；已成功付一次0.015USDC取得“1USDC→WETH、50bps”unsigned方案，余额2.485USDC。服务费交易`0x36f0092e9b358c281b97e640e7b6939f91c3af40dfc485c7b06ddc383ea9b5fa`已独立核canonical receipt/精确Transfer/同nonce AuthorizationUsed；未approve、未兑换、未花1USDC本金。初次我方EOA签名不适配Alchemy v1.0的问题已按官方ReplaySafeHash/1271封装修正，复用原nonce且未重复扣费，源码与原尝试保留。Virtuals unsigned gas预估先401，经既有授权仅刷新acp-auth后明确400：Uniswap Router02不在赞助白名单；不得套壳绕过。随后官方Base RPC52987105对原两call executeBatch做只读自付gas仿真及估算通过（9读exit0、0签/0广播/无状态覆盖），预计178059gas，L2+L1上界+已读取operator费合计0.000002048336528037ETH，按本次报价粗算约0.0049USDC。用户已获知网络费很小，随后明确表示将自行提币ETH；已再次提供与USDC相同的专用买方地址，明确币种ETH/网络Base/本人非托管钱包。当前等待ETH交易哈希及独立到账核验，尚未收到ETH到账证明；最低提币/交易所费用若未提供只记未知，不据此虚构成本。充值不等于授权动用1USDC本金，真实approve/兑换仍须具体批准。旧报价21:43:02已过期，只作成本诊断，不签旧方案、不自动重付新报价费。API费不是业务B成功，完整六能力与正式三维政策不变。详细原件、命令和边界见[受控实验方案](docs/runbooks/CONTROLLED_TRANSACTION_PILOT_20261023.md)。
+当前task_id=`SPRAAY_REAL_SWAP_PILOT_COMPLETE`。用户批准的一次真实1USDC→WETH已经完成：Base交易`0xc128634a06746badd64c9e07fff97cfb486350239b7ecb7c9e50fba616e0c193`，实际到账0.000419044293938828WETH，高于最低0.000417377880055966，USDC精确扣1000000单位，Router剩余授权0、既有委托不变。19次可信RPC独立核canonical receipt/官方Factory池/同交易Swap及Transfer/三组区块余额全部通过；追加4次只读核153区块确认距离、同块operatorFee=0，网络总费0.000001128052393709ETH与ETH余额差完全一致。新方案费0.015USDC亦已5次可信读取核实唯一Transfer/费用nonce消费；连首轮方案费累计0.03USDC，本金1USDC已换成WETH。余额1.47USDC、0.000419044293938828WETH、0.002998871947606291ETH。所有签名/唯一广播与独立核验exit0，未改权限、未发币；这一次资金授权已用完，不再自动付费、兑换或重播。正式完整分新增0：兑换功能已证明三维取证可行，但尚需注册身份归属、共用判据及足量独立样本；其他五项能力未测，不把单笔或自有签执行冒充整体完成/Spraay自主交易。下一task_id=`SWAP_GENERAL_RULES_AND_REGISTERED_IDENTITY`，先复核缓存注册声明与接口归属、按通用兑换能力规划样本，不围绕单对象堆评分。完整原件与易懂三维解读见[实验报告](docs/runbooks/CONTROLLED_TRANSACTION_PILOT_20261023.md)。
 
 本轮已追加独立XRPL节点采证：操作者按XRPL官方公共服务器表固定xrplcluster.com，仅一次tx查询HTTP200/exit0。公开样本在validated账本107591208中Payment成功、实际到账3.347405XRP，与提供方收据差581drops；不是只靠Agent响应或区块浏览器。原件`runtime/controlled-pilot-xrpl-read-preflight-20261023T121227Z-f0bd1be9/`。该XRPL取证属于既有公开样本，不是本买方付费桥接；本轮Spraay服务费与新签名另见最新状态。主应用工程测试NOT_RUN。
 
@@ -30,7 +30,7 @@ iCLONE订单`82142`观察已收口：唯一sponsored/零转账建单交易`0x3a8
 
 前一批询价已停止，目标未达成：新增三个真实交易服务、四个零付款订单，实际接单报价0、已确认可拿齐完整评价证据的对象0。ZeroAgent的82146、Ethy的82147，以及修正流程后的GSB 82148均在需求已获平台接受并记入同job历史后REJECTED，budget均null；原因只有bytes32哈希，明文未知，不能归因为余额、费用、请求文本或协议版本。GSB首单82145在我们发送需求前已拒绝，首次需求HTTP403；修正共用时序后只补做了一单，82148只提交标准requirement、无长文本询问，仍拒绝，因此不再重试这批对象。四单建单均经可信Base RPC独立核验；GSB首单拒绝另有独立链事件核验，其余拒绝以本轮已取官方任务历史为依据。未fund、支付服务费/本金、兑换、发币、身份mint或新增评分。详细时间、原件和失败路径见[可行性记录](docs/research/SMALL_BUDGET_TRANSACTION_FEASIBILITY_20261023.md)。
 
-当前推进边界：沿用现有Base专用买方，不恢复过期ACP旧单。0.015USDC方案费已经独立证实结算，该nonce已消费，不能再运行首次或修正付款operator。当前仅等ETH交易哈希并核到账；不因充值自动approve、兑换1USDC或支付第二次报价费。自付ETH只读路径和成本已核，旧报价已过期，下一task_id=`SPRAAY_SWAP_EXECUTION_APPROVAL`须准备新有效方案及明确本金/gas/如需新方案费的具体授权。无ETH哈希时不轮询钱包。完整六能力计划保留，API付款不等于业务B成功或完整三维分。
+当前推进边界：本次新方案费及唯一真实兑换均已完成并核账，批准范围已经消耗完毕；各费用nonce已使用，交易nonce1已上链，不重启任何付款/兑换operator，不因钱包余额充足继续交易。保留原件、只追加证明，下一步只读核注册身份/接口归属及设计可复用判据、正式样本计划。若以后需新增付费或资产实验，先列具体用量和费用另获批准。现有三维、30/40/30及正式门槛不变；不把一单当全部六能力或完整评分。
 
 本人欧易USDC/Base已确认，0.02USDC≈0.0199美元暂作同一显示金额，最低额未知；服务费固定路径USDC，本金另核，不先要求买ETH。工程测试NOT_RUN，生产代码/评分未改，私有runtime不发布。详见[可行性与原件索引](docs/research/SMALL_BUDGET_TRANSACTION_FEASIBILITY_20261023.md)。
 
@@ -38,7 +38,7 @@ iCLONE订单`82142`观察已收口：唯一sponsored/零转账建单交易`0x3a8
 
 前轮候选筛查已完成，多个完整可评对象的目标尚未达成，新增完整分0。两个Venus身份的代表执行归属已实核，但各仅1业务任务；Zyfai/ACP缺实例级任务材料，Celo/Agenthaus未闭合。86次只读观察和84份响应SHA核对已保存，未改生产代码。当前以用户随后确认的小额自助路线调查补源，不恢复旧联系任务。[筛查汇总](docs/research/FULL_SCORE_TRADING_AGENT_DISCOVERY_20261023.md)；[前轮交付](docs/runbooks/CHAIN_EXECUTION_PROGRESS_20261023.md)。
 
-本轮基线已纳入`origin/main=14dcf6b`（PR #19）；前轮`codex/chain-execution-focus-20261023`的功能提交`7f3eec2`/`6ad6976`已push并建立[草稿PR #20](https://github.com/Ryanjxy123/web3-agent-reputation/pull/20)，未合并。当前分支`codex/trading-agent-quotes-20261023`继承`8a85b35`；前一检查点`b272b41`已本地提交；本轮5份文档补充真实入金、Spraay方案费独立核验、智能签名修正及自付gas预检，未push。main未改、未自动合并。旧日期记录仅为历史。
+本轮基线已纳入`origin/main=14dcf6b`（PR #19）；前轮`codex/chain-execution-focus-20261023`的功能提交`7f3eec2`/`6ad6976`已push并建立[草稿PR #20](https://github.com/Ryanjxy123/web3-agent-reputation/pull/20)，未合并。当前分支`codex/trading-agent-quotes-20261023`继承`8a85b35`；前一检查点`e76d18e`已本地提交；本轮5份文档补充真实入金、Spraay方案费独立核验、智能签名修正及自付gas预检，未push。main未改、未自动合并。旧日期记录仅为历史。
 
 ## 2026-10-21 指导老师反馈与文档方案
 

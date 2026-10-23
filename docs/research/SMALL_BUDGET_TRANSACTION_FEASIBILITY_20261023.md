@@ -1,6 +1,6 @@
 # 小额实交易：真实Agent评价可行性
 
-日期：2026-10-23。当前task_id：`SPRAAY_WAIT_BASE_ETH_DEPOSIT`，主线`MULTI_PROVIDER_TRADING_EVIDENCE`，延续`SMALL_BUDGET_TRANSACTION_FEASIBILITY`。
+日期：2026-10-23。当前task_id：`SPRAAY_REAL_SWAP_PILOT_COMPLETE`，主线`MULTI_PROVIDER_TRADING_EVIDENCE`，延续`SMALL_BUDGET_TRANSACTION_FEASIBILITY`。
 
 用户取消对外材料请求，改自己参与小额真实交易。原30元不再阻断研究/准备，用户已买币10元；前期未充值/付费/兑换；本轮用户已实际入金2.5USDC，付款状态见下方最新记录。EVM No Policy已读回生效，账户委托上链；先前一次建单因期限缓冲不足失败，独立核清后修正并成功创建Nox订单82141。真实需求已提交，约395秒观察仍无提供方报价/资金请求，订单期限已过，不向旧单付款。Nox观察已收口；用户随后明确授权继续iCLONE接单/报价/证据预检，需要充值再告知。iCLONE与Nox同属Virtuals ACP市场，是不同Agent；只建立零价值、gas赞助的swap_base订单及提交1USDC→WETH/0.5%滑点需求，不付款、充值或兑换。iCLONE随后观察30分45秒仍无提供方回复或报价，已停止。两者均未进入付费执行，不建议现在充值；真实兑换和两对象完整评价仍未达成。
 
@@ -8,7 +8,7 @@
 
 当前主线改为主动实验与独立取证：用户提出先做一笔受控真实交易，由平台保存原始任务、报价与付款信息，独立核链和资产变化，再据结果评价。此方案可行；未充值、尚无样本只说明尚未验证，不能断言无法三维评分。不要求Agent预先返回全部评价材料或在首单前已有完整历史。覆盖优先及多对象可复用目标保持，单笔pilot先验证取证流程，不为单对象写评分规则。禁止发币/tokenize/身份NFT；当前按用户最新要求切换到无需XRPL钱包的交易Agent小额实验，先核现有Base/USDC路径与实际报价，费用明确后再通知充值。
 
-当前task_id=`SPRAAY_WAIT_BASE_ETH_DEPOSIT`。用户已入金2.5USDC；已成功付一次0.015USDC取得“1USDC→WETH、50bps”unsigned方案，余额2.485USDC。服务费交易`0x36f0092e9b358c281b97e640e7b6939f91c3af40dfc485c7b06ddc383ea9b5fa`已独立核canonical receipt/精确Transfer/同nonce AuthorizationUsed；未approve、未兑换、未花1USDC本金。初次我方EOA签名不适配Alchemy v1.0的问题已按官方ReplaySafeHash/1271封装修正，复用原nonce且未重复扣费，源码与原尝试保留。Virtuals unsigned gas预估先401，经既有授权仅刷新acp-auth后明确400：Uniswap Router02不在赞助白名单；不得套壳绕过。随后官方Base RPC52987105对原两call executeBatch做只读自付gas仿真及估算通过（9读exit0、0签/0广播/无状态覆盖），预计178059gas，L2+L1上界+已读取operator费合计0.000002048336528037ETH，按本次报价粗算约0.0049USDC。用户已获知网络费很小，随后明确表示将自行提币ETH；已再次提供与USDC相同的专用买方地址，明确币种ETH/网络Base/本人非托管钱包。当前等待ETH交易哈希及独立到账核验，尚未收到ETH到账证明；最低提币/交易所费用若未提供只记未知，不据此虚构成本。充值不等于授权动用1USDC本金，真实approve/兑换仍须具体批准。旧报价21:43:02已过期，只作成本诊断，不签旧方案、不自动重付新报价费。API费不是业务B成功，完整六能力与正式三维政策不变。详细原件、命令和边界见[受控实验方案](docs/runbooks/CONTROLLED_TRANSACTION_PILOT_20261023.md)。
+当前task_id=`SPRAAY_REAL_SWAP_PILOT_COMPLETE`。用户批准的一次真实1USDC→WETH已经完成：Base交易`0xc128634a06746badd64c9e07fff97cfb486350239b7ecb7c9e50fba616e0c193`，实际到账0.000419044293938828WETH，高于最低0.000417377880055966，USDC精确扣1000000单位，Router剩余授权0、既有委托不变。19次可信RPC独立核canonical receipt/官方Factory池/同交易Swap及Transfer/三组区块余额全部通过；追加4次只读核153区块确认距离、同块operatorFee=0，网络总费0.000001128052393709ETH与ETH余额差完全一致。新方案费0.015USDC亦已5次可信读取核实唯一Transfer/费用nonce消费；连首轮方案费累计0.03USDC，本金1USDC已换成WETH。余额1.47USDC、0.000419044293938828WETH、0.002998871947606291ETH。所有签名/唯一广播与独立核验exit0，未改权限、未发币；这一次资金授权已用完，不再自动付费、兑换或重播。正式完整分新增0：兑换功能已证明三维取证可行，但尚需注册身份归属、共用判据及足量独立样本；其他五项能力未测，不把单笔或自有签执行冒充整体完成/Spraay自主交易。下一task_id=`SWAP_GENERAL_RULES_AND_REGISTERED_IDENTITY`，先复核缓存注册声明与接口归属、按通用兑换能力规划样本，不围绕单对象堆评分。完整原件与易懂三维解读见[实验报告](docs/runbooks/CONTROLLED_TRANSACTION_PILOT_20261023.md)。
 
 本轮已追加独立XRPL节点采证：操作者按XRPL官方公共服务器表固定xrplcluster.com，仅一次tx查询HTTP200/exit0。公开样本在validated账本107591208中Payment成功、实际到账3.347405XRP，与提供方收据差581drops；不是只靠Agent响应或区块浏览器。原件`runtime/controlled-pilot-xrpl-read-preflight-20261023T121227Z-f0bd1be9/`。该XRPL取证属于既有公开样本，不是本买方付费桥接；本轮Spraay服务费与新签名另见最新状态。主应用工程测试NOT_RUN。
 
@@ -181,7 +181,7 @@ Nox订单`82141`已真实创建并观察收口：No Policy自动签名/单次提
 
 此前唯一广播的旧UserOp因ExpiryTooShort失败，已6次可信RPC及独立事件解码确认无JobCreated；7702委托已实际生效，旧操作不能重播。修正为5min原SLA+180s准备缓冲，签名前/提交前剩余>330s；新calldata先经确切eth_call成功，再构造唯一发送。源于接入流程，不计Nox FAIL；旧失败原件与新成功原件均保留，未改评分规则。
 
-当前推进边界：沿用现有Base专用买方，不恢复过期ACP旧单。0.015USDC方案费已经独立证实结算，该nonce已消费，不能再运行首次或修正付款operator。当前仅等ETH交易哈希并核到账；不因充值自动approve、兑换1USDC或支付第二次报价费。自付ETH只读路径和成本已核，旧报价已过期，下一task_id=`SPRAAY_SWAP_EXECUTION_APPROVAL`须准备新有效方案及明确本金/gas/如需新方案费的具体授权。无ETH哈希时不轮询钱包。完整六能力计划保留，API付款不等于业务B成功或完整三维分。
+当前推进边界：本次新方案费及唯一真实兑换均已完成并核账，批准范围已经消耗完毕；各费用nonce已使用，交易nonce1已上链，不重启任何付款/兑换operator，不因钱包余额充足继续交易。保留原件、只追加证明，下一步只读核注册身份/接口归属及设计可复用判据、正式样本计划。若以后需新增付费或资产实验，先列具体用量和费用另获批准。现有三维、30/40/30及正式门槛不变；不把一单当全部六能力或完整评分。
 
 ## 本轮三家候选的声明初筛（实际询价结果见上方）
 
