@@ -1,8 +1,8 @@
 # 小额实交易：真实Agent评价可行性
 
-日期：2026-10-23。当前task_id：`NOX_CONTROLLED_FIRST_JOB`，主线`NOX_ICLONE_BUYER_FUNDING_PREFLIGHT`，延续`SMALL_BUDGET_TRANSACTION_FEASIBILITY`。
+日期：2026-10-23。当前task_id：`NOX_SIGNER_AUTOMATION_SETUP`，主线`NOX_ICLONE_BUYER_FUNDING_PREFLIGHT`，延续`SMALL_BUDGET_TRANSACTION_FEASIBILITY`。
 
-用户取消对外材料请求，改自己参与小额真实交易。最新明确“预算先别管”，原30元暂不作为研究/准备的硬门槛；实际费用继续记录，具体充值与签名前说明金额、用途及权限。用户报告已花10元买币；owner登录、普通买方和DENY_ALL signer已准备，Base余额为0。协议登录与unsigned建单预检已成功，明确标记本次gas赞助；尚未签账户委托/UserOp、充值、建链上任务或新增评分。先完成两个真实外部Agent各一次闭环。
+用户取消对外材料请求，改自己参与小额真实交易。最新明确“预算先别管”，原30元暂不作为研究/准备的硬门槛；实际费用继续记录，具体充值与签名前说明金额、用途及权限。用户报告已花10元买币；owner登录、普通买方和DENY_ALL signer已准备，Base余额为0。协议登录与unsigned建单预检已成功，明确标记本次gas赞助；用户已官网批准账户委托/UserOp，但旧job过期未广播，现待切换受限自动策略；尚未充值、建链上任务或新增评分。先完成两个真实外部Agent各一次闭环。
 
 ## 必须保持的边界
 
@@ -70,7 +70,11 @@
 
 指定版本的新payload再次按实际内容离线核对，命令exit0，结果为同目录`audit.json`：请求/响应SHA固定；外层execute、内层createJob、builder后缀与新到期时间逐字节匹配；7702的chain/delegate/nonce及授权hash、UserOp hash、personal_sign hash均独立重算匹配。没有调用网络或签名函数，不替代之后实际广播时的新鲜payload核验。
 
-只读预检已完成；用户最新明确批准`NOX_CONTROLLED_FIRST_JOB`：Base专用买方采用Alchemy v1.0.0、仅Nox建单并发送1USDC→WETH/0.5%滑点需求取条款，不充值/付款/兑换。两项官网逐笔审批尚未申请，后续按批准范围准备新鲜payload；7702使专用买方账户采用指定智能账户代码，委托会持续到替换/撤销，并不只覆盖本次任务；UserOp则只执行核明的Nox建单。二者超出原登录签名许可，现已另获上述授权，但尚未实际签署。执行时先准备新鲜待签payload，人工审批并建单取真实条款；本金、付款、兑换与后续结算另核，不在本步自动执行。禁止发币/身份铸造保持不变。
+以下为已批准的建单阶段范围（当前转入`NOX_SIGNER_AUTOMATION_SETUP`）：Base专用买方采用Alchemy v1.0.0、仅Nox建单并发送1USDC→WETH/0.5%滑点需求取条款，不充值/付款/兑换。两项官网逐笔审批随后已完成，旧任务过期未发；后续自动策略进度见下方最新段落；7702使专用买方账户采用指定智能账户代码，委托会持续到替换/撤销，并不只覆盖本次任务；UserOp则只执行核明的Nox建单。二者超出原登录签名许可，已另获上述授权且随后由用户官网批准；旧job恢复401、过期未广播，见下方最新进度。执行时先准备新鲜待签payload，人工审批并建单取真实条款；本金、付款、兑换与后续结算另核，不在本步自动执行。禁止发币/身份铸造保持不变。
+
+最新执行进度：fresh Nox建单与两项签名请求已在`createjob-approvals-2026-10-23T08-18-28.852Z.private/`保存，用户均已官网核对批准。恢复在首个owner审批GET即HTTP401，未进入广播、无SEND_INTENT；原job窗口已于08:24UTC到期，不发送旧call，也不盲重建。官方CLI随后通过现有会话恢复完成只读策略核查：08:25UTC signers/global均200，当前仍DENY_ALL，ethereum全局另有ACP_ONLY；返回只有名称/ID，没有细则或金额限制。
+
+用户已明确要求取消持续人工审批、由助手按约定范围判断。当前`NOX_SIGNER_AUTOMATION_SETUP`：已请用户在原买方官网Signers页将现有signer一次性改为ACP_ONLY/Restricted，尚待完成并读回；不采用No Policy，不重建钱包/密钥。CLI `agent set-signer-policy`只能指向官网，真实变更须owner Privy会话，不能用P256 signer自行提升权限。ACP_ONLY不等于仅Nox或1USDC，现有custom接口也只有目标地址白名单；金额、资产、provider、selector及禁发币由本地operator逐笔核，不冒称后台硬限额。本次仍只获准账户委托与Nox建单/需求/取条款，不充值、付款或兑换。策略变更后准备新鲜UserOp，不使用过期建单；旧7702签名只有在chain/delegate/nonce及恢复验签完全匹配时才可能复用，不能当已上链。原签名/会话/策略响应均留忽略目录。
 
 ## 当前优先：欧易入金与钱包辅助
 

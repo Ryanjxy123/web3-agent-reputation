@@ -10,25 +10,17 @@ task_id=`CHAIN_EXECUTION_FOCUS_20261023`实现与本机验收完成。用户已�
 
 本机PG/API与独立只读worker已恢复，新增包`data/chain-execution-evidence-v1.tar.gz`含521个公开原件、235329B，离线还原核验不需RPC/LLM。背景证据与原报告分开，规则见ADR-0021。必要新证据回放/失败边界、前端构建、真实HTTP/PG/附件及桌面/390px视觉通过。最终原件复看后将直接buy与MultiSend授权买入分别描述、中文说明已知缺项；只追加修订展示，不重采/改分，旧快照保留。当前49身份/50报告/10个链证据对象（20版本）/12个完整历史身份、0活动任务。
 
-当前主线`NOX_ICLONE_BUYER_FUNDING_PREFLIGHT`，当前子任务`NOX_CONTROLLED_FIRST_JOB`，延续`SMALL_BUDGET_TRANSACTION_FEASIBILITY`：用户已取消对外材料请求，改为自己作为客户开展小额真实交易。最新决定为“预算先别管”：原30元暂不作为研究与准备的硬门槛，继续记录服务费、本金、gas、兑换及入金退出成本；后续具体充值和签名前说明金额、用途及权限，由用户本人确认完成。不再联系操作者。先确认两个真实外部Agent各一次任务的证据闭环，不承诺一次任务产生完整三维分。
+主线为Nox/iCLONE两个真实外部Agent各一次小额交易任务闭环，再决定共用适配及正式7F/7B取样；一次任务不冒充完整分。用户取消对外联系；原30元不再阻断研究/准备，已买币10元仍记成本。禁止发币、tokenize和身份NFT铸造，付款与本金尚未获准自动执行。
 
-用户指定本阶段结果：确认Nox/iCLONE能否各做一次小额真实交易并取得可独立核验的任务证据；需要用户登录、签名或充值时给出具体步骤。原30元可行性调查仍保留参考，不再据此停止。已固定官方客户端版本并取得服务Schema；只读发现不授予交易signer，普通买方准备与实际链上签名分开。
+当前task_id=`NOX_SIGNER_AUTOMATION_SETUP`。用户已明确要求取消持续人工审批、由助手在约定范围内判断。已请用户在既有买方Signers页一次性把DENY_ALL改为ACP_ONLY/Restricted，当前待官网完成及读回；不选No Policy，不重建钱包或密钥。CLI只能指向官网，变更必须owner Privy会话。实读全局策略仅提供名称/ID，没有金额细则；custom也只有地址白名单，provider/资产/金额/selector和禁止发币仍由本地operator校验，不冒称后台硬限额。
 
-本轮已固定CLI1.0.40/SDK0.1.15，两准确UUID匿名详情均200，固定0.05标价、requiredFunds及需求/交付字段已核。owner登录已成功；原请求HTTP400被CLI误显pending的诊断与更换一次链接的原件保留，不重复登录。两家上游1USDC的USDC→WETH报价均200、DEX gas估计各约0.004美元，仅作路由预估，不是Agent接单或全包报价。当前优先欧易USDC/Base直接入金路线，普通买方及人工审批signer已准备；尚未动用资金。
+已完成普通JSON买方创建（record/email201，ERC8004与virtual身份null/chains=[]）、本地signer和DENY_ALL读回、owner及协议登录。Base块52975410余额ETH/USDC均0、code=0。用户已批准仅此专用买方的Alchemy v1.0.0持续7702委托，以及仅Nox建单、提交1USDC→WETH/50bps需求并读取真实条款；不充值、不支付服务费/本金、不兑换。取消人工审批只改签名方式，不自动扩大业务范围。
 
-用户现已在本人账户确认USDC提币支持Base；此前列举的无Base网络清单属于USDT，不据此排除USDC。页面显示0.02USDC与约0.0199美元，先记录为同一金额的两种显示，最低提币量仍未知。用户报告已为本轮买币花10元，不再要求为查网络追加购币。官方CLI/SDK已确认本次ACP服务费用Base原生USDC，不能用USDT直接替代；本金可独立选择。准备普通买方时仅运行已审JSON create、不带signer，跳过客户端身份mint/tokenize。下一步取得买方地址与人工审批权限，再给具体充值单。gas支付取决于prepare，不先安排买ETH；禁发币保持不变。
+unsigned建单prepare成功，默认Alchemy v1.1.0与固定SDK0.1.15不符；按官方能力显式v1.0.0后201、delegate匹配、sponsored=true，离线核对调用与7702/UserOp/personal_sign摘要通过。仅建单的赞助标记不能外推fund/兑换/结算免费。两份fresh签名已由用户官网批准，但恢复首个owner审批GET401，旧job于08:24UTC到期，未广播、无SEND_INTENT、未建job。随后官方CLI只读signers/global均200，当前仍DENY_ALL。原件`createjob-approvals-2026-10-23T08-18-28.852Z.private/`及`policy-read-2026-10-23T08-25-55.743Z.private/`。
 
-普通买方在明确批准后创建：平台记录/邮箱POST201，回读GET200且ERC8004/virtual身份均null、chains=[]；仅作客户，不计被评价Agent。首次创建与首次signer准备均被自动审批在启动前拒绝，随后用户分别明确批准才执行。生成密钥/申请deny-all已POST201，用户官网批准后status=completed、实际policy=DENY_ALL，注册signer审批已完成，不再等待旧链接。
+策略读回后先核owner/agent会话有效，再准备有效期内的Nox UserOp；已批准旧7702只有chain/delegate/nonce和验签完全匹配才可复用，不当作已上链。广播前持久化意图、仅发送一次；未知先reconcile，不换nonce盲重发，不用高层create-job探价。详情和Schema不重采，不把自有DEX或上游报价算Agent履约。
 
-Base块52975410的USDC/ETH余额均0、code=0。登录消息实际触发DENY_ALL人工审批；已从官网前端定位并实读owner GET审批原结果，离线验签。首消息因排查耗时过期，用户批准新时间戳消息后auth及unsigned prepare成功，会话存官方keychain，不再重复登录。默认prepare委托v1.1.0与SDK固定v1.0.0不一致；两者均为Alchemy官方实现。依官方能力显式选择v1.0.0只读预检，单次TLS故障后唯一重试201，delegate匹配SDK、建单标记gas赞助，未签UserOp/7702/permit或广播。
-
-只读预检已完成，当前task_id=`NOX_CONTROLLED_FIRST_JOB`：用户已明确批准专用买方在Base采用Alchemy v1.0.0账户委托、仅Nox建单并提交1USDC→WETH/0.5%滑点需求取条款；不充值、支付服务费/本金或兑换。先准备新鲜payload、保留签名前意图，再向官网申请两项逐笔审批；批准后仅一次提交，超时先reconcile不盲重发。EIP-7702委托持续到替换/撤销，不是一次任务授权；本次UserOp仅createJob、value0，不能当登录消息签。资金、报价与后续fund/兑换/结算另核，不把本次sponsored=true扩成全流程免费，不先要求购ETH，不改变DENY_ALL或发行任何资产。
-
-源码已确认`agent list --json`可在owner登录后无signer读取已有买方；未发现两家独立预报价命令。LI.FI免费路由预估不等于iCLONE全包报价，也不能替Nox报价。若需创建真实job才能报价，先说明该前置写入及成本，不以“查询报价”名义悄悄写链。
-
-用户进一步确认“禁止发币”为竞赛红线：不发行代币/NFT、不做Agent代币化，不使用第三方CLI的tokenize/token launch，不为凑对象新发身份NFT。若第三方接入强制这些步骤，则排除该路线。拟研究操作仅限既有资产与既有第三方Agent服务；此项已写入AGENTS长期约束，不能被后续小额预算或工具默认流程覆盖。
-
-优先核Nox/iCLONE的Base现货兑换，先确认每个对象可闭合一次任务后再扩完整样本；不把平台自带trade命令或我们直接调用DEX当它们履约。Zyfai每实例10USDC最低余额且低额低频，不适合本次30元预算；Wasabot杠杆业务暂不选。完整取样仍按原A10/F7/B7与独立任务规则，付钱不替代独立核验。详见[30元实交易可行性](docs/research/SMALL_BUDGET_TRANSACTION_FEASIBILITY_20261023.md)。此前申请文案留档，状态为取消、未发送。
+本人欧易USDC/Base已确认，0.02USDC≈0.0199美元暂作同一显示金额，最低额未知；服务费固定路径USDC，本金另核，不先要求买ETH。工程测试NOT_RUN，生产代码/评分未改，私有runtime不发布。详见[可行性与原件索引](docs/research/SMALL_BUDGET_TRANSACTION_FEASIBILITY_20261023.md)。
 
 `FULL_SCORE_TRADING_AGENT_DISCOVERY`的选择原则保持：同一对象核验公开注册、可实测且绑定身份的服务入口、有来源交易功能声明、执行账户授权、原始任务及交易效果、独立7F/7B样本来源；多个真实对象同时具备条件后，再确定共用业务规则与协议适配。允许合法认证、获授权只读导出及同一提供方多实例；7F/7B是独立任务，非必须14笔交易。不围绕单对象编码，不以平台API、RPC在线或交易次数替代Agent可用性；现有Olas证据保留，暂不继续扩无接口样本。三维、权重、门槛与历史报告不变。
 

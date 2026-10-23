@@ -2,21 +2,19 @@
 
 ## 2026-10-23 当前主线（优先于下方历史记录）
 
-工作目录`D:/xjtu_project/block_chain_new/block_chain_new_new`。主线`NOX_ICLONE_BUYER_FUNDING_PREFLIGHT`，当前`NOX_CONTROLLED_FIRST_JOB`：用户取消材料请求，改自己做小额真实交易；最新说“预算先别管”，原30元不作为研究/准备硬门槛，仍记实际成本并在充值/签名前给金额用途权限。用户报告已花10元买币，平台未转账/发任务/新评分。不要联系操作者。目标仍为Nox/iCLONE各一次真实任务闭环，不用平台trade或自点DEX冒充，不把一次任务当完整分。[当前结论](docs/research/SMALL_BUDGET_TRANSACTION_FEASIBILITY_20261023.md)。
+工作目录`D:/xjtu_project/block_chain_new/block_chain_new_new`，不扫描父失败项目。
 
-官方CLI1.0.40/SDK0.1.15在`runtime/nox-iclone-preflight-20261023/client/`。两UUID详情匿名200；owner已登录，勿重复授权。用户确认USDC可提Base，显示0.02USDC≈0.0199美元，最低额未知；已花10元。普通买方已获批创建，record/email201、回读ERC8004与virtual ID均null/chains=[]，私有`buyer-detail.private.json`含准确UUID/钱包；该买方不计评分覆盖。signer亦经单独批准生成与申请，用户官网批准后status=completed、policy实读DENY_ALL；旧注册signer审批已结束，不另生key或复用旧链接。Base块52975410的ETH/USDC均0、code=0；未充值/转账/发任务。
+主线为Nox/iCLONE两个真实外部Agent各一次小额交易任务闭环，再决定共用适配及正式7F/7B取样；一次任务不冒充完整分。用户取消对外联系；原30元不再阻断研究/准备，已买币10元仍记成本。禁止发币、tokenize和身份NFT铸造，付款与本金尚未获准自动执行。
 
-首次create与首次signer准备均在进程启动前被自动审批拒绝，用户随后分别明确批准才执行。用户又允许仅签`acp-auth`登录消息及只读预检，不含交易/UserOp/7702/permit。消息实际需人工审批；官网前端定义owner GET `/wallets/approvals/{id}`可取原结果，真实200并离线验签，不需再次签名或SSE。首消息过期auth400；用户批准新时间戳同类消息后auth/unsigned prepare成功，会话已存官方keychain。成功原件`resume-auth-prepare-2026-10-23T07-58-34.972Z.private/`，公开源码依据`runtime/acp-approval-public-source-20261023T074716Z/`。不要恢复旧“无恢复GET”结论或重复登录。
+当前task_id=`NOX_SIGNER_AUTOMATION_SETUP`。用户已明确要求取消持续人工审批、由助手在约定范围内判断。已请用户在既有买方Signers页一次性把DENY_ALL改为ACP_ONLY/Restricted，当前待官网完成及读回；不选No Policy，不重建钱包或密钥。CLI只能指向官网，变更必须owner Privy会话。实读全局策略仅提供名称/ID，没有金额细则；custom也只有地址白名单，provider/资产/金额/selector和禁止发币仍由本地operator校验，不冒称后台硬限额。
 
-默认prepare返回v1.1.0 delegate0x770211…0000，但SDK0.1.15固定ALCHEMY_SIGNING_CONTRACT为v1.0.0的0x690077…E139；两者均为Alchemy官方部署，不能混签。按官方支持能力显式请求v1.0.0的unsigned prepare在一次TLS故障、唯一重试后201，delegate已匹配SDK、feePayment.sponsored=true；原件`version-pinned-prepare-2026-10-23T08-05-08.438Z.private/`。仅建单预检，不保证fund/实际兑换/结算免费。只读预检已完成，当前`NOX_CONTROLLED_FIRST_JOB`已获用户明确批准：Base专用买方启用Alchemy v1.0.0、签/提交仅Nox建单并发送1USDC→WETH/0.5%滑点需求取条款，不充值/付款/兑换。两项官网逐笔审批尚未申请，先准备新鲜payload和发送前意图；7702为持续账户委托，UserOp为本次建单执行签名，均非登录消息；二者尚未签，未充值/广播/创建job，不放开DENY_ALL。禁止发币/身份铸造一直保持。
+已完成普通JSON买方创建（record/email201，ERC8004与virtual身份null/chains=[]）、本地signer和DENY_ALL读回、owner及协议登录。Base块52975410余额ETH/USDC均0、code=0。用户已批准仅此专用买方的Alchemy v1.0.0持续7702委托，以及仅Nox建单、提交1USDC→WETH/50bps需求并读取真实条款；不充值、不支付服务费/本金、不兑换。取消人工审批只改签名方式，不自动扩大业务范围。
 
-已确认官方`agent list --page 1 --page-size 10 --json`是无signer的owner GET，可用于下一步。未发现两家独立预报价命令，create-job是真实写链；trade dry-run不是聘请它们。LI.FI免费报价仅是iCLONE路由预估，不保证全包成本。若必须先创建job才能报价，先向用户说明写链成本及权限，不以报价为由直接执行；fund --amount不限制额外本金，买方evaluator和本金退款路径均须核。
+unsigned建单prepare成功，默认Alchemy v1.1.0与固定SDK0.1.15不符；按官方能力显式v1.0.0后201、delegate匹配、sponsored=true，离线核对调用与7702/UserOp/personal_sign摘要通过。仅建单的赞助标记不能外推fund/兑换/结算免费。两份fresh签名已由用户官网批准，但恢复首个owner审批GET401，旧job于08:24UTC到期，未广播、无SEND_INTENT、未建job。随后官方CLI只读signers/global均200，当前仍DENY_ALL。原件`createjob-approvals-2026-10-23T08-18-28.852Z.private/`及`policy-read-2026-10-23T08-25-55.743Z.private/`。
 
-两个上游1USDC USDC→WETH报价均200、gas约0.004美元，仅证明小额路由存在；原件`upstream-route-estimates/`，不是Agent测试。买方采用JSON/no-signer路径，客户端在身份mint前返回，后台记录/邮箱已实建、身份字段实读null。signer保留DENY_ALL；本次连登录消息也实际触发人工审批，以403实测为准，不能按README推断消息必免审批。首次custom policy可能回退ACP_ONLY，不改策略绕过。
+策略读回后先核owner/agent会话有效，再准备有效期内的Nox UserOp；已批准旧7702只有chain/delegate/nonce和验签完全匹配才可复用，不当作已上链。广播前持久化意图、仅发送一次；未知先reconcile，不换nonce盲重发，不用高层create-job探价。详情和Schema不重采，不把自有DEX或上游报价算Agent履约。
 
-欧易公开C2C10元起/平台交易费零，不代表当前商家一定接30元或可立即提币；本人提币费未知，不套用OKX TR表。Web3钱包和交易所资产分开；可直接提到正确ACP买方时省去中转，不把自有钱包操作当Nox/iCLONE履约，也不为钱包接入索取API Key。买方gas免费/用USDC付/需ETH须看实际prepare，当前不安排购ETH。海外卡路线已降备用，Coinbase旧Hosted Guest2026-06-30停用，不恢复旧5%游客支付假设。私人的地区与卡信息只作本地资格核查，不公开支付/实名材料。
-
-**竞赛红线：禁止发币。** 用户已明确要求，不发行代币/NFT、不做Agent代币化，不执行tokenize/token launch或新发身份NFT。工具有这些功能也不得调用；接入若强制相关动作则换路线，不以“身份注册”名义绕过。读取已有Agent身份与交易证据不受影响。
+工具CLI1.0.40/SDK0.1.15在`runtime/nox-iclone-preflight-20261023/client/`；会话由官方keychain保存，配置/准确buyer身份在私有`auth.private/config.json`、`buyer-detail.private.json`，勿输出token/密钥/邮箱。运行每进程配置7897代理与NODE_USE_ENV_PROXY=1。审批原结果可由官网已有owner GET `/wallets/approvals/{id}`读取，不再用需额外登录签名的SSE恢复。细节与历史失败见[可行性记录](docs/research/SMALL_BUDGET_TRANSACTION_FEASIBILITY_20261023.md)。
 
 前轮`FULL_SCORE_TRADING_AGENT_DISCOVERY`已筛查，多个完整可评交易对象的目标仍未达成，新增完整分0。两个新Venus各1业务任务，代表执行归属已实核；Celo/Agenthaus、ACP、Zyfai具体缺项见[汇总](docs/research/FULL_SCORE_TRADING_AGENT_DISCOVERY_20261023.md)，不要重扫已知缺源。86只读观察/84响应SHA一次核对通过，未改生产代码或新评分，工程测试NOT_RUN。补源方向已经用户确认，不要再次询问同一选择。
 
