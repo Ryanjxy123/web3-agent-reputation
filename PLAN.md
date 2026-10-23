@@ -10,11 +10,13 @@ task_id=`CHAIN_EXECUTION_FOCUS_20261023`实现与本机验收完成。用户已�
 
 本机PG/API与独立只读worker已恢复，新增包`data/chain-execution-evidence-v1.tar.gz`含521个公开原件、235329B，离线还原核验不需RPC/LLM。背景证据与原报告分开，规则见ADR-0021。必要新证据回放/失败边界、前端构建、真实HTTP/PG/附件及桌面/390px视觉通过。最终原件复看后将直接buy与MultiSend授权买入分别描述、中文说明已知缺项；只追加修订展示，不重采/改分，旧快照保留。当前49身份/50报告/10个链证据对象（20版本）/12个完整历史身份、0活动任务。
 
-当前task_id=`FULL_SCORE_TRADING_AGENT_DISCOVERY`：用户已确认优先寻找多个能完整三维评价的真实交易Agent。先按同一对象核验公开注册、可实测且绑定身份的服务入口、有来源交易功能声明、执行账户授权、原始任务及交易效果、独立7F/7B样本来源；至少多个真实对象同时具备条件后，再确定共用业务规则与协议适配。允许合法认证、获授权只读导出及同一提供方多实例；7F/7B是独立任务，非必须14笔交易。先调查既有候选及其他提供方，不围绕单对象编码，不以平台API、RPC在线或交易次数替代Agent可用性；现有Olas证据保留，暂不继续扩无接口样本。三维、权重、门槛与历史报告不变。
+当前task_id=`MULTI_AGENT_READONLY_EVIDENCE_GATE`：用户已选择协助取得多个实例的只读接口/历史导出，并说明目前没有联系人。官方渠道、可转发中英文请求及最小接收清单已备齐：[材料申请](docs/runbooks/REQUEST_READONLY_AGENT_EVIDENCE_20261023.md)。首选Zyfai官方Telegram转SDK/集成团队，备选Virtuals支持门户引荐ACP操作者；不强求前轮指定owner、不要求搭新接口。尚未向第三方发送、取得凭证或新材料；由用户/队友先转发请求。后续task_id=`RECEIVE_MULTI_AGENT_READONLY_EVIDENCE`，收到多个真实实例资料后先核验再判断适配。
 
-本轮候选筛查已完成，多个完整可评对象的目标尚未达成，新增完整分0。两个Venus身份的代表执行归属已实核，但各仅1业务任务；Zyfai/ACP需实例级只读材料，Celo/Agenthaus未闭合。86次只读观察和84份响应SHA核对已保存，未改生产代码。当前停止新适配，已询问用户由其/队友协助取得多对象只读证据，或继续无需额外授权的公开筛选；不是要求放低门槛或动用资金。下一task_id=`MULTI_AGENT_READONLY_EVIDENCE_GATE`，依回复及实际材料推进。[本轮汇总](docs/research/FULL_SCORE_TRADING_AGENT_DISCOVERY_20261023.md)；[前轮交付](docs/runbooks/CHAIN_EXECUTION_PROGRESS_20261023.md)。
+`FULL_SCORE_TRADING_AGENT_DISCOVERY`的选择原则保持：同一对象核验公开注册、可实测且绑定身份的服务入口、有来源交易功能声明、执行账户授权、原始任务及交易效果、独立7F/7B样本来源；多个真实对象同时具备条件后，再确定共用业务规则与协议适配。允许合法认证、获授权只读导出及同一提供方多实例；7F/7B是独立任务，非必须14笔交易。不围绕单对象编码，不以平台API、RPC在线或交易次数替代Agent可用性；现有Olas证据保留，暂不继续扩无接口样本。三维、权重、门槛与历史报告不变。
 
-当前分支`codex/chain-execution-focus-20261023`已合入`origin/main=14dcf6b`，功能提交`7f3eec2`/`6ad6976`已push并建立[草稿PR #20](https://github.com/Ryanjxy123/web3-agent-reputation/pull/20)。main未改、未自动合并，GitHub检查以PR最新结果为准；本机受影响路径已验收。旧日期记录仅为历史。
+前轮候选筛查已完成，多个完整可评对象的目标尚未达成，新增完整分0。两个Venus身份的代表执行归属已实核，但各仅1业务任务；Zyfai/ACP需实例级只读材料，Celo/Agenthaus未闭合。86次只读观察和84份响应SHA核对已保存，未改生产代码。补源方向已由用户选择收口，不再重复询问。[筛查汇总](docs/research/FULL_SCORE_TRADING_AGENT_DISCOVERY_20261023.md)；[前轮交付](docs/runbooks/CHAIN_EXECUTION_PROGRESS_20261023.md)。
+
+前轮分支`codex/chain-execution-focus-20261023`已合入`origin/main=14dcf6b`，功能提交`7f3eec2`/`6ad6976`已push并建立[草稿PR #20](https://github.com/Ryanjxy123/web3-agent-reputation/pull/20)。本轮分支`codex/readonly-evidence-request-20261023`继承研究提交`dbc0e8b`；本轮只作本地文档提交，未push。main未改、未自动合并。旧日期记录仅为历史。
 
 ## 2026-10-21 指导老师反馈与文档方案
 

@@ -2,7 +2,9 @@
 
 ## 2026-10-23 当前主线（优先于下方历史记录）
 
-工作目录`D:/xjtu_project/block_chain_new/block_chain_new_new`，当前分支`codex/trading-agent-discovery-20261023`继承`519c33e`。任务`FULL_SCORE_TRADING_AGENT_DISCOVERY`本轮已筛查，多个完整可评交易对象的目标仍未达成，新增完整分0。两个新Venus各1业务任务，代表执行归属已实核；Celo/Agenthaus、ACP、Zyfai具体缺项见[汇总](docs/research/FULL_SCORE_TRADING_AGENT_DISCOVERY_20261023.md)，不要重扫已知缺源。86只读观察/84响应SHA一次核对通过，未改生产代码或新评分，工程测试NOT_RUN。已询问用户协助取得多对象只读材料或继续公共筛选；下一`MULTI_AGENT_READONLY_EVIDENCE_GATE`按回复推进，不先适配。
+工作目录`D:/xjtu_project/block_chain_new/block_chain_new_new`，当前分支`codex/readonly-evidence-request-20261023`继承研究提交`dbc0e8b`。用户选择协助取得多对象只读材料，并明确没有联系人。`MULTI_AGENT_READONLY_EVIDENCE_GATE`申请准备完成：[官方渠道、中英文请求及接收清单](docs/runbooks/REQUEST_READONLY_AGENT_EVIDENCE_20261023.md)。首选用户/队友转发Zyfai官方Telegram管理员，备选Virtuals支持引荐ACP操作者。尚未对外发送、取得凭证或收到新材料；下一`RECEIVE_MULTI_AGENT_READONLY_EVIDENCE`收到后先核同一身份的服务/声明/任务/执行，再决定适配。
+
+前轮`FULL_SCORE_TRADING_AGENT_DISCOVERY`已筛查，多个完整可评交易对象的目标仍未达成，新增完整分0。两个新Venus各1业务任务，代表执行归属已实核；Celo/Agenthaus、ACP、Zyfai具体缺项见[汇总](docs/research/FULL_SCORE_TRADING_AGENT_DISCOVERY_20261023.md)，不要重扫已知缺源。86只读观察/84响应SHA一次核对通过，未改生产代码或新评分，工程测试NOT_RUN。补源方向已经用户确认，不要再次询问同一选择。
 
 用户已确认先寻找多个能完整三维评价的真实交易Agent，再共用适配；同一对象的服务入口、交易声明、执行授权与任务历史须同时可核验。认证接口、获授权只读导出及同提供方多实例均可接受，7F/7B为不同任务，不是必需14笔交易，查询F不能冒充执行正确性。不要继续围无接口的Olas对象堆代码，不把平台/RPC入口算Agent服务。前轮分支`codex/chain-execution-focus-20261023`已合入远程main的PR #19。用户已授权直接修改，以“与区块链深度结合”为主目标；资产交易、已有签名、授权、Safe执行均属评价范围，操作者的新签名/资金/主网写入须另有具体授权。三维仍为服务可用性/功能声明一致性/交易行为可靠性，旧政策、分数和原件不变。
 

@@ -2,13 +2,15 @@
 
 ## 2026-10-23 当前执行状态
 
+当前任务`MULTI_AGENT_READONLY_EVIDENCE_GATE`的申请准备完成：用户选择协助取得至少两个实例的只读材料，并说明目前没有联系人。已核Zyfai官方Telegram、Virtuals支持门户/Discord及iCLONE开发者线索，整理[渠道、中英文请求与接收清单](docs/runbooks/REQUEST_READONLY_AGENT_EVIDENCE_20261023.md)。Zyfai官网联系表单尚未确认可提交，SDK Issues页面显示创建受限，不声称可自动投递。由用户/队友转发具体请求后，后续`RECEIVE_MULTI_AGENT_READONLY_EVIDENCE`先核材料再适配；尚未发送、获得凭证或收到新运行材料。评分门槛不变，本轮纯文档、工程测试NOT_RUN。
+
 当前任务`FULL_SCORE_TRADING_AGENT_DISCOVERY`的本轮候选筛查已完成，**多个完整可评分交易Agent的目标仍未达成，新增完整评分0**。按用户确认的顺序，先查同一身份的接口/声明/执行/足量独立任务，再适配；允许认证及授权只读材料，同提供方多实例也可，7F/7B不等于14笔交易。本轮未改生产代码、评分、前端、数据库或既有报告。
 
 发现并独立核到Brain Venus #302257/#304493各一笔代表交易与历史注册wallet，但各只有一次自治任务；CeloFX的9记录仅为与seed相同的自报数据、未RPC实核；Agenthaus原交易实例的安全公开路由404；Zyfai MCP初始化401，ACP缺真实任务/交付闭环。均保留具体缺项，不借目录健康分、咨询任务数、交易步数或其它对象的证据凑完整分。[本轮汇总与四份分支调查](docs/research/FULL_SCORE_TRADING_AGENT_DISCOVERY_20261023.md)。
 
-实际86次只读观察（69个200/12个404/1个401/2个307/2个连接错误），84份响应SHA一次核对通过；`runtime/full-score-trading-discovery-20261023/source-audit.json`，exit0。0签名/交易/付费/LLM/新评分作业；工程测试NOT_RUN，纯研究不重跑旧验收。当前暂停依赖完整群体的新适配，已询问用户：协助取得至少两个实例的只读材料，或继续无需额外授权的公开筛选。下一task_id=`MULTI_AGENT_READONLY_EVIDENCE_GATE`。
+前轮实际86次只读观察（69个200/12个404/1个401/2个307/2个连接错误），84份响应SHA一次核对通过；`runtime/full-score-trading-discovery-20261023/source-audit.json`，exit0。0签名/交易/付费/LLM/新评分作业；工程测试NOT_RUN，纯研究不重跑旧验收。补源方向现已确认，执行本页首段`MULTI_AGENT_READONLY_EVIDENCE_GATE`。
 
-Git本轮分支`codex/trading-agent-discovery-20261023`继承`519c33e`，研究与状态文档以本轮本地commit留存；未push/main未改，前轮草稿PR #20保留。无关`docs/presentation/`不纳入。本机运行与前轮验收记录见下文，数量是前轮交付快照，不能当作本轮新增结果。
+Git当前分支`codex/readonly-evidence-request-20261023`继承研究提交`dbc0e8b`，本轮申请/状态文档以本地commit留存；未push/main未改，前轮草稿PR #20保留。无关`docs/presentation/`不纳入。本机运行与前轮验收记录见下文，数量是前轮交付快照，不能当作本轮新增结果。
 
 ### 前轮交付快照
 
