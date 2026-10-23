@@ -2,7 +2,17 @@
 
 ## 2026-10-23 当前执行状态
 
-`CHAIN_EXECUTION_FOCUS_20261023`实现与本机验收完成：用户要求直接实施“与区块链深度结合”，并明确资产交易、签名等属于应考虑的业务。三维和权重不变；本轮使用公开历史证据，未动用私钥/资金或写主网。旧“仅文档、等讨论再改代码”边界已被本轮授权取代。
+当前任务`FULL_SCORE_TRADING_AGENT_DISCOVERY`的本轮候选筛查已完成，**多个完整可评分交易Agent的目标仍未达成，新增完整评分0**。按用户确认的顺序，先查同一身份的接口/声明/执行/足量独立任务，再适配；允许认证及授权只读材料，同提供方多实例也可，7F/7B不等于14笔交易。本轮未改生产代码、评分、前端、数据库或既有报告。
+
+发现并独立核到Brain Venus #302257/#304493各一笔代表交易与历史注册wallet，但各只有一次自治任务；CeloFX的9记录仅为与seed相同的自报数据、未RPC实核；Agenthaus原交易实例的安全公开路由404；Zyfai MCP初始化401，ACP缺真实任务/交付闭环。均保留具体缺项，不借目录健康分、咨询任务数、交易步数或其它对象的证据凑完整分。[本轮汇总与四份分支调查](docs/research/FULL_SCORE_TRADING_AGENT_DISCOVERY_20261023.md)。
+
+实际86次只读观察（69个200/12个404/1个401/2个307/2个连接错误），84份响应SHA一次核对通过；`runtime/full-score-trading-discovery-20261023/source-audit.json`，exit0。0签名/交易/付费/LLM/新评分作业；工程测试NOT_RUN，纯研究不重跑旧验收。当前暂停依赖完整群体的新适配，已询问用户：协助取得至少两个实例的只读材料，或继续无需额外授权的公开筛选。下一task_id=`MULTI_AGENT_READONLY_EVIDENCE_GATE`。
+
+Git本轮分支`codex/trading-agent-discovery-20261023`继承`519c33e`，研究与状态文档以本轮本地commit留存；未push/main未改，前轮草稿PR #20保留。无关`docs/presentation/`不纳入。本机运行与前轮验收记录见下文，数量是前轮交付快照，不能当作本轮新增结果。
+
+### 前轮交付快照
+
+`CHAIN_EXECUTION_FOCUS_20261023`实现与本机验收完成：用户要求直接实施“与区块链深度结合”，并明确资产交易、签名等属于应考虑的业务。三维和权重不变；该轮使用公开历史证据，未动用私钥/资金或写主网。旧“仅文档、等讨论再改代码”边界已被该轮授权取代。
 
 最终当前量：49个不同公共身份、50份评价报告、10个链证据对象/20快照版本、39作业；12个身份有完整历史范围分，8个新增交易对象的样本核齐、2个缺源；0排队/0运行，worker online。
 
@@ -18,7 +28,7 @@
 
 最终真实HTTP/PG验收exit0（14个请求、附件白名单/越界拒绝、快照追加保护、原47报告及manifest/DB摘要不变、dist字节一致），收据`runtime/chain-focus-20261023/api-postgres-acceptance.json`。真实Chrome六页面/尺寸及13截图全部检查通过，0API失败/JS异常/横向溢出；报告历史竖排CSS问题修复后仅复看受影响页。最终资源`index-BpG6KMQe.js`/`index-BO9Sq-fa.css`，收据`runtime/chain-ui-20261023/qa-summary.json`。新包解压522成员（含索引）1356003B，实际秘密与私钥模式零命中。无关旧测试未重跑。
 
-下一task_id=`DECIDE_AUTONOMOUS_AVAILABILITY`，已发问题等待用户醒来选择后续完整三维群体/自治运行证据方向，不擅自改评分口径。Git后端`7f3eec2`、前端/文档`6ad6976`已push至当前Codex分支，[草稿PR #20](https://github.com/Ryanjxy123/web3-agent-reputation/pull/20)等待审阅，main未改、未自动合并；CI最新结果见PR检查。未跟踪的`docs/presentation/`及Word锁文件保留，不纳入发布。详细汇报见`docs/runbooks/CHAIN_EXECUTION_PROGRESS_20261023.md`。
+前轮后续方向现已确认，执行`FULL_SCORE_TRADING_AGENT_DISCOVERY`，不擅自改评分口径。Git后端`7f3eec2`、前端/文档`6ad6976`已push至当前Codex分支，[草稿PR #20](https://github.com/Ryanjxy123/web3-agent-reputation/pull/20)保留待审阅，main未改、未自动合并；CI最新结果见PR检查。未跟踪的`docs/presentation/`及Word锁文件保留，不纳入发布。前轮详细汇报见`docs/runbooks/CHAIN_EXECUTION_PROGRESS_20261023.md`。
 
 ## 2026-10-21 老师反馈认知与改进文档
 
