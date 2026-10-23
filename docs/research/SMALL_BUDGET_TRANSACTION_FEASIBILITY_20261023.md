@@ -1,8 +1,28 @@
 # 小额实交易：真实Agent评价可行性
 
-日期：2026-10-23。当前task_id：`NOX_QUOTE_OBSERVATION_COMPLETE`，主线`NOX_ICLONE_BUYER_FUNDING_PREFLIGHT`，延续`SMALL_BUDGET_TRANSACTION_FEASIBILITY`。
+日期：2026-10-23。当前task_id：`ICLONE_QUOTE_OBSERVATION_COMPLETE`，主线`NOX_ICLONE_BUYER_FUNDING_PREFLIGHT`，延续`SMALL_BUDGET_TRANSACTION_FEASIBILITY`。
 
-用户取消对外材料请求，改自己参与小额真实交易。原30元不再阻断研究/准备，用户已买币10元；本次实际充值、付费和资产兑换均0。EVM No Policy已读回生效，账户委托上链；先前一次建单因期限缓冲不足失败，独立核清后修正并成功创建Nox订单82141。真实需求已提交，约395秒观察仍无提供方报价/资金请求，订单期限已过，不向旧单付款。当前`NOX_QUOTE_OBSERVATION_COMPLETE`；Nox真实兑换和两对象完整评价仍未达成。
+用户取消对外材料请求，改自己参与小额真实交易。原30元不再阻断研究/准备，用户已买币10元；本次实际充值、付费和资产兑换均0。EVM No Policy已读回生效，账户委托上链；先前一次建单因期限缓冲不足失败，独立核清后修正并成功创建Nox订单82141。真实需求已提交，约395秒观察仍无提供方报价/资金请求，订单期限已过，不向旧单付款。Nox观察已收口；用户随后明确授权继续iCLONE接单/报价/证据预检，需要充值再告知。iCLONE与Nox同属Virtuals ACP市场，是不同Agent；只建立零价值、gas赞助的swap_base订单及提交1USDC→WETH/0.5%滑点需求，不付款、充值或兑换。iCLONE随后观察30分45秒仍无提供方回复或报价，已停止。两者均未进入付费执行，不建议现在充值；真实兑换和两对象完整评价仍未达成。
+
+## iCLONE本次订单与证据口径
+
+iCLONE订单`82142`观察已收口：唯一sponsored/零转账建单交易`0x3a87a41bd31ea897644f0d1d62ed8b394815e82b157b9cbc58d9a977166cf552`，可信Base RPC、EntryPoint内层成功及唯一JobCreated已核。1USDC→WETH/0.5%滑点需求于09:22:59.882UTC提交一次，最终09:53:44.829UTC（北京时间17:53:44）仍API OPEN/budget=null、history2条、provider回复0；观察1844.947秒，记录deadline09:53:10已过。未确认接单、真实报价或完整评价证据，不能解释为已收费服务违约或直接计FAIL。已停止轮询，不向过期旧job充值/付款，不重复需求或建单；fund/服务费/本金转出/兑换/发币/身份mint/新评分均0。原件`createjob-approvals-2026-10-23T09-20-09.034Z.private/QUOTE_OBSERVATION_COMPLETE.private.json`。
+
+iCLONE是Virtuals ACP市场上的独立服务Agent，Nox是另一提供方；Virtuals ACP是二者使用的交易任务协议/市场，不是这两个Agent本身。本次实时官方详情GET200与此前声明一致，原件`iclone-detail-20261023T091622Z/`。服务价0.05为挂牌值，实际预算/本金资金请求、路由gas及总充值需求均须等真实响应；不把上游LI.FI报价充作iCLONE报价。
+
+| 三维证据 | 本次已取得 | 仍需取得 |
+| --- | --- | --- |
+| 服务可用性 | 当前公开声明、真实客户建单与一次需求发送 | Agent本人认证回复/接单及响应时间；平台建单成功不等于Agent可用 |
+| 功能声明一致性 | swap_base声明、输入资产/金额/recipient/滑点的固定请求 | 本人同job交付及真实兑换输出；amount_in JSON类型未获正式Schema保证，不能因接口歧义直接计业务FAIL |
+| 交易行为可靠性 | 仅本方建单回执与业务字段绑定 | 任务资金请求/实际执行授权和执行钱包归属、提供方交付tx_hash、可信Base receipt及USDC/WETH正确合约资金流、确认距离；不能把本方建单交易计作Agent兑换 |
+
+iCLONE交付模板未承诺amount_out/minOut；若后续执行，到账量需独立查链，0.5%滑点需与当时对方报价/minOut基线比较。一次试单只核证据通路，不替代既有A10/F7/B7门槛或产生完整分。工程主应用测试不重跑，私有operator仅必要JS语法/Python AST检查与离线交叉审阅。
+
+充值前仍需核清协议兼容性：官方当前[部署表](https://os.virtuals.io/acp/overview)列Base FundTransferHook为`0x90717828D78731313CB350D6a58b0f91668Ea702`，本轮固定SDK0.1.15使用`0x0EaD25150985Bce0B4925c54E4ee1D856381A86B`。该SDK本身会正确识别本轮hook；提供方实际运行版本未知，不能证明兼容，也不能据此认定本轮无回复的原因。未经真实资金请求/版本核对，不修改活跃job的hook、不重建订单、不付款。另已离线确认`acpV2AgentId=null`是迁移关联字段缺值，不能推断对象必为legacy；官方CLI仅显式`--legacy`才切旧路径。
+
+异步业务还存在方法边界：现有A政策的同步访问延迟不能直接套30分钟交易SLA，且SLA未证明就是付款前报价期限；后续若多对象证据闭环，须明确异步A采样口径并保留原维度/门槛。当前没有新增评分政策，不将轮询同job计作多次独立服务机会。
+
+本轮真实命令均exit0：`node request-createjob-approvals.private.mjs --provider iclone`、`python simulate_createjob_call.py <原目录> --provider iclone`、`node resume-createjob.private.mjs <原目录> --provider iclone`、`node read-createjob-status.private.mjs <原目录>`、`python verify_createjob_receipt.py <原目录>`、`node send-createjob-requirement.private.mjs <原目录> --provider iclone`。目录为上文准确basename，均在既有私有工具环境运行。共6轮job/history读取（初始1、root一次、独立观察4次）均成功，未重发需求；最后一轮覆盖30分钟和deadline后时点。必要operator语法/AST检查及离线审阅通过；主应用工程测试NOT_RUN，生产代码/数据库/评分未改。四份项目文档作本地检查点，不push，私有runtime及无关演示稿不入Git。
 
 ## 必须保持的边界
 
@@ -33,7 +53,7 @@
 
 - Nox输入为`fromContractAddress/amount/toContractAddress`；`amount`是人类单位，`slippageBps`用基点，默认300。本轮未接受其3%默认值。交付要求`txHash/tokenOut/amountOut`，输出数量是原始单位；请求本身没有显式recipient，须从真实任务/资金指令和回执绑定接收账户。
 - iCLONE输入为小写`token_in/token_out`地址、`amount_in`人类单位和`recipient`；可选`slippage`为百分数。交付模板包含`tx_hash/amount_in/recipient`，未承诺输出数量字段，须独立查真实资产变化。
-- 两者都要求另付本金；“固定0.05”不包括fundRequest中的资本。未创建job，尚无本人的完整budget和待签calls，不能给出30元全包结论。
+- 两者都要求另付本金；“固定0.05”不包括fundRequest中的资本。仅详情调查时尚未创建job；随后两个试单及其观察结果见本文当前状态，尚无提供方完整报价，不能给出全包成本结论。
 - offering详情自身未明示币种，后经发布CLI/SDK核定：本次Base ACP服务费使用原生USDC，当前CLI不能改为USDT；任务预算由`AssetToken.usdc`构造，费币是部署级配置。requiredFunds本金是独立token/amount，可与服务费不同，但Schema接地址不等于该资产实际可执行。NOX/ICLONE `tokenAddress`是提供方项目币，无需购买。
 - 两个精确UUID未出现在本轮各一次在线过滤语义搜索的top5结果中，返回结果还存在2999年的活动时间占位；这不能证明它们离线或在线。详情历史活动时间也不替代当前响应。没有反复搜索或通过付费任务盲探。
 - Nox没有声明resource；iCLONE多数resource直接指向LI.FI、Coingecko等第三方。读取源站只能帮助报价/独立核验，不计iCLONE的服务可用性。
@@ -84,7 +104,19 @@ Nox订单`82141`已真实创建并观察收口：No Policy自动签名/单次提
 
 此前唯一广播的旧UserOp因ExpiryTooShort失败，已6次可信RPC及独立事件解码确认无JobCreated；7702委托已实际生效，旧操作不能重播。修正为5min原SLA+180s准备缓冲，签名前/提交前剩余>330s；新calldata先经确切eth_call成功，再构造唯一发送。源于接入流程，不计Nox FAIL；旧失败原件与新成功原件均保留，未改评分规则。
 
-下一task_id=`ICLONE_QUOTE_PREFLIGHT`：沿用户原定双对象目标复用已核钱包/协议，先验证iCLONE真实接单与条款；本轮Nox没有报价，不据此安排充值或继续围Nox追加适配，仍不出新完整分。
+下一task_id=`QUOTE_READY_COHORT_SELECTION`：Nox与iCLONE的本轮试单均未取得提供方回复，暂不安排充值或继续围旧对象加适配。先核后备群体的真实接单、协议/资金组件兼容、身份与执行证据；多个对象共同可测后再定共用实现及资金范围。一次有界搜索仅得到3个声明候选，20条lastActiveAt全为2999年占位，不能信目录online；完整候选和明确缺项见可行性文档。后备对象本轮未建单/签名/付款，不新增生产适配或完整分。
+
+## 备用群体：仅声明初筛，未下单
+
+等待iCLONE期间仅追加1次官方在线过滤搜索，HTTP200、20条记录；原件`runtime/acp-swap-search-20261023T093827Z-32086f52/`。20条lastActiveAt全部为`2999-12-31T00:00:00.000Z`，不能据此证明活跃或据online标签开始付款。保留3个明确声称现货执行的后备对象，其余17个包括只给calldata的Hydrex均不冒充执行者。未给任何后备对象建单或适配。
+
+| 候选/公开ACP UUID | 服务/挂牌原值 | 充值或适配前的明确缺项 |
+| --- | --- | --- |
+| Ethy AI / `019d87e1-f0d3-7a6c-b273-08729fc85b6e` | swap / fixed 0.5 / requiredFunds=true | 输入符号与数值金额；交付仅result:boolean，未承诺txHash、滑点或独立收款地址；所谓Butler用户钱包归属待核 |
+| ZeroAgent / `019df9a9-db36-701b-8659-86283716ab21` | swap / fixed 0.4 / requiredFunds=true | 输入token和字符串金额；交付仅string，未承诺txHash、滑点或收款地址；Bankr/0x执行链需原件证明 |
+| GSB Wallet Profiler and DCA ENGINE / `019d756c-9eba-7600-81ba-f1c78f43277c` | dca_buy / fixed 0.25 / requiredFunds=true | 可指定既有tokenAddress、USDC数额和maxSlippagePct；声明txHash/输出/滑点等，但资金进入、真实输出归属、是否需其钱包预置资金待核；不自动预充值 |
+
+三个候选的目录ERC-8004字段均null，ACP UUID不是ERC-8004身份，链上注册/执行授权尚须核实。价格字段本身未明示币种，不能仅凭原值报全包充值数。此表只用于后续选择，不表示三者已接单、合规路径已核或可完整评分；保留不可测缺项，先核多对象共同证据再实现共用适配。
 
 ## 当前优先：欧易入金与钱包辅助
 

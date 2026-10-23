@@ -6,7 +6,7 @@
 
 主线为Nox/iCLONE两个真实外部Agent各一次小额交易任务闭环，再决定共用适配及正式7F/7B取样；一次任务不冒充完整分。用户取消对外联系；原30元不再阻断研究/准备，已买币10元仍记成本。禁止发币、tokenize和身份NFT铸造，付款与本金尚未获准自动执行。
 
-当前task_id=`NOX_QUOTE_OBSERVATION_COMPLETE`。用户已官网将EVM改为No Policy，08:39UTC通过官方CLI实读同一signer的policyIds=[]、No Policy (no approval required)，原件`policy-read-2026-10-23T08-39-20.534Z.private/`；不再要求本次任务逐笔人工审批。Solana未操作/未读回，本轮不用。No Policy也覆盖后续充值，本地operator仍核provider/资产/金额/selector及禁止发币，不冒称平台硬限额。当前授权仅Base专用买方Alchemy v1.0.0持续委托、Nox建单、1USDC→WETH/50bps需求及取条款，不充值/付费/兑换。签名与会话只用同一原生keychain；沙箱内读取可能假空，应在CLI实际运行环境核实，不据此重复登录。
+当前task_id=`ICLONE_QUOTE_OBSERVATION_COMPLETE`。用户最新明确要求继续iCLONE，核接单、真实报价及评价证据，需要充值再告知；这是对该对象零价值建单/需求消息的明确授权，不是付款或兑换授权。用户已官网将EVM改为No Policy，08:39UTC通过官方CLI实读同一signer的policyIds=[]、No Policy (no approval required)，原件`policy-read-2026-10-23T08-39-20.534Z.private/`；不再要求本次任务逐笔人工审批。Solana未操作/未读回，本轮不用。No Policy也覆盖后续充值，本地operator仍核provider/资产/金额/selector及禁止发币，不冒称平台硬限额。当前授权为Base专用买方Alchemy v1.0.0持续委托，Nox及iCLONE各一次建单和1USDC→WETH、最高0.5%滑点需求及取条款；Nox及iCLONE两轮观察均已收口，当前无待自动执行的资金动作。建单必须零转账且prepare确认gas赞助，不充值/付费/兑换。签名与会话只用同一原生keychain；沙箱内读取可能假空，应在CLI实际运行环境核实，不据此重复登录。
 
 已完成普通JSON买方创建（record/email201，ERC8004与virtual身份null/chains=[]）、本地signer和DENY_ALL读回、owner及协议登录。Base块52975410余额ETH/USDC均0、code=0。用户已批准仅此专用买方的Alchemy v1.0.0持续7702委托，以及仅Nox建单、提交1USDC→WETH/50bps需求并读取真实条款；不充值、不支付服务费/本金、不兑换。取消人工审批只改签名方式，不自动扩大业务范围。
 
@@ -16,7 +16,9 @@ Nox订单`82141`已真实创建并观察收口：No Policy自动签名/单次提
 
 此前唯一广播的旧UserOp因ExpiryTooShort失败，已6次可信RPC及独立事件解码确认无JobCreated；7702委托已实际生效，旧操作不能重播。修正为5min原SLA+180s准备缓冲，签名前/提交前剩余>330s；新calldata先经确切eth_call成功，再构造唯一发送。源于接入流程，不计Nox FAIL；旧失败原件与新成功原件均保留，未改评分规则。
 
-下一task_id=`ICLONE_QUOTE_PREFLIGHT`：沿用户原定双对象目标复用已核钱包/协议，先验证iCLONE真实接单与条款；本轮Nox没有报价，不据此安排充值或继续围Nox追加适配，仍不出新完整分。
+iCLONE订单`82142`观察已收口：唯一sponsored/零转账建单交易`0x3a87a41bd31ea897644f0d1d62ed8b394815e82b157b9cbc58d9a977166cf552`，可信Base RPC、EntryPoint内层成功及唯一JobCreated已核。1USDC→WETH/0.5%滑点需求于09:22:59.882UTC提交一次，最终09:53:44.829UTC（北京时间17:53:44）仍API OPEN/budget=null、history2条、provider回复0；观察1844.947秒，记录deadline09:53:10已过。未确认接单、真实报价或完整评价证据，不能解释为已收费服务违约或直接计FAIL。已停止轮询，不向过期旧job充值/付款，不重复需求或建单；fund/服务费/本金转出/兑换/发币/身份mint/新评分均0。原件`createjob-approvals-2026-10-23T09-20-09.034Z.private/QUOTE_OBSERVATION_COMPLETE.private.json`。
+
+下一task_id=`QUOTE_READY_COHORT_SELECTION`：Nox与iCLONE的本轮试单均未取得提供方回复，暂不安排充值或继续围旧对象加适配。先核后备群体的真实接单、协议/资金组件兼容、身份与执行证据；多个对象共同可测后再定共用实现及资金范围。一次有界搜索仅得到3个声明候选，20条lastActiveAt全为2999年占位，不能信目录online；完整候选和明确缺项见可行性文档。后备对象本轮未建单/签名/付款，不新增生产适配或完整分。
 
 工具CLI1.0.40/SDK0.1.15在`runtime/nox-iclone-preflight-20261023/client/`；会话由官方keychain保存，配置/准确buyer身份在私有`auth.private/config.json`、`buyer-detail.private.json`，勿输出token/密钥/邮箱。运行每进程配置7897代理与NODE_USE_ENV_PROXY=1。审批原结果可由官网已有owner GET `/wallets/approvals/{id}`读取，不再用需额外登录签名的SSE恢复。细节与历史失败见[可行性记录](docs/research/SMALL_BUDGET_TRANSACTION_FEASIBILITY_20261023.md)。
 
