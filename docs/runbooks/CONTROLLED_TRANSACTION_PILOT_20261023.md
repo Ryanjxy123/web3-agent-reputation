@@ -4,6 +4,8 @@
 
 ## 当前操作：准备公开收款地址
 
+用户实查补充：当前欧易Web3中只找到Binance-Peg XRP（BNB Chain、0x地址），不适用于本次原生XRPL收款。收款地址改用下方Xaman步骤；欧易已确认的Base USDC来源保持。未让用户给该BNB地址充值，仍等待本人XRPL公开r地址。
+
 用户已明确同意先用N9T2跑一笔小额真实交易，并要求告知XRPL钱包准备方式、报价与费用后再充值。当前只等待本人控制的公开收款地址，不再询问是否选择本路线。
 
 1. 优先复用已有欧易App的**Web3钱包→收款/接收→XRP**。网络须为原生XRP Ledger/XRPL/Ripple，地址为`r`开头；交易所共享充币地址与其他链上的包装XRP不用于本次实验。欧易有[原生XRPL钱包页面](https://web3.okx.com/zh-hans/wallet/ripple-ledger)，用户当前版本是否展示该网络以实际页面为准。

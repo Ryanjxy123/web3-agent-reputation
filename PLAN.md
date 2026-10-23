@@ -12,7 +12,7 @@ task_id=`CHAIN_EXECUTION_FOCUS_20261023`实现与本机验收完成。用户已�
 
 当前主线改为主动实验与独立取证：用户提出先做一笔受控真实交易，由平台保存原始任务、报价与付款信息，独立核链和资产变化，再据结果评价。此方案可行；未充值、尚无样本只说明尚未验证，不能断言无法三维评分。不要求Agent预先返回全部评价材料或在首单前已有完整历史。覆盖优先及多对象可复用目标保持，单笔pilot先验证取证流程，不为单对象写评分规则。禁止发币/tokenize/身份NFT；用户现已同意N9T2单笔小额真实交易，要求先指导准备本人XRPL收款地址，拿到具体报价与费用后再通知充值。目前仅准备地址与报价，尚未付款或生成钱包密钥。
 
-当前task_id=`CONTROLLED_TRANSACTION_PILOT_EXECUTION_PREP`。用户已明确“先用N9T2跑一笔小额真实交易”，无需重新选择路线。已告知优先使用欧易Web3钱包的原生XRPL收款地址，找不到则用Xaman；由用户自己备份恢复信息，只提供公开`r`地址。当前XRPL基础储备1XRP，首次足额入账可激活账户；N9T2是否接受未激活目的地址和净到账量由新报价核验，不先要求充值激活。具体步骤见[单笔实验方案](docs/runbooks/CONTROLLED_TRANSACTION_PILOT_20261023.md)。地址尚未收到，未取得绑定本次地址的新报价、未确定充值金额、未签付款。既有固定三维、正式门槛和旧分数保持。
+当前task_id=`CONTROLLED_TRANSACTION_PILOT_EXECUTION_PREP`。用户已明确“先用N9T2跑一笔小额真实交易”，无需重新选择路线。用户已实查：当前欧易Web3仅找到BNB Chain的Binance-Peg XRP、0x地址，不能作为本次原生XRPL收款地址；收款改用Xaman，由用户自己备份恢复信息，只提供公开`r`地址。欧易仍可用于已确认的Base USDC资金来源。当前XRPL基础储备1XRP，首次足额入账可激活账户；N9T2是否接受未激活目的地址和净到账量由新报价核验，不先要求充值激活。具体步骤见[单笔实验方案](docs/runbooks/CONTROLLED_TRANSACTION_PILOT_20261023.md)。地址尚未收到，未取得绑定本次地址的新报价、未确定充值金额、未签付款。既有固定三维、正式门槛和旧分数保持。
 
 本轮已追加独立XRPL节点采证：操作者按XRPL官方公共服务器表固定xrplcluster.com，仅一次tx查询HTTP200/exit0。公开样本在validated账本107591208中Payment成功、实际到账3.347405XRP，与提供方收据差581drops；不是只靠Agent响应或区块浏览器。原件`runtime/controlled-pilot-xrpl-read-preflight-20261023T121227Z-f0bd1be9/`。此项说明我们可自行采集关键交易结果，尚未产生自己的真实付费任务；没有新签名/资金/业务交易，主应用工程测试NOT_RUN。
 
