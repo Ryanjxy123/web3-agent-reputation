@@ -1,14 +1,16 @@
 # 小额实交易：真实Agent评价可行性
 
-日期：2026-10-23。当前task_id：`VIRTUALS_SCOREABLE_COHORT_PREFLIGHT`，主线`MULTI_PROVIDER_TRADING_EVIDENCE`，延续`SMALL_BUDGET_TRANSACTION_FEASIBILITY`。
+日期：2026-10-23。当前task_id：`CONTROLLED_TRANSACTION_PILOT_DESIGN`，主线`MULTI_PROVIDER_TRADING_EVIDENCE`，延续`SMALL_BUDGET_TRANSACTION_FEASIBILITY`。
 
 用户取消对外材料请求，改自己参与小额真实交易。原30元不再阻断研究/准备，用户已买币10元；本次实际充值、付费和资产兑换均0。EVM No Policy已读回生效，账户委托上链；先前一次建单因期限缓冲不足失败，独立核清后修正并成功创建Nox订单82141。真实需求已提交，约395秒观察仍无提供方报价/资金请求，订单期限已过，不向旧单付款。Nox观察已收口；用户随后明确授权继续iCLONE接单/报价/证据预检，需要充值再告知。iCLONE与Nox同属Virtuals ACP市场，是不同Agent；只建立零价值、gas赞助的swap_base订单及提交1USDC→WETH/0.5%滑点需求，不付款、充值或兑换。iCLONE随后观察30分45秒仍无提供方回复或报价，已停止。两者均未进入付费执行，不建议现在充值；真实兑换和两对象完整评价仍未达成。
 
-## 当前：更换真实交易Agent，先报价和证据再充值
+## 当前：受控实交易实验与独立取证
 
-主线改为寻找至少两个真实交易Agent，先用真实接单、任务级报价与可核验的评价证据通路确认多对象可测，再通知用户充值；不再将Nox/iCLONE固定为目标对象。三维、权重、门槛及旧报告不变，一次试单不冒充完整分。禁止发币、tokenize和身份NFT铸造；允许现有专用买方的零转账、gas赞助询价建单与需求/证据询问，不充值、不支付服务费或本金、不执行兑换。原30元不阻断研究/准备，已购币10元保留成本记录。
+当前主线改为主动实验与独立取证：用户提出先做一笔受控真实交易，由平台保存原始任务、报价与付款信息，独立核链和资产变化，再据结果评价。此方案可行；未充值、尚无样本只说明尚未验证，不能断言无法三维评分。不要求Agent预先返回全部评价材料或在首单前已有完整历史。覆盖优先及多对象可复用目标保持，单笔pilot先验证取证流程，不为单对象写评分规则。禁止发币/tokenize/身份NFT；当前仅设计与只读准备，钱包密钥、充值、付款及交易签名仍待具体内容和授权。
 
-当前task_id=`VIRTUALS_SCOREABLE_COHORT_PREFLIGHT`（本次预检与限时观察收口，完整评分目标未达）。用户最新明确先仅在Virtuals平台尝试可完整三维评价的对象，不转Zyfai。已调查对象中目前confirmed为0，不等于Virtuals全平台最多0。先补查现有资料遗漏及桥接/转账/代理采购等不同链上资产能力，按实际履约与任务证据筛选；目录条数或功能名不计入可评数。继续复用已授权的既有ACP买方与零付款询价能力，不重复试已拒绝/过期旧单，不充值、支付服务费/本金、兑换、发币或身份mint。用户“若充值能解决则愿意充”为条件性意愿，不证明本次拒因，更不授权盲充。
+当前task_id=`CONTROLLED_TRANSACTION_PILOT_DESIGN`。已准备[受控单笔实验方案](../runbooks/CONTROLLED_TRANSACTION_PILOT_20261023.md)，优先N9T2官方直连Base USDC→XRPL XRP，使用我们控制的源/目标账户与一份新有效报价。Agent收据只是证据之一，缺txHash可按钱包/时间/事件定位并验证任务关联，服务费/本金/gas与实际到账由我们核查。用户当前没有XRPL收款钱包，尚未创建；本轮问题不自动授权资产操作。固定三维和正式规则不变，A10/F7/B7限制正式数字发布，不阻断单笔实验；首单先给三维观察与原件，之后扩样。
+
+本轮已追加独立XRPL节点采证：操作者按XRPL官方公共服务器表固定xrplcluster.com，仅一次tx查询HTTP200/exit0。公开样本在validated账本107591208中Payment成功、实际到账3.347405XRP，与提供方收据差581drops；不是只靠Agent响应或区块浏览器。原件`runtime/controlled-pilot-xrpl-read-preflight-20261023T121227Z-f0bd1be9/`。此项说明我们可自行采集关键交易结果，尚未产生自己的真实付费任务；没有新签名/资金/业务交易，主应用工程测试NOT_RUN。
 
 前一批询价已停止，目标未达成：新增三个真实交易服务、四个零付款订单，实际接单报价0、已确认可拿齐完整评价证据的对象0。ZeroAgent的82146、Ethy的82147，以及修正流程后的GSB 82148均在需求已获平台接受并记入同job历史后REJECTED，budget均null；原因只有bytes32哈希，明文未知，不能归因为余额、费用、请求文本或协议版本。GSB首单82145在我们发送需求前已拒绝，首次需求HTTP403；修正共用时序后只补做了一单，82148只提交标准requirement、无长文本询问，仍拒绝，因此不再重试这批对象。四单建单均经可信Base RPC独立核验；GSB首单拒绝另有独立链事件核验，其余拒绝以本轮已取官方任务历史为依据。未fund、支付服务费/本金、兑换、发币、身份mint或新增评分。详细时间、原件和失败路径见下方批次表及原件索引。
 
@@ -20,14 +22,14 @@
 
 | 对象 | 已实际取得的业务或历史证据 | 还不能给完整分的原因 |
 | --- | --- | --- |
-| N9T2 Bridge | 官方免费REST报价200；公开ACP81682收据200；可信Base RPC核付款/路由及历史getJob，provider匹配当前ACP钱包；XRPSCAN REST核实际XRP付款 | 原始用户需求/交付历史未公开拿到，目标链资料尚非独立RPC、收据有缺字段/数量不一致，未满足A10及独立F7/B7；用户没有XRPL收款钱包 |
+| N9T2 Bridge | 官方免费REST报价200；公开ACP81682收据200；可信Base RPC核付款/路由及历史getJob，provider匹配当前ACP钱包；XRPSCAN REST核实际XRP付款 | 原始用户需求/交付历史未公开拿到、收据有缺字段/数量不一致，正式样本未齐；独立XRPL RPC本轮已补到，可用主动实验补其余材料，用户尚无XRPL收款钱包 |
 | BridgeKitty | 旧列表200、共150条engagement；固定取一条COMPLETED详情200，但原文被遮罩，signedReason实际为bridge_status查询；新报价单82150已提交需求 | 150条不能当150次桥接执行；不能由status查询、已完成协议订单或目录Schema证明真实代桥接；新单尚未报价 |
 | Spraay Batch Agent v2 | 官方文档与实时x402 manifest可达，网关明确列服务费率 | 目录Agent与网关身份未绑定、由谁签广播未核齐，费用层级及真实任务→业务交易未闭合；没有实际业务结果 |
 | DevOps Butler | swap_execute_guard有声明 | 免费资源为HTTP裸IP，不降低HTTPS/受控客户端边界；缺原始任务/tx契约，未调用或建单 |
 
 N9T2官方来源为`https://x402.n9t2.com/llms.txt`，明确列出Virtuals的provider钱包`0x001f501a949454daba53bf6163b66a63fbae5925`；它另列的BNB ERC-8004 #375728为另一身份，不能替代ACP身份或合并计数。第一次免费报价只POST `/bridge/quote`，body为XRPL XRP→Base USDC、destination为已有专用买方、省略source_amount取实时最低档，不调用`/bridge/execute`或`/bridge/payment`、不签x402付款。返回quoted/executable=true，quote_id=`4613196e8ccfefc7edc726db5ec317691be31415eda2f94b2b8951bdaa3986d4`：输入5.018791XRP=转移3.568791XRP+服务费1.45XRP，预计目标4.440059USDC；创建11:35:01UTC、到期11:49:51UTC。报价已过期，不能用来付款；该方向也不表示我们持有XRP。原件`runtime/virtuals-n9t2-free-quote-20261023T113456Z-ff1ff18d/`。用户已回答没有XRPL自托管收款钱包，目前不创建钱包或要求充值，Base USDC→XRP方向不能填他人/占位收款地址。
 
-N9T2公开样本独立预检：ACP81682的0.01USDC预算及FundTransferHook与当前provider在付款块`0x320cb01`匹配；客户实际付7.007337USDC本金，另付0.01USDC job费，USDC进入treasury后4.969134USDC用于路由。这里只核既有交易，没有动用我方资金。XRPSCAN提供的公开交易`95B077…B2AB4`显示Payment/tesSUCCESS，实际送达原收据目标地址3.347405XRP；它是独立浏览器REST证据，**不是我们直接查XRPL节点**。官方收据自身destination tx为null且数量写3.347986XRP，与链上差0.000581XRP（581drops）。保留该不一致，不拿收据自称settled当全链成功，也不在未固定判据/完整原始要求前直接判交易FAIL或给分。原件`runtime/virtuals-bridge-samples-20261023T113420Z-16d5c608/`、`runtime/virtuals-n9t2-independent-sample-20261023T113739Z-053e8f94/summary.json`、`runtime/virtuals-n9t2-job-binding-20261023T114238Z-cdeefc84/summary.json`。
+N9T2公开样本独立预检：ACP81682的0.01USDC预算及FundTransferHook与当前provider在付款块`0x320cb01`匹配；客户实际付7.007337USDC本金，另付0.01USDC job费，USDC进入treasury后4.969134USDC用于路由。这里只核既有交易，没有动用我方资金。XRPSCAN提供的公开交易`95B077…B2AB4`显示Payment/tesSUCCESS，实际送达原收据目标地址3.347405XRP；这是当时的独立浏览器REST证据；本页当前段已追加直接XRPL节点validated核验。官方收据自身destination tx为null且数量写3.347986XRP，与链上差0.000581XRP（581drops）。保留该不一致，不拿收据自称settled当全链成功，也不在未固定判据/完整原始要求前直接判交易FAIL或给分。原件`runtime/virtuals-bridge-samples-20261023T113420Z-16d5c608/`、`runtime/virtuals-n9t2-independent-sample-20261023T113739Z-053e8f94/summary.json`、`runtime/virtuals-n9t2-job-binding-20261023T114238Z-cdeefc84/summary.json`。
 
 两家新ACP报价试单均service-only、hook=zero、转账值0、gas赞助，不支付目录0.01USDC服务费：BridgeKitty82150（Base→BSC USDC报价）与N9T2 82151（与已成功免费报价相同的XRPL→Base参数）。前者首轮followup因API将zero hook表示null安全停止，需求尚未发送；仅修正静态service-only的null表示后，在可信RPC核原建单后恢复同一单唯一需求，没有重播或新建。后者使用修正后的共用流程，已立即提交唯一需求。BridgeKitty到期11:48:27UTC，N9T2到期11:58:30UTC；本轮不为卡片数量、满分或正式评分确认数重复轮询/重试。到期后两单最终只读均exit0，API仍OPEN、budget=null、history2条且provider回复0；已停止观察，没有重发需求或付款。不能因API未自动标EXPIRED就认定旧单尚可付款。
 
@@ -179,7 +181,7 @@ Nox订单`82141`已真实创建并观察收口：No Policy自动签名/单次提
 
 此前唯一广播的旧UserOp因ExpiryTooShort失败，已6次可信RPC及独立事件解码确认无JobCreated；7702委托已实际生效，旧操作不能重播。修正为5min原SLA+180s准备缓冲，签名前/提交前剩余>330s；新calldata先经确切eth_call成功，再构造唯一发送。源于接入流程，不计Nox FAIL；旧失败原件与新成功原件均保留，未改评分规则。
 
-当前瓶颈与推进边界：GSB、Zero、Ethy本批已拒绝，Nox/iCLONE旧单未报价，均停止重试；只补查Virtuals内新的能力群体或遗漏执行对象。官方ACP流程是provider先setBudget、buyer后fund，requiredFunds=true不是买方建单前余额门槛；现有三Schema无明确buyer预充值规则，GSB只写agent wallet需USDC，不能据此让用户给我方买方或目录provider打款。只有真实接单/资金条款及原始要求→执行→结果的取证通路成立才安排充值；一单闭环仍不足A10/互斥F7+B7完整分。外平台Bitte/Giza/Zyfai调查只留历史参考，当前不开户、不新增其授权。
+当前推进边界：旧报价单已按期限收口，不向旧单付款或反复重建。先准备普通收款账户及一次任务的独立采证链路，再以绑定该地址的新鲜报价核准具体资金/签名。预检要求可识别对象、明确业务与资金约定、可独立观测效果，不要求预先取得未来结果或全部正式样本；真实受控实验正用于补这些材料。多对象闭环用于正式推广与验证复用，不能被解释为禁止首单pilot。下一task_id=`CONTROLLED_TRANSACTION_PILOT_EXECUTION_PREP`；主应用评分代码与报告未改，当前未授权任何新充值/付款/钱包密钥操作。
 
 ## 本轮三家候选的声明初筛（实际询价结果见上方）
 
@@ -216,11 +218,11 @@ CLI的普通账户/钱包、市场任务、链上身份注册和tokenize是不�
 
 现有平台没有已验收的生产真实写任务采集器。此前不预建签名器的准备阶段已结束；本轮仅在忽略的私有operator中按既有授权签ACP登录及零付款询价，没有生产适配。付费或资产操作仍先核具体条款、签名前要求及授权，多个对象闭环后才做最小通用适配。
 
-## 下一步：待选择Virtuals单任务试验路径，不充值
+## 下一步：按受控实验准备，不再以缺公开历史否定可评性
 
-1. GSB/Zero/Ethy旧批已终态，不再重试；Nox/iCLONE及BridgeKitty/N9T2各旧单已过期，不恢复、付款或为无回复反复建单。
-2. 下一task_id=`DECIDE_VIRTUALS_PILOT_PATH`。先向用户说明0个已确认完整评分、1个实测可报价候选；需要选择是否先为N9T2补XRPL收款钱包/单任务实交易预算，或继续以现有Base钱包筛选取证条件更齐的Virtuals对象。前者只可能先闭合单样本，不保证完整分，钱包/充值/付款均尚未获具体执行授权；不恢复Zyfai问题。
-3. 仍须在每对象上核费用条款、身份/授权/执行归属、原始任务/结果导出及独立链核验通路；两个钱包、同一Agent的两个入口或一个成功订单不凑完整对象数。未来交易结果只能执行后取得，预检核既有样本和取证机制。Spraay身份未闭合，BridgeKitty旧记录原文被遮罩，不能跳过这些缺项做生产适配。
-4. 满足入金前条件后才提供具体充值金额、资产/网络/地址、全部费用与签名内容，实际付费仍需用户确认。完整分仍需A10（至少8可判）、独立F7/B7，不改30/40/30或降低门槛；先给出可核事实、限制和下一具体选择，不把0confirmed误写成全平台最多0。
+1. 单笔实验方案已准备；读方案中三维判据、平台自采证分工和实际资金执行单，不再重复选择生态或绕回Zyfai。
+2. 核我们自己的源/目标账户、可信只读节点和任务关联；历史资料只辅助预检，不要求Agent先提供全部未来结果。用户没有XRPL收款钱包，具体准备方式仍待确认，本轮不生成密钥。
+3. 用真实收款地址取得新有效报价，给用户明确的本金/费用/gas/地址/签名内容；获具体授权后才执行单笔交易。旧报价/过期订单均不付款。
+4. 首单先产生有原件的三维观察，保留成功、失败和UNKNOWN，验证完整取证流程；后续按群体与正式计划扩样，不把一单记为长期100分，不跨正式F/B分母重复计入。
 
-本轮为真实零付款询价及可行性研究，生产代码、既有评分和报告未改，工程测试NOT_RUN；公开原件只追加保存在忽略目录，凭证不发布。对外申请仍取消、未发送。4份文档作本地提交、未push，实际充值与付费执行清单尚未形成，不声称已具备完整评分条件。
+本轮只更新实验设计及只读准备，主应用工程测试NOT_RUN、既有分数未改；资金/新密钥/真实新业务交易/新评分均未执行。
