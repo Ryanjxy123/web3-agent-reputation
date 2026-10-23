@@ -2,13 +2,17 @@
 
 ## 2026-10-23 当前主线（优先于下方历史记录）
 
-工作目录`D:/xjtu_project/block_chain_new/block_chain_new_new`。当前任务`SMALL_BUDGET_TRANSACTION_FEASIBILITY`：用户随后取消对外材料请求，改考虑自己小额真实交易，明确首轮总预算30元人民币连本金一起。不要发送申请或恢复等待操作者材料；旧申请文案状态为取消、未发送。先核Nox/iCLONE Base现货换币的当前Schema/最低额/全部费用/原始任务与真实执行关联，两个对象先各一次闭环再扩样本。30元不保证多个完整分；不以平台trade路由或直接DEX调用替代Agent履约。尚未开户、签名、充值或发交易；[当前结论](docs/research/SMALL_BUDGET_TRANSACTION_FEASIBILITY_20261023.md)。Git以STATUS及实际分支为准。
+工作目录`D:/xjtu_project/block_chain_new/block_chain_new_new`。当前任务`NOX_ICLONE_AUTHENTICATED_QUOTE_PREFLIGHT`，延续`SMALL_BUDGET_TRANSACTION_FEASIBILITY`：用户随后取消对外材料请求，改考虑自己小额真实交易，明确首轮总预算30元人民币连本金一起。不要发送申请或恢复等待操作者材料；旧申请文案状态为取消、未发送。先核Nox/iCLONE Base现货换币的当前Schema/最低额/全部费用/原始任务与真实执行关联，两个对象先各一次闭环再扩样本。30元不保证多个完整分；不以平台trade路由或直接DEX调用替代Agent履约。尚未开户、签名、充值或发交易；[当前结论](docs/research/SMALL_BUDGET_TRANSACTION_FEASIBILITY_20261023.md)。Git以STATUS及实际分支为准。
+
+本轮实际进展：官方CLI1.0.40/SDK0.1.15在`runtime/nox-iclone-preflight-20261023/client/`，仅split登录，无Agent创建/signer/资金操作。两UUID详情在`provider-details-preauth/`匿名GET均200，固定0.05、requiredFunds及需求/交付已齐，不要继续以“无auth无法读详情”为阻塞。默认交互create会引导signer后身份mint，禁止；browse会要求signer，读取用官方API纯GET。登录链接已给用户，单次complete返回pending；等用户登录后，按私有`auth-start.private.json`的requestId完成会话（不要输出token），先看本人已有买方与报价。下一`NOX_ICLONE_AUTHENTICATED_QUOTE_PREFLIGHT`，最低本金/当前接单/全部费用未齐，尚不能宣称30元两单可行。
+
+已确认官方`agent list --page 1 --page-size 10 --json`是无signer的owner GET，可用于下一步。未发现两家独立预报价命令，create-job是真实写链；trade dry-run不是聘请它们。LI.FI免费报价仅是iCLONE路由预估，不保证全包成本。若必须先创建job才能报价，先向用户说明写链成本及权限，不以报价为由直接执行；fund --amount不限制额外本金，买方evaluator和本金退款路径均须核。
 
 **竞赛红线：禁止发币。** 用户已明确要求，不发行代币/NFT、不做Agent代币化，不执行tokenize/token launch或新发身份NFT。工具有这些功能也不得调用；接入若强制相关动作则换路线，不以“身份注册”名义绕过。读取已有Agent身份与交易证据不受影响。
 
 前轮`FULL_SCORE_TRADING_AGENT_DISCOVERY`已筛查，多个完整可评交易对象的目标仍未达成，新增完整分0。两个新Venus各1业务任务，代表执行归属已实核；Celo/Agenthaus、ACP、Zyfai具体缺项见[汇总](docs/research/FULL_SCORE_TRADING_AGENT_DISCOVERY_20261023.md)，不要重扫已知缺源。86只读观察/84响应SHA一次核对通过，未改生产代码或新评分，工程测试NOT_RUN。补源方向已经用户确认，不要再次询问同一选择。
 
-用户已确认先寻找多个能完整三维评价的真实交易Agent，再共用适配；同一对象的服务入口、交易声明、执行授权与任务历史须同时可核验。认证接口、获授权只读导出及同提供方多实例均可接受，7F/7B为不同任务，不是必需14笔交易，查询F不能冒充执行正确性。不要继续围无接口的Olas对象堆代码，不把平台/RPC入口算Agent服务。前轮分支`codex/chain-execution-focus-20261023`已合入远程main的PR #19。用户已授权直接修改，以“与区块链深度结合”为主目标；资产交易、已有签名、授权、Safe执行均属评价范围，操作者的新签名/资金/主网写入须另有具体授权。三维仍为服务可用性/功能声明一致性/交易行为可靠性，旧政策、分数和原件不变。
+用户已确认先寻找多个能完整三维评价的真实交易Agent，再共用适配；同一对象的服务入口、交易声明、执行授权与任务历史须同时可核验。认证接口、获授权只读导出及同提供方多实例均可接受，7F/7B为不同任务，不是必需14笔交易，查询F不能冒充执行正确性。不要继续围无接口的Olas对象堆代码，不把平台/RPC入口算Agent服务。本地基线已纳入远程main的PR #19两份查询报告；链上执行改造仍在草稿PR #20，勿误记为已合并。用户已授权直接修改，以“与区块链深度结合”为主目标；资产交易、已有签名、授权、Safe执行均属评价范围，操作者的新签名/资金/主网写入须另有具体授权。三维仍为服务可用性/功能声明一致性/交易行为可靠性，旧政策、分数和原件不变。
 
 功能提交`7f3eec2`/`6ad6976`已推送，[草稿PR #20](https://github.com/Ryanjxy123/web3-agent-reputation/pull/20)保留供用户和队友审阅，未改main；CI以该PR最新检查为准。现有未跟踪演示稿及Word锁文件保留本地。
 

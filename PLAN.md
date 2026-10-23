@@ -10,7 +10,13 @@ task_id=`CHAIN_EXECUTION_FOCUS_20261023`实现与本机验收完成。用户已�
 
 本机PG/API与独立只读worker已恢复，新增包`data/chain-execution-evidence-v1.tar.gz`含521个公开原件、235329B，离线还原核验不需RPC/LLM。背景证据与原报告分开，规则见ADR-0021。必要新证据回放/失败边界、前端构建、真实HTTP/PG/附件及桌面/390px视觉通过。最终原件复看后将直接buy与MultiSend授权买入分别描述、中文说明已知缺项；只追加修订展示，不重采/改分，旧快照保留。当前49身份/50报告/10个链证据对象（20版本）/12个完整历史身份、0活动任务。
 
-当前task_id=`SMALL_BUDGET_TRANSACTION_FEASIBILITY`：用户已取消对外材料请求，改为考虑自己作为客户的小额真实交易，并明确首轮总预算**30元人民币，含本金**。不再联系操作者或等待其提供材料。预算同时覆盖服务费、gas、DEX费用/滑点及入金/退出等成本，不能解释成每对象30元或只有手续费上限。先确认多个真实外部Agent的实时服务、最低额、报价与任务/执行证据可取，再给具体试单清单；目前未开户、签名、充值、付款或发交易，不承诺30元必能完成多个完整评分。
+当前task_id=`NOX_ICLONE_AUTHENTICATED_QUOTE_PREFLIGHT`，延续`SMALL_BUDGET_TRANSACTION_FEASIBILITY`：用户已取消对外材料请求，改为考虑自己作为客户的小额真实交易，并明确首轮总预算**30元人民币，含本金**。不再联系操作者或等待其提供材料。预算同时覆盖服务费、gas、DEX费用/滑点及入金/退出等成本，不能解释成每对象30元或只有手续费上限。先确认多个真实外部Agent的实时服务、最低额、报价与任务/执行证据可取，再给具体试单清单；目前未开户、签名、充值、付款或发交易，不承诺30元必能完成多个完整评分。
+
+用户已进一步指定本阶段结果：确认Nox/iCLONE在30元总预算内能否各做一次真实交易并取得可独立核验的任务证据；需要用户登录、签名或充值时给出具体步骤。本轮先固定官方客户端版本、核登录/普通账户是否触及红线、取得实时服务Schema与报价，不能为只读发现先授予交易signer；缺少用户登录时只暂停依赖该登录的查询。一次试单不冒充完整三维评分。
+
+本轮已固定CLI1.0.40/SDK0.1.15，匿名读取两个准确UUID详情均200，已核各自固定0.05服务标价、requiredFunds与输入/交付字段；仍缺实际最低本金、当前接单及全部费用。已发官方split登录链接，一次完成查询返回pending，等待用户登录；不创建Agent、不授予signer、不充值，不运行会自动身份mint的默认create引导。下一task_id=`NOX_ICLONE_AUTHENTICATED_QUOTE_PREFLIGHT`：登录后先读已有买方/任务与具体报价；报价未核前不动资金。
+
+源码已确认`agent list --json`可在owner登录后无signer读取已有买方；未发现两家独立预报价命令。LI.FI免费路由预估不等于iCLONE全包报价，也不能替Nox报价。若需创建真实job才能报价，先说明该前置写入及成本，不以“查询报价”名义悄悄写链。
 
 用户进一步确认“禁止发币”为竞赛红线：不发行代币/NFT、不做Agent代币化，不使用第三方CLI的tokenize/token launch，不为凑对象新发身份NFT。若第三方接入强制这些步骤，则排除该路线。拟研究操作仅限既有资产与既有第三方Agent服务；此项已写入AGENTS长期约束，不能被后续小额预算或工具默认流程覆盖。
 
@@ -20,7 +26,7 @@ task_id=`CHAIN_EXECUTION_FOCUS_20261023`实现与本机验收完成。用户已�
 
 前轮候选筛查已完成，多个完整可评对象的目标尚未达成，新增完整分0。两个Venus身份的代表执行归属已实核，但各仅1业务任务；Zyfai/ACP缺实例级任务材料，Celo/Agenthaus未闭合。86次只读观察和84份响应SHA核对已保存，未改生产代码。当前以用户随后确认的小额自助路线调查补源，不恢复旧联系任务。[筛查汇总](docs/research/FULL_SCORE_TRADING_AGENT_DISCOVERY_20261023.md)；[前轮交付](docs/runbooks/CHAIN_EXECUTION_PROGRESS_20261023.md)。
 
-前轮分支`codex/chain-execution-focus-20261023`已合入`origin/main=14dcf6b`，功能提交`7f3eec2`/`6ad6976`已push并建立[草稿PR #20](https://github.com/Ryanjxy123/web3-agent-reputation/pull/20)。当前分支`codex/small-budget-trade-feasibility-20261023`继承`5266377`；本轮为可行性与红线文档的本地提交，未push。main未改、未自动合并。旧日期记录仅为历史。
+本轮基线已纳入`origin/main=14dcf6b`（PR #19）；前轮`codex/chain-execution-focus-20261023`的功能提交`7f3eec2`/`6ad6976`已push并建立[草稿PR #20](https://github.com/Ryanjxy123/web3-agent-reputation/pull/20)，未合并。当前分支`codex/nox-iclone-preflight-20261023`继承`9d6a4f0`；本轮仅提交真实预检结果与交接文档，未push。main未改、未自动合并。旧日期记录仅为历史。
 
 ## 2026-10-21 指导老师反馈与文档方案
 

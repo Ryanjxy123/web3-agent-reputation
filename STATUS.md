@@ -2,19 +2,23 @@
 
 ## 2026-10-23 当前执行状态
 
-当前任务`SMALL_BUDGET_TRANSACTION_FEASIBILITY`：用户明确取消对外材料请求，提出小额自己参与真实交易，总预算**30元人民币，包含本金及全部实交易相关成本**。申请文案仅留档、从未发送，不再等待操作者回复。已只读核官方现货交易服务及自助任务取证机制，尚未开户、签名、充值、付款、发交易或新增评分。多个对象先各一次闭环，再决定通用适配；不保证小额充值自动带来完整三维结果。[当前可行性](docs/research/SMALL_BUDGET_TRANSACTION_FEASIBILITY_20261023.md)。
+当前任务`NOX_ICLONE_AUTHENTICATED_QUOTE_PREFLIGHT`，延续`SMALL_BUDGET_TRANSACTION_FEASIBILITY`：用户明确取消对外材料请求，提出小额自己参与真实交易，总预算**30元人民币，包含本金及全部实交易相关成本**。申请文案仅留档、从未发送，不再等待操作者回复。已只读核官方现货交易服务及自助任务取证机制，尚未开户、签名、充值、付款、发交易或新增评分。多个对象先各一次闭环，再决定通用适配；不保证小额充值自动带来完整三维结果。[当前可行性](docs/research/SMALL_BUDGET_TRANSACTION_FEASIBILITY_20261023.md)。
+
+用户现已要求实际推进Nox/iCLONE各一次的预算/证据预检，登录、签名、充值需要用户参与时明确告知。已在隔离runtime安装固定官方CLI1.0.40（gitHead fbb788…）/SDK0.1.15，无安装脚本，生产依赖未改。两个准确UUID官方详情匿名GET均200，输入/交付Schema及固定0.05/requiredFunds已核；最低实际本金、当前接单与全部费用仍未知。默认create可触发身份NFT、browse要求signer，均未使用。官方split登录链接已交用户，单次完成查询pending；当前WAITING_LOGIN。下一`NOX_ICLONE_AUTHENTICATED_QUOTE_PREFLIGHT`先读已有买方/任务和具体报价，未开户、授予signer、充值、付款或发交易。
 
 用户新增明确红线：**禁止发币**。已同步AGENTS与PLAN：不发行代币/NFT、不做Agent代币化、不用tokenize/token launch、不为扩覆盖新发身份NFT；接入强制这些动作则排除。当前无发币、身份铸造或任何新链上交易。
 
-Nox/iCLONE的Base兑换为优先候选，标价均0.05但最低本金、当前报价、额外成本及实际服务/交付尚未核齐；如两个对象各7F+7B都用付费兑换，仅服务标价下界已为1.40USDC，不能当30元包干价。Zyfai最低10USDC/实例且低频，Wasabot杠杆10USDC门槛不适合本次预算。现有平台没有真实写任务采集器，先使用官方客户端保留自己任务原件，核多对象闭环后再作最小适配；不能把自己直接DEX交易计为第三方Agent履约。三维/门槛未改，纯可行性调查，工程测试NOT_RUN。
+已离线确认登录后可用`agent list --json`无signer读取已有买方。未发现Nox/iCLONE独立预报价命令；`create-job`是真实写链，不能当免费查询。LI.FI资源只可作iCLONE路由预估；若报价仍需前置交易，先说明gas与损耗，不擅自执行。登录并不保证马上取得全包报价。
+
+Nox/iCLONE的Base兑换为优先候选，各固定0.05服务标价不是本金/全包价；如两个对象各7F+7B都用付费兑换，仅服务标价下界已为1.40USDC，不能当30元包干价。本轮两次在线过滤搜索均未在top5找到准确UUID，不推出离线；历史活动时间或第三方resource不能作Agent A分。Zyfai最低10USDC/实例且低频，Wasabot杠杆10USDC门槛不适合本次预算。现有平台没有真实写任务采集器，先保存自己任务原件，核多对象闭环后再作最小适配。三维/门槛未改，工程测试NOT_RUN，生产代码未改。
 
 当前任务`FULL_SCORE_TRADING_AGENT_DISCOVERY`的本轮候选筛查已完成，**多个完整可评分交易Agent的目标仍未达成，新增完整评分0**。按用户确认的顺序，先查同一身份的接口/声明/执行/足量独立任务，再适配；允许认证及授权只读材料，同提供方多实例也可，7F/7B不等于14笔交易。本轮未改生产代码、评分、前端、数据库或既有报告。
 
 发现并独立核到Brain Venus #302257/#304493各一笔代表交易与历史注册wallet，但各只有一次自治任务；CeloFX的9记录仅为与seed相同的自报数据、未RPC实核；Agenthaus原交易实例的安全公开路由404；Zyfai MCP初始化401，ACP缺真实任务/交付闭环。均保留具体缺项，不借目录健康分、咨询任务数、交易步数或其它对象的证据凑完整分。[本轮汇总与四份分支调查](docs/research/FULL_SCORE_TRADING_AGENT_DISCOVERY_20261023.md)。
 
-前轮实际86次只读观察（69个200/12个404/1个401/2个307/2个连接错误），84份响应SHA一次核对通过；`runtime/full-score-trading-discovery-20261023/source-audit.json`，exit0。0签名/交易/付费/LLM/新评分作业；工程测试NOT_RUN，纯研究不重跑旧验收。补源方向现已确认，执行本页首段`MULTI_AGENT_READONLY_EVIDENCE_GATE`。
+前轮实际86次只读观察（69个200/12个404/1个401/2个307/2个连接错误），84份响应SHA一次核对通过；`runtime/full-score-trading-discovery-20261023/source-audit.json`，exit0。0签名/交易/付费/LLM/新评分作业；工程测试NOT_RUN，纯研究不重跑旧验收。随后用户已取消材料申请，执行本页首段的Nox/iCLONE小额预检，不恢复旧申请任务。
 
-Git当前分支`codex/small-budget-trade-feasibility-20261023`继承`5266377`，可行性/红线与状态文档以本轮本地commit留存；未push/main未改，前轮草稿PR #20保留。文档diff/暂存检查与本地秘密扫描通过，工程测试NOT_RUN。无关`docs/presentation/`不纳入。本机运行与前轮验收记录见下文，数量是前轮交付快照，不能当作本轮新增结果。
+Git当前分支`codex/nox-iclone-preflight-20261023`继承`9d6a4f0`，仅提交真实预检与状态交接文档；未push/main未改，前轮草稿PR #20保留。工程测试NOT_RUN（生产代码未改），提交前检查本次文档与秘密；私有runtime、登录会话和无关`docs/presentation/`不纳入。本机运行与前轮验收记录见下文，数量是前轮交付快照，不能当作本轮新增结果。
 
 ### 前轮交付快照
 
