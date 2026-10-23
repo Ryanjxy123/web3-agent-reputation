@@ -1,10 +1,56 @@
 # 小额实交易：真实Agent评价可行性
 
-日期：2026-10-23。当前task_id：`ICLONE_QUOTE_OBSERVATION_COMPLETE`，主线`NOX_ICLONE_BUYER_FUNDING_PREFLIGHT`，延续`SMALL_BUDGET_TRANSACTION_FEASIBILITY`。
+日期：2026-10-23。当前task_id：`TRADING_AGENT_QUOTE_AND_EVIDENCE_PREFLIGHT`，主线`MULTI_PROVIDER_TRADING_EVIDENCE`，延续`SMALL_BUDGET_TRANSACTION_FEASIBILITY`。
 
 用户取消对外材料请求，改自己参与小额真实交易。原30元不再阻断研究/准备，用户已买币10元；本次实际充值、付费和资产兑换均0。EVM No Policy已读回生效，账户委托上链；先前一次建单因期限缓冲不足失败，独立核清后修正并成功创建Nox订单82141。真实需求已提交，约395秒观察仍无提供方报价/资金请求，订单期限已过，不向旧单付款。Nox观察已收口；用户随后明确授权继续iCLONE接单/报价/证据预检，需要充值再告知。iCLONE与Nox同属Virtuals ACP市场，是不同Agent；只建立零价值、gas赞助的swap_base订单及提交1USDC→WETH/0.5%滑点需求，不付款、充值或兑换。iCLONE随后观察30分45秒仍无提供方回复或报价，已停止。两者均未进入付费执行，不建议现在充值；真实兑换和两对象完整评价仍未达成。
 
-## iCLONE本次订单与证据口径
+## 当前：更换真实交易Agent，先报价和证据再充值
+
+主线改为寻找至少两个真实交易Agent，先用真实接单、任务级报价与可核验的评价证据通路确认多对象可测，再通知用户充值；不再将Nox/iCLONE固定为目标对象。三维、权重、门槛及旧报告不变，一次试单不冒充完整分。禁止发币、tokenize和身份NFT铸造；允许现有专用买方的零转账、gas赞助询价建单与需求/证据询问，不充值、不支付服务费或本金、不执行兑换。原30元不阻断研究/准备，已购币10元保留成本记录。
+
+本轮task_id=`TRADING_AGENT_QUOTE_AND_EVIDENCE_PREFLIGHT`已调查收口，目标尚未达成；当前等待`DECIDE_NEXT_TRADING_PLATFORM_PREFLIGHT`。用户要求至少两个真实接单报价、评价证据通路可核的交易Agent，满足后才通知充值。本轮已沿用现有Base买方、已生效的Alchemy v1.0.0委托、EVM No Policy和本地signer，完成候选身份/Schema/hook预检、零价值赞助建单及需求/证据询问。目录online、占位活动时间和挂牌价均未当作接单证明。等待新平台决定期间不再签名、新建询价单或轮询；不充值、付款、兑换、发币或身份mint，既有授权也不自动推广到新平台。
+
+本轮询价已停止，目标未达成：新增三个真实交易服务、四个零付款订单，实际接单报价0、已确认可拿齐完整评价证据的对象0。ZeroAgent的82146、Ethy的82147，以及修正流程后的GSB 82148均在需求已获平台接受并记入同job历史后REJECTED，budget均null；原因只有bytes32哈希，明文未知，不能归因为余额、费用、请求文本或协议版本。GSB首单82145在我们发送需求前已拒绝，首次需求HTTP403；修正共用时序后只补做了一单，82148只提交标准requirement、无长文本询问，仍拒绝，因此不再重试这批对象。四单建单均经可信Base RPC独立核验；GSB首单拒绝另有独立链事件核验，其余拒绝以本轮已取官方任务历史为依据。未fund、支付服务费/本金、兑换、发币、身份mint或新增评分。详细时间、原件和失败路径见下方批次表及原件索引。
+
+### 本轮实际询价结果（UTC，已收口）
+
+| 服务 / 订单 | 真实流程及结果 | 能否安排充值 |
+| --- | --- | --- |
+| GSB `dca_buy` / 82145 | 官方索引创建10:42:56.109、历史创建10:42:56.126，历史拒绝10:43:03.757；我们的首条需求随后HTTP403，没有送达。拒绝另以可信Base RPC事件核实 | 否；无接单、预算或报价 |
+| ZeroAgent `swap` / 82146 | 首次官方索引暂未返回job，安全停止后只恢复同单读取，未重建/重播。10:58:44.800需求入历史、10:58:50.934询问入历史，10:58:52.216拒绝 | 否；budget=null，无原始交易交付 |
+| Ethy AI `swap` / 82147 | 11:00:30.263创建，11:00:31.364需求入历史、11:00:31.771询问入历史，11:00:37.944拒绝 | 否；budget=null。其声明的本人swap查询资源另实读HTTP404，不等于有可导出历史 |
+| GSB `dca_buy` / 82148 | 修正共用时序后唯一补单；11:08:42.482创建、11:08:45.284标准需求入历史、11:08:49.731拒绝。没有追加长询问 | 否；budget=null；停止该批重试 |
+
+四个createJob的链、买卖方、目标合约、JobCreated及EntryPoint内层执行成功均经可信RPC核验；只证明订单创建，不证明业务执行成功。GSB首单的拒绝额外独立查链，其余三单拒绝来自已保存的官方job/history，不冒称额外做过拒绝交易RPC核验。三个provider均未返回明文原因，不能把拒绝哈希推断成“先充值就能用”，也不据此给正式FAIL或完整分。
+
+新四单原件目录依次为`runtime/nox-iclone-preflight-20261023/`下的`createjob-approvals-2026-10-23T10-42-09.179Z.private/`、`createjob-approvals-2026-10-23T10-55-01.287Z.private/`、`createjob-approvals-2026-10-23T10-59-20.232Z.private/`、`createjob-approvals-2026-10-23T11-06-28.924Z.private/`。离线批次清单`quote-trials-closeout-2026-10-23T11-19-57.082Z.private.json`绑定49份来源文件SHA256，清单SHA256为`24ceedbd1e6e33206a395c6f2f99d6702891d6664b501782d63f1a8267b74d0b`；不含签名、令牌或带凭证RPC URL，继续保留在忽略目录。
+
+共用私有operator只修正已实际遇到的问题：建单后在同一进程核官方回执并发送唯一requirement，索引短暂`data:null`只作有界只读等待；先持久化意图，不自动重试消息POST或广播，不换request_id恢复未知提交。官方回执仅供同job链下消息关联，独立RPC随后完成，未降低支付或评分门槛。GSB补单采用官方最小流程、无长文本，仍拒绝；不能把所有失败归因于额外询问。未形成新的生产适配或评分规则。
+
+部署兼容性调查只核到以下事实：[官方部署表](https://os.virtuals.io/acp/overview)与SDK的FundTransferHook地址不同，但本轮npm官方最新版本仍是0.1.15，包完整性核对一致；可信Base固定块52981153实核两个hook均有代码、core白名单为true且绑定同一ACP。不能据地址差异认定SDK失效，也不能据白名单推定provider实际兼容。8次RPC的原件`runtime/nox-iclone-preflight-20261023/hook-preflight-20261023T103403Z/`及证明`hook-preflight.private.json`保留，未盲改合约地址或升级依赖。
+
+### 其他渠道与证据可得性
+
+| 渠道 | 本轮实际观察 | 当前限制 |
+| --- | --- | --- |
+| ACP额外在线目录 | 一次20条现货执行搜索；仍有2999年占位活动时间 | 没有新增可证当前接单的执行者；calldata生成、分析和建议不能冒充代执行 |
+| ACP近期链上群体 | 固定块52981325向前10000块，12个JobCreated，排除我方旧2单后10单/6个provider；逐一详情核验 | 全为研究、图像、QA等，0个明确现货执行服务；其中5单与运营方自测钱包有关，不能宣称真实外部交易需求 |
+| ACP旧协议公开历史 | GSB历史列表200，但选定swap详情一次超时；Zero列表/选定详情200，但交付被遮罩且为研究任务 | 未拿到可用的原始交易要求→执行→结果闭环；旧完成记录不能证明当前新协议接单 |
+| Bitte CoWSwap / Uniswap AI Agents | [官方目录](https://github.com/BitteProtocol/awesome-bitte)列出的两个部署首页本轮均HTTP402，Vercel返回`DEPLOYMENT_DISABLED` | 属部署停用，不能当x402收费报价或已接单；两者原本为钱包辅助生成交易，亦须区分Agent规划和用户签名 |
+| Giza | [官方迁移说明](https://www.gizatech.xyz/blog/giza-world-migration-guide)指出ARMA/Pulse退役；[当前SDK](https://github.com/gizatechxyz/giza-hub)要求联系取得partner key，activate要depositTxHash | 不按旧产品名凑两家；按用户不联系他人的要求暂不推进API路线。费用、最低额与原始决策导出未核齐 |
+| Zyfai | [当前Getting Started](https://docs.zyf.ai/docs/sdk/getting-started)指向[Dashboard](https://sma.zyf.ai)取得SDK Key，用户另需SIWE；首次sendDeposit才分配Safe/session | 未开户、未取得Key/用户会话，最低额/费用/实例级原始任务导出未实核；不能保证先零资金创建两个可评执行实例。两个Safe也不等于两家提供方 |
+
+Bitte两次首页观察原件`runtime/bitte-deployment-homepages-20261023T111114Z-5e73776a/`；Ethy本人查询资源404原件`runtime/ethy-swap-status-20261023T105848Z-34fd4dd0/`。Zyfai文档本次未列强制身份NFT铸造，普通Safe不是身份NFT；仍需逐步核实际流程，若强制发币/身份铸造即排除，不为取得资格先入金。
+
+### 实际命令与验证范围
+
+私有工具位于`runtime/nox-iclone-preflight-20261023/client/`。新四单按各自目录运行`node request-createjob-approvals.private.mjs --provider <gsb|zero|ethy>`、`python simulate_createjob_call.py <目录> --provider <key>`、`node resume-createjob.private.mjs <目录> --provider <key>`，GSB补单及后续使用`--quote-only-followup`；prepare与精确eth_call均exit0。首个GSB发送需求因拒单HTTP403退出1；Zero首次发送后跟进因索引`data:null`停止退出1，发送已被接受的原UserOp没有重播，随后恢复原单成功。其余广播/快速跟进exit0。
+
+`python verify_createjob_receipt.py <目录>`四次均exit0，每单6次可信RPC；正式评分所需确认门槛未在本轮宣称达成，也未为出分继续轮询。`node send-createjob-requirement.private.mjs <目录> --provider <key> --read-only`终态读取exit0，后续无消息发送。GSB首单拒绝独立查链exit0。Ethy资源404、Bitte两个部署402的采集命令exit1，保留真实失败，不写成通过。必要私有operator语法/AST及关键离线分支检查已执行并通过；主应用工程测试NOT_RUN，没有生产代码、评分、数据库或报告修改，不为文档提交重复测试。
+
+本轮额外1次既有ACP登录消息签名、4次零价值赞助建单UserOp；没有新增账户委托、fund调用、服务费、本金支付、兑换、代币发行或身份mint。此前Nox/iCLONE两单仍作为无报价历史保留，累计六个成功创建的未付费订单，不能计成六个可用Agent。
+
+## iCLONE本次订单与证据口径（前轮历史）
 
 iCLONE订单`82142`观察已收口：唯一sponsored/零转账建单交易`0x3a87a41bd31ea897644f0d1d62ed8b394815e82b157b9cbc58d9a977166cf552`，可信Base RPC、EntryPoint内层成功及唯一JobCreated已核。1USDC→WETH/0.5%滑点需求于09:22:59.882UTC提交一次，最终09:53:44.829UTC（北京时间17:53:44）仍API OPEN/budget=null、history2条、provider回复0；观察1844.947秒，记录deadline09:53:10已过。未确认接单、真实报价或完整评价证据，不能解释为已收费服务违约或直接计FAIL。已停止轮询，不向过期旧job充值/付款，不重复需求或建单；fund/服务费/本金转出/兑换/发币/身份mint/新评分均0。原件`createjob-approvals-2026-10-23T09-20-09.034Z.private/QUOTE_OBSERVATION_COMPLETE.private.json`。
 
@@ -32,14 +78,14 @@ iCLONE交付模板未承诺amount_out/minOut；若后续执行，到账量需独
 - 原30元包含本金及全部成本的调查保留参考，已由最新“预算先别管”取代硬阻断；资金周转、服务费、gas、兑换和入金退出等费用仍如实核算，具体资金动作给用户确认。
 - 先确认两个真实外部对象各能闭合一次任务，再确定共用判据和正式取样。原A10槽/至少8可判、7F及另一组7B不变；这是任务分配，不是必需14笔交易。只有查询F不能宣称兑换正确性已通过。
 
-## 官方资料核查结果
+## 早期官方资料核查结果（预算与可用性以本页最新结论为准）
 
 | 路线 | 现有依据 | 本次预算与证据判断 |
 | --- | --- | --- |
 | Nox v2，`019e4f32-23d3-78eb-80bc-9545cdc49328` | [本轮官方详情API](https://api.acp.virtuals.io/agents/019e4f32-23d3-78eb-80bc-9545cdc49328)实际匿名GET200：Base `token_swap`、`priceType=fixed`、`priceValue=0.05`、`requiredFunds=true`、5分钟SLA；输入JSON Schema和交易hash/输出资产/原始单位数量的交付Schema齐全 | 固定服务标价已核实，但最低实际本金未公布，当前接单、实际交付及全部费用待核；要求金额>0不等于任意微额可执行 |
 | iCLONE v2，`019eae06-96cd-77d0-8f8b-a6abb71f0cd7` | [本轮官方详情API](https://api.acp.virtuals.io/agents/019eae06-96cd-77d0-8f8b-a6abb71f0cd7)实际匿名GET200：`swap_base`、固定0.05、`requiredFunds=true`、30分钟SLA；输入要求和交付模板已取得 | 最低本金及全部费用尚未确认；其requirements/deliverable为字符串模板而非严格JSON Schema，需根据真实任务响应核实，不能声称已完成接口适配 |
 | Wasabot #1048 | [官方身份页](https://app.virtuals.io/acp/agent-details/1048)；前轮API原件明确`open_position`最低10USDC | 杠杆业务不选；其它存取款能力也未证明多对象闭环，不因标价0.01就先开仓 |
-| Zyfai个人Safe | [支持资产与最低余额](https://docs.zyf.ai/docs/sdk/supported-assets)给出Base/Arbitrum每账户10USDC最低额；[再平衡频率](https://docs.zyf.ai/docs/sdk/api/get-rebalance-frequency)及[规则](https://docs.zyf.ai/docs/product/intelligence/monitoring)显示低额低频且不保证发生操作 | 不适合30元含本金的两个对象试验。两个Safe也不自动等于不同公共Agent；不使用新发身份NFT来扩覆盖 |
+| Zyfai个人Safe | 早期[支持资产与最低余额](https://docs.zyf.ai/docs/sdk/supported-assets)调查给出Base/Arbitrum每账户10USDC；[再平衡频率](https://docs.zyf.ai/docs/sdk/api/get-rebalance-frequency)及[规则](https://docs.zyf.ai/docs/product/intelligence/monitoring)显示低额低频且不保证发生操作 | 原30元现不作为准备阻断；当前最低额与费用需在新流程实核。两个Safe不自动等于不同公共Agent；不使用新发身份NFT扩覆盖 |
 
 费用只做条件下界：若Nox/iCLONE最终每任务报价均0.05USDC、各7F+7B全部采用付费兑换，两对象的服务标价合计`2×14×0.05=1.40USDC`。**这不是完整成本报价**，尚未包括独立A取样、DEX费、滑点、gas、入金退出成本及所需本金，因此不能据此承诺30元足够。若F可核另一项已声明的免费功能，可减少付费任务，但必须准确限定F覆盖，不为省钱改评分含义。
 
@@ -104,11 +150,11 @@ Nox订单`82141`已真实创建并观察收口：No Policy自动签名/单次提
 
 此前唯一广播的旧UserOp因ExpiryTooShort失败，已6次可信RPC及独立事件解码确认无JobCreated；7702委托已实际生效，旧操作不能重播。修正为5min原SLA+180s准备缓冲，签名前/提交前剩余>330s；新calldata先经确切eth_call成功，再构造唯一发送。源于接入流程，不计Nox FAIL；旧失败原件与新成功原件均保留，未改评分规则。
 
-下一task_id=`QUOTE_READY_COHORT_SELECTION`：Nox与iCLONE的本轮试单均未取得提供方回复，暂不安排充值或继续围旧对象加适配。先核后备群体的真实接单、协议/资金组件兼容、身份与执行证据；多个对象共同可测后再定共用实现及资金范围。一次有界搜索仅得到3个声明候选，20条lastActiveAt全为2999年占位，不能信目录online；完整候选和明确缺项见可行性文档。后备对象本轮未建单/签名/付款，不新增生产适配或完整分。
+当前瓶颈与下一步：停止ACP同批反复试单、目录关键词搜索及扩大适配。两个Bitte交易Agent现有公开部署均HTTP402 / Vercel DEPLOYMENT_DISABLED，不能当作业务报价；Giza的ARMA/Pulse已退役，现Giza SDK要合作方Key且需联系取得，按用户不联系他人的要求不推进；Zyfai可研究Dashboard自助Key与SIWE只读预检，但首次sendDeposit才分配Safe/session，费用、最低额和实例级原始任务导出仍未实核，也没有第二个合格对象。先向用户汇报并等待是否转入新平台登录后零资金预检的决定，不擅自开户/签新平台授权或要求充值。下一task_id=`DECIDE_NEXT_TRADING_PLATFORM_PREFLIGHT`；原两对象门槛、固定三维及禁发币红线不变。
 
-## 备用群体：仅声明初筛，未下单
+## 本轮三家候选的声明初筛（实际询价结果见上方）
 
-等待iCLONE期间仅追加1次官方在线过滤搜索，HTTP200、20条记录；原件`runtime/acp-swap-search-20261023T093827Z-32086f52/`。20条lastActiveAt全部为`2999-12-31T00:00:00.000Z`，不能据此证明活跃或据online标签开始付款。保留3个明确声称现货执行的后备对象，其余17个包括只给calldata的Hydrex均不冒充执行者。未给任何后备对象建单或适配。
+等待iCLONE期间追加1次官方在线过滤搜索，HTTP200、20条记录；原件`runtime/acp-swap-search-20261023T093827Z-32086f52/`。20条lastActiveAt全部为`2999-12-31T00:00:00.000Z`，不能据此证明活跃或据online标签开始付款。保留3个明确声称现货执行的后备对象，其余17个包括只给calldata的Hydrex均不冒充执行者。该初筛阶段未建单；本轮随后给三家创建了四个零付款询价单，均拒绝，未适配或充值。
 
 | 候选/公开ACP UUID | 服务/挂牌原值 | 充值或适配前的明确缺项 |
 | --- | --- | --- |
@@ -116,11 +162,11 @@ Nox订单`82141`已真实创建并观察收口：No Policy自动签名/单次提
 | ZeroAgent / `019df9a9-db36-701b-8659-86283716ab21` | swap / fixed 0.4 / requiredFunds=true | 输入token和字符串金额；交付仅string，未承诺txHash、滑点或收款地址；Bankr/0x执行链需原件证明 |
 | GSB Wallet Profiler and DCA ENGINE / `019d756c-9eba-7600-81ba-f1c78f43277c` | dca_buy / fixed 0.25 / requiredFunds=true | 可指定既有tokenAddress、USDC数额和maxSlippagePct；声明txHash/输出/滑点等，但资金进入、真实输出归属、是否需其钱包预置资金待核；不自动预充值 |
 
-三个候选的目录ERC-8004字段均null，ACP UUID不是ERC-8004身份，链上注册/执行授权尚须核实。价格字段本身未明示币种，不能仅凭原值报全包充值数。此表只用于后续选择，不表示三者已接单、合规路径已核或可完整评分；保留不可测缺项，先核多对象共同证据再实现共用适配。
+三个候选的目录ERC-8004字段均null，ACP UUID不是ERC-8004身份，链上注册/执行授权尚须核实。价格字段本身未明示币种，不能仅凭原值报全包充值数。此表保留声明及缺项；后续真实拒单不改变它们原本的功能声明，也不证明可完整评分。不可测原因与原件保留，当前不做生产适配。
 
-## 当前优先：欧易入金与钱包辅助
+## 资金入口参考：欧易入金与钱包辅助（尚不安排充值）
 
-用户已要求优先考虑欧易；将其作为可能的资金入口、钱包与记录查看工具，不更换Nox/iCLONE评价对象，不启动新的单对象评测适配。
+用户已要求优先考虑欧易；将其作为可能的资金入口、钱包与记录查看工具。当前评价对象已按最新要求更换调查，不再固定Nox/iCLONE；先有至少两个真实接单报价及完整证据通路再确定入金，不启动新的单对象评测适配。
 
 - [欧易C2C官方FAQ](https://www.okx.com/zh-hans/help/what-is-p2p-trading-cn)写明平台交易费为零、人民币最低10元起；实际广告商限额、价格、本人资格及支付费用仍以账户所见为准。因此30元未被这项公开最低额直接排除，但不是全包可行结论。[C2C限额与安全保护](https://www.okx.com/zh-hans/help/c2c-buying-limit-and-security-protection-guide)另说明部分订单存在T+N提币限制，买到不等于可立即投入试单。
 - [官方区别说明](https://www.okx.com/en-us/help/understanding-the-link-between-okx-and-web3-wallets)：交易所账户和自托管Web3钱包分别管理资产。欧易曾公告开放[USDC-Base](https://www.okx.com/en-us/help/okx-to-support-usdc-base)与[Base ETH](https://www.okx.com/en-us/help/okx-to-support-base-network)；钱包支持[Base 8453](https://web3.okx.com/onchainos/dev-docs/wallet/supported-networks)。公告不替代本人当前提币页。
@@ -139,13 +185,13 @@ Nox订单`82141`已真实创建并观察收口：No Policy自动签名/单次提
 
 CLI的普通账户/钱包、市场任务、链上身份注册和tokenize是不同能力，不能按默认全流程启用；只考虑必要客户端能力并逐项核实是否触及红线。其自带`trade`只是平台交易路由，不等于聘请Nox或iCLONE，不能拿来给这两个provider计分。支持testnet配置也不说明这些真实实例在测试网上接单。
 
-现有平台只具查询/历史采集器，没有已验收的真实写任务采集器。本轮不预建自动签名器；若后续试单可行，先在官方入口由用户保留签名前任务要求并完成必要确认，平台负责采证与独立核验。多个对象闭环后才做最小通用适配。
+现有平台没有已验收的生产真实写任务采集器。此前不预建签名器的准备阶段已结束；本轮仅在忽略的私有operator中按既有授权签ACP登录及零付款询价，没有生产适配。付费或资产操作仍先核具体条款、签名前要求及授权，多个对象闭环后才做最小通用适配。
 
-## 下一步需要先核实的事实
+## 下一步：等待新平台预检决定，不充值
 
-1. owner/协议登录、普通买方、DENY_ALL signer及SDK匹配版本的unsigned建单预检已完成；账户委托与仅建单权限现已明确批准，下一步按官网逐笔审批后取得真实条款、本人欧易最低提币额/费用/锁定和后续全成本。详情和Schema不重采，不通过身份mint或放开权限解决接入问题。
-2. 能否取得自己任务的原始要求、交付和执行账户/业务交易hash；Agent服务可用性是否有合法、可重复实测的入口。只有目录在线仍不足。
-3. 取得每对象一单的具体报价及全部费用、资金流向、接收账户、期限和约束，再给用户明确充值与签名步骤；原30元不再阻断准备，但不以未知报价让用户先付款。
-4. 两对象的低额任务证据闭合后，固定同一业务规则、独立样本和剩余预算，再决定完整评价。遇未知执行路径或费用超额停止依赖动作并说明，不为出分改门槛。
+1. 本批真实拒单已经终态，停止重试、轮询或恢复旧单；不通过充值赌测、不联系他人索取材料、不为扩大对象做tokenize/身份mint。
+2. 向用户报告目前0/2。若用户选择继续新平台，具体待核入口是Zyfai官方Dashboard：先核账户/Key条款及只读可得字段；新平台登录消息签名另核实际内容，不沿用ACP签名权限，不调用sendDeposit或策略授权。
+3. 仍须找到另一个同样真实可用的交易Agent，并在每对象上取得接单/费用条款、身份与执行归属、原始任务/结果导出及独立RPC核验通路；两个钱包、同平台的两个工具或一个成功订单不能直接凑成两个可评分Agent。未来交易结果只能在实际执行后取得，预检核的是既有样本及交付/取证机制，不能预先宣称拿到了未来证据。
+4. 两对象满足入金前条件后才提供具体充值金额、资产/网络/地址、全部费用与签名内容；仍需足量独立A/F/B样本才能给完整分，不改30/40/30或降低门槛。若路线强制先入金才展示必要证据，则先向用户报告不满足原条件，不自行放宽。
 
-本轮为可行性研究和方向更新，生产代码、既有证据和评分未改，工程测试NOT_RUN。对外申请状态已改为取消、未发送。实际资金执行清单尚未形成，不声称已具备完整评分条件。
+本轮为真实零付款询价及可行性研究，生产代码、既有评分和报告未改，工程测试NOT_RUN；公开原件只追加保存在忽略目录，凭证不发布。对外申请仍取消、未发送。4份文档作本地提交、未push，实际充值与付费执行清单尚未形成，不声称已具备完整评分条件。

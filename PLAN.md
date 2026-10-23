@@ -10,9 +10,9 @@ task_id=`CHAIN_EXECUTION_FOCUS_20261023`实现与本机验收完成。用户已�
 
 本机PG/API与独立只读worker已恢复，新增包`data/chain-execution-evidence-v1.tar.gz`含521个公开原件、235329B，离线还原核验不需RPC/LLM。背景证据与原报告分开，规则见ADR-0021。必要新证据回放/失败边界、前端构建、真实HTTP/PG/附件及桌面/390px视觉通过。最终原件复看后将直接buy与MultiSend授权买入分别描述、中文说明已知缺项；只追加修订展示，不重采/改分，旧快照保留。当前49身份/50报告/10个链证据对象（20版本）/12个完整历史身份、0活动任务。
 
-主线为Nox/iCLONE两个真实外部Agent各一次小额交易任务闭环，再决定共用适配及正式7F/7B取样；一次任务不冒充完整分。用户取消对外联系；原30元不再阻断研究/准备，已买币10元仍记成本。禁止发币、tokenize和身份NFT铸造，付款与本金尚未获准自动执行。
+主线改为寻找至少两个真实交易Agent，先用真实接单、任务级报价与可核验的评价证据通路确认多对象可测，再通知用户充值；不再将Nox/iCLONE固定为目标对象。三维、权重、门槛及旧报告不变，一次试单不冒充完整分。禁止发币、tokenize和身份NFT铸造；允许现有专用买方的零转账、gas赞助询价建单与需求/证据询问，不充值、不支付服务费或本金、不执行兑换。原30元不阻断研究/准备，已购币10元保留成本记录。
 
-当前task_id=`ICLONE_QUOTE_OBSERVATION_COMPLETE`。用户最新明确要求继续iCLONE，核接单、真实报价及评价证据，需要充值再告知；这是对该对象零价值建单/需求消息的明确授权，不是付款或兑换授权。用户已官网将EVM改为No Policy，08:39UTC通过官方CLI实读同一signer的policyIds=[]、No Policy (no approval required)，原件`policy-read-2026-10-23T08-39-20.534Z.private/`；不再要求本次任务逐笔人工审批。Solana未操作/未读回，本轮不用。No Policy也覆盖后续充值，本地operator仍核provider/资产/金额/selector及禁止发币，不冒称平台硬限额。当前授权为Base专用买方Alchemy v1.0.0持续委托，Nox及iCLONE各一次建单和1USDC→WETH、最高0.5%滑点需求及取条款；Nox及iCLONE两轮观察均已收口，当前无待自动执行的资金动作。建单必须零转账且prepare确认gas赞助，不充值/付费/兑换。签名与会话只用同一原生keychain；沙箱内读取可能假空，应在CLI实际运行环境核实，不据此重复登录。
+本轮task_id=`TRADING_AGENT_QUOTE_AND_EVIDENCE_PREFLIGHT`已调查收口，目标尚未达成；当前等待`DECIDE_NEXT_TRADING_PLATFORM_PREFLIGHT`。用户要求至少两个真实接单报价、评价证据通路可核的交易Agent，满足后才通知充值。本轮已沿用现有Base买方、已生效的Alchemy v1.0.0委托、EVM No Policy和本地signer，完成候选身份/Schema/hook预检、零价值赞助建单及需求/证据询问。目录online、占位活动时间和挂牌价均未当作接单证明。等待新平台决定期间不再签名、新建询价单或轮询；不充值、付款、兑换、发币或身份mint，既有授权也不自动推广到新平台。
 
 已完成普通JSON买方创建（record/email201，ERC8004与virtual身份null/chains=[]）、本地signer和DENY_ALL读回、owner及协议登录。Base块52975410余额ETH/USDC均0、code=0。用户已批准仅此专用买方的Alchemy v1.0.0持续7702委托，以及仅Nox建单、提交1USDC→WETH/50bps需求并读取真实条款；不充值、不支付服务费/本金、不兑换。取消人工审批只改签名方式，不自动扩大业务范围。
 
@@ -24,7 +24,9 @@ Nox订单`82141`已真实创建并观察收口：No Policy自动签名/单次提
 
 iCLONE订单`82142`观察已收口：唯一sponsored/零转账建单交易`0x3a87a41bd31ea897644f0d1d62ed8b394815e82b157b9cbc58d9a977166cf552`，可信Base RPC、EntryPoint内层成功及唯一JobCreated已核。1USDC→WETH/0.5%滑点需求于09:22:59.882UTC提交一次，最终09:53:44.829UTC（北京时间17:53:44）仍API OPEN/budget=null、history2条、provider回复0；观察1844.947秒，记录deadline09:53:10已过。未确认接单、真实报价或完整评价证据，不能解释为已收费服务违约或直接计FAIL。已停止轮询，不向过期旧job充值/付款，不重复需求或建单；fund/服务费/本金转出/兑换/发币/身份mint/新评分均0。原件`createjob-approvals-2026-10-23T09-20-09.034Z.private/QUOTE_OBSERVATION_COMPLETE.private.json`。
 
-下一task_id=`QUOTE_READY_COHORT_SELECTION`：Nox与iCLONE的本轮试单均未取得提供方回复，暂不安排充值或继续围旧对象加适配。先核后备群体的真实接单、协议/资金组件兼容、身份与执行证据；多个对象共同可测后再定共用实现及资金范围。一次有界搜索仅得到3个声明候选，20条lastActiveAt全为2999年占位，不能信目录online；完整候选和明确缺项见可行性文档。后备对象本轮未建单/签名/付款，不新增生产适配或完整分。
+本轮询价已停止，目标未达成：新增三个真实交易服务、四个零付款订单，实际接单报价0、已确认可拿齐完整评价证据的对象0。ZeroAgent的82146、Ethy的82147，以及修正流程后的GSB 82148均在需求已获平台接受并记入同job历史后REJECTED，budget均null；原因只有bytes32哈希，明文未知，不能归因为余额、费用、请求文本或协议版本。GSB首单82145在我们发送需求前已拒绝，首次需求HTTP403；修正共用时序后只补做了一单，82148只提交标准requirement、无长文本询问，仍拒绝，因此不再重试这批对象。四单建单均经可信Base RPC独立核验；GSB首单拒绝另有独立链事件核验，其余拒绝以本轮已取官方任务历史为依据。未fund、支付服务费/本金、兑换、发币、身份mint或新增评分。详细时间、原件和失败路径见[可行性记录](docs/research/SMALL_BUDGET_TRANSACTION_FEASIBILITY_20261023.md)。
+
+当前瓶颈与下一步：停止ACP同批反复试单、目录关键词搜索及扩大适配。两个Bitte交易Agent现有公开部署均HTTP402 / Vercel DEPLOYMENT_DISABLED，不能当作业务报价；Giza的ARMA/Pulse已退役，现Giza SDK要合作方Key且需联系取得，按用户不联系他人的要求不推进；Zyfai可研究Dashboard自助Key与SIWE只读预检，但首次sendDeposit才分配Safe/session，费用、最低额和实例级原始任务导出仍未实核，也没有第二个合格对象。先向用户汇报并等待是否转入新平台登录后零资金预检的决定，不擅自开户/签新平台授权或要求充值。下一task_id=`DECIDE_NEXT_TRADING_PLATFORM_PREFLIGHT`；原两对象门槛、固定三维及禁发币红线不变。
 
 本人欧易USDC/Base已确认，0.02USDC≈0.0199美元暂作同一显示金额，最低额未知；服务费固定路径USDC，本金另核，不先要求买ETH。工程测试NOT_RUN，生产代码/评分未改，私有runtime不发布。详见[可行性与原件索引](docs/research/SMALL_BUDGET_TRANSACTION_FEASIBILITY_20261023.md)。
 
@@ -32,7 +34,7 @@ iCLONE订单`82142`观察已收口：唯一sponsored/零转账建单交易`0x3a8
 
 前轮候选筛查已完成，多个完整可评对象的目标尚未达成，新增完整分0。两个Venus身份的代表执行归属已实核，但各仅1业务任务；Zyfai/ACP缺实例级任务材料，Celo/Agenthaus未闭合。86次只读观察和84份响应SHA核对已保存，未改生产代码。当前以用户随后确认的小额自助路线调查补源，不恢复旧联系任务。[筛查汇总](docs/research/FULL_SCORE_TRADING_AGENT_DISCOVERY_20261023.md)；[前轮交付](docs/runbooks/CHAIN_EXECUTION_PROGRESS_20261023.md)。
 
-本轮基线已纳入`origin/main=14dcf6b`（PR #19）；前轮`codex/chain-execution-focus-20261023`的功能提交`7f3eec2`/`6ad6976`已push并建立[草稿PR #20](https://github.com/Ryanjxy123/web3-agent-reputation/pull/20)，未合并。当前分支`codex/nox-iclone-preflight-20261023`继承`9d6a4f0`；本轮仅提交真实预检结果与交接文档，未push。main未改、未自动合并。旧日期记录仅为历史。
+本轮基线已纳入`origin/main=14dcf6b`（PR #19）；前轮`codex/chain-execution-focus-20261023`的功能提交`7f3eec2`/`6ad6976`已push并建立[草稿PR #20](https://github.com/Ryanjxy123/web3-agent-reputation/pull/20)，未合并。当前分支`codex/trading-agent-quotes-20261023`继承`8a85b35`；本轮4份文档作本地检查点，提交内容为真实预检结果、失败路径和下一步阻塞，未push。main未改、未自动合并。旧日期记录仅为历史。
 
 ## 2026-10-21 指导老师反馈与文档方案
 
