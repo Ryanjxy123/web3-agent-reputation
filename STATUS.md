@@ -4,9 +4,9 @@
 
 当前主线改为主动实验与独立取证：用户提出先做一笔受控真实交易，由平台保存原始任务、报价与付款信息，独立核链和资产变化，再据结果评价。此方案可行；未充值、尚无样本只说明尚未验证，不能断言无法三维评分。不要求Agent预先返回全部评价材料或在首单前已有完整历史。覆盖优先及多对象可复用目标保持，单笔pilot先验证取证流程，不为单对象写评分规则。禁止发币/tokenize/身份NFT；当前按用户最新要求切换到无需XRPL钱包的交易Agent小额实验，先核现有Base/USDC路径与实际报价，费用明确后再通知充值。
 
-当前task_id=`SPRAAY_FULL_EVALUATION_DESIGN`。用户最新要求完整评价Spraay全部声明，不能用单次兑换代表整体。已为公开六能力列服务可用性、独立功能判据及真实链行为实验；Spraay兑换/转账为生成方案、操作者签广播，预付计算额度则另有USDC存入/消费drawdown/退款链操作。AI/查询不伪造资产交易，API费支付不冒充业务完成；身份/入口与能力覆盖分别核清。当前先说明完整计划与费用范围，0.015USDC付费方案暂缓，未充值或动用资金。仍用固定三维、30/40/30与正式样本政策；六能力等权或改变分母尚未批准/实现。详细设计见[受控实验方案](docs/runbooks/CONTROLLED_TRANSACTION_PILOT_20261023.md)。
+当前task_id=`SPRAAY_WAIT_BASE_ETH_DEPOSIT`。用户已入金2.5USDC；已成功付一次0.015USDC取得“1USDC→WETH、50bps”unsigned方案，余额2.485USDC。服务费交易`0x36f0092e9b358c281b97e640e7b6939f91c3af40dfc485c7b06ddc383ea9b5fa`已独立核canonical receipt/精确Transfer/同nonce AuthorizationUsed；未approve、未兑换、未花1USDC本金。初次我方EOA签名不适配Alchemy v1.0的问题已按官方ReplaySafeHash/1271封装修正，复用原nonce且未重复扣费，源码与原尝试保留。Virtuals unsigned gas预估先401，经既有授权仅刷新acp-auth后明确400：Uniswap Router02不在赞助白名单；不得套壳绕过。随后官方Base RPC52987105对原两call executeBatch做只读自付gas仿真及估算通过（9读exit0、0签/0广播/无状态覆盖），预计178059gas，L2+L1上界+已读取operator费合计0.000002048336528037ETH，按本次报价粗算约0.0049USDC。用户已获知网络费很小，随后明确表示将自行提币ETH；已再次提供与USDC相同的专用买方地址，明确币种ETH/网络Base/本人非托管钱包。当前等待ETH交易哈希及独立到账核验，尚未收到ETH到账证明；最低提币/交易所费用若未提供只记未知，不据此虚构成本。充值不等于授权动用1USDC本金，真实approve/兑换仍须具体批准。旧报价21:43:02已过期，只作成本诊断，不签旧方案、不自动重付新报价费。API费不是业务B成功，完整六能力与正式三维政策不变。详细原件、命令和边界见[受控实验方案](docs/runbooks/CONTROLLED_TRANSACTION_PILOT_20261023.md)。
 
-本轮已追加独立XRPL节点采证：操作者按XRPL官方公共服务器表固定xrplcluster.com，仅一次tx查询HTTP200/exit0。公开样本在validated账本107591208中Payment成功、实际到账3.347405XRP，与提供方收据差581drops；不是只靠Agent响应或区块浏览器。原件`runtime/controlled-pilot-xrpl-read-preflight-20261023T121227Z-f0bd1be9/`。此项说明我们可自行采集关键交易结果，尚未产生自己的真实付费任务；没有新签名/资金/业务交易，主应用工程测试NOT_RUN。
+本轮已追加独立XRPL节点采证：操作者按XRPL官方公共服务器表固定xrplcluster.com，仅一次tx查询HTTP200/exit0。公开样本在validated账本107591208中Payment成功、实际到账3.347405XRP，与提供方收据差581drops；不是只靠Agent响应或区块浏览器。原件`runtime/controlled-pilot-xrpl-read-preflight-20261023T121227Z-f0bd1be9/`。该XRPL取证属于既有公开样本，不是本买方付费桥接；本轮Spraay服务费与新签名另见最新状态。主应用工程测试NOT_RUN。
 
 本阶段实际进展：新增两次桥接/转账目录查询及四个固定详情，得到17个不同候选，未以目录数计评分。N9T2官方免费REST已返回绑定本买方的真实报价，故“可真实报价候选”现为1，完整三维confirmed仍为0；公开ACP81682身份/付款/路由已由可信Base RPC核验、XRP到账以独立浏览器REST核实，原收据缺目标tx且数量与实际差581drops，保留待核，不改分。用户没有XRPL自托管收款钱包；不填他人地址、不创建钱包或要求充值。BridgeKitty82150与N9T2 82151两个service-only零转账赞助报价单已真实创建并唯一发送需求，前者API null hook差异已最小修复并恢复原单，均未付款。两单在各自11:48:27/11:58:30UTC到期后最终只读仍OPEN、budget=null、history2条、provider回复0；已停止观察，不向旧单充值；Spraay实际网关可达但目录身份/执行角色未闭合。详情和原件见[Virtuals后续预检](docs/research/SMALL_BUDGET_TRANSACTION_FEASIBILITY_20261023.md)。
 
@@ -22,9 +22,9 @@ iCLONE订单`82142`观察已收口：唯一sponsored/零转账建单交易`0x3a8
 
 前一批询价已停止，目标未达成：新增三个真实交易服务、四个零付款订单，实际接单报价0、已确认可拿齐完整评价证据的对象0。ZeroAgent的82146、Ethy的82147，以及修正流程后的GSB 82148均在需求已获平台接受并记入同job历史后REJECTED，budget均null；原因只有bytes32哈希，明文未知，不能归因为余额、费用、请求文本或协议版本。GSB首单82145在我们发送需求前已拒绝，首次需求HTTP403；修正共用时序后只补做了一单，82148只提交标准requirement、无长文本询问，仍拒绝，因此不再重试这批对象。四单建单均经可信Base RPC独立核验；GSB首单拒绝另有独立链事件核验，其余拒绝以本轮已取官方任务历史为依据。未fund、支付服务费/本金、兑换、发币、身份mint或新增评分。详细时间、原件和失败路径见[可行性记录](docs/research/SMALL_BUDGET_TRANSACTION_FEASIBILITY_20261023.md)。
 
-当前推进边界：无需XRP钱包，不恢复N9T2或前轮过期旧单。已实际创建Spraay82153和VEGETA82154并独立查链，12:45UTC观察均OPEN、budget=null、历史2条；尚无本人接单报价，不无限轮询或重复建单。已实取Spraay直连0.015USDC费用要求及官方六能力源码；具体身份绑定、部署一致性、全部费用和授权边界须按实验核实。下一task_id=`SPRAAY_FULL_EVALUATION_SCOPE_AND_COST`，先按完整范围制定共用判据、复用有效观察并列费用，不把全部源码声明当已验证能力，不改变旧分数或直接上新生产计分方案。实际付费和资金动作仍按明确方案授权。
+当前推进边界：沿用现有Base专用买方，不恢复过期ACP旧单。0.015USDC方案费已经独立证实结算，该nonce已消费，不能再运行首次或修正付款operator。当前仅等ETH交易哈希并核到账；不因充值自动approve、兑换1USDC或支付第二次报价费。自付ETH只读路径和成本已核，旧报价已过期，下一task_id=`SPRAAY_SWAP_EXECUTION_APPROVAL`须准备新有效方案及明确本金/gas/如需新方案费的具体授权。无ETH哈希时不轮询钱包。完整六能力计划保留，API付款不等于业务B成功或完整三维分。
 
-本轮5份文档同步Base两次真实询价、官方源码/收费与Spraay六能力完整三维设计；忽略的私有operator仅扩展两个静态候选，必要离线核对、两次eth_call及独立receipt均exit0。生产代码、数据库、历史评分未改；主应用工程测试NOT_RUN。当前分支`codex/trading-agent-quotes-20261023`，前一检查点`e0dce6a`，本轮本地提交、未push/main未改，无关`docs/presentation/`保留。未充值或支付新API/Agent业务费。
+本轮实际闭环：入金核验exit0（6读）；首次付款HTTP402/exit1后核账exit0（8读）确认无扣；官方智能签名修正exit0（内含7读），实际仅0.015USDC结算，后续独立核账exit0（9读）。unsigned gas首次401/exit1，登录刷新exit0仅1条acp-auth消息，再预估400/exit1明确赞助限制；官方Base自付gas仿真/估算exit0（9读）。必要新签名封装离线检查在修正夹具FF大小写断言后exit0；不重复旧检查。主应用工程测试NOT_RUN（生产代码/评分/数据库/前端未改），完整评分新增0。命令与原件见实验runbook。本轮5份文档形成本地检查点；当前分支`codex/trading-agent-quotes-20261023`、前一检查点`b272b41`，未push/main未改，无关`docs/presentation/`保留。私有operator/签名/令牌/原件保持Git忽略。
 
 用户新增明确红线：**禁止发币**。已同步AGENTS与PLAN：不发行代币/NFT、不做Agent代币化、不用tokenize/token launch、不为扩覆盖新发身份NFT；接入强制这些动作则排除。未发币或铸造身份；账户委托在前轮已生效；此前八单加本轮Spraay/VEGETA两单，累计十个成功创建的未付费链上订单，资产兑换0。订单数不等于可评分Agent数。
 

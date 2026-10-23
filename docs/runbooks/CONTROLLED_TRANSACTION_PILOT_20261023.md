@@ -1,10 +1,87 @@
 # 单笔真实交易受控实验
 
-日期：2026-10-23。task_id：`SPRAAY_FULL_EVALUATION_DESIGN`。状态：用户要求完整评价Spraay，先整理全部声明与三维实验；0.015USDC付费方案暂缓，未充值或动用资金。
+日期：2026-10-23。task_id：`SPRAAY_WAIT_BASE_ETH_DEPOSIT`。状态：2.5USDC已到账，签名已修正且一次0.015USDC方案费独立核账通过，取得unsigned方案；实际approve/兑换未执行且尚未授权。
+
+## 最新资金授权与当前动作
+
+用户已明确回答“同意，先付0.015USDC取得交易方案”。复用现有Base买方，仅支付一次官方网关固定构建请求的15000单位原生USDC；不包括兑换本金、合约授权/兑换调用、其他六功能消费、额度存款或新钱包。已独立核验用户2.5USDC入金，签名前核费用挑战不变。首次签名尝试与已核账的同nonce修正见下一节；状态不明先核USDC授权使用状态，不生成新nonce重复支付。响应只留存与解码，真实兑换及业务gas核清后再执行获准动作。完整六能力计划继续保留；本步只是兑换样本，不是整体完成。下一task_id=`SPRAAY_SWAP_EXECUTION_APPROVAL`。
+
+最新到账核验：2026-10-23北京时间21:25:45，可信Base固定区块52986293，用户报告交易`0x0b180c0621d6bf83d0f1e9af6081e9aefa6b31af054ca24e644f92a4f3d051ff`成功、94确认；原生USDC精确Transfer至买方`0x73d642847cb9a3acef116ea207a74b9956c34a09`为2500000单位（2.5USDC）。余额2.5USDC/0ETH，既有Alchemy v1.0.0的7702匹配，6次只读exit0。原件`runtime/spraay-funding-20261023T132523Z-ca50a040/summary.json`。此前两次0余额快照保留，不再作为当前资金状态。
+
+用户本人已确认OKX最低提币2USDC，最终自行提币2.5USDC；充值到自己的买方钱包，不是将全部款项付给Spraay。仅0.015USDC在本步费用范围，余款留存，后续可另核USDC/Base充值地址与网络成本回到本人账户。付款请求、签名和结算原件只存忽略runtime，不进公开包；不先买ETH、不新增委托或签名器。一次性付款脚本已经离线核验，不重复工程测试。
+
+## 最新结果：方案和服务费均已独立核实
+
+21:38:02北京时间，修正请求HTTP200；仍为原CSPRNG nonce及15000单位USDC服务费，没有新增委托/权限/钱包。7次可信Base只读预检同时证明buyer ERC1271 magic、原nonce unused、余额2.5USDC及精确USDC付款simulation成功；新签名和请求仅存忽略目录。原件`runtime/nox-iclone-preflight-20261023/spraay-paid-build-20261023.private/smart-account-signature-correction-v1.private/`。
+
+21:40:35，独立可信Base52986731核付款交易`0x36f0092e9b358c281b97e640e7b6939f91c3af40dfc485c7b06ddc383ea9b5fa`：canonical receipt status1、精确15000单位USDC Transfer及同nonce AuthorizationUsed各一条，确认深度62；余额2485000单位（2.485USDC）/0ETH，刚好比入金少0.015USDC。9次只读exit0。证据`runtime/spraay-fee-reconciliation-20261023T134002548461Z/summary.json`，不是只信网关付款响应。
+
+| 固定请求与返回 | 实际核验 |
+| --- | --- |
+| 1USDC换WETH，收款为本买方、滑点0.5% | 返回1000000原始USDC；WETH合约0x4200…0006，recipient/链8453一致 |
+| 报价与最低到账 | 预计0.000416793635364511 WETH，最低0.000414709667187688 WETH，满足floor(报价×0.995) |
+| 准备的授权 | USDC.approve(Uniswap SwapRouter02,1000000)，精确1USDC，没有无限额度 |
+| 准备的兑换 | Router02 exactInputSingle，fee tier100（0.01%）、精确输入1USDC，value0 |
+| 执行状态 | 两个calldata仅保存并解码，实际approve/swap/UserOp均0 |
+| 报价时效 | 元数据截止21:43:02北京时间；Router02参数本身没有deadline，操作者须遵守本地时效，过期不签 |
+| 已观察命名问题 | 返回symbol写ETH，但地址实际是WETH；对用户说明为封装ETH，不能宣称原生ETH到账 |
+
+本次只说明该网关的兑换方案请求可完成，且输入/收款/授权/最低到账约束一致；独立市场报价及真实兑换履约仍待核。直接网关与ACP身份/任务绑定仍需分清，不能把此付款移植成82153订单履约。完整Spraay六能力未完成；不能把平台自己的API付费当Agent的业务交易B样本。
+
+unsigned gas预估首次wallet_prepareCalls在13:42:04UTC返回401（旧会话失效），原件`spraay-unsigned-swap-gas-20261023.private/`。按既有同买方协议登录授权，用auth-prepare.private.mjs --auth-only仅签一条acp-auth并刷新会话，exit0，原件`auth-prepare-2026-10-23T13-44-00.962Z.private/`，无订单或广播。随后相同两calls的只读预估13:45:41UTC返回HTTP400，明文`Sponsored call rejected: Call[1]: contract 0x2626664c2603336E57B271c5C0b26F421741e481 is not on the sponsored allowlist`，原件`spraay-unsigned-swap-gas-after-auth-20261023.private/`。这是Virtuals赞助规则限制，不能据此判Spraay业务FAIL，也不能继续承诺gas免费。不套壳隐藏目标绕过赞助白名单。
+
+自付ETH只读仿真及成本估算现已完成（见下节），未签/广播/发新委托或猜USDC allowance存储slot。用户已明确表示自行提币ETH，已提供同一买方地址并强调Base网络；当前等待交易哈希和独立到账核验。报价已在21:43:02北京时间过期；旧calldata只能用于诊断和成本参考，不能因eth_call成功就签旧报价。下一步须有新有效报价、本金与gas具体批准；本轮不继续支付第二次服务费。
+
+## 自付Base ETH成本：已读，不是已执行
+
+为避开Virtuals不赞助目标合约这一真实限制，未向赞助通道套壳。采用固定操作者官方Base RPC `https://mainnet.base.org`，SafeHttpClient+7897，只读核原delegate/余额，再对本人普通交易from=to=买方、原精确approve+swap的executeBatch执行eth_call；实际成功后才eth_estimateGas。不换节点重试、不改账户状态或allowance、不签名广播。官方SDK ABI与Python独立编码一致，不能仅凭ABI宣称权限成立，实际eth_call已经证明该固定区块下调用可执行。
+
+2026-10-23北京时间21:52:53，Base52987105，9次只读exit0：
+
+| 费用项 | 实际读取或计算 |
+| --- | --- |
+| 估计gas | 178059 |
+| 当前gas价格 | 11398178 wei/gas |
+| L2执行估计 | 2029548176502 wei |
+| L1费用上界 | 18788351535 wei，GasPriceOracle.getL1FeeUpperBound(996) |
+| operator费 | getOperatorFee(178059)实际返回0，不是缺项补0 |
+| 合计预估 | 2048336528037 wei = 0.000002048336528037 ETH |
+| 易懂解释 | 以这次1USDC→WETH报价比例粗算约0.0049USDC，不到1美分；不是需买一整枚ETH |
+
+原件`runtime/nox-iclone-preflight-20261023/spraay-self-paid-gas-input-20261023.private/trusted-public-base-probe.private/SUMMARY.private.json`；命令先运行client/prepare-spraay-self-paid-gas-input.private.mjs纯本地编码（exit0），再Python probe_spraay_self_paid_gas.py（exit0）。L1尺寸取740字节calldata+256字节保守type2封装预留，不是签后精确序列；执行gas/价格可变，不能拿这个数当未来固定保证。Base费用依据[官方说明](https://docs.base.org/specifications/transactions/network-fees)。
+
+这只是已过期方案的诊断和成本预览，未形成任何实际授权或兑换。USDC最新读取仍2485000单位；本步需要Base ETH支付普通网络费，但OKX最低提币可能大于实际消耗，须看本人页面后再给具体充值量。用户随后明确表示将自行提币ETH，已再次给出同一Base买方地址；当前等待实际交易哈希/到账，不自动支付第二次0.015USDC。真正执行前必须有新有效报价及明确本金/gas授权。
+
+## 本轮实际命令与退出码
+
+均在本项目根目录执行；Node使用D:/download/node.exe，Python使用.venv/Scripts/python.exe。命令中的client/为runtime/nox-iclone-preflight-20261023/client/，其他短脚本位于同一preflight目录。原件/签名/配置均只在Git忽略runtime中，不能直接公开打包。
+
+| 实际命令或步骤 | 退出码与观察 |
+| --- | --- |
+| Python runtime/read_spraay_deposit_20261023.py 用户提供的交易哈希 | 0，6次可信RPC，2.5USDC到账 |
+| Node client/spraay-paid-build-once.private.mjs runtime/spraay-funding-20261023T132523Z-ca50a040/summary.json | 1，402签名格式不兼容，无方案 |
+| Python reconcile_spraay_service_fee.py 原付款私有目录 | 0，8读，未扣款/原nonce unused且过期/旧raw签名1271 revert |
+| Node client/spraay-smart-signature-correction.private.mjs runtime/spraay-fee-reconciliation-20261023T133050886523Z/summary.json | 0，官方封装、7读预检、HTTP200，方案保存未执行 |
+| Python reconcile_spraay_service_fee.py 同一原付款目录 | 0，9读，精确0.015USDC已结算，余额2.485USDC |
+| Node client/prepare-spraay-swap-gas-once.private.mjs | 1，401会话过期，无签/广播 |
+| Node client/auth-prepare.private.mjs --auth-only | 0，仅1条acp-auth登录消息，无建单/广播 |
+| Node client/prepare-spraay-swap-gas-once.private.mjs --after-session-refresh | 1，400明确Router02不在赞助白名单 |
+| Node client/prepare-spraay-self-paid-gas-input.private.mjs | 0，仅本地按官方ABI编码 |
+| Python probe_spraay_self_paid_gas.py | 0，9次官方Base只读，实际self-call与gas/费用读取成功 |
+
+新封装的必要离线检查最终exit0，收据spraay-smart-signature-offline-check.private.json；首个夹具只因大小写FF比较错误而失败，修正断言后通过，未把夹具错误当Agent错误。主应用工程测试NOT_RUN，因为没有改生产代码、数据库或评分政策；不为文档/提交重跑旧测试。
+
+## 首次付款结果与签名修正
+
+北京时间21:26:49，一次已授权付费头请求返回402，错误为`invalid_exact_evm_payload_signature: contract call failed: unable to call contract: execution reverted`，无付款响应头、无方案。没有凭HTTP错误直接认定未付款：随后在可信Base52986455独立读取authorizationState=false、余额仍2.5USDC、原nonce已过期、窄区间无相应Transfer，8次只读exit0。既存raw签名对买方isValidSignature的只读调用revert。原件`runtime/spraay-fee-reconciliation-20261023T133050886523Z/`及首次付款私有目录均保留。
+
+我方调用Virtuals底层signTypedData只产生65字节EOA签名，绕过了现有Alchemy v1.0的nativeSMASigner ReplaySafeHash/1271封装；不能据此给Spraay业务FAIL。官方x402支持非65字节签名的bytes重载结算路径。源码及摘要`runtime/spraay-7702-signature-source-20261023T132906Z-ccb03aa2/`，官方说明见[钱包兼容性](https://github.com/x402-foundation/x402/blob/main/docs/advanced-concepts/wallet-compatibility.mdx)及[Alchemy版本说明](https://www.alchemy.com/docs/changelog/2026/8/20)。
+
+恢复限于原0.015USDC费用授权：复用原CSPRNG nonce（不生成第二个），在确认旧签未使用且已过期后刷新有效期，对Transfer digest的ReplaySafeHash另签并按官方owner entity0封装72字节；先离线恢复内签者，再可信RPC只读核1271 magic及精确USDC transferWithAuthorization simulation通过，才能一次修正付款。原尝试不可重跑或改写，新恢复目录只追加；不升级/撤销委托、不改No Policy、不引入新钱包，不执行approve/swap或额外付费。若修正仍失败则停止并据实际错误决定下一步，不盲重试。原“最多一次”操作预算的失败路径在独立核账和明确格式修正后只允许本次有依据恢复，累计实际服务费仍不超过15000单位。
 
 ## 用户最新要求：覆盖Spraay全部声明，不能用一次兑换代表整体
 
-当前先完成六项公开声明的评价设计，再决定首批实际调用与预算。下表是计划，并非已经取得的验证结果；仍使用服务可用性、功能声明一致性、交易行为可靠性及30/40/30，不新增评分维度、不擅自六项等权。现有正式计分器按整份报告取样，尚未实现每能力独立评分再平均；涉及新业务判据、分母或汇总改变须另写ADR后实现。
+六项公开声明的完整评价设计保留；用户现已批准先从单次0.015USDC兑换方案开始，其余功能资金另核。下表是计划，并非已经取得的验证结果；仍使用服务可用性、功能声明一致性、交易行为可靠性及30/40/30，不新增评分维度、不擅自六项等权。现有正式计分器按整份报告取样，尚未实现每能力独立评分再平均；涉及新业务判据、分母或汇总改变须另写ADR后实现。
 
 | 公开声明 | 功能声明一致性的独立判据 | 交易行为可靠性涉及什么 |
 | --- | --- | --- |
@@ -27,7 +104,7 @@
 
 ## 当前路线变更：取消XRP钱包依赖
 
-用户华为手机无法安装Xaman，已要求改测无需XRP的真实交易Agent。当前task_id=`BASE_ONLY_TRANSACTION_PILOT_PREFLIGHT`，优先复核Virtuals既有候选的Base/USDC现货能力与调用协议，再按新依据尝试零付款询价。N9T2和以下XRPL钱包步骤转为历史方案，不再等待r地址、不生成新钱包。三维自采证实验方法仍复用，报价与全部费用明确后再通知充值，禁止发币/身份铸造。
+用户华为手机无法安装Xaman，已要求改测无需XRP的真实交易Agent。当时task_id=`BASE_ONLY_TRANSACTION_PILOT_PREFLIGHT`，优先复核Virtuals既有候选的Base/USDC现货能力与调用协议，再按新依据尝试零付款询价。N9T2和以下XRPL钱包步骤转为历史方案，不再等待r地址、不生成新钱包。三维自采证实验方法仍复用，报价与全部费用明确后再通知充值，禁止发币/身份铸造。
 
 ## Base候选：本轮已实际执行
 
@@ -54,9 +131,9 @@
 
 已向`POST https://gateway.spraay.app/api/v1/swap/execute`发送一次无付款头的固定请求（1USDC→WETH、现有买方收款、slippageBps=50）。实际HTTP402列明Base原生USDC服务费15000最小单位，即**0.015USDC**，payTo为`0xAd62f03C7514bb8c51f1eA70C2b75C37404695c8`。只是读取收费要求，没有签名或结算。原件`runtime/spraay-execution-pricing-20261023T124340Z-710e5f53/`，响应SHA256`404d3c4aa8a5cc89bc7c23246ffdf736a24935ddafea1b5f0faf3024c810ccf2`，命令exit0；预期402不当作业务失败。
 
-此前已询问用户是否同意先支付这0.015USDC取得交易方案，尚未获答复；用户随后要求完整评价Spraay，故先按上方六能力方案说明范围与费用，本步骤暂缓。当前不充值或付费，不默认用户已接受“先付方案服务费、再核业务报价/gas”的顺序。该费用不含1USDC兑换本金及业务gas，也不保证兑换已发生。现有智能买方有typed-data签名能力，但其x402实际兼容尚待实证，不能预先保证付款成功或免gas。
+此前完整评价说明后，用户已明确批准先付0.015USDC取得方案；本步骤恢复，范围见上方最新授权。付款前先核余额并指导充值，不再重复询问同一费用许可。该费用不含1USDC兑换本金及业务gas，也不保证兑换已发生。现有智能买方有typed-data签名能力，但其x402实际兼容尚待实证，不能预先保证付款成功或免gas。
 
-若完整方案对齐后该步骤获准，先给具体充值方法与金额，仅支付一次精确服务费取得原始方案；解码核对输出资产、recipient、金额、最低到账、精确授权与目标合约后核业务gas，再执行获准的真实兑换。官方已审方案使用Uniswap SwapRouter02 `0x2626664c2603336E57B271c5C0b26F421741e481`；5分钟截止时间只在响应元数据，须本地限时执行。真实返回改变这些内容则先说明，不盲签。当前下一task_id=`SPRAAY_FULL_EVALUATION_SCOPE_AND_COST`；ACP两单可后续只读查看，但不为等待空回复无限轮询或继续建同样订单。
+若完整方案对齐后该步骤获准，先给具体充值方法与金额，仅支付一次精确服务费取得原始方案；解码核对输出资产、recipient、金额、最低到账、精确授权与目标合约后核业务gas，再执行获准的真实兑换。官方已审方案使用Uniswap SwapRouter02 `0x2626664c2603336E57B271c5C0b26F421741e481`；5分钟截止时间只在响应元数据，须本地限时执行。真实返回改变这些内容则先说明，不盲签。当时下一task_id=`SPRAAY_FUNDED_BUILD`；ACP两单可后续只读查看，但不为等待空回复无限轮询或继续建同样订单。
 
 ## 前轮XRPL钱包方案（暂停，仅历史）
 
