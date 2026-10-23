@@ -1,6 +1,6 @@
 # 小额实交易：真实Agent评价可行性
 
-日期：2026-10-23。当前task_id：`TRADING_AGENT_QUOTE_AND_EVIDENCE_PREFLIGHT`，主线`MULTI_PROVIDER_TRADING_EVIDENCE`，延续`SMALL_BUDGET_TRANSACTION_FEASIBILITY`。
+日期：2026-10-23。当前task_id：`VIRTUALS_SCOREABLE_COHORT_PREFLIGHT`，主线`MULTI_PROVIDER_TRADING_EVIDENCE`，延续`SMALL_BUDGET_TRANSACTION_FEASIBILITY`。
 
 用户取消对外材料请求，改自己参与小额真实交易。原30元不再阻断研究/准备，用户已买币10元；本次实际充值、付费和资产兑换均0。EVM No Policy已读回生效，账户委托上链；先前一次建单因期限缓冲不足失败，独立核清后修正并成功创建Nox订单82141。真实需求已提交，约395秒观察仍无提供方报价/资金请求，订单期限已过，不向旧单付款。Nox观察已收口；用户随后明确授权继续iCLONE接单/报价/证据预检，需要充值再告知。iCLONE与Nox同属Virtuals ACP市场，是不同Agent；只建立零价值、gas赞助的swap_base订单及提交1USDC→WETH/0.5%滑点需求，不付款、充值或兑换。iCLONE随后观察30分45秒仍无提供方回复或报价，已停止。两者均未进入付费执行，不建议现在充值；真实兑换和两对象完整评价仍未达成。
 
@@ -8,11 +8,40 @@
 
 主线改为寻找至少两个真实交易Agent，先用真实接单、任务级报价与可核验的评价证据通路确认多对象可测，再通知用户充值；不再将Nox/iCLONE固定为目标对象。三维、权重、门槛及旧报告不变，一次试单不冒充完整分。禁止发币、tokenize和身份NFT铸造；允许现有专用买方的零转账、gas赞助询价建单与需求/证据询问，不充值、不支付服务费或本金、不执行兑换。原30元不阻断研究/准备，已购币10元保留成本记录。
 
-本轮task_id=`TRADING_AGENT_QUOTE_AND_EVIDENCE_PREFLIGHT`已调查收口，目标尚未达成；当前等待`DECIDE_NEXT_TRADING_PLATFORM_PREFLIGHT`。用户要求至少两个真实接单报价、评价证据通路可核的交易Agent，满足后才通知充值。本轮已沿用现有Base买方、已生效的Alchemy v1.0.0委托、EVM No Policy和本地signer，完成候选身份/Schema/hook预检、零价值赞助建单及需求/证据询问。目录online、占位活动时间和挂牌价均未当作接单证明。等待新平台决定期间不再签名、新建询价单或轮询；不充值、付款、兑换、发币或身份mint，既有授权也不自动推广到新平台。
+当前task_id=`VIRTUALS_SCOREABLE_COHORT_PREFLIGHT`（本次预检与限时观察收口，完整评分目标未达）。用户最新明确先仅在Virtuals平台尝试可完整三维评价的对象，不转Zyfai。已调查对象中目前confirmed为0，不等于Virtuals全平台最多0。先补查现有资料遗漏及桥接/转账/代理采购等不同链上资产能力，按实际履约与任务证据筛选；目录条数或功能名不计入可评数。继续复用已授权的既有ACP买方与零付款询价能力，不重复试已拒绝/过期旧单，不充值、支付服务费/本金、兑换、发币或身份mint。用户“若充值能解决则愿意充”为条件性意愿，不证明本次拒因，更不授权盲充。
 
-本轮询价已停止，目标未达成：新增三个真实交易服务、四个零付款订单，实际接单报价0、已确认可拿齐完整评价证据的对象0。ZeroAgent的82146、Ethy的82147，以及修正流程后的GSB 82148均在需求已获平台接受并记入同job历史后REJECTED，budget均null；原因只有bytes32哈希，明文未知，不能归因为余额、费用、请求文本或协议版本。GSB首单82145在我们发送需求前已拒绝，首次需求HTTP403；修正共用时序后只补做了一单，82148只提交标准requirement、无长文本询问，仍拒绝，因此不再重试这批对象。四单建单均经可信Base RPC独立核验；GSB首单拒绝另有独立链事件核验，其余拒绝以本轮已取官方任务历史为依据。未fund、支付服务费/本金、兑换、发币、身份mint或新增评分。详细时间、原件和失败路径见下方批次表及原件索引。
+前一批询价已停止，目标未达成：新增三个真实交易服务、四个零付款订单，实际接单报价0、已确认可拿齐完整评价证据的对象0。ZeroAgent的82146、Ethy的82147，以及修正流程后的GSB 82148均在需求已获平台接受并记入同job历史后REJECTED，budget均null；原因只有bytes32哈希，明文未知，不能归因为余额、费用、请求文本或协议版本。GSB首单82145在我们发送需求前已拒绝，首次需求HTTP403；修正共用时序后只补做了一单，82148只提交标准requirement、无长文本询问，仍拒绝，因此不再重试这批对象。四单建单均经可信Base RPC独立核验；GSB首单拒绝另有独立链事件核验，其余拒绝以本轮已取官方任务历史为依据。未fund、支付服务费/本金、兑换、发币、身份mint或新增评分。详细时间、原件和失败路径见下方批次表及原件索引。
 
-### 本轮实际询价结果（UTC，已收口）
+### 用户后续指定：先继续Virtuals，不转其他平台
+
+用户随后明确询问Virtuals内可确认多少完整三维评分，并要求先试可行对象。本阶段沿用原三维、权重、样本门槛；先前“转Zyfai登录后预检”的待选问题已被这次指示取代。**已核查对象中完整三维可确认数量仍为0，不能把这个数说成Virtuals全平台的最大容量。** 目前取得真实免费业务报价的新增候选为N9T2一个，不能把它的ACP、REST、MCP入口算三个Agent。原有12个完整历史评分身份不代表新增Virtuals资产执行覆盖。
+
+针对不同业务群体，新增一次桥接和一次转账目录查询，各top10，两次均200。结果去重17身份，其中14个未在前一批目录出现；并非17个已可评对象。固定核BridgeKitty、N9T2、Spraay及DevOps Butler四份详情，均200，不重复旧swap/recency目录循环。两家桥接的声明均含实际执行/回执路径，适合先作同协议预检；Spraay的requiredFunds=false不能直接当作“不执行”，也不能按execute名称认定代签。原件为`runtime/acp-bridge-transfer-discovery-20261023T112759Z-dd8d7ea2/`、`runtime/acp-bridge-transfer-details-20261023T112934Z-98e8b0c5/feasibility.json`。
+
+| 对象 | 已实际取得的业务或历史证据 | 还不能给完整分的原因 |
+| --- | --- | --- |
+| N9T2 Bridge | 官方免费REST报价200；公开ACP81682收据200；可信Base RPC核付款/路由及历史getJob，provider匹配当前ACP钱包；XRPSCAN REST核实际XRP付款 | 原始用户需求/交付历史未公开拿到，目标链资料尚非独立RPC、收据有缺字段/数量不一致，未满足A10及独立F7/B7；用户没有XRPL收款钱包 |
+| BridgeKitty | 旧列表200、共150条engagement；固定取一条COMPLETED详情200，但原文被遮罩，signedReason实际为bridge_status查询；新报价单82150已提交需求 | 150条不能当150次桥接执行；不能由status查询、已完成协议订单或目录Schema证明真实代桥接；新单尚未报价 |
+| Spraay Batch Agent v2 | 官方文档与实时x402 manifest可达，网关明确列服务费率 | 目录Agent与网关身份未绑定、由谁签广播未核齐，费用层级及真实任务→业务交易未闭合；没有实际业务结果 |
+| DevOps Butler | swap_execute_guard有声明 | 免费资源为HTTP裸IP，不降低HTTPS/受控客户端边界；缺原始任务/tx契约，未调用或建单 |
+
+N9T2官方来源为`https://x402.n9t2.com/llms.txt`，明确列出Virtuals的provider钱包`0x001f501a949454daba53bf6163b66a63fbae5925`；它另列的BNB ERC-8004 #375728为另一身份，不能替代ACP身份或合并计数。第一次免费报价只POST `/bridge/quote`，body为XRPL XRP→Base USDC、destination为已有专用买方、省略source_amount取实时最低档，不调用`/bridge/execute`或`/bridge/payment`、不签x402付款。返回quoted/executable=true，quote_id=`4613196e8ccfefc7edc726db5ec317691be31415eda2f94b2b8951bdaa3986d4`：输入5.018791XRP=转移3.568791XRP+服务费1.45XRP，预计目标4.440059USDC；创建11:35:01UTC、到期11:49:51UTC。报价已过期，不能用来付款；该方向也不表示我们持有XRP。原件`runtime/virtuals-n9t2-free-quote-20261023T113456Z-ff1ff18d/`。用户已回答没有XRPL自托管收款钱包，目前不创建钱包或要求充值，Base USDC→XRP方向不能填他人/占位收款地址。
+
+N9T2公开样本独立预检：ACP81682的0.01USDC预算及FundTransferHook与当前provider在付款块`0x320cb01`匹配；客户实际付7.007337USDC本金，另付0.01USDC job费，USDC进入treasury后4.969134USDC用于路由。这里只核既有交易，没有动用我方资金。XRPSCAN提供的公开交易`95B077…B2AB4`显示Payment/tesSUCCESS，实际送达原收据目标地址3.347405XRP；它是独立浏览器REST证据，**不是我们直接查XRPL节点**。官方收据自身destination tx为null且数量写3.347986XRP，与链上差0.000581XRP（581drops）。保留该不一致，不拿收据自称settled当全链成功，也不在未固定判据/完整原始要求前直接判交易FAIL或给分。原件`runtime/virtuals-bridge-samples-20261023T113420Z-16d5c608/`、`runtime/virtuals-n9t2-independent-sample-20261023T113739Z-053e8f94/summary.json`、`runtime/virtuals-n9t2-job-binding-20261023T114238Z-cdeefc84/summary.json`。
+
+两家新ACP报价试单均service-only、hook=zero、转账值0、gas赞助，不支付目录0.01USDC服务费：BridgeKitty82150（Base→BSC USDC报价）与N9T2 82151（与已成功免费报价相同的XRPL→Base参数）。前者首轮followup因API将zero hook表示null安全停止，需求尚未发送；仅修正静态service-only的null表示后，在可信RPC核原建单后恢复同一单唯一需求，没有重播或新建。后者使用修正后的共用流程，已立即提交唯一需求。BridgeKitty到期11:48:27UTC，N9T2到期11:58:30UTC；本轮不为卡片数量、满分或正式评分确认数重复轮询/重试。到期后两单最终只读均exit0，API仍OPEN、budget=null、history2条且provider回复0；已停止观察，没有重发需求或付款。不能因API未自动标EXPIRED就认定旧单尚可付款。
+
+最终收口原件`runtime/nox-iclone-preflight-20261023/service-only-quote-closeout-2026-10-23T11-59-58.530Z.private.json`绑定23份来源SHA256，文件SHA256为`e3ff080ba720dcde94094dccd1a444f35560fe9cb3e9a8db71604f7c2503ee3f`。BridgeKitty最终history读取11:59:02.427UTC，N9T2为11:58:57.305UTC，均晚于原期限；各只读一次job/history、四个GET均200、命令均exit0。两次创建交易分别为`0x5f6615b34b335483b70831b1b6cb501e4117c7583102290ac938a30ab2e7f744`与closeout所列N9T2交易，可信回执确认深度当时分别71、22；没有为了提高确认数重新查链。这只证明建单，未获ACP接单/报价/桥接交付，不影响N9T2另一路免费REST报价成功的事实。所有观察已停止，不重试或延长。
+
+私有operator的必要修改只支持这两个同协议service-only计划：静态来源绑定requiredFunds=false、hook精确zero，复用原createJob selector、provider/evaluator、赞助/nonce/唯一发送检查；报价约束不沿用旧USDC→WETH/50bps文案。API null仅在静态plan+intent均零hook的service-only允许，undefined、错误非零及fund-transfer的null继续拒绝。一次必要离线检查新模式，一次针对真实null表示失败的检查，均exit0；生产适配、评分规则、UI、数据库和历史报告未改。现有真实命令中首个模拟曾因误用client子目录路径找不到文件退出1，未发任何RPC；改准确路径后唯一实际模拟exit0，失败不隐藏。
+
+本追加阶段复用既有账户，额外1次acp-auth登录消息签名、2个赞助零价值建单UserOp，没有新账户委托或fund/本金/服务费/兑换/mint。两次prepare、精确eth_call、独立6次RPC建单核验及恢复/最终需求读取均exit0；BridgeKitty首次resume的跟进因null表示退出1，既有广播已接受，按原单恢复需求，没有重新签名或重播；N9T2 resume+fast需求exit0。工具命令见前批相同命令名与上文准确新目录，Python脚本位于`runtime/nox-iclone-preflight-20261023/`、不是其client子目录。主应用工程测试NOT_RUN，不为文档收口重复测试。
+
+Spraay的[实时manifest](https://gateway.spraay.app/.well-known/x402.json)200，列swap quote 0.008USDC、swap execute 0.015、batch execute 0.02、batch estimate 0.001，均不当免费报价；与ACP服务费是否重叠未知。gateway payTo与目录wallet不同且缺绑定，不当执行钱包；Base文案广播与unsigned/approvalRequired描述须以实际结果核清。其Peaq公开样例没有ACP任务绑定，也未RPC验证，不能拿来给该Agent计分。未安装会自动建钱包的MCP工具、未付费调用。3说明GET及2只读GET中，BPA页308未跟跳转、estimate缺参数400，整体exit1，保留原失败；原件`runtime/spraay-official-feasibility-20261023T115113Z-65d43972/feasibility.json`。
+
+已有SDK只确认认证的`GET /jobs`活动任务、`GET /jobs/{chainId}/{jobId}`及`GET /chats/{chainId}/{jobId}/history`，没有已核provider历史过滤；SDK统一加Bearer不证明接口匿名公开或仅参与方，公开性UNKNOWN。未用我方owner session读他人聊天，也不猜路径枚举私人材料。TheMetaBot的免费arrivalFeed真实200但最新条目为8月、分类是提供方自报，不能把该自报分数/organic标签复制为平台结论；其purchase_execute仅留作代理采购/链上支付候选，没有接单或完整证据。首次sandbox对其两个资源ConnectError仅为环境限制；切换允许网络环境后一次arrivalFeed200，原失败不归Agent故障。原件`runtime/virtuals-live-evidence-sources-20261023T113003Z-abda49e8/`及`runtime/virtuals-metabot-network-recheck-20261023T113049Z-c9c2d7f8/`。
+
+### 前一批三家实际询价结果（UTC，已收口）
 
 | 服务 / 订单 | 真实流程及结果 | 能否安排充值 |
 | --- | --- | --- |
@@ -48,7 +77,7 @@ Bitte两次首页观察原件`runtime/bitte-deployment-homepages-20261023T111114
 
 `python verify_createjob_receipt.py <目录>`四次均exit0，每单6次可信RPC；正式评分所需确认门槛未在本轮宣称达成，也未为出分继续轮询。`node send-createjob-requirement.private.mjs <目录> --provider <key> --read-only`终态读取exit0，后续无消息发送。GSB首单拒绝独立查链exit0。Ethy资源404、Bitte两个部署402的采集命令exit1，保留真实失败，不写成通过。必要私有operator语法/AST及关键离线分支检查已执行并通过；主应用工程测试NOT_RUN，没有生产代码、评分、数据库或报告修改，不为文档提交重复测试。
 
-本轮额外1次既有ACP登录消息签名、4次零价值赞助建单UserOp；没有新增账户委托、fund调用、服务费、本金支付、兑换、代币发行或身份mint。此前Nox/iCLONE两单仍作为无报价历史保留，累计六个成功创建的未付费订单，不能计成六个可用Agent。
+前一批额外1次既有ACP登录消息签名、4次零价值赞助建单UserOp；没有新增账户委托、fund调用、服务费、本金支付、兑换、代币发行或身份mint。此前Nox/iCLONE两单仍作为无报价历史保留，该阶段累计六个成功创建的未付费订单（本页后续两单后累计八个），不能计成六个可用Agent。
 
 ## iCLONE本次订单与证据口径（前轮历史）
 
@@ -150,7 +179,7 @@ Nox订单`82141`已真实创建并观察收口：No Policy自动签名/单次提
 
 此前唯一广播的旧UserOp因ExpiryTooShort失败，已6次可信RPC及独立事件解码确认无JobCreated；7702委托已实际生效，旧操作不能重播。修正为5min原SLA+180s准备缓冲，签名前/提交前剩余>330s；新calldata先经确切eth_call成功，再构造唯一发送。源于接入流程，不计Nox FAIL；旧失败原件与新成功原件均保留，未改评分规则。
 
-当前瓶颈与下一步：停止ACP同批反复试单、目录关键词搜索及扩大适配。两个Bitte交易Agent现有公开部署均HTTP402 / Vercel DEPLOYMENT_DISABLED，不能当作业务报价；Giza的ARMA/Pulse已退役，现Giza SDK要合作方Key且需联系取得，按用户不联系他人的要求不推进；Zyfai可研究Dashboard自助Key与SIWE只读预检，但首次sendDeposit才分配Safe/session，费用、最低额和实例级原始任务导出仍未实核，也没有第二个合格对象。先向用户汇报并等待是否转入新平台登录后零资金预检的决定，不擅自开户/签新平台授权或要求充值。下一task_id=`DECIDE_NEXT_TRADING_PLATFORM_PREFLIGHT`；原两对象门槛、固定三维及禁发币红线不变。
+当前瓶颈与推进边界：GSB、Zero、Ethy本批已拒绝，Nox/iCLONE旧单未报价，均停止重试；只补查Virtuals内新的能力群体或遗漏执行对象。官方ACP流程是provider先setBudget、buyer后fund，requiredFunds=true不是买方建单前余额门槛；现有三Schema无明确buyer预充值规则，GSB只写agent wallet需USDC，不能据此让用户给我方买方或目录provider打款。只有真实接单/资金条款及原始要求→执行→结果的取证通路成立才安排充值；一单闭环仍不足A10/互斥F7+B7完整分。外平台Bitte/Giza/Zyfai调查只留历史参考，当前不开户、不新增其授权。
 
 ## 本轮三家候选的声明初筛（实际询价结果见上方）
 
@@ -187,11 +216,11 @@ CLI的普通账户/钱包、市场任务、链上身份注册和tokenize是不�
 
 现有平台没有已验收的生产真实写任务采集器。此前不预建签名器的准备阶段已结束；本轮仅在忽略的私有operator中按既有授权签ACP登录及零付款询价，没有生产适配。付费或资产操作仍先核具体条款、签名前要求及授权，多个对象闭环后才做最小通用适配。
 
-## 下一步：等待新平台预检决定，不充值
+## 下一步：待选择Virtuals单任务试验路径，不充值
 
-1. 本批真实拒单已经终态，停止重试、轮询或恢复旧单；不通过充值赌测、不联系他人索取材料、不为扩大对象做tokenize/身份mint。
-2. 向用户报告目前0/2。若用户选择继续新平台，具体待核入口是Zyfai官方Dashboard：先核账户/Key条款及只读可得字段；新平台登录消息签名另核实际内容，不沿用ACP签名权限，不调用sendDeposit或策略授权。
-3. 仍须找到另一个同样真实可用的交易Agent，并在每对象上取得接单/费用条款、身份与执行归属、原始任务/结果导出及独立RPC核验通路；两个钱包、同平台的两个工具或一个成功订单不能直接凑成两个可评分Agent。未来交易结果只能在实际执行后取得，预检核的是既有样本及交付/取证机制，不能预先宣称拿到了未来证据。
-4. 两对象满足入金前条件后才提供具体充值金额、资产/网络/地址、全部费用与签名内容；仍需足量独立A/F/B样本才能给完整分，不改30/40/30或降低门槛。若路线强制先入金才展示必要证据，则先向用户报告不满足原条件，不自行放宽。
+1. GSB/Zero/Ethy旧批已终态，不再重试；Nox/iCLONE及BridgeKitty/N9T2各旧单已过期，不恢复、付款或为无回复反复建单。
+2. 下一task_id=`DECIDE_VIRTUALS_PILOT_PATH`。先向用户说明0个已确认完整评分、1个实测可报价候选；需要选择是否先为N9T2补XRPL收款钱包/单任务实交易预算，或继续以现有Base钱包筛选取证条件更齐的Virtuals对象。前者只可能先闭合单样本，不保证完整分，钱包/充值/付款均尚未获具体执行授权；不恢复Zyfai问题。
+3. 仍须在每对象上核费用条款、身份/授权/执行归属、原始任务/结果导出及独立链核验通路；两个钱包、同一Agent的两个入口或一个成功订单不凑完整对象数。未来交易结果只能执行后取得，预检核既有样本和取证机制。Spraay身份未闭合，BridgeKitty旧记录原文被遮罩，不能跳过这些缺项做生产适配。
+4. 满足入金前条件后才提供具体充值金额、资产/网络/地址、全部费用与签名内容，实际付费仍需用户确认。完整分仍需A10（至少8可判）、独立F7/B7，不改30/40/30或降低门槛；先给出可核事实、限制和下一具体选择，不把0confirmed误写成全平台最多0。
 
 本轮为真实零付款询价及可行性研究，生产代码、既有评分和报告未改，工程测试NOT_RUN；公开原件只追加保存在忽略目录，凭证不发布。对外申请仍取消、未发送。4份文档作本地提交、未push，实际充值与付费执行清单尚未形成，不声称已具备完整评分条件。

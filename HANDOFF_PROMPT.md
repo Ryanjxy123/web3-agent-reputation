@@ -6,7 +6,9 @@
 
 主线改为寻找至少两个真实交易Agent，先用真实接单、任务级报价与可核验的评价证据通路确认多对象可测，再通知用户充值；不再将Nox/iCLONE固定为目标对象。三维、权重、门槛及旧报告不变，一次试单不冒充完整分。禁止发币、tokenize和身份NFT铸造；允许现有专用买方的零转账、gas赞助询价建单与需求/证据询问，不充值、不支付服务费或本金、不执行兑换。原30元不阻断研究/准备，已购币10元保留成本记录。
 
-本轮task_id=`TRADING_AGENT_QUOTE_AND_EVIDENCE_PREFLIGHT`已调查收口，目标尚未达成；当前等待`DECIDE_NEXT_TRADING_PLATFORM_PREFLIGHT`。用户要求至少两个真实接单报价、评价证据通路可核的交易Agent，满足后才通知充值。本轮已沿用现有Base买方、已生效的Alchemy v1.0.0委托、EVM No Policy和本地signer，完成候选身份/Schema/hook预检、零价值赞助建单及需求/证据询问。目录online、占位活动时间和挂牌价均未当作接单证明。等待新平台决定期间不再签名、新建询价单或轮询；不充值、付款、兑换、发币或身份mint，既有授权也不自动推广到新平台。
+当前task_id=`VIRTUALS_SCOREABLE_COHORT_PREFLIGHT`（本次预检与限时观察收口，完整评分目标未达）。用户最新明确先仅在Virtuals平台尝试可完整三维评价的对象，不转Zyfai。已调查对象中目前confirmed为0，不等于Virtuals全平台最多0。先补查现有资料遗漏及桥接/转账/代理采购等不同链上资产能力，按实际履约与任务证据筛选；目录条数或功能名不计入可评数。继续复用已授权的既有ACP买方与零付款询价能力，不重复试已拒绝/过期旧单，不充值、支付服务费/本金、兑换、发币或身份mint。用户“若充值能解决则愿意充”为条件性意愿，不证明本次拒因，更不授权盲充。
+
+本阶段实际进展：新增两次桥接/转账目录查询及四个固定详情，得到17个不同候选，未以目录数计评分。N9T2官方免费REST已返回绑定本买方的真实报价，故“可真实报价候选”现为1，完整三维confirmed仍为0；公开ACP81682身份/付款/路由已由可信Base RPC核验、XRP到账以独立浏览器REST核实，原收据缺目标tx且数量与实际差581drops，保留待核，不改分。用户没有XRPL自托管收款钱包；不填他人地址、不创建钱包或要求充值。BridgeKitty82150与N9T2 82151两个service-only零转账赞助报价单已真实创建并唯一发送需求，前者API null hook差异已最小修复并恢复原单，均未付款。两单在各自11:48:27/11:58:30UTC到期后最终只读仍OPEN、budget=null、history2条、provider回复0；已停止观察，不向旧单充值；Spraay实际网关可达但目录身份/执行角色未闭合。详情和原件见[Virtuals后续预检](docs/research/SMALL_BUDGET_TRANSACTION_FEASIBILITY_20261023.md)。
 
 已完成普通JSON买方创建（record/email201，ERC8004与virtual身份null/chains=[]）、本地signer和DENY_ALL读回、owner及协议登录。Base块52975410余额ETH/USDC均0、code=0。用户已批准仅此专用买方的Alchemy v1.0.0持续7702委托，以及仅Nox建单、提交1USDC→WETH/50bps需求并读取真实条款；不充值、不支付服务费/本金、不兑换。取消人工审批只改签名方式，不自动扩大业务范围。
 
@@ -18,9 +20,9 @@ Nox订单`82141`已真实创建并观察收口：No Policy自动签名/单次提
 
 iCLONE订单`82142`观察已收口：唯一sponsored/零转账建单交易`0x3a87a41bd31ea897644f0d1d62ed8b394815e82b157b9cbc58d9a977166cf552`，可信Base RPC、EntryPoint内层成功及唯一JobCreated已核。1USDC→WETH/0.5%滑点需求于09:22:59.882UTC提交一次，最终09:53:44.829UTC（北京时间17:53:44）仍API OPEN/budget=null、history2条、provider回复0；观察1844.947秒，记录deadline09:53:10已过。未确认接单、真实报价或完整评价证据，不能解释为已收费服务违约或直接计FAIL。已停止轮询，不向过期旧job充值/付款，不重复需求或建单；fund/服务费/本金转出/兑换/发币/身份mint/新评分均0。原件`createjob-approvals-2026-10-23T09-20-09.034Z.private/QUOTE_OBSERVATION_COMPLETE.private.json`。
 
-本轮询价已停止，目标未达成：新增三个真实交易服务、四个零付款订单，实际接单报价0、已确认可拿齐完整评价证据的对象0。ZeroAgent的82146、Ethy的82147，以及修正流程后的GSB 82148均在需求已获平台接受并记入同job历史后REJECTED，budget均null；原因只有bytes32哈希，明文未知，不能归因为余额、费用、请求文本或协议版本。GSB首单82145在我们发送需求前已拒绝，首次需求HTTP403；修正共用时序后只补做了一单，82148只提交标准requirement、无长文本询问，仍拒绝，因此不再重试这批对象。四单建单均经可信Base RPC独立核验；GSB首单拒绝另有独立链事件核验，其余拒绝以本轮已取官方任务历史为依据。未fund、支付服务费/本金、兑换、发币、身份mint或新增评分。详细时间、原件和失败路径见[可行性记录](docs/research/SMALL_BUDGET_TRANSACTION_FEASIBILITY_20261023.md)。
+前一批询价已停止，目标未达成：新增三个真实交易服务、四个零付款订单，实际接单报价0、已确认可拿齐完整评价证据的对象0。ZeroAgent的82146、Ethy的82147，以及修正流程后的GSB 82148均在需求已获平台接受并记入同job历史后REJECTED，budget均null；原因只有bytes32哈希，明文未知，不能归因为余额、费用、请求文本或协议版本。GSB首单82145在我们发送需求前已拒绝，首次需求HTTP403；修正共用时序后只补做了一单，82148只提交标准requirement、无长文本询问，仍拒绝，因此不再重试这批对象。四单建单均经可信Base RPC独立核验；GSB首单拒绝另有独立链事件核验，其余拒绝以本轮已取官方任务历史为依据。未fund、支付服务费/本金、兑换、发币、身份mint或新增评分。详细时间、原件和失败路径见[可行性记录](docs/research/SMALL_BUDGET_TRANSACTION_FEASIBILITY_20261023.md)。
 
-当前瓶颈与下一步：停止ACP同批反复试单、目录关键词搜索及扩大适配。两个Bitte交易Agent现有公开部署均HTTP402 / Vercel DEPLOYMENT_DISABLED，不能当作业务报价；Giza的ARMA/Pulse已退役，现Giza SDK要合作方Key且需联系取得，按用户不联系他人的要求不推进；Zyfai可研究Dashboard自助Key与SIWE只读预检，但首次sendDeposit才分配Safe/session，费用、最低额和实例级原始任务导出仍未实核，也没有第二个合格对象。先向用户汇报并等待是否转入新平台登录后零资金预检的决定，不擅自开户/签新平台授权或要求充值。下一task_id=`DECIDE_NEXT_TRADING_PLATFORM_PREFLIGHT`；原两对象门槛、固定三维及禁发币红线不变。
+当前瓶颈与推进边界：GSB、Zero、Ethy本批已拒绝，Nox/iCLONE旧单未报价，均停止重试；只补查Virtuals内新的能力群体或遗漏执行对象。官方ACP流程是provider先setBudget、buyer后fund，requiredFunds=true不是买方建单前余额门槛；现有三Schema无明确buyer预充值规则，GSB只写agent wallet需USDC，不能据此让用户给我方买方或目录provider打款。只有真实接单/资金条款及原始要求→执行→结果的取证通路成立才安排充值；一单闭环仍不足A10/互斥F7+B7完整分。外平台Bitte/Giza/Zyfai调查只留历史参考，当前不开户、不新增其授权。 本阶段两单观察已收口，下一task_id=`DECIDE_VIRTUALS_PILOT_PATH`：需要用户选择先为N9T2补XRPL收款钱包及单任务预算，还是继续以现有Base钱包筛取证条件更齐的Virtuals对象。前者仅可能先闭合单样本，不承诺完整分；钱包/资金均未执行，不自动重复本轮调查。
 
 当前分支`codex/trading-agent-quotes-20261023`继承`8a85b35`，仅4份文档作本地提交、未push；忽略的operator/收据与无关`docs/presentation/`不入提交。新平台预检须先获所需登录/消息签名授权，不能把已授权ACP登录推广到新平台。
 
