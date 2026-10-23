@@ -4,21 +4,25 @@
 
 主线为Nox/iCLONE两个真实外部Agent各一次小额交易任务闭环，再决定共用适配及正式7F/7B取样；一次任务不冒充完整分。用户取消对外联系；原30元不再阻断研究/准备，已买币10元仍记成本。禁止发币、tokenize和身份NFT铸造，付款与本金尚未获准自动执行。
 
-当前task_id=`NOX_SIGNER_AUTOMATION_SETUP`。用户已明确要求取消持续人工审批、由助手在约定范围内判断。已请用户在既有买方Signers页一次性把DENY_ALL改为ACP_ONLY/Restricted，当前待官网完成及读回；不选No Policy，不重建钱包或密钥。CLI只能指向官网，变更必须owner Privy会话。实读全局策略仅提供名称/ID，没有金额细则；custom也只有地址白名单，provider/资产/金额/selector和禁止发币仍由本地operator校验，不冒称后台硬限额。
+当前task_id=`NOX_QUOTE_OBSERVATION_COMPLETE`。用户已官网将EVM改为No Policy，08:39UTC通过官方CLI实读同一signer的policyIds=[]、No Policy (no approval required)，原件`policy-read-2026-10-23T08-39-20.534Z.private/`；不再要求本次任务逐笔人工审批。Solana未操作/未读回，本轮不用。No Policy也覆盖后续充值，本地operator仍核provider/资产/金额/selector及禁止发币，不冒称平台硬限额。当前授权仅Base专用买方Alchemy v1.0.0持续委托、Nox建单、1USDC→WETH/50bps需求及取条款，不充值/付费/兑换。签名与会话只用同一原生keychain；沙箱内读取可能假空，应在CLI实际运行环境核实，不据此重复登录。
 
 已完成普通JSON买方创建（record/email201，ERC8004与virtual身份null/chains=[]）、本地signer和DENY_ALL读回、owner及协议登录。Base块52975410余额ETH/USDC均0、code=0。用户已批准仅此专用买方的Alchemy v1.0.0持续7702委托，以及仅Nox建单、提交1USDC→WETH/50bps需求并读取真实条款；不充值、不支付服务费/本金、不兑换。取消人工审批只改签名方式，不自动扩大业务范围。
 
-unsigned建单prepare成功，默认Alchemy v1.1.0与固定SDK0.1.15不符；按官方能力显式v1.0.0后201、delegate匹配、sponsored=true，离线核对调用与7702/UserOp/personal_sign摘要通过。仅建单的赞助标记不能外推fund/兑换/结算免费。两份fresh签名已由用户官网批准，但恢复首个owner审批GET401，旧job于08:24UTC到期，未广播、无SEND_INTENT、未建job。随后官方CLI只读signers/global均200，当前仍DENY_ALL。原件`createjob-approvals-2026-10-23T08-18-28.852Z.private/`及`policy-read-2026-10-23T08-25-55.743Z.private/`。
+unsigned建单prepare成功，默认Alchemy v1.1.0与固定SDK0.1.15不符；按官方能力显式v1.0.0后201、delegate匹配、sponsored=true，离线核对调用与7702/UserOp/personal_sign摘要通过。仅建单的赞助标记不能外推fund/兑换/结算免费。两份fresh签名已由用户官网批准，但恢复首个owner审批GET401，旧job于08:24UTC到期，未广播、无SEND_INTENT、未建job。随后08:25UTC官方CLI只读signers/global均200、当时仍DENY_ALL；08:39UTC最新已No Policy。原件`createjob-approvals-2026-10-23T08-18-28.852Z.private/`及`policy-read-2026-10-23T08-25-55.743Z.private/`。
 
-策略读回后先核owner/agent会话有效，再准备有效期内的Nox UserOp；已批准旧7702只有chain/delegate/nonce和验签完全匹配才可复用，不当作已上链。广播前持久化意图、仅发送一次；未知先reconcile，不换nonce盲重发，不用高层create-job探价。详情和Schema不重采，不把自有DEX或上游报价算Agent履约。
+Nox订单`82141`已真实创建并观察收口：No Policy自动签名/单次提交、可信Base RPC、EntryPoint内层成功及唯一JobCreated均已核；交易`0x9b2ff0a28423834cf4b5ab609f2f88ffc556b06b7f72b210c2741389fe883b26`。北京时间16:58:51唯一提交1USDC→WETH/50bps需求，最终于17:05:26（北京时间）只读观察结束（原件以UTC时间戳为准），观察395秒，仍OPEN/budget=null、仅创建与我方需求2条、provider回复0。设定到期时间已过，不向旧job付款，不重复需求或对Nox反复建单；不能据此认定已收费服务违约或直接给Nox FAIL。未fund/支付/资产兑换，原件`createjob-approvals-2026-10-23T08-56-20.984Z.private/QUOTE_OBSERVATION_COMPLETE.private.json`。本次只证明平台接入流程跑通，Nox实交易可行性仍未确认。
 
-本轮仅维护4份文档及忽略的operator脚本/收据，生产代码、数据库、历史评分未改；工程测试NOT_RUN。当前分支`codex/nox-iclone-preflight-20261023`，上一文档提交`3674f59`，未push/main未改，无关`docs/presentation/`保留。
+此前唯一广播的旧UserOp因ExpiryTooShort失败，已6次可信RPC及独立事件解码确认无JobCreated；7702委托已实际生效，旧操作不能重播。修正为5min原SLA+180s准备缓冲，签名前/提交前剩余>330s；新calldata先经确切eth_call成功，再构造唯一发送。源于接入流程，不计Nox FAIL；旧失败原件与新成功原件均保留，未改评分规则。
 
-用户新增明确红线：**禁止发币**。已同步AGENTS与PLAN：不发行代币/NFT、不做Agent代币化、不用tokenize/token launch、不为扩覆盖新发身份NFT；接入强制这些动作则排除。当前无发币、身份铸造或任何新链上交易。
+下一task_id=`ICLONE_QUOTE_PREFLIGHT`：沿用户原定双对象目标复用已核钱包/协议，先验证iCLONE真实接单与条款；本轮Nox没有报价，不据此安排充值或继续围Nox追加适配，仍不出新完整分。
+
+本轮仅维护4份文档及忽略的operator脚本/收据，生产代码、数据库、历史评分未改；工程测试NOT_RUN。当前分支`codex/nox-iclone-preflight-20261023`，此前文档检查点`63b2eda`，本轮另作本地文档提交，未push/main未改，无关`docs/presentation/`保留。
+
+用户新增明确红线：**禁止发币**。已同步AGENTS与PLAN：不发行代币/NFT、不做Agent代币化、不用tokenize/token launch、不为扩覆盖新发身份NFT；接入强制这些动作则排除。未发币或铸造身份；本轮新增账户委托与一个未付费链上订单，资产兑换0。
 
 已离线确认登录后可用`agent list --json`无signer读取已有买方。未发现Nox/iCLONE独立预报价命令；`create-job`是真实写链，不能当免费查询。LI.FI资源只可作iCLONE路由预估；若报价仍需前置交易，先说明gas与损耗，不擅自执行。登录并不保证马上取得全包报价。
 
-本轮上游预估已实读2次SafeHttpClient GET/2个200：现有Base USDC→WETH、1USDC档均有路由，Kyber/LI.FI估计DEX gas约0.00414/0.0039美元，LI.FI包含0.0025USDC费用；不是Agent接单、服务费或全部gas报价，也不计A/F/B。原件`runtime/nox-iclone-preflight-20261023/upstream-route-estimates/`。signer策略当前正按用户要求改为ACP_ONLY；custom allowlist不具金额预算。0新链上任务/资产交易/评分，工程测试NOT_RUN。
+本轮上游预估已实读2次SafeHttpClient GET/2个200：现有Base USDC→WETH、1USDC档均有路由，Kyber/LI.FI估计DEX gas约0.00414/0.0039美元，LI.FI包含0.0025USDC费用；不是Agent接单、服务费或全部gas报价，也不计A/F/B。原件`runtime/nox-iclone-preflight-20261023/upstream-route-estimates/`。EVM No Policy已实际读回，后续只在已授权任务内自动签名；custom allowlist不具金额预算。1个未付费链上订单、0资产兑换/新评分，工程测试NOT_RUN。
 
 欧易研究已核：C2C官方公开最低10元/平台零交易费，但实际广告/资格/T+N及提币全费用仍需本人预览；历史公告支持USDC-Base及Base ETH，钱包支持8453、资产和交易所账户分开。若可直接提到已核ACP买方，不强制中转Web3钱包；自有钱包交易不冒充Agent履约。ACP客户端不保证免费gas，也未证明需要先买ETH，签名前看prepare的paymaster/扣款。海外卡路线备用，Coinbase旧Hosted Guest已停用；未创建任何支付会话。详见可行性文档“当前优先：欧易入金与钱包辅助”。
 

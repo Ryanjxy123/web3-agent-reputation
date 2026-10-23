@@ -1,8 +1,8 @@
 # 小额实交易：真实Agent评价可行性
 
-日期：2026-10-23。当前task_id：`NOX_SIGNER_AUTOMATION_SETUP`，主线`NOX_ICLONE_BUYER_FUNDING_PREFLIGHT`，延续`SMALL_BUDGET_TRANSACTION_FEASIBILITY`。
+日期：2026-10-23。当前task_id：`NOX_QUOTE_OBSERVATION_COMPLETE`，主线`NOX_ICLONE_BUYER_FUNDING_PREFLIGHT`，延续`SMALL_BUDGET_TRANSACTION_FEASIBILITY`。
 
-用户取消对外材料请求，改自己参与小额真实交易。最新明确“预算先别管”，原30元暂不作为研究/准备的硬门槛；实际费用继续记录，具体充值与签名前说明金额、用途及权限。用户报告已花10元买币；owner登录、普通买方和DENY_ALL signer已准备，Base余额为0。协议登录与unsigned建单预检已成功，明确标记本次gas赞助；用户已官网批准账户委托/UserOp，但旧job过期未广播，现待切换受限自动策略；尚未充值、建链上任务或新增评分。先完成两个真实外部Agent各一次闭环。
+用户取消对外材料请求，改自己参与小额真实交易。原30元不再阻断研究/准备，用户已买币10元；本次实际充值、付费和资产兑换均0。EVM No Policy已读回生效，账户委托上链；先前一次建单因期限缓冲不足失败，独立核清后修正并成功创建Nox订单82141。真实需求已提交，约395秒观察仍无提供方报价/资金请求，订单期限已过，不向旧单付款。当前`NOX_QUOTE_OBSERVATION_COMPLETE`；Nox真实兑换和两对象完整评价仍未达成。
 
 ## 必须保持的边界
 
@@ -74,7 +74,17 @@
 
 最新执行进度：fresh Nox建单与两项签名请求已在`createjob-approvals-2026-10-23T08-18-28.852Z.private/`保存，用户均已官网核对批准。恢复在首个owner审批GET即HTTP401，未进入广播、无SEND_INTENT；原job窗口已于08:24UTC到期，不发送旧call，也不盲重建。官方CLI随后通过现有会话恢复完成只读策略核查：08:25UTC signers/global均200，当前仍DENY_ALL，ethereum全局另有ACP_ONLY；返回只有名称/ID，没有细则或金额限制。
 
-用户已明确要求取消持续人工审批、由助手按约定范围判断。当前`NOX_SIGNER_AUTOMATION_SETUP`：已请用户在原买方官网Signers页将现有signer一次性改为ACP_ONLY/Restricted，尚待完成并读回；不采用No Policy，不重建钱包/密钥。CLI `agent set-signer-policy`只能指向官网，真实变更须owner Privy会话，不能用P256 signer自行提升权限。ACP_ONLY不等于仅Nox或1USDC，现有custom接口也只有目标地址白名单；金额、资产、provider、selector及禁发币由本地operator逐笔核，不冒称后台硬限额。本次仍只获准账户委托与Nox建单/需求/取条款，不充值、付款或兑换。策略变更后准备新鲜UserOp，不使用过期建单；旧7702签名只有在chain/delegate/nonce及恢复验签完全匹配时才可能复用，不能当已上链。原签名/会话/策略响应均留忽略目录。
+用户已明确要求取消持续人工审批、由助手按约定范围判断。此前`NOX_SIGNER_AUTOMATION_SETUP`阶段：用户进一步询问双链No Policy，最新建议仅本次专用实验买方EVM选No Policy、Solana保持Deny All；尚待用户实际完成和读回，不把咨询当作已切换。No Policy也作用于未来充值；截图说明Virtuals Only包含tokenisation，两个选项都不能代替本地禁发币检查。不重建钱包/密钥。CLI `agent set-signer-policy`只能指向官网，真实变更须owner Privy会话，不能用P256 signer自行提升权限。ACP_ONLY不等于仅Nox或1USDC，现有custom接口也只有目标地址白名单；金额、资产、provider、selector及禁发币由本地operator逐笔核，不冒称后台硬限额。本次仍只获准账户委托与Nox建单/需求/取条款，不充值、付款或兑换。策略变更后准备新鲜UserOp，不使用过期建单；旧7702签名只有在chain/delegate/nonce及恢复验签完全匹配时才可能复用，不能当已上链。原签名/会话/策略响应均留忽略目录。
+
+最新策略已生效：用户已官网将EVM改No Policy，08:39UTC官方CLI同一signer读回policyIds=[]。原件`policy-read-2026-10-23T08-39-20.534Z.private/`。随后执行`NOX_CONTROLLED_FIRST_JOB`（最终观察已收口见下文），其余业务权限仍仅建单/需求/取条款，不付款或兑换。原生keychain实际环境中owner/agent会话均仍有效；沙箱内读取为空不能当作丢失。
+
+## No Policy后的真实执行
+
+Nox订单`82141`已真实创建并观察收口：No Policy自动签名/单次提交、可信Base RPC、EntryPoint内层成功及唯一JobCreated均已核；交易`0x9b2ff0a28423834cf4b5ab609f2f88ffc556b06b7f72b210c2741389fe883b26`。北京时间16:58:51唯一提交1USDC→WETH/50bps需求，最终于17:05:26（北京时间）只读观察结束（原件以UTC时间戳为准），观察395秒，仍OPEN/budget=null、仅创建与我方需求2条、provider回复0。设定到期时间已过，不向旧job付款，不重复需求或对Nox反复建单；不能据此认定已收费服务违约或直接给Nox FAIL。未fund/支付/资产兑换，原件`createjob-approvals-2026-10-23T08-56-20.984Z.private/QUOTE_OBSERVATION_COMPLETE.private.json`。本次只证明平台接入流程跑通，Nox实交易可行性仍未确认。
+
+此前唯一广播的旧UserOp因ExpiryTooShort失败，已6次可信RPC及独立事件解码确认无JobCreated；7702委托已实际生效，旧操作不能重播。修正为5min原SLA+180s准备缓冲，签名前/提交前剩余>330s；新calldata先经确切eth_call成功，再构造唯一发送。源于接入流程，不计Nox FAIL；旧失败原件与新成功原件均保留，未改评分规则。
+
+下一task_id=`ICLONE_QUOTE_PREFLIGHT`：沿用户原定双对象目标复用已核钱包/协议，先验证iCLONE真实接单与条款；本轮Nox没有报价，不据此安排充值或继续围Nox追加适配，仍不出新完整分。
 
 ## 当前优先：欧易入金与钱包辅助
 
