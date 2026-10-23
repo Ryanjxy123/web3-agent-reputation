@@ -1,6 +1,17 @@
 # 单笔真实交易受控实验
 
-日期：2026-10-23。task_id：`CONTROLLED_TRANSACTION_PILOT_DESIGN`。状态：方案与只读取证准备；未充值、签交易或付款。
+日期：2026-10-23。task_id：`CONTROLLED_TRANSACTION_PILOT_EXECUTION_PREP`。状态：用户已同意N9T2单笔小额真实交易；正在准备收款地址及绑定报价。具体报价和费用明确后才通知用户充值，尚未签付款或动用资金。
+
+## 当前操作：准备公开收款地址
+
+用户已明确同意先用N9T2跑一笔小额真实交易，并要求告知XRPL钱包准备方式、报价与费用后再充值。当前只等待本人控制的公开收款地址，不再询问是否选择本路线。
+
+1. 优先复用已有欧易App的**Web3钱包→收款/接收→XRP**。网络须为原生XRP Ledger/XRPL/Ripple，地址为`r`开头；交易所共享充币地址与其他链上的包装XRP不用于本次实验。欧易有[原生XRPL钱包页面](https://web3.okx.com/zh-hans/wallet/ripple-ledger)，用户当前版本是否展示该网络以实际页面为准。
+2. 若现有钱包没有原生XRPL，用[Xaman官网](https://xaman.app/)提供的商店链接安装，选择Create a new account，由用户自己备份并校验Secret Numbers，取得公开`r`地址后停止。只需要公开地址，不需要恢复信息，不购买XRP或先充值激活。[官方建户步骤](https://help.xaman.app/app/getting-started-with-xaman/your-first-xrp-ledger-account/how-to-create-an-xrpl-account.md)
+3. 当前XRPL主网基础储备为1XRP，首次足额原生XRP入账可创建链上账户。先核N9T2是否接受未激活地址，再核新报价净到账超过储备并留余量；不假定地址未激活就必须额外充值。储备是到账本金中的保留余额，不与桥接服务费重复计算。[储备](https://xrpl.org/docs/concepts/accounts/reserves)、[账户创建](https://xrpl.org/docs/concepts/accounts)
+4. 普通Xaman自托管收款不需Destination Tag，本次不使用要求Tag的交易所地址。[官方收款说明](https://help.xaman.app/app/getting-started-with-xaman/sending-xrp-to-xaman.md)
+
+地址收到后只做地址/链状态核验和免费最低档报价，随后展示精确本金、费用、gas支付方、收款与付款地址、报价到期时间。当前没有绑定用户XRPL地址的新报价，不给出充值金额。下一task_id=`N9T2_BOUND_QUOTE_AND_PAYMENT_PREFLIGHT`。
 
 ## 本次纠正与实验目标
 
@@ -24,7 +35,9 @@
 
 金额先取**新鲜、绑定该收款地址的最低档正式报价**，不沿用旧反向报价或假定1USDC必可成交。官方商业桥接流程为`POST /bridge/quote`→按报价支付→`POST /bridge/payment`提交已发生的付款哈希→读取`GET /bridge/receipt/{quote_id}`；`/bridge/execute`是另一套接口，不能混用。[官方流程](https://x402.n9t2.com/llms.txt)
 
-付款前准备一张明确执行单：买方、Base 8453、USDC合约、报价ID/到期时间、收款地址、精确支付数量、其中本金与服务/路由费用、目标资产和收款人、gas支付方及最坏自付金额。报价内已包含的费用不重复相加，是否赞助gas按本次真实prepare核查。用户确认具体资金动作后才充值或签付款；No Policy不是无限支出授权。本轮问题只授权了实验设计和只读准备。
+付款前准备一张明确执行单：买方、Base 8453、USDC合约、报价ID/到期时间、收款地址、精确支付数量、其中本金与服务/路由费用、目标资产和收款人、gas支付方及最坏自付金额。报价内已包含的费用不重复相加，是否赞助gas按本次真实prepare核查。用户已同意单笔小额实验，要求先取得具体报价与费用再充值；在资金执行单明确前不付款。No Policy不是无限支出授权。
+
+付款准备复用现有智能账户。已只读核对本地官方SDK：普通ERC20转账使用`/wallets/alchemy-rpc-erc20`的`wallet_prepareCalls`，固定Base原生USDC的单个`transfer`、`value=0`，地址与6位精度金额只取本次有效报价，显式`eip7702Auth={delegation:ModularAccountV2,version:v1.0.0}`。检查本次`feePayment.sponsored/token/maxAmount`，不以之前建单获赞助或代理名称推断免费；0余额可能阻止真实金额模拟，也不能用0额模拟代替。预检不调用会签名广播的高层`sendTransaction`，401停止、不自动刷新登录。当前未调用prepare、未签名。
 
 ## 三维如何由我们测量
 
