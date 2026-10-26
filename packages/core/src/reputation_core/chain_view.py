@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict
 from reputation_core.admission import Verdict
 from reputation_core.behavior import CAKE, DEPOSIT, MANAGER, ROUTER, TRANSFER, WBNB
 from reputation_core.liquidity import INCREASE_TOPIC
+from reputation_core.swap import decode_batch
 
 
 class ChainAction(BaseModel):
@@ -43,7 +44,25 @@ _METHODS = {
         "increase_liquidity", "增加仓位流动性", "increaseLiquidity((uint256,uint256,uint256,uint256,uint256,uint256))",
     ),
 }
-_ASSETS = {(56, WBNB): ("WBNB", 18), (56, CAKE): ("CAKE", 18)}
+_BASE_ROUTER = "0x2626664c2603336e57b271c5c0b26f421741e481"
+_METHODS[(8453, _BASE_ROUTER, "0x04e45aaf")] = (
+    "swap", "兑换资产", "exactInputSingle((address,address,uint24,address,uint256,uint256,uint160))",
+)
+_ASSETS = {
+    (56, WBNB): ("WBNB", 18), (56, CAKE): ("CAKE", 18),
+    (8453, "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"): ("USDC", 6),
+    (8453, "0x4200000000000000000000000000000000000006"): ("WETH", 18),
+}
+
+
+def _self_swap(data: str) -> tuple[list[dict], str]:
+    calls = decode_batch(data)
+    if (len(calls) != 2 or any(item["value"] != "0" for item in calls)
+        or calls[0]["data"][:10].lower() != "0x095ea7b3"
+        or calls[1]["target"].lower() != _BASE_ROUTER
+        or calls[1]["data"][:10].lower() != "0x04e45aaf"):
+        raise ValueError("Not a recognized approval and swap batch")
+    return calls, calls[1]["data"].lower()
 
 
 def _hex(value: object, digits: int | None = None) -> str:
@@ -86,7 +105,15 @@ def has_chain_action_description(transaction: dict) -> bool:
         key = (_quantity(transaction["chainId"]), _hex(transaction["to"], 40), transaction["input"][:10].lower())
     except (KeyError, TypeError, ValueError):
         return False
-    return key in _METHODS
+    if key in _METHODS:
+        return True
+    if key[0] == 8453 and key[1] == transaction.get("from", "").lower():
+        try:
+            _self_swap(transaction["input"])
+            return True
+        except (KeyError, TypeError, ValueError):
+            pass
+    return False
 
 
 def _transfers(receipt: dict) -> list[tuple[str, str, str, int]]:
@@ -145,6 +172,14 @@ def describe_chain_action(
     data = transaction["input"].lower()
     method_key = (chain_id, target, data[:10])
     action, title, method = _METHODS.get(method_key, ("contract_call", "链上合约调用", data[:10] or "0x"))
+    batch_calls = None
+    if chain_id == 8453 and sender == target:
+        try:
+            batch_calls, swap_data = _self_swap(data)
+            action, title = "swap_batch", "精确授权并兑换资产（同一笔交易）"
+            method = "executeBatch: approve + exactInputSingle"
+        except (KeyError, TypeError, ValueError):
+            pass
     status = _quantity(receipt["status"])
     if status not in (0, 1):
         raise ValueError("Malformed receipt status")
@@ -162,8 +197,9 @@ def describe_chain_action(
         if len(deposits) != 1 or _words(deposits[0]["data"], 1)[0] != amount:
             raise ValueError("Deposit event does not match the executor's native input")
         summary = f"执行账户支付 BNB {_units(amount, 18)}；WBNB 合约的 Deposit 事件记录同账户获得 WBNB {_units(amount, 18)}。"
-    elif action == "swap":
-        values = _words("0x" + data[10:], 8)
+    elif action in ("swap", "swap_batch"):
+        payload = swap_data if batch_calls is not None else data
+        values = _words("0x" + payload[10:], 7 if chain_id == 8453 else 8)
         token_in, token_out, recipient = _address(values[0]), _address(values[1]), _address(values[3])
         transfers = _transfers(receipt)
         amount_in = sum(amount for token, source, _, amount in transfers if token == token_in and source == sender)
@@ -173,8 +209,12 @@ def describe_chain_action(
         summary = (
             f"收据中的资产转移记录实际支付 {_asset(chain_id, token_in, amount_in)}，"
             f"接收账户 {recipient} 实收 {_asset(chain_id, token_out, amount_out)}；"
-            f"调用中最低接收量为 {_asset(chain_id, token_out, values[6])}。"
+            f"调用中最低接收量为 {_asset(chain_id, token_out, values[5 if chain_id == 8453 else 6])}。"
         )
+        if batch_calls is not None:
+            spender, approved = _words("0x" + batch_calls[0]["data"][10:], 2)
+            summary = (f"授权钱包在同一笔交易中先允许路由合约 {_address(spender)} 使用 "
+                       f"{_asset(chain_id, batch_calls[0]['target'].lower(), approved)}，再执行兑换。" + summary)
     elif action == "increase_liquidity":
         token_id = _words("0x" + data[10:], 6)[0]
         events = [event for event in receipt["logs"] if (

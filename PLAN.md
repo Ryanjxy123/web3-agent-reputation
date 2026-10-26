@@ -1,6 +1,24 @@
 # 新项目执行计划
 
-## 2026-10-23 当前主线：与区块链深度结合
+## 2026-10-27 当前：真实兑换已核实，等待补采政策确认
+
+task_id=`WAITING_SWAP_SAMPLING_DECISION_20261027`。本轮金融操作已停止；不是余额不足，而是现行功能窗口未满足完整性规则，需要用户醒后决定是否修订通用补采政策。此前不设消费/次数上限的授权不作为现在自动重启operator的理由。允许只读复核和报告维护，不新增付款、兑换、权限或充值；用户确认继续后再在既有授权范围推进。
+
+实际对象为Ethereum ERC-8004 **MangoSwap #26345**的ERC20兑换能力，调用Spraay直连网关在Base生成方案，买方钱包依据用户授权签名执行。7笔独立小额双向兑换均已核实真实成交、到账、官方池事件、精确授权及至少64块确认；剩余授权0、既有委托不变。不是Spraay全部六项能力或提供方自主签名。owner/URI与官方卡声明已核，IPFS正文未取得，端点归属仍为PROVIDER_DECLARED。
+
+最新报告`ed426474-5391-4a4a-a48a-77dce25ddd7e`（`runtime/spraay-public-reassessment-20261027`）已入真实PG：A=95.67（9PASS/1UNKNOWN，p95=2946.7189ms），F=null（2PASS/1传输UNKNOWN/4未执行），B=100（7PASS），综合=null、PARTIAL。原报告`382bcb43-5a16-40de-bdcc-a55d7c659694`和`runtime/spraay-public-original-20261027`原样保留。两个功能计划合计14槽：8个独立确定结果均一致、2个真实传输缺源、4个未执行；现行v1不能据此跨窗追认完整分。产品完整评分目标NOT_MET。
+
+冻结的原master SHA `21a67e7d4300dc78abe637f6a7fa147733bf6c18d015fe479c10e1336d17dcf7`、复评master SHA `cae53552fccc908971be372a5814bc83b0d249cd89b4f0779d93f067b2ea60c7`、ADR-0022/0023及配置不改。所有未知付款已独立核nonce过期且未用，无未决付款或需重播的资产交易。31次已核USDC服务费共0.465，7B买方网络费0.000005634637367917ETH；最终余额0.723007USDC、0.000540187903644028WETH、0.002993237310238374ETH，三资产与初始加所有记录流精确对应。费用账`runtime/spraay-experiments-20261027/ledger-20261026T192806446097Z-17aff6/safe-ledger.json`。
+
+建议先确认[通用补采提案](docs/research/SWAP_SAMPLING_REVIEW_20261027.md)，再冻结新政策/ADR，保留所有原结果后前瞻补证。提案为功能至少7个可判且计划覆盖率至少80%，目前8/14仍不够，不能直接发完整分；三维、30/40/30和原7B不变。这确实是充分性规则修订，不是把旧v1宣称成通过。实验方法和七笔真实记录见[运行记录](docs/runbooks/MANGOSWAP_EVALUATION_20261027.md)。
+
+实现包括通用兑换规则、严格公开源导出/确定性重放、角色/资产解读。共享Schema/TS/OpenAPI生成与前端构建各exit0；唯一必要工程验收1次exit0，明确期望PARTIAL/overallNone，覆盖真实重放、错误收款人FAIL、缺回执UNKNOWN、篡改拒绝、链视图及HTML；不代表完整评分验收通过。实际命令与收据在`runtime/spraay-code-review-closeout-20261027/`。缺实际原件的普通CI用例明确NOT_RUN/skip，不拿跳过当集成通过，旧全套未重跑。
+
+网站已后台重启于127.0.0.1:7754，PG与独立worker正常，worker为public-off；实际agent/report/chain-evidence接口均HTTP200，两个报告版本可查。链上概览展示B01代表样本，其余交易见7个B样本及文档。进程收据`runtime/background-platform-20261026T193644Z-f1137eab/process.json`，接口核查`runtime/swap-web-verification-20261027/`。Chrome截图命令被自动审批拒绝，原因仅返回blocked by policy，视觉NOT_RUN；不绕过拒绝。
+
+分支`codex/spraay-full-evaluation-20261027`保留本地检查点；未push、未新建PR，main未改，无关docs/presentation/保留。当前新报告均PARTIAL，未伪装为COMPLETE分发包；完整分包脚本只是私有准备，未运行。下一步必须先取得补采政策决定，不继续循环重开窗口或为满分改规则。
+
+## 2026-10-23 历史主线：与区块链深度结合
 
 task_id=`CHAIN_EXECUTION_FOCUS_20261023`实现与本机验收完成。用户已授权直接修改项目，取代10月21日仅写文档的任务边界。主目标是让真实Agent的链上业务、授权、合约调用、资产变化和独立核验成为网站主体；三个维度仍为服务可用性、功能声明一致性、交易行为可靠性，权重与旧报告不变。
 

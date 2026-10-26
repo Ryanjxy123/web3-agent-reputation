@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, computed_field, model_validator
 
 from reputation_core.admission import MeasurementPurpose, Verdict
 from reputation_core.scoring import (
-    POLICY_VERSION, SERVICE_POLICY_VERSIONS, PolicyVersion,
+    POLICY_VERSION, SERVICE_POLICY_VERSIONS, SWAP_POLICY_VERSION, PolicyVersion,
     ScoredSample, ScoringOutcome, calculate_scores,
 )
 
@@ -69,7 +69,7 @@ class EvaluationReport(BaseModel):
 
     @model_validator(mode="after")
     def bind_service_contract_capabilities(self) -> Self:
-        if self.policy_version not in SERVICE_POLICY_VERSIONS:
+        if self.policy_version not in (*SERVICE_POLICY_VERSIONS, SWAP_POLICY_VERSION):
             return self
         capabilities = {item.capability_id: item for item in self.capabilities}
         if len(capabilities) != len(self.capabilities):

@@ -1,0 +1,23 @@
+{
+  "schema_version": "swap-protocols-v1",
+  "configuration_source": "operator-reviewed-not-registration-metadata",
+  "chains": {
+    "8453": {
+      "name": "Base",
+      "rpc_urls": ["https://mainnet.base.org", "https://api.zan.top/node/v1/base/mainnet"],
+      "router": "0x2626664c2603336e57b271c5c0b26f421741e481",
+      "factory": "0x33128a8fc17869897dce68ed026d694621f6fdfd",
+      "quoter": "0x3d4e44eb1374240ce5f1b871ab261cd16335b76a",
+      "execution_account_code": "0xef010069007702764179f14f51cdce752f4f775d74e139",
+      "tokens": {
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": {"symbol": "USDC", "decimals": 6},
+        "0x4200000000000000000000000000000000000006": {"symbol": "WETH", "decimals": 18}
+      },
+      "sources": [
+        "https://docs.uniswap.org/contracts/v3/reference/deployments/base-deployments",
+        "https://developers.circle.com/stablecoins/usdc-contract-addresses",
+        "https://docs.base.org/base-chain/network-information/base-contracts"
+      ]
+    }
+  }
+}

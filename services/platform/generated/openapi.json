@@ -1155,7 +1155,8 @@
               "prediction-history-v1",
               "prediction-history-v2",
               "service-contract-v1",
-              "service-fulfillment-v1"
+              "service-fulfillment-v1",
+              "evm-swap-builder-v1"
             ],
             "title": "Policy Version",
             "default": "liquidity-history-v1"
@@ -1587,7 +1588,8 @@
               "prediction-history-v1",
               "prediction-history-v2",
               "service-contract-v1",
-              "service-fulfillment-v1"
+              "service-fulfillment-v1",
+              "evm-swap-builder-v1"
             ],
             "title": "Policy Version",
             "default": "liquidity-history-v1"
