@@ -281,7 +281,7 @@ def build_execution_reviews(root: Path, bundle_path: Path) -> list[tuple[AgentCh
     return reviews
 
 
-def publish_execution_reviews(repository, reviews, directory: Path) -> list[dict]:
+def publish_execution_reviews(repository, reviews, directory: Path, *, agent_names: dict[str, str] | None = None) -> list[dict]:
     """Append authenticated snapshots and source allowlists in one DB transaction."""
     directory = directory.resolve()
     if not directory.is_relative_to(repository.runtime):
@@ -296,7 +296,8 @@ def publish_execution_reviews(repository, reviews, directory: Path) -> list[dict
     mappings = []
     with repository._connect() as connection:
         for review, path, digest, sources in prepared:
-            repository._upsert_agent(connection, key=review.candidate_key, name=review.title,
+            name = (agent_names or {}).get(review.candidate_key, review.title)
+            repository._upsert_agent(connection, key=review.candidate_key, name=name,
                 reference=review.registration_reference, description=review.profile.business_summary)
             row = connection.execute('''INSERT INTO agent_chain_evidence(id,agent_key,generated_at,snapshot_path,
                 snapshot_sha256,validated_json,evidence_files) VALUES (%s,%s,%s,%s,%s,%s,%s)

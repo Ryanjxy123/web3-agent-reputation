@@ -19,7 +19,7 @@ const copyError = ref(false)
 const expanded = ref(false)
 const shownActions = computed(() => expanded.value || props.actions.length <= 3 ? props.actions
   : props.actions.filter(action => action.sample_id === props.actions[0]?.sample_id))
-const explorers: Record<number, string> = { 56: 'https://bscscan.com', 100: 'https://gnosisscan.io' }
+const explorers: Record<number, string> = { 56: 'https://bscscan.com', 100: 'https://gnosisscan.io', 8453: 'https://basescan.org' }
 const shorten = (value: string) => value.length > 22 ? `${value.slice(0, 12)}…${value.slice(-8)}` : value
 const transactionLink = (chain: number, hash: string | null) => explorers[chain] && hash && /^0x[0-9a-fA-F]{64}$/.test(hash)
   ? `${explorers[chain]}/tx/${hash}` : undefined

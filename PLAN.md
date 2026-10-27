@@ -1,6 +1,18 @@
 # 新项目执行计划
 
-## 2026-10-27 当前：共享评分与网站本机完成，正在交付PR
+## 2026-10-27 当前：PR21已撤回，MangoSwap三项补测已展示
+
+用户取消多人并发协作，相关新增内容已删除，未新增Signer/钱包权限/委托。PR21远端CLOSED、未合并；撤回文档commit `fa9c30f52cac891091489ce1de247ca725ebc98b`已push至原分支，不重开PR。当前task_id=`V4_SOURCE_REPLAYER_INTEGRATION`已完成，下一task_id=`MANGOSWAP_SUPPLEMENT_USER_REVIEW`，无下一笔金融操作计划。
+
+三笔Base真实补测：E1 0.00002原生ETH→0.045889USDC；E2 0.02USDC定时创建同笔撤销；E3 0.02USDC限价创建/查询同笔撤销，后两笔均全额退款、授权0、无托管残留。三笔网络费共0.000005854846589807ETH，新增服务费0；E1平台费0.0000001ETH已含本金。最终任务快照USDC0.708896、WETH0.000540187903644028、原生ETH0.002967382463648567，非实时查询。禁止发币始终遵守，无重复旧交易。
+
+新协议来源重放与公开包、真实PG快照导入及网站“新增链上补测”已完成，无新core/Schema/评分表。A业务HTTP未观测，明确UNKNOWN/0；F/B只核本次任务，不产生新总分或替换旧latest。四份历史报告、31个共享任务、原范围77.25–87.98与旧98.70均保持。定时/限价创建与退款不证明自动到期成交、周期或keeper；源码Failed退款缺口未伪称实际损失，也未投入真实本金触发。
+
+验收：真实包离线1项关键用例exit0（59.048s），含重绑定哈希后的退款篡改、错身份/交易与旧报告不变；未重跑旧工程全套。Vue构建2次exit0，第二次因新增BaseScan链接；真实PG与网站/附件HTTP/SHA核验exit0、私有附件404，浏览器视觉NOT_RUN。初次uv命令因PATH不可用未启动，改用现有venv；首次来源构建保留第三份计划格式差异的UNKNOWN草稿，修后新v2三项全核齐，未覆盖旧目录。
+
+包`data/public-chain-mangoswap-v4-v1.tar.gz`为817785B、1487文件，SHA `e301264e36e1cb580f344030d40d4884231a463b4b944e2aa89d956e02df39d5`；1488压缩成员凭据审查0发现，两条普通authorization说明已单列复核。新代码/包只保存在本地`codex/mangoswap-capability-supplement`，本轮不push、不另提PR。无关docs/presentation/保留。完整说明见[补测记录](docs/runbooks/MANGOSWAP_SUPPLEMENT_20261027.md)，收据`runtime/mangoswap-v4-web-verification-20261027/receipt.json`。
+
+## 2026-10-27 历史阶段：共享评分本机完成与PR交付（PR现已撤回）
 
 task_id=`IMPLEMENT_SHARED_TASK_SCORING_AND_CLAIM_COVERAGE`本机实现与必要验收完成。新policy `transaction-agent-evidence-v1`共享任务、声明/场景分层、区间与覆盖分开；按ADR-0026允许已测范围出综合结果，不强制所有声明测全。core生成Schema/TS，平台独立来源重放/导入/离线包，Vue统一任务和已测/未测界面，历史报告文案标范围且分数不改；队友指南已含实际命令与适配边界。
 
