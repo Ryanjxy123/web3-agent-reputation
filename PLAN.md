@@ -1,6 +1,16 @@
 # 新项目执行计划
 
-## 2026-10-27 本机完成，正在同步单分与Mango唯一发布数据
+## 2026-10-27 当前交付：单分页面与Mango唯一发布已推送
+
+`SINGLE_SCORE_REPORT`实现完成。当前网站默认报告`2c7ded39-f808-40b0-8d15-dddebee21704`：A100/F91.67/B100/综合96.67，34任务/153判据。页面保留功能、单值分数与真实样本，报价/模拟/成交/撤销退款按任务目标区分；未测开发清单已从主区移除。
+
+代码与Mango唯一公开包已提交并推送，产品提交`74bcb37c458206e00b5424e0b8b574a4b0ae3b0f`，任务分支`codex/single-score-report`，通过[PR #22](https://github.com/Ryanjxy123/web3-agent-reputation/pull/22)交付至main。旧PR21保持关闭。27个旧发布包/候选/实例文件已移除，通用实现保留；Git历史和本机既有PG审计历史不清空。`docs/presentation/`未入本次提交，私有钱包/凭据未发布。
+
+本地必要组合验收56.807s/exit0，前端构建、真实PG导入/HTTP/附件核验、公开包离线verify均通过。产品提交74bcb37的[远端CI](https://github.com/Ryanjxy123/web3-agent-reputation/actions/runs/40507551259)中python-web和postgres-smoke均success；PG验证采用真实17.11及3个并发连接，含租约恢复、旧worker拒绝及报告不可修改。本段仅追加交付记录，最终合并和最新head检查以PR #22实时状态为准。浏览器视觉NOT_RUN。无新增RPC、签名、实验付款或交易。
+
+下一task_id=`MANGOSWAP_SCORE_USER_REVIEW`，等待用户查看本机页面；没有待执行资金操作。包哈希、已知业务范围和详细验证见[单分发布记录](docs/runbooks/MANGOSWAP_SINGLE_SCORE_20261027.md)。
+
+## 2026-10-27 历史：本机完成与发布准备
 
 单分默认报告2c7ded39-f808-40b0-8d15-dddebee21704，A100/F91.67/B100/综合96.67；34任务/153判据不变。UNKNOWN/未采另列，不取旧区间端点；主区未测长清单已撤，报价/模拟/成交/撤销退款按真实阶段显示。当前本机HTTP/附件SHA/旧v2字节保持均通过，worker public-off、队列0；无新外网采证/交易/费用。
 

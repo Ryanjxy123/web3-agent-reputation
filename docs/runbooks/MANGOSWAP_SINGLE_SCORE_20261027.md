@@ -18,4 +18,4 @@
 
 本地检查：单项组合验收先因测试误用computed-property对象身份比较报错，修正测试后56.807秒/exit0；覆盖单值不是旧区间端点、未知不进分母、B门槛、真实34任务及旧v2原字节保持。前端构建exit0，PG导入及默认报告/新附件SHA/私有附件404检查通过。离线公开包verify通过（1个Mango报告、0网络请求）；收据runtime/public-report-restore-d57b5a6b244ab80158bef9c816dbdc5f/result.json。浏览器视觉NOT_RUN。没有新增RPC、签名、交易或付款。收据在`runtime/single-score-web-verification-20261027/`。
 
-当前任务分支`codex/single-score-report`。用户已授权本轮远端同步与删除旧发布记录；远端提交及CI状态以PLAN/STATUS的最新交付段为准，PR21不重开。
+产品提交`74bcb37c458206e00b5424e0b8b574a4b0ae3b0f`已推送`codex/single-score-report`，通过[PR #22](https://github.com/Ryanjxy123/web3-agent-reputation/pull/22)交付。该产品提交的[CI](https://github.com/Ryanjxy123/web3-agent-reputation/actions/runs/40507551259)中python-web、postgres-smoke均通过；最终合并及最新head检查以PR实时状态为准。PR21保持关闭，下一任务为用户查看单分页面，无待执行资金操作。
