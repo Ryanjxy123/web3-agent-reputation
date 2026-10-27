@@ -179,7 +179,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--identity-run", required=True)
     parser.add_argument("--discovery-run", required=True)
-    parser.add_argument("--config", choices=CONFIGS, default=CONFIGS[0])
+    parser.add_argument("--config", choices=CONFIGS, required=True, help="Explicitly supply a retained cohort configuration")
     parser.add_argument("--execute-public-readonly", action="store_true")
     parser.add_argument("--proxy")
     parser.add_argument("--retained-run", help="Reuse exact identity observations without repeating their HTTP calls")

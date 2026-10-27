@@ -31,7 +31,7 @@ from reputation_core.reporting import EvaluationReport, ReportFinding, SampleExp
 from reputation_core.scoring import ScoredSample
 from reputation_platform.evaluation_report import render_evaluation_report
 
-CONFIG = ROOT / "configs/pilots/brain-defi-liquidity-v1.json"
+CONFIG: Path | None = None
 POLICY = ROOT / "docs/adr/0004-liquidity-history-policy.md"
 IMPLEMENTATION = ROOT / "docs/adr/0005-evidence-binding-and-complete-slots.md"
 REGISTERED = "0xca52e62c367d81bb2e328eb795f7c7ba24afb478408a26c0e201d155c449bc4a"
@@ -131,7 +131,7 @@ class Evidence:
 
     def check_ref(self, item: dict) -> Path:
         path = (ROOT / item["path"]).resolve()
-        allowed = path.is_relative_to(RUNTIME) or path in {CONFIG.resolve(), POLICY.resolve(),
+        allowed = path.is_relative_to(RUNTIME) or path in {CONFIG, POLICY.resolve(),
                     (ROOT / "configs/trusted-bsc-zan.json").resolve()}
         if not allowed or not path.is_file() or digest(path) != item["sha256"]:
             raise Gap("输入摘要不匹配或超出本次证据范围：" + str(item.get("path")))
@@ -492,16 +492,19 @@ def task_explanation(task: dict, row: dict, store: Evidence, config: dict,
 
 
 def main() -> int:
+    global CONFIG
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--profile", type=Path, required=True, help="Explicit operator-owned profile under configs/pilots")
     for name in ("history-run", "context-run", "availability-run", "plan-run"):
         parser.add_argument("--" + name, type=Path, required=True)
     parser.add_argument("--rpc-runs", nargs="+", type=Path, required=True)
     args = parser.parse_args()
+    CONFIG = (ROOT / args.profile).resolve()
     history_run, context_run, availability_run, plan_run = (
         runtime_directory(getattr(args, name + "_run")) for name in ("history", "context", "availability", "plan")
     )
     rpc_runs = list(dict.fromkeys([runtime_directory(path) for path in args.rpc_runs] + [context_run]))
-    baseline, cache = prepare(history_run, None, rpc_runs)
+    baseline, cache = prepare(history_run, None, rpc_runs, CONFIG)
     config = load(CONFIG)
     store = Evidence(cache, rpc_runs)
     for name in ("policy", "pilot_config", "trusted_rpc_config"):

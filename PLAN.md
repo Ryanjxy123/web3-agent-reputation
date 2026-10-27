@@ -1,5 +1,152 @@
 # 新项目执行计划
 
+## 2026-10-27 当前交付：单分页面与Mango唯一发布已推送
+
+`SINGLE_SCORE_REPORT`实现完成。当前网站默认报告`2c7ded39-f808-40b0-8d15-dddebee21704`：A100/F91.67/B100/综合96.67，34任务/153判据。页面保留功能、单值分数与真实样本，报价/模拟/成交/撤销退款按任务目标区分；未测开发清单已从主区移除。
+
+代码与Mango唯一公开包已提交并推送，产品提交`74bcb37c458206e00b5424e0b8b574a4b0ae3b0f`，任务分支`codex/single-score-report`，通过[PR #22](https://github.com/Ryanjxy123/web3-agent-reputation/pull/22)交付至main。旧PR21保持关闭。27个旧发布包/候选/实例文件已移除，通用实现保留；Git历史和本机既有PG审计历史不清空。`docs/presentation/`未入本次提交，私有钱包/凭据未发布。
+
+本地必要组合验收56.807s/exit0，前端构建、真实PG导入/HTTP/附件核验、公开包离线verify均通过。产品提交74bcb37的[远端CI](https://github.com/Ryanjxy123/web3-agent-reputation/actions/runs/40507551259)中python-web和postgres-smoke均success；PG验证采用真实17.11及3个并发连接，含租约恢复、旧worker拒绝及报告不可修改。本段仅追加交付记录，最终合并和最新head检查以PR #22实时状态为准。浏览器视觉NOT_RUN。无新增RPC、签名、实验付款或交易。
+
+下一task_id=`MANGOSWAP_SCORE_USER_REVIEW`，等待用户查看本机页面；没有待执行资金操作。包哈希、已知业务范围和详细验证见[单分发布记录](docs/runbooks/MANGOSWAP_SINGLE_SCORE_20261027.md)。
+
+## 2026-10-27 历史：本机完成与发布准备
+
+单分默认报告2c7ded39-f808-40b0-8d15-dddebee21704，A100/F91.67/B100/综合96.67；34任务/153判据不变。UNKNOWN/未采另列，不取旧区间端点；主区未测长清单已撤，报价/模拟/成交/撤销退款按真实阶段显示。当前本机HTTP/附件SHA/旧v2字节保持均通过，worker public-off、队列0；无新外网采证/交易/费用。
+
+按用户授权，27个旧发布包/实例/候选文件已删除，Mango必要依赖原字节保持；10个旧采集入口不再默认选旧对象。新data唯一包public-reports-single-score-v3.tar.gz，1004637B/1495文件，SHA34ff0f5e5e6f8b1ebb53366f925fb388835d82d2450380d35ab15d4a9486f7bc，索引只有Mango。1496成员凭据审查0发现。已有个人PG历史不因拉代码自动删除，未动钱包/runtime私有配置。
+
+必要组合验收先因测试computed-property身份比较错误失败，修正后1项56.807s/exit0；前端构建exit0，core/TS/OpenAPI生成exit0；离线包verify通过，结果收据runtime/public-report-restore-d57b5a6b244ab80158bef9c816dbdc5f/result.json；远端requiredCI待执行。CI改用Mango单包，移除6个旧对象/重复阶段专属验收，保留通用纯规则与真实PG并发/租约/不可改报告。视觉NOT_RUN。详情见[单分发布记录](docs/runbooks/MANGOSWAP_SINGLE_SCORE_20261027.md)。
+
+## 2026-10-27 历史：单分与页面修改启动
+
+task_id=`SINGLE_SCORE_REPORT`进行中。用户明确不要区间，要单一三维/综合分；页面不要大量未纳入清单和把正常报价标未执行。新版按可判PASS/(PASS+FAIL)逐层等权计算，UNKNOWN/未采/无效不填0或100，覆盖与缺项独立记录；全维无可判仍不出该维分，30/40/30保持。复用同34任务，不新增实验/费用，旧报告原件保持。页面主区只功能介绍、单值分、样本；报价/模拟/成交/撤销状态按实际任务目标区分，未完成路线在对话告知。
+
+用户最新授权同步当前代码与MangoSwap记录至远端，并删除远端当前版本中其它Agent发布记录。完成单分/页面后清理旧数据包与默认导入入口，仅保留MangoSwap交付及必要来源，不改写Git历史、不上传钱包秘密。先核远端main变化与真实差异再同步；此前不push边界已被本条明确授权取代。
+
+本轮分支codex/single-score-report；用户已授权远端同步和旧数据移除，PR21保持关闭，docs/presentation/保留。
+
+## 2026-10-27 历史：v2多能力报告（现已由v3替代）
+
+任务`FORMAL_LIFECYCLE_ASSESSMENT`已完成。默认报告`aa96fe18-a19a-48aa-9600-2e44e02d96d0`，目录`runtime/mangoswap-formal-multicap-20261027-v1`，新policy transaction-agent-evidence-v2/assessment-v2；34任务、153判据、3功能。A20.04–100、F87.62–92.49、B100、综合71.06–97.00；10个真实履约目标为8次兑换+2次管理撤销，不称10笔成交。原31任务与全部原判据保持，旧四份报告字节/分数不改，现在报告历史5份。
+
+ADR-0028仅放宽新版每能力A可判门禁：有计划但未观测的A按0–100参与等权，整体A仍须至少1有效可判；F/B证据与正常履约门槛不变。新三个A案例未采、真实新增A观测0，不沿用旧API A作新入口证明。范围扩大不能解释为服务性能改善；未测自动执行/条件成交/周期/最佳价/免gas与Failed退款风险保留。正式报告已覆盖的旧快照改为简短原件入口。
+
+实际检查：core/TS/OpenAPI各生成exit0；组合验收1用例66.025s/exit0，含新版未知A/全A无可判、F/B门槛、旧v1、真实34任务/篡改拒绝/父字节不变。首次Vue因生成类型可选计数字段未处理失败，修正后exit0，后因范围统计标签修订再构建exit0；未重跑旧工程全套。真实PG导入、默认报告/附件/私有附件404与旧字节保持HTTP核验通过；视觉NOT_RUN。API/worker已更新，进程收据runtime/background-platform-20261027T120303Z-29836dea/process.json，worker public-off。
+
+新包data/public-reports-multicap-v2.tar.gz：954138B/1493文件，SHA 7e5a8e3ed52966b91e3a3f3d758b4855fbcf95a3c6952a81fe66a0de684f706e。导出与离线verify均exit0；1494成员凭据审查0发现，2条普通授权文字已复核。原catalog/ADR/快照及包不改。新外网请求、签名、付款和交易均0，全部复用原件。
+
+当前分支codex/formal-lifecycle-assessment；本轮本地保存，不push、不新建PR，PR21保持关闭，docs/presentation/保留。详见[正式评价说明](docs/runbooks/MANGOSWAP_FORMAL_ASSESSMENT_20261027.md)，收据runtime/formal-multicap-web-verification-20261027/receipt.json。下一task_id=`FORMAL_ASSESSMENT_USER_REVIEW`，无新增资金任务。
+
+## 2026-10-27 上一阶段：独立补测展示（已被正式报告接入取代）
+
+用户取消多人并发协作，相关新增内容已删除，未新增Signer/钱包权限/委托。PR21远端CLOSED、未合并；撤回文档commit `fa9c30f52cac891091489ce1de247ca725ebc98b`已push至原分支，不重开PR。当前task_id=`V4_SOURCE_REPLAYER_INTEGRATION`已完成，下一task_id=`MANGOSWAP_SUPPLEMENT_USER_REVIEW`，无下一笔金融操作计划。
+
+本地实现检查点`d8f0393`已保存。补测配置已按既有manifest原字节规则加入`.gitattributes`保护，3份Git暂存字节与原文件一致，已绑定配置SHA与包一致；只修Git换行保存，不改原件/包，不重跑已有验收。
+
+三笔Base真实补测：E1 0.00002原生ETH→0.045889USDC；E2 0.02USDC定时创建同笔撤销；E3 0.02USDC限价创建/查询同笔撤销，后两笔均全额退款、授权0、无托管残留。三笔网络费共0.000005854846589807ETH，新增服务费0；E1平台费0.0000001ETH已含本金。最终任务快照USDC0.708896、WETH0.000540187903644028、原生ETH0.002967382463648567，非实时查询。禁止发币始终遵守，无重复旧交易。
+
+新协议来源重放与公开包、真实PG快照导入及网站“新增链上补测”已完成，无新core/Schema/评分表。A业务HTTP未观测，明确UNKNOWN/0；F/B只核本次任务，不产生新总分或替换旧latest。四份历史报告、31个共享任务、原范围77.25–87.98与旧98.70均保持。定时/限价创建与退款不证明自动到期成交、周期或keeper；源码Failed退款缺口未伪称实际损失，也未投入真实本金触发。
+
+验收：真实包离线1项关键用例exit0（59.048s），含重绑定哈希后的退款篡改、错身份/交易与旧报告不变；未重跑旧工程全套。Vue构建2次exit0，第二次因新增BaseScan链接；真实PG与网站/附件HTTP/SHA核验exit0、私有附件404，浏览器视觉NOT_RUN。初次uv命令因PATH不可用未启动，改用现有venv；首次来源构建保留第三份计划格式差异的UNKNOWN草稿，修后新v2三项全核齐，未覆盖旧目录。
+
+包`data/public-chain-mangoswap-v4-v1.tar.gz`为817785B、1487文件，SHA `e301264e36e1cb580f344030d40d4884231a463b4b944e2aa89d956e02df39d5`；1488压缩成员凭据审查0发现，两条普通authorization说明已单列复核。新代码/包只保存在本地`codex/mangoswap-capability-supplement`，本轮不push、不另提PR。无关docs/presentation/保留。完整说明见[补测记录](docs/runbooks/MANGOSWAP_SUPPLEMENT_20261027.md)，收据`runtime/mangoswap-v4-web-verification-20261027/receipt.json`。
+
+## 2026-10-27 历史阶段：共享评分本机完成与PR交付（PR现已撤回）
+
+task_id=`IMPLEMENT_SHARED_TASK_SCORING_AND_CLAIM_COVERAGE`本机实现与必要验收完成。新policy `transaction-agent-evidence-v1`共享任务、声明/场景分层、区间与覆盖分开；按ADR-0026允许已测范围出综合结果，不强制所有声明测全。core生成Schema/TS，平台独立来源重放/导入/离线包，Vue统一任务和已测/未测界面，历史报告文案标范围且分数不改；队友指南已含实际命令与适配边界。
+
+回放复用31真实任务/131判据，最新ID`6ff3ad03-49d6-409b-a7da-1dba9dc79eb6`，目录`runtime/mangoswap-shared-20261027-v2`：A90.20–100、F50.48–69.94、B100、范围综合77.25–87.98，声明覆盖PARTIAL。全部28完整响应均分别核输入/输出标识，ETH/WETH问题入F；9个只有业务响应的任务对独立效果仍UNKNOWN，7笔执行按原件核验。来源为回顾性复用，不是新实验。
+
+实际检查：core新边界1验收exit0；真实来源1验收先因DB未允许公开声明JSON失败，补受限路径后exit0（25.357s），覆盖伪造判定/计算字段/哈希/回顾性说明与缺B证据不缩分母；共享Schema/TS及OpenAPI各生成exit0；Vue构建3次exit0，后两次仅因真实数据文案与中文判据修订。初次builder的公开声明路径拒绝已修，失败草稿保留；有效报告新建不覆盖。未重跑旧全套、未新增业务付费/签名/交易。
+
+新公开包`data/public-reports-shared-v1.tar.gz`：603512B、1198文件、SHA `09657600785f729fa4dfb35ddb1e4c8c578d131045e340a9b17d3e03e873108c`。离线verify exit0，不需RPC/LLM/钱包；含原parent依赖，可独立导入。1199个压缩成员与本分支文本差异的高置信凭据扫描0发现。真实PG导入、agent/report/chain/附件/静态页面HTTP与SHA核验exit0，私有附件404，旧98.70不变；收据`runtime/shared-web-verification-20261027/receipt.json`。本机http://127.0.0.1:7754/?agent=mangoswap-26345已运行；进程`runtime/background-platform-20261027T081955Z-e1d3c051/process.json`、worker public-off，浏览器视觉未执行。
+
+当前Git分支`codex/shared-task-scoring`，已fetch确认origin/main是本地祖先、无远端分歧，既有未发布成果随本次PR交付；docs/presentation/保留。下一task_id=`SHARED_ASSESSMENT_PR_DELIVERY`：提交并push本任务分支、创建PR、等待CI，告知用户后开始MangoSwap原生资产/V4/订单缺口补测。必要业务付费已授权，阶段一没有消费。PR状态以远程检查为准，不把待跑CI写成通过。
+
+## 2026-10-27 已完成：共享任务与声明覆盖方案
+
+task_id=`ALIGN_SHARED_TASK_SCORING_MODEL`已完成设计交付：[ADR-0025](docs/adr/0025-shared-task-declaration-scoring.md)与[MangoSwap声明矩阵](docs/research/MANGOSWAP_DECLARATION_MATRIX_20261027.md)。同任务共享A/F/B原件、分别判据；A改为按时完整交付率并分开归因，F按规范化声明/案例聚合，B核真实履约并保留所有保护退出；UNKNOWN给未决范围，未测组不删分母。30/40/30保留为产品选择，功能/声明等权亦明确为基线，阈值逐项说明来源。完整评价须覆盖该身份全部实质功能；旧13个范围分不自动算作13个声明覆盖完整的Agent，后者尚未重审。
+
+新增只读核实MangoSwap自身官网的即时/限价/定时/周期/管理声明及条件免gas，V4合约部署与四getter可读；这些不是实际自动执行证明。新增9外部只读、0付费/签名/主网写入，复用旧七笔；NIST/SRE/OECD/Base/Uniswap官方资料用于指标与局限说明。用户已允许继续必要付费实验，下一批应补声明缺口，不重做旧即时兑换凑数。
+
+本轮仅设计与文档，无代码/Schema/数据库/旧报告变更，无工程测试；文档格式检查exit0。设计未接入评分引擎、未冻结正式新采样、未发布新分。文档保存在当前codex任务分支，未push/PR，无关docs/presentation/保留。下一task_id=`IMPLEMENT_SHARED_TASK_SCORING_AND_CLAIM_COVERAGE`：按方案实现共享模型与呈现，再核新入口/订单条件并冻结必要实验；源代码/权限/退出不清时先只读或模拟，不冒险转账。
+
+## 2026-10-27 已完成：审查三维评分的证据与合理性
+
+task_id=`SCORING_EVIDENCE_REVIEW_20261027`：按用户追问完成只读审计，五类要求都有材料，注册元数据认证、完整声明覆盖和长期自然交易历史仍有缺口。三维不应要求三批互斥任务；当前31任务中28份完整业务响应、3份传输中断，F/B的可用性信息未进入A，属于现模型限制。现有98.70是旧v2的有限兑换范围结果，不代表全部能力或长期声誉已充分验证。详见[证据与评分审查](docs/research/SCORING_EVIDENCE_AUDIT_20261027.md)。
+
+本轮仅更新说明与长期约束，未改代码、数据库、冻结政策、报告或分数，未联网采样、未付费，未运行工程测试；文档变更待提交，前一代码检查点b95e0b1未push。下一task_id=`ALIGN_SHARED_TASK_SCORING_MODEL`：先讲清同任务三维判定、失败归因、声明覆盖及阈值依据，再形成版本化修改；不自动开展新资金实验。原交付记录保留在下。
+
+## 2026-10-27 已交付：MangoSwap兑换能力范围报告
+
+task_id=`SWAP_V2_FOUR_TASK_SUPPLEMENT_20261027`已完成。用户明确批准补采政策后，先冻结ADR-0024、v2配置与master（SHA `c72610e2da3224b513f47121d563e2f707a072b56aeab2c465ba42081a49201c`，2026-10-27 04:20:39UTC），再串行执行4个既定功能请求；首请求04:23:49UTC，4个全部完成，无新增本金兑换。金融操作已结束，不因余额或No Policy自动继续交易；禁止发币、身份铸造及改权限/委托均保持。
+
+最新范围报告`59c87f4e-b202-47ff-8db1-850a03041684`（`runtime/spraay-public-v2-20261027`）已入真实PostgreSQL：A=95.67（9PASS/1UNKNOWN，p95=2946.7189ms），F=100.00（计划14，12PASS/2UNKNOWN，覆盖85.7%），B=100.00（7个独立真实兑换均通过），综合=98.70、COMPLETE。固定三维与30/40/30不变；新v2规则为F至少7个可判且5×可判≥4×计划，保留所有FAIL/UNKNOWN/未执行槽，11/14不放行。产品本轮完整评分目标ACHIEVED。
+
+对象为Ethereum ERC-8004 MangoSwap #26345的ERC20兑换能力，使用Spraay网关、在Base执行。Agent构造方案，用户授权的买方钱包签名；不冒充Spraay全六项能力或提供方自主签名。owner/URI与官方卡声明已核，IPFS正文未取得，入口关联仍PROVIDER_DECLARED。新报告31互斥槽（A10/F14/B7），其中27历史槽与4个前瞻补采分开列时间。两份旧v1 PARTIAL报告382bcb43-5a16-40de-bdcc-a55d7c659694、ed426474-5391-4a4a-a48a-77dce25ddd7e及原master/ADR22/23/配置全部保留、未改写。
+
+本轮新增4次方案费0.06USDC；整段批量实验35次实际服务费共0.525USDC，正式7B网络费累计0.000005634637367917ETH（本次补采无新增本金交易/网络费）。余额0.663007USDC、0.000540187903644028WETH、0.002993237310238374ETH，均与初始加全部记录流精确对平，无未归属扣款。最终只读账`runtime/spraay-experiments-20261027/ledger-20261027T043241594107Z-8fa1b2/safe-ledger.json`，23新RPC/24复用记录，没有重采旧业务。
+
+公开包`data/public-reports-swap-v3.tar.gz`（1,433,852B、3200文件，SHA `a9a161f82eed34e4676cfea263a7e132071ddbf5fa6bd291b4ace5f93a9d6933`）已生成并用现有分发器离线verify exit0；默认只导入最新1份COMPLETE，两份旧PARTIAL为历史附件，可按既有目录导入命令追加。3201个压缩包成员已逐个解压扫描，私有路径/本机密钥/私钥标记均0。PG现有13个不同登记身份的完整历史范围分，不全是资产交易Agent。离线导入不需RPC、LLM、钱包或充值。
+
+共享Schema/TS/OpenAPI生成、前端vue-tsc/Vite构建均exit0。v2关键验收覆盖11/14与12/14边界、FAIL纳入、15槽动态扩充、v1仍PARTIAL、错误收款人/缺回执/来源篡改、真实链视图和HTML。首次因旧HTML短语断言失败，修正测试文案后同一验收exit0（1用例）；未重跑旧全套，未网络重采。收据`runtime/spraay-code-review-v2-closeout-20261027/acceptance-receipt.json`。
+
+网站已后台更新于http://127.0.0.1:7754/?agent=mangoswap-26345；实际agent/report/chain-evidence与原件下载均HTTP200，显示最新COMPLETE和3个历史版本，下载SHA匹配。过程记录`runtime/swap-web-v2-verification-20261027/`，进程收据`runtime/background-platform-20261027T043448Z-a8deab56/process.json`。PG与独立public-off worker保持运行，不自动执行付费实验。本轮未再尝试此前被自动审批拒绝的Chrome截图，视觉未重测。
+
+实验与易懂样本解读见[运行记录](docs/runbooks/MANGOSWAP_EVALUATION_20261027.md)。分支`codex/spraay-full-evaluation-20261027`保存本地检查点，未push、未新建PR、main未改；无关docs/presentation/原样保留。下一task_id=`REVIEW_MANGOSWAP_COMPLETE_REPORT`，等待用户使用网站后的反馈，不自动展开新付费对象。
+
+## 2026-10-23 历史主线：与区块链深度结合
+
+task_id=`CHAIN_EXECUTION_FOCUS_20261023`实现与本机验收完成。用户已授权直接修改项目，取代10月21日仅写文档的任务边界。主目标是让真实Agent的链上业务、授权、合约调用、资产变化和独立核验成为网站主体；三个维度仍为服务可用性、功能声明一致性、交易行为可靠性，权重与旧报告不变。
+
+资产交易、签名、授权、智能账户执行、兑换、流动性管理、预测市场交易均纳入候选和评价方法，不把它们排除在Web3 Agent范围外。先用公开历史证据开展实际核验；如需操作者新签名、真实资金或主网写入，准备具体方案后另获授权。不能把研究Mech的链上交付、只读查询或平台注册存证当作Agent执行资产交易。
+
+已完成群体调查→固定10对象采集→共用Safe/Omen确定性核验→追加快照与公开分发包→功能简介及页面层次改造。新10交易者为8个链上样本闭合、2个UNKNOWN；不换对象，不新增完整分。Brain旧三步历史已可展开交易、资产及仓位；原单对象政策仍属特例。远程PR #19的两份查询报告与原件已离线核验入库，本机保留12个不同身份的完整历史分，查询报告不计作新增资产执行者。
+
+本机PG/API与独立只读worker已恢复，新增包`data/chain-execution-evidence-v1.tar.gz`含521个公开原件、235329B，离线还原核验不需RPC/LLM。背景证据与原报告分开，规则见ADR-0021。必要新证据回放/失败边界、前端构建、真实HTTP/PG/附件及桌面/390px视觉通过。最终原件复看后将直接buy与MultiSend授权买入分别描述、中文说明已知缺项；只追加修订展示，不重采/改分，旧快照保留。当前49身份/50报告/10个链证据对象（20版本）/12个完整历史身份、0活动任务。
+
+当前主线改为主动实验与独立取证：用户提出先做一笔受控真实交易，由平台保存原始任务、报价与付款信息，独立核链和资产变化，再据结果评价。此方案可行；未充值、尚无样本只说明尚未验证，不能断言无法三维评分。不要求Agent预先返回全部评价材料或在首单前已有完整历史。覆盖优先及多对象可复用目标保持，单笔pilot先验证取证流程，不为单对象写评分规则。禁止发币/tokenize/身份NFT；当前按用户最新要求切换到无需XRPL钱包的交易Agent小额实验，先核现有Base/USDC路径与实际报价，费用明确后再通知充值。
+
+当前task_id=`SPRAAY_REAL_SWAP_PILOT_COMPLETE`。用户批准的一次真实1USDC→WETH已经完成：Base交易`0xc128634a06746badd64c9e07fff97cfb486350239b7ecb7c9e50fba616e0c193`，实际到账0.000419044293938828WETH，高于最低0.000417377880055966，USDC精确扣1000000单位，Router剩余授权0、既有委托不变。19次可信RPC独立核canonical receipt/官方Factory池/同交易Swap及Transfer/三组区块余额全部通过；追加4次只读核153区块确认距离、同块operatorFee=0，网络总费0.000001128052393709ETH与ETH余额差完全一致。新方案费0.015USDC亦已5次可信读取核实唯一Transfer/费用nonce消费；连首轮方案费累计0.03USDC，本金1USDC已换成WETH。余额1.47USDC、0.000419044293938828WETH、0.002998871947606291ETH。所有签名/唯一广播与独立核验exit0，未改权限、未发币；这一次资金授权已用完，不再自动付费、兑换或重播。正式完整分新增0：兑换功能已证明三维取证可行，但尚需注册身份归属、共用判据及足量独立样本；其他五项能力未测，不把单笔或自有签执行冒充整体完成/Spraay自主交易。下一task_id=`SWAP_GENERAL_RULES_AND_REGISTERED_IDENTITY`，先复核缓存注册声明与接口归属、按通用兑换能力规划样本，不围绕单对象堆评分。完整原件与易懂三维解读见[实验报告](docs/runbooks/CONTROLLED_TRANSACTION_PILOT_20261023.md)。
+
+本轮已追加独立XRPL节点采证：操作者按XRPL官方公共服务器表固定xrplcluster.com，仅一次tx查询HTTP200/exit0。公开样本在validated账本107591208中Payment成功、实际到账3.347405XRP，与提供方收据差581drops；不是只靠Agent响应或区块浏览器。原件`runtime/controlled-pilot-xrpl-read-preflight-20261023T121227Z-f0bd1be9/`。该XRPL取证属于既有公开样本，不是本买方付费桥接；本轮Spraay服务费与新签名另见最新状态。主应用工程测试NOT_RUN。
+
+本阶段实际进展：新增两次桥接/转账目录查询及四个固定详情，得到17个不同候选，未以目录数计评分。N9T2官方免费REST已返回绑定本买方的真实报价，故“可真实报价候选”现为1，完整三维confirmed仍为0；公开ACP81682身份/付款/路由已由可信Base RPC核验、XRP到账以独立浏览器REST核实，原收据缺目标tx且数量与实际差581drops，保留待核，不改分。用户没有XRPL自托管收款钱包；不填他人地址、不创建钱包或要求充值。BridgeKitty82150与N9T2 82151两个service-only零转账赞助报价单已真实创建并唯一发送需求，前者API null hook差异已最小修复并恢复原单，均未付款。两单在各自11:48:27/11:58:30UTC到期后最终只读仍OPEN、budget=null、history2条、provider回复0；已停止观察，不向旧单充值；Spraay实际网关可达但目录身份/执行角色未闭合。详情和原件见[Virtuals后续预检](docs/research/SMALL_BUDGET_TRANSACTION_FEASIBILITY_20261023.md)。
+
+已完成普通JSON买方创建（record/email201，ERC8004与virtual身份null/chains=[]）、本地signer和DENY_ALL读回、owner及协议登录。Base块52975410余额ETH/USDC均0、code=0。用户已批准仅此专用买方的Alchemy v1.0.0持续7702委托，以及仅Nox建单、提交1USDC→WETH/50bps需求并读取真实条款；不充值、不支付服务费/本金、不兑换。取消人工审批只改签名方式，不自动扩大业务范围。
+
+unsigned建单prepare成功，默认Alchemy v1.1.0与固定SDK0.1.15不符；按官方能力显式v1.0.0后201、delegate匹配、sponsored=true，离线核对调用与7702/UserOp/personal_sign摘要通过。仅建单的赞助标记不能外推fund/兑换/结算免费。两份fresh签名已由用户官网批准，但恢复首个owner审批GET401，旧job于08:24UTC到期，未广播、无SEND_INTENT、未建job。随后08:25UTC官方CLI只读signers/global均200、当时仍DENY_ALL；08:39UTC最新已No Policy。原件`createjob-approvals-2026-10-23T08-18-28.852Z.private/`及`policy-read-2026-10-23T08-25-55.743Z.private/`。
+
+Nox订单`82141`已真实创建并观察收口：No Policy自动签名/单次提交、可信Base RPC、EntryPoint内层成功及唯一JobCreated均已核；交易`0x9b2ff0a28423834cf4b5ab609f2f88ffc556b06b7f72b210c2741389fe883b26`。北京时间16:58:51唯一提交1USDC→WETH/50bps需求，最终于17:05:26（北京时间）只读观察结束（原件以UTC时间戳为准），观察395秒，仍OPEN/budget=null、仅创建与我方需求2条、provider回复0。设定到期时间已过，不向旧job付款，不重复需求或对Nox反复建单；不能据此认定已收费服务违约或直接给Nox FAIL。未fund/支付/资产兑换，原件`createjob-approvals-2026-10-23T08-56-20.984Z.private/QUOTE_OBSERVATION_COMPLETE.private.json`。本次只证明平台接入流程跑通，Nox实交易可行性仍未确认。
+
+此前唯一广播的旧UserOp因ExpiryTooShort失败，已6次可信RPC及独立事件解码确认无JobCreated；7702委托已实际生效，旧操作不能重播。修正为5min原SLA+180s准备缓冲，签名前/提交前剩余>330s；新calldata先经确切eth_call成功，再构造唯一发送。源于接入流程，不计Nox FAIL；旧失败原件与新成功原件均保留，未改评分规则。
+
+iCLONE订单`82142`观察已收口：唯一sponsored/零转账建单交易`0x3a87a41bd31ea897644f0d1d62ed8b394815e82b157b9cbc58d9a977166cf552`，可信Base RPC、EntryPoint内层成功及唯一JobCreated已核。1USDC→WETH/0.5%滑点需求于09:22:59.882UTC提交一次，最终09:53:44.829UTC（北京时间17:53:44）仍API OPEN/budget=null、history2条、provider回复0；观察1844.947秒，记录deadline09:53:10已过。未确认接单、真实报价或完整评价证据，不能解释为已收费服务违约或直接计FAIL。已停止轮询，不向过期旧job充值/付款，不重复需求或建单；fund/服务费/本金转出/兑换/发币/身份mint/新评分均0。原件`createjob-approvals-2026-10-23T09-20-09.034Z.private/QUOTE_OBSERVATION_COMPLETE.private.json`。
+
+前一批询价已停止，目标未达成：新增三个真实交易服务、四个零付款订单，实际接单报价0、已确认可拿齐完整评价证据的对象0。ZeroAgent的82146、Ethy的82147，以及修正流程后的GSB 82148均在需求已获平台接受并记入同job历史后REJECTED，budget均null；原因只有bytes32哈希，明文未知，不能归因为余额、费用、请求文本或协议版本。GSB首单82145在我们发送需求前已拒绝，首次需求HTTP403；修正共用时序后只补做了一单，82148只提交标准requirement、无长文本询问，仍拒绝，因此不再重试这批对象。四单建单均经可信Base RPC独立核验；GSB首单拒绝另有独立链事件核验，其余拒绝以本轮已取官方任务历史为依据。未fund、支付服务费/本金、兑换、发币、身份mint或新增评分。详细时间、原件和失败路径见[可行性记录](docs/research/SMALL_BUDGET_TRANSACTION_FEASIBILITY_20261023.md)。
+
+当前推进边界：本次新方案费及唯一真实兑换均已完成并核账，批准范围已经消耗完毕；各费用nonce已使用，交易nonce1已上链，不重启任何付款/兑换operator，不因钱包余额充足继续交易。保留原件、只追加证明，下一步只读核注册身份/接口归属及设计可复用判据、正式样本计划。若以后需新增付费或资产实验，先列具体用量和费用另获批准。现有三维、30/40/30及正式门槛不变；不把一单当全部六能力或完整评分。
+
+本人欧易USDC/Base已确认，0.02USDC≈0.0199美元暂作同一显示金额，最低额未知；服务费固定路径USDC，本金另核，不先要求买ETH。工程测试NOT_RUN，生产代码/评分未改，私有runtime不发布。详见[可行性与原件索引](docs/research/SMALL_BUDGET_TRANSACTION_FEASIBILITY_20261023.md)。
+
+`FULL_SCORE_TRADING_AGENT_DISCOVERY`的选择原则保持：同一对象核验公开注册、可实测且绑定身份的服务入口、有来源交易功能声明、执行账户授权、原始任务及交易效果、独立7F/7B样本来源；多个真实对象同时具备条件后，再确定共用业务规则与协议适配。允许合法认证、获授权只读导出及同一提供方多实例；7F/7B是独立任务，非必须14笔交易。不围绕单对象编码，不以平台API、RPC在线或交易次数替代Agent可用性；现有Olas证据保留，暂不继续扩无接口样本。三维、权重、门槛与历史报告不变。
+
+前轮候选筛查已完成，多个完整可评对象的目标尚未达成，新增完整分0。两个Venus身份的代表执行归属已实核，但各仅1业务任务；Zyfai/ACP缺实例级任务材料，Celo/Agenthaus未闭合。86次只读观察和84份响应SHA核对已保存，未改生产代码。当前以用户随后确认的小额自助路线调查补源，不恢复旧联系任务。[筛查汇总](docs/research/FULL_SCORE_TRADING_AGENT_DISCOVERY_20261023.md)；[前轮交付](docs/runbooks/CHAIN_EXECUTION_PROGRESS_20261023.md)。
+
+本轮基线已纳入`origin/main=14dcf6b`（PR #19）；前轮`codex/chain-execution-focus-20261023`的功能提交`7f3eec2`/`6ad6976`已push并建立[草稿PR #20](https://github.com/Ryanjxy123/web3-agent-reputation/pull/20)，未合并。当前分支`codex/trading-agent-quotes-20261023`继承`8a85b35`；前一检查点`e76d18e`已本地提交；本轮5份文档补充真实入金、Spraay方案费独立核验、智能签名修正及自付gas预检，未push。main未改、未自动合并。旧日期记录仅为历史。
+
+## 2026-10-21 指导老师反馈与文档方案
+
+`TEACHER_FEEDBACK_REVIEW_20261021`完成。[认知与改进方案](docs/research/WEB3_AGENT_TEACHER_FEEDBACK_20261021.md)及同目录12页Word已生成，覆盖定义分类、所需证据、当前对象审计、Brain真实三步操作、群体选取、三维口径和页面删改。主展示建议聚焦可归属的真实链上业务执行，查询与研究交付为辅助；主维度仍为服务可用性、功能声明一致性、交易行为可靠性。现有查询B的可观察服务交付不得解释成交易执行可靠性，旧政策与分数保持原义。
+
+本轮按用户要求仅改文档，未实现页面或评分变更，未运行新评价或工程测试。后续task_id=`REVIEW_CHAIN_EXECUTION_PLAN`，先讨论文档，再按群体可测证据确定共用能力；不先围单对象编码，不把旧九个预测评分计作新增资产操作覆盖。应用仍基于1675d55，既有资料保留；本轮本地文档提交、未push。
+
+## 2026-10-20 本机同步远程最新版并恢复运行
+
+task_id=`RUN_REMOTE_MAIN_20261020`已完成。按用户请求fetch并将本地main快进至`origin/main=1675d55`（PR #18），旧本地改动保留在`codex/teacher-demo-20261020=339a902`。当前运行代码为远程版本，仅在`codex/run-remote-main-20261020`追加本机运行交接文档，未push。原数据库已备份并保留，兼容新增worker心跳表；前端重建、依赖同步完成。
+
+19:59北京时间本机API7754 PID34156、独立worker PID36172运行，PG55438 PID44748保持；延续本会话既有公共只读授权，worker实核online、0排队/运行。当前38候选/47报告/10完整身份，2359仍84.39，用户49467报告仍为原PARTIAL。远程开发机记录的Brain #49467与Hallmark #338475两份新完整报告及原件未随Git发布，本机尚无这两份报告；不能把远程13/16/12快照当本机数量。运行记录`runtime/remote-update-20261020T115301Z/`，下一task_id=`LOCAL_MANUAL_REVIEW`；两份新报告需来源机提供公开证据包后再核验导入。
 ## 2026-10-20 两份仓位评价公开补充包（打包与验收完成）
 
 task_id=`PUBLISH_POSITION_REPORTS_20261020`。按用户要求，将Brain/Hallmark两份最新完整评价及核验必需的公开原件以`data/public-reports-position-v2.tar.gz`独立补充包交付：2报告、612文件、1,607,688B；保留原10报告包不变，README给出追加导入和展示步骤。两个包合计12个不同Agent的完整结果，仅发布既有结果，未发起新评价或模型调用。

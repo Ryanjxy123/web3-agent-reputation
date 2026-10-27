@@ -186,6 +186,14 @@ def evaluate(repo: Repository, job: dict, worker: str, profiles: list[dict], *, 
         repo.finalize_job(job["id"], worker, job["fencing_token"], status="UNSUPPORTED",
             message="暂不能识别这份注册资料。请提供完整链号、注册合约与 Agent 编号，或 8004scan 的 Agent 页面链接。")
         return
+    if canonical.split(':')[1:3] == ['100', '0x9338b5153ae39bb89f50468e608ed9d764b755fd']:
+        service = int(canonical.split(':')[3])
+        key = f'olas-omen-trader-{service}'
+        known = repo.get_agent(key)
+        repo.finalize_job(job['id'], worker, job['fencing_token'], status='NEEDS_INFO',
+            candidate_key=key if known else None,
+            message='已识别Olas Service Registry身份。平台可展示已核验的历史资产执行证据；实时可用性和完整任务尝试范围尚未接入，本次不生成完整评分。')
+        return
     matches = [profile for profile in profiles if normalize_reference(profile["registration_reference"]) == canonical]
     if not matches:
         if not enabled:

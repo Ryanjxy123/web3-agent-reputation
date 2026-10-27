@@ -16,11 +16,14 @@ from scripts import public_reports
 
 
 class PublicReportArchiveTests(unittest.TestCase):
-    def test_checked_in_dependencies_match_the_published_position_package(self):
+    def test_checked_in_dependencies_match_the_published_mangoswap_package(self):
         root = Path(__file__).resolve().parents[1]
-        with tarfile.open(root / 'data/public-reports-position-v2.tar.gz') as archive:
+        with tarfile.open(root / 'data/public-reports-single-score-v3.tar.gz') as archive:
             index = next(member for member in archive if public_reports.INDEX.fullmatch(member.name))
-            inventory = json.load(archive.extractfile(index))['files']
+            package = json.load(archive.extractfile(index))
+            self.assertEqual(len(package['reports']), 1)
+            self.assertEqual(package['reports'][0]['candidate_key'], 'mangoswap-26345')
+            inventory = package['files']
         frozen = [item for item in inventory if not item['path'].startswith('runtime/')]
         self.assertTrue(frozen)
         for item in frozen:

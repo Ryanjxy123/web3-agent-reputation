@@ -64,6 +64,25 @@
       "title": "DimensionScore",
       "type": "object"
     },
+    "ScoreInterval": {
+      "additionalProperties": false,
+      "properties": {
+        "lower": {
+          "title": "Lower",
+          "type": "number"
+        },
+        "upper": {
+          "title": "Upper",
+          "type": "number"
+        }
+      },
+      "required": [
+        "lower",
+        "upper"
+      ],
+      "title": "ScoreInterval",
+      "type": "object"
+    },
     "ScoringOutcome": {
       "additionalProperties": false,
       "properties": {
@@ -74,7 +93,12 @@
             "prediction-history-v1",
             "prediction-history-v2",
             "service-contract-v1",
-            "service-fulfillment-v1"
+            "service-fulfillment-v1",
+            "evm-swap-builder-v1",
+            "evm-swap-builder-v2",
+            "transaction-agent-evidence-v1",
+            "transaction-agent-evidence-v2",
+            "transaction-agent-evidence-v3"
           ],
           "title": "Policy Version",
           "type": "string"
@@ -118,6 +142,409 @@
       ],
       "title": "ScoringOutcome",
       "type": "object"
+    },
+    "SharedAssessmentResult": {
+      "additionalProperties": false,
+      "properties": {
+        "overall": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ScoreInterval"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "score_status": {
+          "enum": [
+            "AVAILABLE",
+            "INSUFFICIENT"
+          ],
+          "title": "Score Status",
+          "type": "string"
+        },
+        "selected_scope_coverage": {
+          "enum": [
+            "FULL",
+            "PARTIAL",
+            "NONE"
+          ],
+          "title": "Selected Scope Coverage",
+          "type": "string"
+        },
+        "declaration_coverage": {
+          "enum": [
+            "FULL",
+            "PARTIAL",
+            "NONE"
+          ],
+          "title": "Declaration Coverage",
+          "type": "string"
+        },
+        "availability": {
+          "$ref": "#/$defs/SharedDimensionResult"
+        },
+        "functional": {
+          "$ref": "#/$defs/SharedDimensionResult"
+        },
+        "behavioral": {
+          "$ref": "#/$defs/SharedDimensionResult"
+        },
+        "capabilities": {
+          "items": {
+            "$ref": "#/$defs/SharedCapabilityResult"
+          },
+          "title": "Capabilities",
+          "type": "array"
+        },
+        "cases": {
+          "items": {
+            "$ref": "#/$defs/SharedCaseResult"
+          },
+          "title": "Cases",
+          "type": "array"
+        },
+        "task_count": {
+          "title": "Task Count",
+          "type": "integer"
+        },
+        "observation_count": {
+          "title": "Observation Count",
+          "type": "integer"
+        },
+        "selected_capabilities": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Selected Capabilities",
+          "type": "array"
+        },
+        "unselected_capabilities": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Unselected Capabilities",
+          "type": "array"
+        },
+        "risk_status": {
+          "enum": [
+            "NORMAL",
+            "MAJOR_VIOLATION"
+          ],
+          "title": "Risk Status",
+          "type": "string"
+        },
+        "blocked_reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Blocked Reasons",
+          "type": "array"
+        }
+      },
+      "required": [
+        "overall",
+        "score_status",
+        "selected_scope_coverage",
+        "declaration_coverage",
+        "availability",
+        "functional",
+        "behavioral",
+        "capabilities",
+        "cases",
+        "task_count",
+        "observation_count",
+        "selected_capabilities",
+        "unselected_capabilities",
+        "risk_status",
+        "blocked_reasons"
+      ],
+      "title": "SharedAssessmentResult",
+      "type": "object"
+    },
+    "SharedCapabilityResult": {
+      "additionalProperties": false,
+      "properties": {
+        "capability_id": {
+          "title": "Capability Id",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "selected": {
+          "title": "Selected",
+          "type": "boolean"
+        },
+        "declaration_coverage": {
+          "enum": [
+            "FULL",
+            "PARTIAL",
+            "NONE"
+          ],
+          "title": "Declaration Coverage",
+          "type": "string"
+        },
+        "availability": {
+          "$ref": "#/$defs/SharedDimensionResult"
+        },
+        "functional": {
+          "$ref": "#/$defs/SharedDimensionResult"
+        },
+        "behavioral": {
+          "$ref": "#/$defs/SharedDimensionResult"
+        }
+      },
+      "required": [
+        "capability_id",
+        "title",
+        "selected",
+        "declaration_coverage",
+        "availability",
+        "functional",
+        "behavioral"
+      ],
+      "title": "SharedCapabilityResult",
+      "type": "object"
+    },
+    "SharedCaseResult": {
+      "additionalProperties": false,
+      "properties": {
+        "interval": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ScoreInterval"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "counts": {
+          "$ref": "#/$defs/SharedCounts"
+        },
+        "coverage": {
+          "enum": [
+            "FULL",
+            "PARTIAL",
+            "NONE"
+          ],
+          "title": "Coverage",
+          "type": "string"
+        },
+        "blocked_reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Blocked Reasons",
+          "type": "array"
+        },
+        "p50_ms": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "P50 Ms"
+        },
+        "p95_ms": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "P95 Ms"
+        },
+        "case_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Case Ids",
+          "type": "array"
+        },
+        "case_id": {
+          "title": "Case Id",
+          "type": "string"
+        },
+        "capability_id": {
+          "title": "Capability Id",
+          "type": "string"
+        },
+        "dimension": {
+          "enum": [
+            "availability",
+            "functional",
+            "behavioral"
+          ],
+          "title": "Dimension",
+          "type": "string"
+        },
+        "declaration_group_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Declaration Group Id"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "interval",
+        "counts",
+        "coverage",
+        "blocked_reasons",
+        "case_ids",
+        "case_id",
+        "capability_id",
+        "dimension",
+        "declaration_group_id",
+        "title"
+      ],
+      "title": "SharedCaseResult",
+      "type": "object"
+    },
+    "SharedCounts": {
+      "additionalProperties": false,
+      "properties": {
+        "planned": {
+          "default": 0,
+          "title": "Planned",
+          "type": "integer"
+        },
+        "observed": {
+          "default": 0,
+          "title": "Observed",
+          "type": "integer"
+        },
+        "passed": {
+          "default": 0,
+          "title": "Passed",
+          "type": "integer"
+        },
+        "failed": {
+          "default": 0,
+          "title": "Failed",
+          "type": "integer"
+        },
+        "unknown": {
+          "default": 0,
+          "title": "Unknown",
+          "type": "integer"
+        },
+        "not_applicable": {
+          "default": 0,
+          "title": "Not Applicable",
+          "type": "integer"
+        },
+        "measurement_invalid": {
+          "default": 0,
+          "title": "Measurement Invalid",
+          "type": "integer"
+        },
+        "not_run": {
+          "default": 0,
+          "title": "Not Run",
+          "type": "integer"
+        },
+        "protected_exit": {
+          "default": 0,
+          "title": "Protected Exit",
+          "type": "integer"
+        }
+      },
+      "title": "SharedCounts",
+      "type": "object"
+    },
+    "SharedDimensionResult": {
+      "additionalProperties": false,
+      "properties": {
+        "interval": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ScoreInterval"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "counts": {
+          "$ref": "#/$defs/SharedCounts"
+        },
+        "coverage": {
+          "enum": [
+            "FULL",
+            "PARTIAL",
+            "NONE"
+          ],
+          "title": "Coverage",
+          "type": "string"
+        },
+        "blocked_reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Blocked Reasons",
+          "type": "array"
+        },
+        "p50_ms": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "P50 Ms"
+        },
+        "p95_ms": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "P95 Ms"
+        },
+        "case_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Case Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "interval",
+        "counts",
+        "coverage",
+        "blocked_reasons",
+        "case_ids"
+      ],
+      "title": "SharedDimensionResult",
+      "type": "object"
     }
   },
   "additionalProperties": false,
@@ -141,6 +568,17 @@
     },
     "scores": {
       "$ref": "#/$defs/ScoringOutcome"
+    },
+    "shared_result": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SharedAssessmentResult"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     }
   },
   "required": [

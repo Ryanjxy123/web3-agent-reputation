@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from reputation_core.admission import CandidateRecord
 from reputation_core.scoring import ScoringOutcome
+from reputation_core.shared_scoring import SharedAssessmentResult
 
 
 def normalize_reference(value: str) -> str | None:
@@ -48,6 +49,24 @@ class ReportSummary(BaseModel):
     generated_at: datetime
     scope: str
     scores: ScoringOutcome
+    shared_result: SharedAssessmentResult | None = None
+
+
+class AgentProfile(BaseModel):
+    """Source-backed business context, separate from a report and its scores."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    business_summary: str
+    ecosystem: str
+    role: Literal["asset-execution", "chain-query", "research-delivery", "unverified"]
+    registration_chain_id: int | None
+    execution_chain_ids: list[int]
+    capabilities: list[str]
+    execution_accounts: list[str]
+    evidence_status: Literal["verified", "declared", "unverified"]
+    sources: list[str]
+    boundary: str
 
 
 class AgentSummary(BaseModel):
@@ -59,6 +78,8 @@ class AgentSummary(BaseModel):
     description: str
     report_count: int
     latest_report: ReportSummary | None
+    profile: AgentProfile | None = None
+    complete_report_count: int = 0
 
 
 class AgentDetail(BaseModel):

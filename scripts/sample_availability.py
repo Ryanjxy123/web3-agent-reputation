@@ -19,7 +19,6 @@ from reputation_platform.public_targets import PUBLIC_TARGETS
 from reputation_platform.safe_http import SafeHttpClient
 
 POLICY_FILE = ROOT / "docs/adr/0004-liquidity-history-policy.md"
-CONFIG_FILE = ROOT / "configs/pilots/brain-defi-liquidity-v1.json"
 STOP_STATUSES = {401, 402, 403, 429}
 
 
@@ -49,12 +48,16 @@ def classify(observation: ProbeObservation, run: Path) -> tuple[Verdict, str]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--profile", type=Path, required=True, help="Explicit operator-owned profile under configs/pilots")
     parser.add_argument("--execute-public-readonly", action="store_true")
     parser.add_argument("--proxy", help="Explicit operator-configured proxy required for execution")
     args = parser.parse_args()
     if args.execute_public_readonly and not args.proxy:
         parser.error("Execution requires an explicit --proxy")
-    policy_bytes, config_bytes = POLICY_FILE.read_bytes(), CONFIG_FILE.read_bytes()
+    config_file = (ROOT / args.profile).resolve()
+    if not config_file.is_relative_to(ROOT / "configs/pilots") or config_file.suffix != ".json":
+        parser.error("Operator profile must be a JSON file under configs/pilots")
+    policy_bytes, config_bytes = POLICY_FILE.read_bytes(), config_file.read_bytes()
     config = json.loads(config_bytes)
     if (config["policy_version"], config["availability_target_key"], config["availability_count"],
         config["availability_interval_seconds"]) != (POLICY_VERSION, "brain-agent", 10, 30):
@@ -77,7 +80,7 @@ def main() -> None:
             "max_response_bytes": 1_048_576, "timeout_seconds": 15,
             "schedule_origin": "monotonic clock after client creation", "slots": slots,
             "policy": {"path": POLICY_FILE.relative_to(ROOT).as_posix(), "sha256": hashlib.sha256(policy_bytes).hexdigest()},
-            "config": {"path": CONFIG_FILE.relative_to(ROOT).as_posix(), "sha256": hashlib.sha256(config_bytes).hexdigest()}}
+            "config": {"path": config_file.relative_to(ROOT).as_posix(), "sha256": hashlib.sha256(config_bytes).hexdigest()}}
     print(json.dumps(plan, indent=2))
     if not args.execute_public_readonly:
         return

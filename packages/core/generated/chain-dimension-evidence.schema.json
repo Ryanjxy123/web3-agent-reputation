@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "Verdict": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNKNOWN",
+        "NOT_APPLICABLE"
+      ],
+      "title": "Verdict",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "purpose": {
+      "enum": [
+        "availability",
+        "functional",
+        "behavioral"
+      ],
+      "title": "Purpose",
+      "type": "string"
+    },
+    "verdict": {
+      "$ref": "#/$defs/Verdict"
+    },
+    "observed": {
+      "title": "Observed",
+      "type": "integer"
+    },
+    "summary": {
+      "title": "Summary",
+      "type": "string"
+    },
+    "missing_evidence": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Missing Evidence",
+      "type": "array"
+    }
+  },
+  "required": [
+    "purpose",
+    "verdict",
+    "observed",
+    "summary",
+    "missing_evidence"
+  ],
+  "title": "ChainDimensionEvidence",
+  "type": "object"
+}

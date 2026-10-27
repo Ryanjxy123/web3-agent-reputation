@@ -1,5 +1,73 @@
 # 当前工作交接
 
+## 2026-10-27 当前：MangoSwap完整兑换能力评分已交付
+
+task_id=`SWAP_V2_FOUR_TASK_SUPPLEMENT_20261027`已完成。用户明确批准补采政策后，先冻结ADR-0024、v2配置与master（SHA `c72610e2da3224b513f47121d563e2f707a072b56aeab2c465ba42081a49201c`，2026-10-27 04:20:39UTC），再串行执行4个既定功能请求；首请求04:23:49UTC，4个全部完成，无新增本金兑换。金融操作已结束，不因余额或No Policy自动继续交易；禁止发币、身份铸造及改权限/委托均保持。
+
+最新范围报告`59c87f4e-b202-47ff-8db1-850a03041684`（`runtime/spraay-public-v2-20261027`）已入真实PostgreSQL：A=95.67（9PASS/1UNKNOWN，p95=2946.7189ms），F=100.00（计划14，12PASS/2UNKNOWN，覆盖85.7%），B=100.00（7个独立真实兑换均通过），综合=98.70、COMPLETE。固定三维与30/40/30不变；新v2规则为F至少7个可判且5×可判≥4×计划，保留所有FAIL/UNKNOWN/未执行槽，11/14不放行。产品本轮完整评分目标ACHIEVED。
+
+对象为Ethereum ERC-8004 MangoSwap #26345的ERC20兑换能力，使用Spraay网关、在Base执行。Agent构造方案，用户授权的买方钱包签名；不冒充Spraay全六项能力或提供方自主签名。owner/URI与官方卡声明已核，IPFS正文未取得，入口关联仍PROVIDER_DECLARED。新报告31互斥槽（A10/F14/B7），其中27历史槽与4个前瞻补采分开列时间。两份旧v1 PARTIAL报告382bcb43-5a16-40de-bdcc-a55d7c659694、ed426474-5391-4a4a-a48a-77dce25ddd7e及原master/ADR22/23/配置全部保留、未改写。
+
+本轮新增4次方案费0.06USDC；整段批量实验35次实际服务费共0.525USDC，正式7B网络费累计0.000005634637367917ETH（本次补采无新增本金交易/网络费）。余额0.663007USDC、0.000540187903644028WETH、0.002993237310238374ETH，均与初始加全部记录流精确对平，无未归属扣款。最终只读账`runtime/spraay-experiments-20261027/ledger-20261027T043241594107Z-8fa1b2/safe-ledger.json`，23新RPC/24复用记录，没有重采旧业务。
+
+公开包`data/public-reports-swap-v3.tar.gz`（1,433,852B、3200文件，SHA `a9a161f82eed34e4676cfea263a7e132071ddbf5fa6bd291b4ace5f93a9d6933`）已生成并用现有分发器离线verify exit0；默认只导入最新1份COMPLETE，两份旧PARTIAL为历史附件，可按既有目录导入命令追加。3201个压缩包成员已逐个解压扫描，私有路径/本机密钥/私钥标记均0。PG现有13个不同登记身份的完整历史范围分，不全是资产交易Agent。离线导入不需RPC、LLM、钱包或充值。
+
+共享Schema/TS/OpenAPI生成、前端vue-tsc/Vite构建均exit0。v2关键验收覆盖11/14与12/14边界、FAIL纳入、15槽动态扩充、v1仍PARTIAL、错误收款人/缺回执/来源篡改、真实链视图和HTML。首次因旧HTML短语断言失败，修正测试文案后同一验收exit0（1用例）；未重跑旧全套，未网络重采。收据`runtime/spraay-code-review-v2-closeout-20261027/acceptance-receipt.json`。
+
+网站已后台更新于http://127.0.0.1:7754/?agent=mangoswap-26345；实际agent/report/chain-evidence与原件下载均HTTP200，显示最新COMPLETE和3个历史版本，下载SHA匹配。过程记录`runtime/swap-web-v2-verification-20261027/`，进程收据`runtime/background-platform-20261027T043448Z-a8deab56/process.json`。PG与独立public-off worker保持运行，不自动执行付费实验。本轮未再尝试此前被自动审批拒绝的Chrome截图，视觉未重测。
+
+实验与易懂样本解读见[运行记录](docs/runbooks/MANGOSWAP_EVALUATION_20261027.md)。分支`codex/spraay-full-evaluation-20261027`保存本地检查点，未push、未新建PR、main未改；无关docs/presentation/原样保留。下一task_id=`REVIEW_MANGOSWAP_COMPLETE_REPORT`，等待用户使用网站后的反馈，不自动展开新付费对象。
+
+## 2026-10-23 历史主线（优先于下方历史记录）
+
+工作目录`D:/xjtu_project/block_chain_new/block_chain_new_new`，不扫描父失败项目。
+
+当前主线改为主动实验与独立取证：用户提出先做一笔受控真实交易，由平台保存原始任务、报价与付款信息，独立核链和资产变化，再据结果评价。此方案可行；未充值、尚无样本只说明尚未验证，不能断言无法三维评分。不要求Agent预先返回全部评价材料或在首单前已有完整历史。覆盖优先及多对象可复用目标保持，单笔pilot先验证取证流程，不为单对象写评分规则。禁止发币/tokenize/身份NFT；当前按用户最新要求切换到无需XRPL钱包的交易Agent小额实验，先核现有Base/USDC路径与实际报价，费用明确后再通知充值。
+
+当前task_id=`SPRAAY_REAL_SWAP_PILOT_COMPLETE`。用户批准的一次真实1USDC→WETH已经完成：Base交易`0xc128634a06746badd64c9e07fff97cfb486350239b7ecb7c9e50fba616e0c193`，实际到账0.000419044293938828WETH，高于最低0.000417377880055966，USDC精确扣1000000单位，Router剩余授权0、既有委托不变。19次可信RPC独立核canonical receipt/官方Factory池/同交易Swap及Transfer/三组区块余额全部通过；追加4次只读核153区块确认距离、同块operatorFee=0，网络总费0.000001128052393709ETH与ETH余额差完全一致。新方案费0.015USDC亦已5次可信读取核实唯一Transfer/费用nonce消费；连首轮方案费累计0.03USDC，本金1USDC已换成WETH。余额1.47USDC、0.000419044293938828WETH、0.002998871947606291ETH。所有签名/唯一广播与独立核验exit0，未改权限、未发币；这一次资金授权已用完，不再自动付费、兑换或重播。正式完整分新增0：兑换功能已证明三维取证可行，但尚需注册身份归属、共用判据及足量独立样本；其他五项能力未测，不把单笔或自有签执行冒充整体完成/Spraay自主交易。下一task_id=`SWAP_GENERAL_RULES_AND_REGISTERED_IDENTITY`，先复核缓存注册声明与接口归属、按通用兑换能力规划样本，不围绕单对象堆评分。完整原件与易懂三维解读见[实验报告](docs/runbooks/CONTROLLED_TRANSACTION_PILOT_20261023.md)。
+
+本轮已追加独立XRPL节点采证：操作者按XRPL官方公共服务器表固定xrplcluster.com，仅一次tx查询HTTP200/exit0。公开样本在validated账本107591208中Payment成功、实际到账3.347405XRP，与提供方收据差581drops；不是只靠Agent响应或区块浏览器。原件`runtime/controlled-pilot-xrpl-read-preflight-20261023T121227Z-f0bd1be9/`。该XRPL取证属于既有公开样本，不是本买方付费桥接；本轮Spraay服务费与新签名另见最新状态。主应用工程测试NOT_RUN。
+
+本阶段实际进展：新增两次桥接/转账目录查询及四个固定详情，得到17个不同候选，未以目录数计评分。N9T2官方免费REST已返回绑定本买方的真实报价，故“可真实报价候选”现为1，完整三维confirmed仍为0；公开ACP81682身份/付款/路由已由可信Base RPC核验、XRP到账以独立浏览器REST核实，原收据缺目标tx且数量与实际差581drops，保留待核，不改分。用户没有XRPL自托管收款钱包；不填他人地址、不创建钱包或要求充值。BridgeKitty82150与N9T2 82151两个service-only零转账赞助报价单已真实创建并唯一发送需求，前者API null hook差异已最小修复并恢复原单，均未付款。两单在各自11:48:27/11:58:30UTC到期后最终只读仍OPEN、budget=null、history2条、provider回复0；已停止观察，不向旧单充值；Spraay实际网关可达但目录身份/执行角色未闭合。详情和原件见[Virtuals后续预检](docs/research/SMALL_BUDGET_TRANSACTION_FEASIBILITY_20261023.md)。
+
+已完成普通JSON买方创建（record/email201，ERC8004与virtual身份null/chains=[]）、本地signer和DENY_ALL读回、owner及协议登录。Base块52975410余额ETH/USDC均0、code=0。用户已批准仅此专用买方的Alchemy v1.0.0持续7702委托，以及仅Nox建单、提交1USDC→WETH/50bps需求并读取真实条款；不充值、不支付服务费/本金、不兑换。取消人工审批只改签名方式，不自动扩大业务范围。
+
+unsigned建单prepare成功，默认Alchemy v1.1.0与固定SDK0.1.15不符；按官方能力显式v1.0.0后201、delegate匹配、sponsored=true，离线核对调用与7702/UserOp/personal_sign摘要通过。仅建单的赞助标记不能外推fund/兑换/结算免费。两份fresh签名已由用户官网批准，但恢复首个owner审批GET401，旧job于08:24UTC到期，未广播、无SEND_INTENT、未建job。随后08:25UTC官方CLI只读signers/global均200、当时仍DENY_ALL；08:39UTC最新已No Policy。原件`createjob-approvals-2026-10-23T08-18-28.852Z.private/`及`policy-read-2026-10-23T08-25-55.743Z.private/`。
+
+Nox订单`82141`已真实创建并观察收口：No Policy自动签名/单次提交、可信Base RPC、EntryPoint内层成功及唯一JobCreated均已核；交易`0x9b2ff0a28423834cf4b5ab609f2f88ffc556b06b7f72b210c2741389fe883b26`。北京时间16:58:51唯一提交1USDC→WETH/50bps需求，最终于17:05:26（北京时间）只读观察结束（原件以UTC时间戳为准），观察395秒，仍OPEN/budget=null、仅创建与我方需求2条、provider回复0。设定到期时间已过，不向旧job付款，不重复需求或对Nox反复建单；不能据此认定已收费服务违约或直接给Nox FAIL。未fund/支付/资产兑换，原件`createjob-approvals-2026-10-23T08-56-20.984Z.private/QUOTE_OBSERVATION_COMPLETE.private.json`。本次只证明平台接入流程跑通，Nox实交易可行性仍未确认。
+
+此前唯一广播的旧UserOp因ExpiryTooShort失败，已6次可信RPC及独立事件解码确认无JobCreated；7702委托已实际生效，旧操作不能重播。修正为5min原SLA+180s准备缓冲，签名前/提交前剩余>330s；新calldata先经确切eth_call成功，再构造唯一发送。源于接入流程，不计Nox FAIL；旧失败原件与新成功原件均保留，未改评分规则。
+
+iCLONE订单`82142`观察已收口：唯一sponsored/零转账建单交易`0x3a87a41bd31ea897644f0d1d62ed8b394815e82b157b9cbc58d9a977166cf552`，可信Base RPC、EntryPoint内层成功及唯一JobCreated已核。1USDC→WETH/0.5%滑点需求于09:22:59.882UTC提交一次，最终09:53:44.829UTC（北京时间17:53:44）仍API OPEN/budget=null、history2条、provider回复0；观察1844.947秒，记录deadline09:53:10已过。未确认接单、真实报价或完整评价证据，不能解释为已收费服务违约或直接计FAIL。已停止轮询，不向过期旧job充值/付款，不重复需求或建单；fund/服务费/本金转出/兑换/发币/身份mint/新评分均0。原件`createjob-approvals-2026-10-23T09-20-09.034Z.private/QUOTE_OBSERVATION_COMPLETE.private.json`。
+
+前一批询价已停止，目标未达成：新增三个真实交易服务、四个零付款订单，实际接单报价0、已确认可拿齐完整评价证据的对象0。ZeroAgent的82146、Ethy的82147，以及修正流程后的GSB 82148均在需求已获平台接受并记入同job历史后REJECTED，budget均null；原因只有bytes32哈希，明文未知，不能归因为余额、费用、请求文本或协议版本。GSB首单82145在我们发送需求前已拒绝，首次需求HTTP403；修正共用时序后只补做了一单，82148只提交标准requirement、无长文本询问，仍拒绝，因此不再重试这批对象。四单建单均经可信Base RPC独立核验；GSB首单拒绝另有独立链事件核验，其余拒绝以本轮已取官方任务历史为依据。未fund、支付服务费/本金、兑换、发币、身份mint或新增评分。详细时间、原件和失败路径见[可行性记录](docs/research/SMALL_BUDGET_TRANSACTION_FEASIBILITY_20261023.md)。
+
+当前推进边界：本次新方案费及唯一真实兑换均已完成并核账，批准范围已经消耗完毕；各费用nonce已使用，交易nonce1已上链，不重启任何付款/兑换operator，不因钱包余额充足继续交易。保留原件、只追加证明，下一步只读核注册身份/接口归属及设计可复用判据、正式样本计划。若以后需新增付费或资产实验，先列具体用量和费用另获批准。现有三维、30/40/30及正式门槛不变；不把一单当全部六能力或完整评分。
+
+当前分支`codex/trading-agent-quotes-20261023`继承`8a85b35`，前一检查点`e76d18e`已提交，本轮5份文档记录真实入金、Spraay方案及费用独立核验、智能签名修正和自付gas预检，作本地检查点、未push；忽略的operator/收据与无关`docs/presentation/`不入提交。新平台预检须先获所需登录/消息签名授权，不能把已授权ACP登录推广到新平台。
+
+工具CLI1.0.40/SDK0.1.15在`runtime/nox-iclone-preflight-20261023/client/`；会话由官方keychain保存，配置/准确buyer身份在私有`auth.private/config.json`、`buyer-detail.private.json`，勿输出token/密钥/邮箱。运行每进程配置7897代理与NODE_USE_ENV_PROXY=1。审批原结果可由官网已有owner GET `/wallets/approvals/{id}`读取，不再用需额外登录签名的SSE恢复。细节与历史失败见[可行性记录](docs/research/SMALL_BUDGET_TRANSACTION_FEASIBILITY_20261023.md)。
+
+前轮`FULL_SCORE_TRADING_AGENT_DISCOVERY`已筛查，多个完整可评交易对象的目标仍未达成，新增完整分0。两个新Venus各1业务任务，代表执行归属已实核；Celo/Agenthaus、ACP、Zyfai具体缺项见[汇总](docs/research/FULL_SCORE_TRADING_AGENT_DISCOVERY_20261023.md)，不要重扫已知缺源。86只读观察/84响应SHA一次核对通过，未改生产代码或新评分，工程测试NOT_RUN。补源方向已经用户确认，不要再次询问同一选择。
+
+用户已确认先寻找多个能完整三维评价的真实交易Agent，再共用适配；同一对象的服务入口、交易声明、执行授权与任务历史须同时可核验。认证接口、获授权只读导出及同提供方多实例均可接受，7F/7B为不同任务，不是必需14笔交易，查询F不能冒充执行正确性。不要继续围无接口的Olas对象堆代码，不把平台/RPC入口算Agent服务。本地基线已纳入远程main的PR #19两份查询报告；链上执行改造仍在草稿PR #20，勿误记为已合并。用户已授权直接修改，以“与区块链深度结合”为主目标；资产交易、已有签名、授权、Safe执行均属评价范围，操作者的新签名/资金/主网写入须另有具体授权。三维仍为服务可用性/功能声明一致性/交易行为可靠性，旧政策、分数和原件不变。
+
+功能提交`7f3eec2`/`6ad6976`已推送，[草稿PR #20](https://github.com/Ryanjxy123/web3-agent-reputation/pull/20)保留供用户和队友审阅，未改main；CI以该PR最新检查为准。现有未跟踪演示稿及Word锁文件保留本地。
+
+前轮已从30对象公开索引固定前10个Olas/Omen交易者，以同一规则核验注册→历史Safe权限→真实签名与内层结果→买入参数→资产流→精确CTF条件头寸ID；8样本闭合、1949/1969缺读取为UNKNOWN，不换对象。新快照是背景采证，三维尚未出分，不能拿成功买入或Safe活跃计数产生完整评分。缺当前可用性入口、独立7F/7B及全部任务尝试。规则与迁移见ADR-0021；用户现已选择优先找完整可测群体，本批无接口对象暂不继续扩采。
+
+本机原数据库已备份；PR #19两份查询报告已入库，当前49个公共身份、50份报告、10个链证据对象（20快照版本），12个身份有完整历史范围分。第二版仅按原calldata区分直接buy与MultiSend授权买入，并中文解释已知缺项；0网络重采/0新评分，原快照保留。公开包`data/chain-execution-evidence-v1.tar.gz`为521原件、约235KB，导入命令见README；原两个评分包不变。网页已改真实功能、业务/链分类、链上步骤与三维代表样本；原件/方法折叠，旧查询B实际含义保留。API与独立online worker收据见`runtime/background-platform-20261022T181137Z-f299421c/process.json`，不从下方历史PID推断。
+
+新证据核心在`core/omen_execution.py`，来源重放/只追加发布在`platform/chain_evidence.py`，旧报告交易视图在`platform/report_chain_view.py`；业务资料独立于report.scope。最小新测试、真实PG/HTTP与Vue构建通过，桌面/手机真实视觉通过。首次快照JSON严格枚举读取引发500已修复，原失败收据保留；旧49467排队任务按同job留审计恢复一次，现查询范围99.35分，不算资产执行新评分。原`DECIDE_AUTONOMOUS_AVAILABILITY`问题已由用户选择收口，进入本页首段的多对象可评分性调查。最新验收、当前队列和Git收口以STATUS最上段为准。
+
+以下均为历史阶段记录；不要恢复旧“仅文档”“Worker未运行”边界或把另一开发机数量当当前数据。
+
+2026-10-21老师反馈最新方向见`docs/research/WEB3_AGENT_TEACHER_FEEDBACK_20261021.md`及同目录12页Word。主展示应围绕Agent真实链上业务执行，不能把注册、推理交付或只读查询统一当交易行为；现有查询B的服务交付与老师原第三维有语义差别。保留九预测辅助报告，优先讲清Brain363709包装→兑换→增仓历史特例，再按群体证据选择可复用能力。页面建议中文功能→链上动作→原三维→每维代表样本→折叠原件，功能简介与report.scope分离。用户明确本轮只生成文档，因此没有改代码/配置/评分/数据库，没有新评价或工程测试；Word已逐页检查。下一任务`REVIEW_CHAIN_EXECUTION_PLAN`，先讨论方案再实现，本轮未push；旧演示稿与锁文件保留。
+
+2026-10-20 19:59北京时间本机更新：已按用户要求拉取`origin/main=1675d55`（PR18）并运行该版；本地main已快进，旧339a902及演示稿保留在原分支。当前`codex/run-remote-main-20261020`只记本机运行状态、未push。API7754 PID34156/独立worker PID36172，PG55438 PID44748；以`runtime/remote-update-20261020T115301Z/process.json`为准。该目录含更新前真实PG备份、文档备份与启动核对。38候选/47报告/10完整，原评分保留；新心跳表兼容初始化，worker按本会话既有只读授权online、0在途。RPC子进程使用原机既有凭证路径，LLM原配置未换。
+
+注意下面远程开发机13候选/16报告/12完整及常驻worker审批阻断，均不代表本机当前状态。本机缺Brain #49467新94分报告`0812985f-8777-4629-8fba-3db4b3e1e65a`、Hallmark #338475新94分报告`c88165ca-df10-4cb2-aeb2-6e8680c605c2`与原件，Git公开包仍10份。新增源码已到位，结果须由来源机交付公开证据包后核验导入。所有启动/构建/依赖最终exit0，完整收据与已遇环境问题见STATUS。用户打开的Word及锁文件仍在原位，不覆盖或加入提交；下一任务本人试用。
+
 2026-10-19：`REFACTOR_PUBLICATION`已完成，下一task_id=`PR_REVIEW`。[重构PR #17](https://github.com/Ryanjxy123/web3-agent-reputation/pull/17)已推送并转为ready for review，base=`main`、head=`codex/rebuild-reputation-platform`，不自动合并。旧父仓库origin已备份移除，新项目独立origin指向原目标仓库；两边提交历史保留，CODEOWNERS与PR模板未改。
 
 README已写清安装、建库、公开评分导入、API/worker启动、网站`http://127.0.0.1:7754/`及自备RPC/LLM凭证。已上传`data/public-reports-v1.tar.gz`与摘要：10个不同真实Agent完整报告、14,737个公开文件、16,452,062B，包SHA `6f0daa102d5f03d123adfa327a224a85d4e16340644769ac01d4f2613db8ff76`。工作文件、Git blob和全新Git目录中的包哈希一致；不上传个人密钥、私有配置或数据库。全包秘密审计exit0，记录`runtime/public-reports-archive-audit-20261019T014325Z-3e23d85b/result.json`。

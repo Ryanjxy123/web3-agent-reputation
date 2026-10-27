@@ -15,7 +15,6 @@ from reputation_core.admission import ProbeObservation
 from reputation_platform.safe_http import PublicTarget, SafeHttpClient
 from reputation_platform.settings import load_zan_key_file
 
-CONFIG = ROOT / 'configs/base-registration-candidates.json'
 RPC = 'https://api.zan.top/node/v1/base/mainnet'
 REGISTRY = '0x8004a169fb4a3325136eb29fa0ceb6d2e539a432'
 
@@ -36,6 +35,7 @@ def decode_uri(value: str) -> str:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--profile', type=Path, required=True, help='Explicit reviewed candidate configuration under configs')
     parser.add_argument('--source-run', type=Path, required=True)
     parser.add_argument('--execute-public-readonly', action='store_true')
     parser.add_argument('--proxy')
@@ -46,10 +46,13 @@ def main() -> int:
     source = (ROOT / args.source_run).resolve()
     if not source.is_relative_to((ROOT / 'runtime').resolve()) or not source.is_dir():
         parser.error('Use a retained candidate run inside this project runtime')
-    config = json.loads(CONFIG.read_bytes())
+    config_path = (ROOT / args.profile).resolve()
+    if not config_path.is_relative_to(ROOT / 'configs') or config_path.suffix != '.json':
+        parser.error('Candidate configuration must be an explicit JSON file under configs')
+    config = json.loads(config_path.read_bytes())
     if (config['chain_id'], config['rpc_url'], config['registry']) != (8453, RPC, REGISTRY):
         raise ValueError('The operator config differs from the reviewed Base scope')
-    inputs = [{'path': CONFIG.relative_to(ROOT).as_posix(), 'sha256': sha(CONFIG)}]
+    inputs = [{'path': config_path.relative_to(ROOT).as_posix(), 'sha256': sha(config_path)}]
     candidates = config['candidates']
     for candidate in candidates:
         name = candidate['catalog_key']

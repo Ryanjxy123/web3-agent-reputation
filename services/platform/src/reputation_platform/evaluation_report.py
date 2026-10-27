@@ -135,7 +135,80 @@ def _capabilities(report: EvaluationReport) -> str:
             '业务正确性需要适用的独立判据，交易履约需要任务与真实链上证据绑定。</p>' + body + '</section>')
 
 
+def _shared_interval(value) -> str:
+    if value is None:
+        return '证据不足'
+    return f'{value.lower:.2f}' if value.lower == value.upper else f'{value.lower:.2f}–{value.upper:.2f}'
+
+
+def _render_shared_report(report: EvaluationReport) -> str:
+    assessment = report.shared_assessment
+    result = assessment.result
+    point_scores = assessment.schema_version == 'shared-task-assessment-v3'
+    dimensions = []
+    for name, title in (('availability', '服务可用性'), ('functional', '功能声明一致性'), ('behavioral', '交易行为可靠性')):
+        value = getattr(result, name)
+        count = value.counts
+        dimensions.append(f'<article><h2>{title}</h2><strong>{_shared_interval(value.interval)}</strong>'
+            f'<p>全项通过{count.passed} · 含不符{count.failed} · 未决{count.unknown} · 未采{count.not_run}</p>'
+            f'{_items(value.blocked_reasons)}</article>')
+    capabilities = []
+    for capability in assessment.capabilities:
+        if point_scores and not capability.selected:
+            continue
+        groups = ''.join(f'<li>{_text(group.title)}：{"本次纳入" if group.selected else "未纳入"}'
+            f' {_text(group.selection_reason)}</li>' for group in capability.declaration_groups
+            if not point_scores or group.selected)
+        capabilities.append(f'<details><summary>{_text(capability.title)} · '
+            f'{"本次已测范围" if capability.selected else "未测功能"}</summary>'
+            f'<p>{_text(capability.description)}</p><ul>{groups}</ul></details>')
+    tasks = []
+    labels = {'availability': '服务响应', 'functional': '声明核验', 'behavioral': '实际履约'}
+    outcomes = {'completed': '已完成', 'failed': '真实执行失败', 'rejected': '已拒绝',
+                'protected_exit': '保护退出', 'not_executed': '未执行', 'unknown': '结局待核'}
+    coverage = {'FULL': '已记录声明均有评价', 'PARTIAL': '仍有声明未覆盖', 'NONE': '声明覆盖待评价'}
+    for index, task in enumerate(assessment.tasks, 1):
+        outcome = outcomes[task.outcome]
+        if point_scores:
+            planned = any(case.dimension == 'behavioral' and task.task_key in case.task_keys for case in assessment.cases)
+            rows = [row for row in assessment.observations if row.task_key == task.task_key]
+            if task.outcome == 'not_executed' and not planned:
+                outcome = ('方案已验证' if any(row.criterion_id == 'execution-effect' and row.verdict == Verdict.PASS for row in rows)
+                           else '已返回方案' if any(row.dimension == 'availability' and row.verdict == Verdict.PASS for row in rows)
+                           else '未取得方案')
+            elif task.outcome == 'completed':
+                outcome = ('已撤销退款' if any(row.criterion_id == 'exact-principal-refund' and row.verdict == Verdict.PASS for row in rows)
+                           else '已成交')
+        findings = ''.join(f'<li><b>{labels[row.dimension]}</b> {_badge(row.verdict)} '
+            f'{_text(row.reason)}</li>' for row in assessment.observations if row.task_key == task.task_key)
+        tasks.append(f'<details><summary>任务{index} · {_text(task.input_summary)}</summary>'
+            f'<p>真实结局：{outcome}</p>'
+            f'<ul>{findings}</ul><details><summary>原始来源</summary>{_items(task.evidence, sources=True)}</details></details>')
+    risk = '<p class="risk">存在重大资金或权限违约，请先查看相关失败证据。</p>' if result.risk_status == 'MAJOR_VIOLATION' else ''
+    scope_note = ('分数基于可判结果，未知与未采另列；本报告评价下方已测功能。' if point_scores else
+        f'全部声明覆盖：{coverage[result.declaration_coverage]}。未测功能不补零、不补满分；这里的范围不是长期可靠率的统计置信区间。')
+    return ('<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width,initial-scale=1"><title>已测范围评价</title>'
+        '<style>body{font:18px/1.75 system-ui,sans-serif;color:#173b44;background:#f3f7f8;margin:0}'
+        'main{max-width:1120px;margin:32px auto;padding:28px;background:white;border-radius:20px}'
+        'strong{font-size:30px}section{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:20px}'
+        'article,details{padding:18px;border:1px solid #dae5e8;border-radius:12px;margin:12px 0}'
+        'summary{cursor:pointer;font-weight:650}a{color:#176978}code{overflow-wrap:anywhere}'
+        '.risk{color:#982d24;font-weight:700}</style></head><body><main>'
+        f'<h1>{_text(report.name)}</h1><p>{_text(report.scope)}</p>{risk}'
+        f'<h2>已测范围综合分：{_shared_interval(result.overall)}</h2>'
+        f'<p>{scope_note}</p>'
+        f'<section>{"".join(dimensions)}</section><p>分数按声明组和案例汇总，同一任务可同时包含通过与不符条款。</p>'
+        f'<h2>{"已测功能" if point_scores else "已测与未测功能"}</h2>{"".join(capabilities)}'
+        f'<h2>同一任务的多源证据</h2><p>{result.task_count}个独立业务任务，'
+        f'{result.observation_count}项判据观察；共享证据不会增加独立任务数量。</p>{"".join(tasks)}'
+        f'<h2>方法与限制</h2><p>{_text(report.approach)}</p>{_items(report.limitations)}'
+        '</main></body></html>')
+
+
 def render_evaluation_report(report: EvaluationReport) -> str:
+    if report.shared_assessment is not None:
+        return _render_shared_report(report)
     """Render supplied real explanations; no demo samples or manual scores."""
     scores = report.scores
     dimensions = {MeasurementPurpose.AVAILABILITY: scores.availability,
@@ -146,7 +219,9 @@ def render_evaluation_report(report: EvaluationReport) -> str:
     failed = sum(score.failed for score in dimensions.values())
     prediction = report.policy_version in ('prediction-history-v1', 'prediction-history-v2')
     fulfillment = report.policy_version == 'service-fulfillment-v1'
-    generic = report.policy_version in ('service-contract-v1', 'service-fulfillment-v1')
+    swap = report.policy_version in ('evm-swap-builder-v1', 'evm-swap-builder-v2')
+    swap_v2 = report.policy_version == 'evm-swap-builder-v2'
+    generic = report.policy_version in ('service-contract-v1', 'service-fulfillment-v1', 'evm-swap-builder-v1', 'evm-swap-builder-v2')
     behavior_label = '可观察服务履约' if fulfillment else '交易行为可靠性'
     coverage_intro = ""
     if scores.status == "COMPLETE":
@@ -160,6 +235,12 @@ def render_evaluation_report(report: EvaluationReport) -> str:
                 finding += f'其中 {invalid} 份交付未返回符合约定的有效概率，按规则计零信用。'
             finding += (f'另 {scores.behavioral.observed} 个任务的履约核验包含链上归属与约定输出，'
                         f'{scores.behavioral.passed} 项通过、{scores.behavioral.failed} 项未通过；具体输出差异与链上发现见逐条结果。')
+        elif swap:
+            finding = (f'本报告保留 {scores.availability.observed} 项服务访问记录，功能计划 {scores.functional.planned} 项、'
+                       f'其中 {scores.functional.passed + scores.functional.failed} 项可判，'
+                       f'以及另外 {scores.behavioral.observed} 笔真实兑换；真实交易核验 '
+                       f'{scores.behavioral.passed} 笔通过、{scores.behavioral.failed} 笔未通过。'
+                       'Agent 提供方案，授权钱包签名执行，平台独立核验资产和授权结果。')
         elif generic:
             finding = (f'本次 {scores.functional.observed} 个不同任务的功能声明核验有 {scores.functional.passed} 条通过、'
                        f'{scores.functional.failed} 条未通过；另外 {scores.behavioral.observed} 个任务的{"可观察服务履约" if fulfillment else "真实交易履约"}核验有 '
@@ -212,7 +293,19 @@ def render_evaluation_report(report: EvaluationReport) -> str:
         "首个通过样本，以及首个未通过或无法判断样本默认展开。其余样本点击标题查看；原始文件和标识收在各自的证据区。"
         if report.samples else "本轮尚无进入判分的样本；取得实际证据后会在这里逐条解释。"
     )
-    if generic:
+    if swap:
+        functional_method = '使用七个独立兑换任务，核对代币、整数金额、收款人、滑点、最低到账及精确授权，并在同一区块独立模拟完整交易。'
+        functional_threshold = '完整任务全部满足才通过；缺必要证据为无法判断。通过数除以确定结论数计分，七个确定结论才出功能分。'
+        if swap_v2:
+            functional_method = (f'本政策保留功能计划的全部{scores.functional.planned}项任务，逐项核对代币、整数金额、收款人、'
+                                 '滑点、最低到账及精确授权，并在固定区块独立模拟完整交易。历史任务与前瞻补采的时间分别列明。')
+            functional_threshold = (f'至少7项可判且可判比例达到80%才出分。当前{scores.functional.passed + scores.functional.failed}/'
+                                    f'{scores.functional.planned}项可判，UNKNOWN不算成功或失败，但仍占计划覆盖分母。'
+                                    '功能分为全部确定结论中的通过率，FAIL同样保留。')
+        behavioral_method = '使用另外七个独立真实兑换任务，从冻结方案、签名执行账户和调用参数追到真实成功回执、官方交易池与同笔资产流。本金、实际到账、费用及剩余授权分别核实。'
+        behavioral_threshold = '一笔交易中的授权和兑换是两个动作，仍计一个任务。完整履约证据与确认条件充分才通过；七个确定结论才出行为分。'
+        availability_intro = f'本次保留十个独立付费兑换方案请求，已有 {scores.availability.observed} 个观察。只计正式业务请求发送到完整响应的耗时，不含付款挑战、签名或平台准备。'
+    elif generic:
         functional_method = ('完整功能评分要求七个不同实际任务，核对声明的操作、输入输出绑定、约定格式和明确限制；'
                              '需要业务正确性判据时，用独立证据核验结果。'
                              + (f'本轮已有 {scores.functional.observed} 条功能样本，结论见逐条记录。' if scores.functional.observed

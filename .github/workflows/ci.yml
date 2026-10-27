@@ -34,6 +34,10 @@ jobs:
       - run: uv sync --locked --all-packages
       - name: Core scoring boundary case
         run: uv run --locked --all-packages python -m unittest discover -s tests -p test_scoring.py -v
+      - name: Shared rules and MangoSwap single-score source boundaries
+        run: |
+          uv run --locked --all-packages python -m unittest discover -s tests -p test_shared_scoring.py -v
+          uv run --locked --all-packages python -m unittest discover -s tests -p test_single_score_report.py -v
       - name: Public report selection and frozen dependency bytes
         run: uv run --locked --all-packages python -m unittest discover -s tests -p test_public_reports.py -v
       - run: pnpm --dir apps/web install --frozen-lockfile
@@ -67,5 +71,5 @@ jobs:
           version: '0.9.3'
           python-version: '3.12.4'
       - run: uv sync --locked --all-packages
-      - name: Empty database and public-off API/worker smoke
+      - name: MangoSwap publication, public-off worker and concurrent PostgreSQL leases
         run: uv run --locked --all-packages python scripts/check_release_smoke.py

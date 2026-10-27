@@ -17,22 +17,6 @@ from reputation_core import DeclarationAnalysis, ProbeObservation, SourceDocumen
 from reputation_platform.llm import LEGACY_CONFIG, evidence_url, request_body, validate_record
 from reputation_platform.model_analysis import catalog_operations, declaration_instructions, parse_declarations
 
-PAIRS = [
-    ('runtime/model-review-20261017T182601Z-ccb0ed3d', 'runtime/model-reviewed-20261018T045116Z-10a85dc4'),
-    ('runtime/model-review-20261018T065247Z-d2d75c1a', 'runtime/model-analysis-20261018T065302Z-e234ef65'),
-    ('runtime/model-review-20261018T065549Z-7efbdf07', 'runtime/model-analysis-20261018T065605Z-293a4039'),
-    ('runtime/model-review-20261018T070719Z-920e0463', 'runtime/model-analysis-20261018T070738Z-6217d1b6'),
-]
-ADMISSIONS = [
-    'runtime/admission-report-20261017T182038Z-f504c54e/admission-report.json',
-    'runtime/admission-report-20261018T063130Z-e7ee947b/admission-report.json',
-    'runtime/admission-report-20261018T071049Z-f95cbda3/admission-report.json',
-]
-REPORTS = [
-    'runtime/evaluation-report-20261018T060340Z-4c27cea3',
-    'runtime/evaluation-report-20261018T074802Z-2378ca3d',
-    'runtime/evaluation-report-20261018T074803Z-c4f9fbe0',
-]
 INPUTS = {}
 
 
@@ -134,7 +118,7 @@ def validated_asset(review_run: Path, analysis_run: Path, key: str, expected_sou
     return stored, rejected
 
 
-def identity(key: str, admissions: dict) -> tuple[str, dict, list[dict]]:
+def identity(key: str, admissions: dict, profile_path: Path | None = None) -> tuple[str, dict, list[dict]]:
     entry = admissions[key]
     registration = next(item for item in entry['checks'] if item['code'] == 'registration')
     references, bridge_mappings = [], []
@@ -159,7 +143,9 @@ def identity(key: str, admissions: dict) -> tuple[str, dict, list[dict]]:
         catalog = load('runtime/candidate-check-20261017T175652Z-f876ebbc/catalog-degen.response.bin')
         canonical = f"eip155:{int(catalog['chain_id'])}:{catalog['contract_address'].lower()}:{int(catalog['token_id'])}"
     elif key == 'brain-defi':
-        profile = load('configs/pilots/brain-defi-liquidity-v1.json')
+        if profile_path is None:
+            raise ValueError('This historical identity requires an explicit --profile; instance records are not bundled')
+        profile = load(profile_path)
         canonical = f"eip155:{profile['chain_id']}:{profile['registry'].lower()}:{profile['agent_id']}"
     else:
         canonical = entry['registration_reference']
@@ -184,9 +170,9 @@ def schema_for(document: dict | None, operation: str) -> tuple[dict | None, str 
     return None, None, None
 
 
-def existing_scopes() -> dict:
+def existing_scopes(reports: list[str]) -> dict:
     by_key = {}
-    for name in REPORTS:
+    for name in reports:
         run = ROOT / name
         report, retained_manifest = load(run / 'report.json'), load(run / 'manifest.json')
         if report['scores']['status'] != 'COMPLETE':
@@ -213,15 +199,18 @@ def existing_scopes() -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--source-pair', nargs=2, action='append', metavar=('REVIEW_RUN', 'ANALYSIS_RUN'))
+    parser.add_argument('--source-pair', nargs=2, action='append', required=True, metavar=('REVIEW_RUN', 'ANALYSIS_RUN'))
+    parser.add_argument('--admission-report', action='append', required=True, help='Explicit retained admission-report.json')
+    parser.add_argument('--report-run', action='append', default=[], help='Optional retained completed report directory')
+    parser.add_argument('--profile', type=Path, help='Explicit profile for a historical identity requiring it')
     args = parser.parse_args()
     admissions = {}
-    for name in ADMISSIONS:
+    for name in args.admission_report:
         for candidate in load(name)['candidates']:
             admissions[candidate['key']] = {**candidate, 'snapshot_path': name}
-    scopes = existing_scopes()
+    scopes = existing_scopes(args.report_run)
     records, links = [], []
-    for review_name, analysis_name in args.source_pair or PAIRS:
+    for review_name, analysis_name in args.source_pair:
         review_run, analysis_run = (ROOT / review_name).resolve(), (ROOT / analysis_name).resolve()
         retain(review_run / 'review.json')
         if (review_run / 'manifest.json').is_file():
@@ -233,7 +222,7 @@ def main() -> None:
                 document, content = source_details(review_run, key, source)
                 documents.append(document)
                 parsed[source.source_id] = content
-            canonical, registration, identity_refs = identity(key, admissions)
+            canonical, registration, identity_refs = identity(key, admissions, args.profile)
             provider = {'status': 'UNKNOWN', 'name': None, 'evidence': [], 'claimed_names': []}
             for source in sources:
                 doc = parsed[source.source_id]

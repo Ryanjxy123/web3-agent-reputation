@@ -30,6 +30,18 @@ CREATE TABLE IF NOT EXISTS reports (
 );
 CREATE INDEX IF NOT EXISTS reports_agent_generated ON reports(agent_key, generated_at DESC, imported_at DESC);
 
+CREATE TABLE IF NOT EXISTS agent_chain_evidence (
+    id uuid PRIMARY KEY,
+    agent_key text NOT NULL REFERENCES agents(key),
+    generated_at timestamptz NOT NULL,
+    snapshot_path text NOT NULL,
+    snapshot_sha256 text NOT NULL UNIQUE CHECK(snapshot_sha256 ~ '^[0-9a-f]{64}$'),
+    validated_json jsonb NOT NULL,
+    evidence_files jsonb NOT NULL,
+    imported_at timestamptz NOT NULL DEFAULT clock_timestamp()
+);
+CREATE INDEX IF NOT EXISTS agent_chain_evidence_generated ON agent_chain_evidence(agent_key,generated_at DESC);
+
 CREATE TABLE IF NOT EXISTS evaluation_jobs (
     id uuid PRIMARY KEY,
     reference text NOT NULL,
@@ -75,6 +87,10 @@ END;
 $$;
 CREATE OR REPLACE TRIGGER reports_append_only
     BEFORE UPDATE OR DELETE ON reports FOR EACH ROW EXECUTE FUNCTION reject_published_evidence_change();
+CREATE OR REPLACE TRIGGER agent_chain_evidence_append_only
+    BEFORE UPDATE OR DELETE ON agent_chain_evidence FOR EACH ROW EXECUTE FUNCTION reject_published_evidence_change();
+CREATE OR REPLACE TRIGGER agent_chain_evidence_no_truncate
+    BEFORE TRUNCATE ON agent_chain_evidence FOR EACH STATEMENT EXECUTE FUNCTION reject_published_evidence_change();
 CREATE OR REPLACE TRIGGER reports_no_truncate
     BEFORE TRUNCATE ON reports FOR EACH STATEMENT EXECUTE FUNCTION reject_published_evidence_change();
 CREATE OR REPLACE TRIGGER candidate_metadata_append_only

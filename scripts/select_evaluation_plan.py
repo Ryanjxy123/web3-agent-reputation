@@ -17,7 +17,6 @@ from analyze_declarations import sources_from_review
 from reputation_core import CandidateRecord, DeclarationAnalysis, SourceDocument, validate_analysis
 from reputation_core.planning import LiquidityHistoryDescriptor, select_plan
 
-CONFIG = ROOT / "configs/pilots/brain-defi-liquidity-v1.json"
 INCREASE_LABEL = re.compile(r"(?<![A-Za-z])Increase(?=BNB|\b)")
 READ_ONLY = re.compile(r"read[-‐‑]only\s+JSON", re.IGNORECASE)
 
@@ -47,13 +46,17 @@ def write_json(path: Path, value: object) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--profile", type=Path, required=True, help="Explicit operator-owned profile under configs/pilots")
     for name in ("analysis-run", "admission-run", "history-run", "source-run"):
         parser.add_argument("--" + name, required=True)
     args = parser.parse_args()
     analysis_run, admission_run, history_run, source_run = (
         get_run(getattr(args, name + "_run")) for name in ("analysis", "admission", "history", "source")
     )
-    config = read_json(CONFIG)
+    config_path = (ROOT / args.profile).resolve()
+    if not config_path.is_relative_to(ROOT / "configs/pilots") or config_path.suffix != ".json":
+        parser.error("Operator profile must be a JSON file under configs/pilots")
+    config = read_json(config_path)
     if config["policy_version"] != "liquidity-history-v1":
         raise ValueError("No adapter is implemented for this pilot policy")
     analysis_manifest = read_json(local_file(analysis_run, "manifest.json"))
@@ -139,7 +142,7 @@ def main() -> int:
     now = datetime.now(timezone.utc)
     run = RUNTIME / f"plan-selection-{now:%Y%m%dT%H%M%SZ}-{secrets.token_hex(4)}"
     run.mkdir()
-    inputs = [CONFIG, analysis_file, source_file, admission_file, history_file, observation_file,
+    inputs = [config_path, analysis_file, source_file, admission_file, history_file, observation_file,
               local_file(source_run, "review.json"), local_file(model_run, "manifest.json")]
     write_json(run / "manifest.json", {"created_at": now.isoformat(), "network_requests": 0,
         "scores_computed": False, "source_documents": [{"source_id": source.source_id,

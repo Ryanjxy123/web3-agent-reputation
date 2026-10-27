@@ -1,0 +1,34 @@
+{
+  "schema_version": "evm-contract-lifecycle-protocol-v1",
+  "chain_id": 8453,
+  "rpc_urls": [
+    "https://mainnet.base.org",
+    "https://api.zan.top/node/v1/base/mainnet"
+  ],
+  "contract": "0x1681d47aa3aaecc47b9cd1d0ba6df37cd683510e",
+  "wallet": "0x73d642847cb9a3acef116ea207a74b9956c34a09",
+  "wrapped_native": "0x4200000000000000000000000000000000000006",
+  "token": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+  "router": "0x2626664c2603336e57b271c5c0b26f421741e481",
+  "factory": "0x33128a8fc17869897dce68ed026d694621f6fdfd",
+  "fee_tier": 3000,
+  "gas_oracle": "0x420000000000000000000000000000000000000f",
+  "expected_delegate": "0x69007702764179f14f51cdce752f4f775d74e139",
+  "contract_runtime_hash": "c64d10aae204ab8b555f25e2e7c05ffab3248257ec0b0e8f982f9381f470539a",
+  "abi_path": "runtime/mangoswap-v4-public-20261027-v1/contract-abi.json",
+  "assets": {
+    "native": {
+      "symbol": "ETH",
+      "decimals": 18
+    },
+    "token": {
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "wrapped_native": {
+      "symbol": "WETH",
+      "decimals": 18
+    }
+  },
+  "minimum_confirmations": 64
+}

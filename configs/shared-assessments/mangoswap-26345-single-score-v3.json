@@ -1,0 +1,230 @@
+{
+  "schema_version": "shared-declaration-catalog-v1",
+  "candidate_key": "mangoswap-26345",
+  "registration_reference": "eip155:1:0x8004a169fb4a3325136eb29fa0ceb6d2e539a432:26345",
+  "response_deadline_ms": 30000,
+  "checker_id": "retained-evm-point-assessment-v3",
+  "policy_version": "transaction-agent-evidence-v3",
+  "analysis_mode": "retrospective-expanded-scope",
+  "scope": "已评价即时资产兑换、定时与限价订单的创建/合约查询/撤销退款；得分基于已核实的任务结果。",
+  "scope_exclusions": [
+    "自动到期或限价触发成交、周期执行未作实交易验证。",
+    "新入口业务响应未采样，单一A分只对应已有可判业务响应。"
+  ],
+  "source_documents": [
+    "data/declarations/mangoswap-26345-20261027.json",
+    "runtime/mangoswap-v4-public-20261027-v1/contract-abi.json",
+    "docs/adr/0028-formal-multicapability-assessment.md",
+    "docs/adr/0029-single-score-and-report-scope.md",
+    "runtime/mangoswap-formal-multicap-20261027-v1/report.json"
+  ],
+  "capabilities": [
+    {
+      "capability_id": "erc20-swap-builder",
+      "title": "即时资产兑换",
+      "description": "网关API的USDC/WETH兑换与官网V4原生ETH输入；各入口独立取证，由用户钱包签名执行。",
+      "selected": true,
+      "write_operation": true,
+      "declaration_groups": [
+        {
+          "group_id": "intent-binding",
+          "title": "任务参数、收款与授权一致",
+          "selected": true,
+          "source_references": [
+            "runtime/spraay-fixed-ipfs-metadata-20261027-171323-b774dadb/current-a2a.response.bin"
+          ]
+        },
+        {
+          "group_id": "execution-effect",
+          "title": "独立模拟或真实执行支持兑换效果",
+          "selected": true,
+          "source_references": [
+            "runtime/spraay-fixed-ipfs-metadata-20261027-171323-b774dadb/current-a2a.response.bin"
+          ]
+        },
+        {
+          "group_id": "asset-display",
+          "title": "输入输出资产标识准确",
+          "selected": true,
+          "source_references": [
+            "runtime/spraay-fixed-ipfs-metadata-20261027-171323-b774dadb/current-a2a.response.bin"
+          ]
+        },
+        {
+          "group_id": "native-assets",
+          "title": "更多资产与原生ETH输出",
+          "selected": false,
+          "selection_reason": "已核原生ETH输入；其它代币及原生ETH输出仍未测。",
+          "source_references": [
+            "data/declarations/mangoswap-26345-20261027.json"
+          ]
+        },
+        {
+          "group_id": "other-routing",
+          "title": "Aerodrome及其它路由",
+          "selected": false,
+          "selection_reason": "已核本次V4 Uniswap路径；其它路由仍未测。",
+          "source_references": [
+            "runtime/spraay-fixed-ipfs-metadata-20261027-171323-b774dadb/current-a2a.response.bin",
+            "data/declarations/mangoswap-26345-20261027.json"
+          ]
+        },
+        {
+          "group_id": "fees-and-price",
+          "title": "完整费用与最佳价格声明",
+          "selected": false,
+          "selection_reason": "本次V4费用已核，但完整报价服务与跨池最佳价格仍无完整对照。",
+          "source_references": [
+            "data/declarations/mangoswap-26345-20261027.json"
+          ]
+        },
+        {
+          "group_id": "gas-sponsorship",
+          "title": "条件免gas",
+          "selected": false,
+          "selection_reason": "旧钱包自付gas不证明适用钱包的赞助路径成功或失败。",
+          "source_references": [
+            "data/declarations/mangoswap-26345-20261027.json"
+          ]
+        },
+        {
+          "group_id": "native-v4",
+          "title": "V4原生ETH输入、实际到账与费用一致",
+          "description": "原生本金、输出代币、最低到账、调用者收款和平台费由原任务及实际链上结果对应。",
+          "selected": true,
+          "source_references": [
+            "data/declarations/mangoswap-26345-20261027.json",
+            "runtime/mangoswap-v4-public-20261027-v1/contract-abi.json"
+          ]
+        }
+      ]
+    },
+    {
+      "capability_id": "scheduled-order-management",
+      "title": "定时订单管理",
+      "description": "真实创建未来订单、合约查询并在同一交易中撤销退款；本次目标是订单管理。",
+      "selected": true,
+      "write_operation": true,
+      "declaration_groups": [
+        {
+          "group_id": "create-query",
+          "title": "创建参数与订单查询",
+          "description": "核本人归属、输入输出资产、金额与时间/价格条件；查询为合约读取，不冒称Agent HTTP接口。",
+          "selected": true,
+          "source_references": [
+            "data/declarations/mangoswap-26345-20261027.json",
+            "runtime/mangoswap-v4-public-20261027-v1/contract-abi.json"
+          ]
+        },
+        {
+          "group_id": "cancel-refund",
+          "title": "本人撤销与全额退款",
+          "description": "创建后同笔撤销，最终为Cancelled，本金准确返回本人钱包。",
+          "selected": true,
+          "source_references": [
+            "data/declarations/mangoswap-26345-20261027.json",
+            "runtime/mangoswap-v4-public-20261027-v1/contract-abi.json"
+          ]
+        },
+        {
+          "group_id": "asset-permission-fees",
+          "title": "资产、授权及实际费用",
+          "description": "无额外本金支出、无授权残留，实际网络费用与资产变化一致。",
+          "selected": true,
+          "source_references": [
+            "data/declarations/mangoswap-26345-20261027.json",
+            "runtime/mangoswap-v4-public-20261027-v1/contract-abi.json"
+          ]
+        },
+        {
+          "group_id": "scheduled-execution",
+          "title": "到期自动执行",
+          "selected": false,
+          "selection_reason": "尚未让订单等待到期，不证明自动调度或keeper在线。",
+          "source_references": [
+            "data/declarations/mangoswap-26345-20261027.json",
+            "runtime/mangoswap-v4-public-20261027-v1/contract-abi.json"
+          ]
+        },
+        {
+          "group_id": "recurring-execution",
+          "title": "周期交易",
+          "selected": false,
+          "selection_reason": "未建立重复周期任务，单次时间参数不是周期执行证明。",
+          "source_references": [
+            "data/declarations/mangoswap-26345-20261027.json",
+            "runtime/mangoswap-v4-public-20261027-v1/contract-abi.json"
+          ]
+        }
+      ]
+    },
+    {
+      "capability_id": "limit-order-management",
+      "title": "限价订单管理",
+      "description": "真实创建带价格条件的订单、合约查询及同笔撤销退款；没有进行价格触发成交。",
+      "selected": true,
+      "write_operation": true,
+      "declaration_groups": [
+        {
+          "group_id": "create-query",
+          "title": "创建参数与订单查询",
+          "description": "核本人归属、输入输出资产、金额与时间/价格条件；查询为合约读取，不冒称Agent HTTP接口。",
+          "selected": true,
+          "source_references": [
+            "data/declarations/mangoswap-26345-20261027.json",
+            "runtime/mangoswap-v4-public-20261027-v1/contract-abi.json"
+          ]
+        },
+        {
+          "group_id": "cancel-refund",
+          "title": "本人撤销与全额退款",
+          "description": "创建后同笔撤销，最终为Cancelled，本金准确返回本人钱包。",
+          "selected": true,
+          "source_references": [
+            "data/declarations/mangoswap-26345-20261027.json",
+            "runtime/mangoswap-v4-public-20261027-v1/contract-abi.json"
+          ]
+        },
+        {
+          "group_id": "asset-permission-fees",
+          "title": "资产、授权及实际费用",
+          "description": "无额外本金支出、无授权残留，实际网络费用与资产变化一致。",
+          "selected": true,
+          "source_references": [
+            "data/declarations/mangoswap-26345-20261027.json",
+            "runtime/mangoswap-v4-public-20261027-v1/contract-abi.json"
+          ]
+        },
+        {
+          "group_id": "limit-triggered-execution",
+          "title": "条件触发成交",
+          "selected": false,
+          "selection_reason": "未调用限价执行，不以创建与取消替代成交证据。",
+          "source_references": [
+            "data/declarations/mangoswap-26345-20261027.json",
+            "runtime/mangoswap-v4-public-20261027-v1/contract-abi.json"
+          ]
+        },
+        {
+          "group_id": "failed-order-exit",
+          "title": "执行失败后的资金恢复",
+          "selected": false,
+          "selection_reason": "源码存在Failed退出缺口，未以真实本金触发，保留未测与风险说明。",
+          "source_references": [
+            "data/declarations/mangoswap-26345-20261027.json",
+            "runtime/mangoswap-v4-public-20261027-v1/contract-abi.json"
+          ]
+        }
+      ]
+    }
+  ],
+  "lifecycle_supplement": {
+    "snapshot_manifest": "runtime/mangoswap-v4-supplement-20261027-v2/manifest.json",
+    "snapshot_config": "configs/chain-supplements/mangoswap-v4-20261027-v2.json",
+    "capability_map": {
+      "native_swap": "erc20-swap-builder",
+      "scheduled_cancel": "scheduled-order-management",
+      "limit_cancel": "limit-order-management"
+    }
+  }
+}

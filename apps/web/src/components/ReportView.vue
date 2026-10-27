@@ -1,33 +1,43 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import type { EvaluationReport, MeasurementPurpose } from '../contracts'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import type { EvaluationReport, MeasurementPurpose, ReportChainEvidence } from '../contracts'
+import { getReportChainEvidence } from '../api'
 import { capabilityDimension } from '../capability'
 import { score, when } from '../format'
 import EvidenceList from './EvidenceList.vue'
 import ScoreCard from './ScoreCard.vue'
 import StatusBadge from './StatusBadge.vue'
+import ChainEvidencePanel from './ChainEvidencePanel.vue'
+import SharedAssessmentView from './SharedAssessmentView.vue'
 
 const props = defineProps<{ report: EvaluationReport; reportId: string }>()
+const chainEvidence = ref<ReportChainEvidence | null>(null)
+const chainEvidenceError = ref(false)
+const chainAbort = new AbortController()
+const sampleLinks = computed(() => Object.fromEntries(props.report.samples.map((item, index) => [item.sample.sample_id, index + 1])))
+onMounted(async () => {
+  try { chainEvidence.value = await getReportChainEvidence(props.reportId, chainAbort.signal) }
+  catch { if (!chainAbort.signal.aborted) chainEvidenceError.value = true }
+})
+onBeforeUnmount(() => chainAbort.abort())
 const isPrediction = computed(() => ['prediction-history-v1', 'prediction-history-v2'].includes(props.report.scores.policy_version ?? ''))
 const isFulfillment = computed(() => String(props.report.scores.policy_version) === 'service-fulfillment-v1')
-const isGeneric = computed(() => ['service-contract-v1', 'service-fulfillment-v1'].includes(props.report.scores.policy_version ?? ''))
+const isSwap = computed(() => ['evm-swap-builder-v1', 'evm-swap-builder-v2'].includes(String(props.report.scores.policy_version)))
+const isSwapV2 = computed(() => String(props.report.scores.policy_version) === 'evm-swap-builder-v2')
+const isGeneric = computed(() => ['service-contract-v1', 'service-fulfillment-v1', 'evm-swap-builder-v1', 'evm-swap-builder-v2'].includes(props.report.scores.policy_version ?? ''))
 const capabilities = computed(() => (props.report.capabilities ?? []).filter(item => item.operation !== '未提供可识别操作'))
 const probability = (value: number) => new Intl.NumberFormat('zh-CN', { style: 'percent', maximumFractionDigits: 6 }).format(value)
 const dimensions = computed(() => [
   { purpose: 'availability' as const, title: 'A · 服务可用性', weight: '30%', dimension: props.report.scores.availability },
   { purpose: 'functional' as const, title: 'F · 功能声明一致性', weight: '40%', dimension: props.report.scores.functional },
-  { purpose: 'behavioral' as const, title: isFulfillment.value ? 'B · 可观察服务履约' : 'B · 交易行为可靠性', weight: '30%', dimension: props.report.scores.behavioral },
+  { purpose: 'behavioral' as const, title: 'B · 交易行为可靠性', weight: '30%', dimension: props.report.scores.behavioral },
 ])
 const representatives = computed(() => {
   const indices = new Set<number>()
   for (const purpose of ['availability', 'functional', 'behavioral']) {
-    for (const predicate of [
-      (verdict: string) => verdict === 'PASS',
-      (verdict: string) => verdict === 'FAIL' || verdict === 'UNKNOWN',
-    ]) {
-      const index = props.report.samples.findIndex(item => item.sample.purpose === purpose && predicate(item.sample.verdict))
-      if (index >= 0) indices.add(index)
-    }
+    const index = ['FAIL', 'UNKNOWN', 'PASS'].map(verdict => props.report.samples.findIndex(item =>
+      item.sample.purpose === purpose && item.sample.verdict === verdict)).find(index => index >= 0)
+    if (index !== undefined) indices.add(index)
   }
   return indices
 })
@@ -58,6 +68,7 @@ const conclusion = computed(() => {
   const scores = props.report.scores
   if (isGeneric.value) {
     if (scores.status === 'COMPLETE') {
+      if (isSwap.value) return `本报告保留 ${scores.availability.observed} 项服务访问记录，功能计划 ${scores.functional.planned} 项、其中 ${scores.functional.passed + scores.functional.failed} 项可判，以及另外 ${scores.behavioral.observed} 笔真实兑换。真实交易核验 ${scores.behavioral.passed} 笔通过、${scores.behavioral.failed} 笔未通过；三维均达到本政策门槛，本次兑换范围综合分为 ${score(scores.overall)} 分。`
       return `本次范围内，${scores.functional.observed} 个不同任务的功能声明核验有 ${scores.functional.passed} 条通过、${scores.functional.failed} 条未通过；另外 ${scores.behavioral.observed} 个任务的${isFulfillment.value ? '可观察服务履约' : '真实交易履约'}核验有 ${scores.behavioral.passed} 条通过、${scores.behavioral.failed} 条未通过。三维样本充分，综合分为 ${score(scores.overall)} 分。`
     }
     const pending = dimensions.value.filter(item => item.dimension.value === null).map(item => item.title).join('、')
@@ -93,27 +104,34 @@ const conclusion = computed(() => {
 </script>
 
 <template>
-  <div class="report-content">
+  <SharedAssessmentView v-if="report.shared_assessment" :assessment="report.shared_assessment" :report="report" :report-id="reportId" :chain-evidence="chainEvidence" :chain-evidence-error="chainEvidenceError" :sample-links="sampleLinks" />
+  <div v-else class="report-content">
     <section class="report-lead panel">
-      <div class="row-between wrap"><span class="eyebrow">本次评价结论</span><span class="report-status" :class="{ complete: report.scores.status === 'COMPLETE' }">{{ report.scores.status === 'COMPLETE' ? '本范围完整评分' : report.scores.status === 'PARTIAL' ? '部分评价' : '待评价' }} · {{ report.scores.status }}</span></div>
+      <div class="row-between wrap"><span class="eyebrow">本次评价结论</span><span class="report-status" :class="{ complete: report.scores.status === 'COMPLETE' }">{{ report.scores.status === 'COMPLETE' ? '范围三维齐备' : report.scores.status === 'PARTIAL' ? '部分评价' : '待评价' }}</span></div>
       <div class="report-conclusion"><div><h2>{{ conclusion }}</h2><p class="lead-scope">{{ report.scope }}</p></div><div class="overall-block"><strong>{{ score(report.scores.overall) }}</strong><span>本报告范围综合分 S<span v-if="report.scores.overall !== null"> / 100</span></span></div></div>
-      <template v-if="isGeneric"><p v-if="capabilities.length" class="section-description">本次已识别：{{ capabilityNames }}<template v-if="capabilities.length > 3">等 {{ capabilities.length }} 项功能</template>。资料与协议发现用于确定可测范围，业务结论对应下方实际任务及独立核验。</p><p v-if="missingEvidence.length" class="section-description">当前缺项：{{ missingEvidence.slice(0, 2).join('；') }}<template v-if="missingEvidence.length > 2">。其余 {{ missingEvidence.length - 2 }} 项见各功能与报告限制。</template></p></template>
-      <p v-if="isPrediction" class="section-description">本次评价公开历史交付入口、已结算问题的预测概率，以及另一组任务的链上归属与交付。历史文件可读不表示实时推理服务可用；不同业务范围的分数不能直接排名。</p>
-      <p v-if="capabilities.length" class="section-description">本报告记录 {{ capabilities.length }} 项声明或发现的能力，其中 {{ capabilitiesWithBusinessSamples }} 项有关联功能或履约样本。结论限于已列明的任务与证据。</p>
-      <p v-else class="section-description">本报告未记录逐能力关联，已评分范围以报告说明和样本为准。</p>
-      <p v-if="isFulfillment" class="section-description">B 衡量认证服务在预定任务与时限下的可观察履约，不证明全部链上或链下行为；其语义与旧交易履约政策不同，应按同一政策及范围比较。</p>
+      <p v-if="isFulfillment" class="scope-note">这份历史查询报告的 B 分衡量查询交付，不证明 Agent 已完成资产交易。三维固定展示，实际测量口径按原政策保留。</p>
+      <p v-if="isSwap" class="scope-note">Agent 提供报价和交易方案；交易经用户授权由钱包签名执行，平台独立核验成交、资产到账和剩余授权。</p>
+      <details class="method-details"><summary>评价时间、政策与完整范围说明</summary>
+        <template v-if="isGeneric"><p v-if="capabilities.length" class="section-description">本次已识别：{{ capabilityNames }}<template v-if="capabilities.length > 3">等 {{ capabilities.length }} 项功能</template>。资料与协议发现用于确定可测范围，业务结论对应下方实际任务及独立核验。</p><p v-if="missingEvidence.length" class="section-description">当前缺项：{{ missingEvidence.slice(0, 2).join('；') }}<template v-if="missingEvidence.length > 2">。其余 {{ missingEvidence.length - 2 }} 项见各功能与报告限制。</template></p></template>
+        <p v-if="isPrediction" class="section-description">本次评价公开历史交付入口、已结算问题的预测概率，以及另一组任务的链上归属与交付。历史文件可读不表示实时推理服务可用；不同业务范围的分数不能直接排名。</p>
+        <p v-if="capabilities.length" class="section-description">本报告记录 {{ capabilities.length }} 项声明或发现的能力，其中 {{ capabilitiesWithBusinessSamples }} 项有关联功能或履约样本。结论限于已列明的任务与证据。</p>
+        <p v-else class="section-description">旧报告未记录逐能力映射，已评分范围以报告说明和样本为准。</p>
       <dl class="report-meta"><div class="full"><dt>评分政策版本</dt><dd><code>{{ report.scores.policy_version }}</code></dd></div><div><dt>样本时间范围</dt><dd>{{ report.evaluation_window }}</dd></div><div><dt>报告生成时间</dt><dd>{{ when(report.generated_at) }}</dd></div><div class="full"><dt>评价方式</dt><dd>{{ report.approach }}</dd></div></dl>
+      </details>
     </section>
 
     <section class="score-grid" aria-label="三维评价分数">
       <ScoreCard v-for="item in dimensions" :key="item.purpose" :title="item.title" :weight="item.weight" :dimension="item.dimension" />
     </section>
 
-    <section v-if="isGeneric || capabilities.length" class="panel">
-      <div class="section-heading"><div><p class="eyebrow">按功能查看已测范围</p><h2>发现了什么，哪些已有业务证据</h2></div></div>
+    <ChainEvidencePanel v-if="chainEvidence" :actions="chainEvidence.actions" :summary="chainEvidence.summary" :limitations="chainEvidence.limitations" :report-id="reportId" :sample-links="sampleLinks" />
+    <p v-else-if="chainEvidenceError" class="muted small" role="status">链上操作视图暂时无法读取，逐条样本与原始证据仍在下方保留。</p>
+
+    <details v-if="isGeneric || capabilities.length" class="panel report-secondary">
+      <summary class="section-heading"><h2>本报告已测功能与证据</h2><span>{{ capabilities.length }} 项已记录条目</span></summary>
       <p class="section-description">功能声明、协议发现和实际业务结果分别记录。F 需要适用的独立业务判据；B 依照本报告政策核验履约。下列能力只在该维度全部样本明确关联时展示对应分数；服务入口采样未关联具体能力时，A 仅在报告范围内展示。</p>
       <p v-if="!capabilities.length" class="empty-inline">本轮尚无可列明的功能范围；资料来源与缺项见报告限制。</p>
-      <details v-for="capability in capabilityCoverage" :key="capability.capability_id" class="capability-item" :open="capability.functional > 0 || capability.behavioral > 0">
+      <details v-for="capability in capabilityCoverage" :key="capability.capability_id" class="capability-item">
         <summary class="sample-group-heading wrap"><h3>{{ capability.operation }}</h3><span>{{ capability.samples.length }} 条关联样本</span><span class="report-status">{{ capability.functional || capability.behavioral ? '有关联业务样本' : '尚无业务样本' }}</span></summary>
         <div class="capability-body">
         <p class="section-description multiline">{{ capability.description }}</p>
@@ -128,26 +146,28 @@ const conclusion = computed(() => {
         <h4>仍缺哪些证据</h4><ul v-if="capability.missing_evidence.length"><li v-for="(missing, index) in capability.missing_evidence" :key="index" class="multiline">{{ missing }}</li></ul><p v-else class="empty-inline">本项未另列证据缺口，结论限于上方已测范围。</p>
         </div>
       </details>
-    </section>
+    </details>
 
-    <section class="panel method-panel">
-      <h2 class="section-title">这几个分数怎样理解</h2>
+    <details class="panel method-panel report-secondary">
+      <summary><h2 class="section-title">评分算法、门槛与判据</h2></summary>
       <div class="method-grid">
-        <div><h3>{{ isPrediction ? '历史交付入口是否能读' : '接口是否能用' }}</h3><p v-if="isPrediction">可用性检查已选历史交付文件是否按约定完整返回、任务号与摘要是否匹配，衡量本次线路的公开历史读取体验，不是实时预测或推理服务的可用率。</p><p v-else-if="isGeneric">可用性检查本次明确列明的声明服务入口及只读调用，核对协议结果、业务响应与延迟。仅发现接口或读取元数据，不代表已完成业务可用性采样。</p><p v-else>可用性检查公开记录入口是否按约定响应。</p><p>得分由 80% 成功率和 20% 延迟表现组成。</p><p class="latency-note">成功响应 p95：{{ report.scores.availability.p95_ms === null ? '尚无数据' : report.scores.availability.p95_ms.toFixed(2) + ' 毫秒' }}</p><p>p95 表示至少 95% 的成功请求在这个耗时内完成。这是本机经指定代理线路的访问体验，包含网络和代理耗时。</p></div>
+        <div><h3>{{ isPrediction ? '历史交付入口是否能读' : '接口是否能用' }}</h3><p v-if="isPrediction">可用性检查已选历史交付文件是否按约定完整返回、任务号与摘要是否匹配，衡量本次线路的公开历史读取体验，不是实时预测或推理服务的可用率。</p><p v-else-if="isSwap">可用性检查 10 次独立付费兑换方案请求是否完整返回有效方案；只计正式业务请求发送到完整响应的耗时，不含付款挑战、签名和平台准备。</p><p v-else-if="isGeneric">可用性检查本次明确列明的声明服务入口及只读调用，核对协议结果、业务响应与延迟。仅发现接口或读取元数据，不代表已完成业务可用性采样。</p><p v-else>可用性检查公开记录入口是否按约定响应。</p><p>得分由 80% 成功率和 20% 延迟表现组成。</p><p class="latency-note">成功响应 p95：{{ report.scores.availability.p95_ms === null ? '尚无数据' : report.scores.availability.p95_ms.toFixed(2) + ' 毫秒' }}</p><p>p95 表示至少 95% 的成功请求在这个耗时内完成。这是本机经指定代理线路的访问体验，包含网络和代理耗时。</p></div>
         <div v-if="isPrediction"><h3>概率是否支持最终结算结果</h3><p>功能维度使用 7 个不同问题，将原始预测的“是/否”概率与最终二元结算对应。先核对原始题干、选项顺序、内容来源与时间，再评价概率。</p><p>每题按 Brier 概率信用计分，功能分取 7 题平均。确定且符合结算结果为 100，确定且相反为 0；50/50 的中性预测为 75。这个分数不是预测准确率，也不代表收益。</p></div>
+        <div v-else-if="isSwap"><h3>兑换方案是否符合用户要求</h3><p>功能计划 {{ report.scores.functional.planned }} 个独立任务，核对代币、整数金额、收款人、滑点、最低到账与精确授权，再在固定区块独立模拟完整交易。</p><p v-if="isSwapV2">保留全部计划与结果；至少 7 项可判且可判比例达到 80% 才出分。当前 {{ report.scores.functional.passed + report.scores.functional.failed }}/{{ report.scores.functional.planned }} 项可判，无法判断的记录另列。</p><p>实际交易数据和模拟结果均须符合请求；不会仅凭返回格式正确就判通过。报价与后来市场变化的差值会列明，不用涨跌或收益给分。</p></div>
         <div v-else-if="isGeneric"><h3>实际调用是否兑现了所测声明</h3><p>功能维度使用 7 个不同任务，核对声明的操作、实际输入输出绑定、约定格式和明确限制；需要业务正确性判据时，用独立证据核验结果。</p><p>只有格式符合约定，不能判定整个业务功能通过；缺少必要判据时保留无法判断。评价范围按各功能及任务列明。</p></div>
         <div v-else><h3>公布的结果是否准确</h3><p>功能维度核对历史增仓公布的资产用量和执行后流动性。用固定区块状态与事件顺序独立复算，精确比较实际结果。</p><p>这次评价的是这些具体披露，不涵盖全部策略能力。</p></div>
         <div v-if="isPrediction"><h3>交付能否归属于这个 Agent</h3><p>行为维度使用另外 7 个不同问题，核对真实请求和交付交易、链上事件、任务号、内容摘要，以及任务当时的执行控制权。</p><p>请求者、优先接单者、实际交付者与服务钱包分别核实；接手其他服务的请求时，还要满足交付窗口与授权。成功回执本身不能证明完整履约。</p></div>
+        <div v-else-if="isSwap"><h3>真实兑换是否按方案完成</h3><p>行为维度使用另外 7 个独立真实兑换任务，逐笔核对原方案、签名执行账户、调用参数、成功回执、官方交易池及同笔资产转移。</p><p>本金扣减、实际到账、网络费与剩余授权分别核实。一笔交易中的授权和兑换是两个动作，仍只计一个任务。</p></div>
         <div v-else-if="isFulfillment"><h3>另外一组查询任务是否按约履行</h3><p>行为维度使用与 F 互斥的另外 7 个真实任务，核对认证端点、请求标识与任务对象绑定、完整业务交付及调用前冻结的时限。</p><p>B 不重复检验业务事实真值，不以 HTTP 成功或 Agent 自报完成判 PASS。归责明确的违约记 FAIL；无法归责的网络或平台故障为 UNKNOWN。同步 Message 仅证明实际保留的请求与交付，不冒充 A2A Task 状态历史。</p></div>
         <div v-else-if="isGeneric"><h3>另外一组任务是否真实履约</h3><p>行为维度使用另外 7 个不同任务，核验任务与链实例、执行者、调用目标和参数、回执、事件及确认状态的完整对应。</p><p>执行归属需独立证据；注册持有人或收款地址不自动等于执行者。成功回执本身不足以证明任务完成，只读功能不虚构执行交易。</p></div>
         <div v-else><h3>公开操作是否可靠完成</h3><p>行为维度使用另一组互不重复的运行记录，逐笔核验包装原生币、兑换和最终增仓的完整公开步骤。</p><p>每笔都要核对身份、目标、资产流向、调用限制与链上结果。</p></div>
       </div>
       <details class="method-details"><summary>查看计分门槛与无法判断的处理方式</summary><p>可用性须保留全部 10 个槽位且至少有 8 个确定结论；功能与行为分别保留 7 个任务且各有 7 个确定结论。</p><template v-if="isPrediction"><p>每题概率信用 = 100 × [1 −（p_yes − y）²]，最终结算为 Yes 时 y=1、No 时 y=0；功能分是七题信用的平均值。PASS 表示分给最终结果的概率至少为 50%，包括中性预测；低于 50% 为方向未通过，但仍保留实际连续分。已证实违反输出格式的样本为 FAIL、信用 0；缺少可信内容或独立判据为 UNKNOWN，不补成 0。</p><p>行为分仍为通过数 ÷ 确定结论数 × 100。同一市场只取一份交付，功能与行为问题互不重复；结算指所绑定链上市场的最终结果，不冒充对全部现实事实的保证。</p></template><p v-else>功能、行为得分 = 通过数 ÷ 确定结论数 × 100。</p><p>UNKNOWN（无法判断）与不适用单独展示，不记失败、不进入分母；它们仍占原定槽位，不会被删掉以凑齐样本。三维齐全后按 30% / 40% / 30% 加权。</p><p>成功响应 p95 不超过 1000 毫秒时，延迟项满分；达到 10000 毫秒为零，中间线性计算。样本按耗时排序取最近秩。缺少维度不会补零，也不重新分配权重。</p></details>
-    </section>
+    </details>
 
     <section class="panel samples-panel">
       <div class="section-heading"><div><p class="eyebrow">从结论回到事实</p><h2>每条样本实际发生了什么</h2></div><span class="muted small">共 {{ report.samples.length }} 条核验记录</span></div>
-      <p class="section-description">查看真实输入、服务公布的结果，以及独立核验的发现。缺少原件的计划槽位仍会保留并说明缺项，不代表已测得结果。每个维度的首个通过样本，以及已记录的首个未通过或无法判断样本默认展开。</p>
+      <p class="section-description">每个维度默认展开一条代表样本，优先展示未通过或无法判断的发现。展开其他样本可查看全部输入、结果与独立证据。</p>
       <section v-for="group in dimensions" :key="group.purpose" class="sample-group">
         <div class="sample-group-heading"><h3>{{ group.title }}</h3><span>{{ samplesFor(group.purpose).length }} 条核验记录</span></div>
         <p v-if="!samplesFor(group.purpose).length" class="empty-inline">本维度尚无实际评价样本。</p>
@@ -171,6 +191,6 @@ const conclusion = computed(() => {
       </section>
     </section>
 
-    <section class="panel boundaries-panel"><h2 class="section-title">哪些内容还不在这份结论里</h2><div class="boundary-grid"><section><h3>本次未覆盖</h3><ul v-if="report.scope_exclusions.length"><li v-for="(item, index) in report.scope_exclusions" :key="index">{{ item }}</li></ul><p v-else class="muted">报告未另列范围之外的项目。</p></section><section><h3>本轮限制与待补项</h3><ul v-if="report.limitations.length"><li v-for="(item, index) in report.limitations" :key="index">{{ item }}</li></ul><p v-else class="muted">报告未另列限制。</p></section></div><details class="technical"><summary>资料来源与背景证据</summary><EvidenceList :sources="report.source_references" :report-id="reportId" /><p class="muted small">政策：{{ report.scores.policy_version }} · 格式：{{ report.schema_version }}</p></details></section>
+    <details class="panel boundaries-panel report-secondary"><summary><h2 class="section-title">未覆盖内容、限制与资料来源</h2></summary><div class="boundary-grid"><section><h3>本次未覆盖</h3><ul v-if="report.scope_exclusions.length"><li v-for="(item, index) in report.scope_exclusions" :key="index">{{ item }}</li></ul><p v-else class="muted">报告未另列范围之外的项目。</p></section><section><h3>本轮限制与待补项</h3><ul v-if="report.limitations.length"><li v-for="(item, index) in report.limitations" :key="index">{{ item }}</li></ul><p v-else class="muted">报告未另列限制。</p></section></div><details class="technical"><summary>资料来源与背景证据</summary><EvidenceList :sources="report.source_references" :report-id="reportId" /><p class="muted small">政策：{{ report.scores.policy_version }} · 格式：{{ report.schema_version }}</p></details></details>
   </div>
 </template>

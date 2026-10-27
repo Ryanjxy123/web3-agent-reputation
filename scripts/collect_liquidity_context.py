@@ -21,6 +21,7 @@ OWNER_OF = "0x6352211e"
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--profile", type=Path, required=True, help="Explicit operator-owned profile under configs/pilots")
     parser.add_argument("--history-run", type=Path, required=True)
     parser.add_argument("--transaction-runs", nargs="+", type=Path, required=True)
     parser.add_argument("--execute-public-readonly", action="store_true")
@@ -29,8 +30,8 @@ def main() -> int:
     args = parser.parse_args()
     if args.execute_public_readonly and not args.proxy:
         parser.error("Execution requires explicit --proxy")
-    baseline, cache = prepare(args.history_run, None, args.transaction_runs)
-    config = json.loads((ROOT / "configs/pilots/brain-defi-liquidity-v1.json").read_bytes())
+    baseline, cache = prepare(args.history_run, None, args.transaction_runs, args.profile)
+    config = json.loads((ROOT / args.profile).read_bytes())
     specs = [request_spec("chain-id", "eth_chainId", []),
              request_spec("registration-transaction", "eth_getTransactionByHash", [config["registration_tx_hash"]]),
              request_spec("registration-receipt", "eth_getTransactionReceipt", [config["registration_tx_hash"]])]
