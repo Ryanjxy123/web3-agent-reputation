@@ -10,6 +10,8 @@
 
 2026-10-27新增MangoSwap #26345的完整ERC20兑换能力范围分：**A95.67 / F100 / B100 / 综合98.70**。功能计划14项中12项可判、2项UNKNOWN保留；行为维度为7笔Base真实兑换。提供方构造方案，买方钱包依据用户授权签名，平台独立核验资产、授权和交易结果。用户批准后先冻结v2补采政策，再采集剩余4项，两个旧PARTIAL版本保留。见[实验、费用与易懂样本解读](docs/runbooks/MANGOSWAP_EVALUATION_20261027.md)；本机可直接[打开报告](http://127.0.0.1:7754/?agent=mangoswap-26345)。
 
+该结果是有限兑换范围的阶段性评价。2026-10-27[五类证据与三维评分审查](docs/research/SCORING_EVIDENCE_AUDIT_20261027.md)确认部分声明及长期表现尚未验证。新的[共享任务与声明覆盖评分设计](docs/adr/0025-shared-task-declaration-scoring.md)允许同一次任务分别支持三维，并要求覆盖该身份全部实质功能才发布Agent完整评价；[MangoSwap声明矩阵](docs/research/MANGOSWAP_DECLARATION_MATRIX_20261027.md)还列出了未验证的限价、定时/周期、撤单及条件免gas。新设计尚未接入网站或重算旧分；现有13个不同身份的完整范围分不能直接解释为13个Agent的全部声明都已评价完整。
+
 ## 环境准备
 
 | 工具 | 本项目使用的版本 |

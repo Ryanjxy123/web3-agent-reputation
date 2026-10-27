@@ -1,6 +1,18 @@
 # 新项目当前状态
 
-## 2026-10-27 当前：MangoSwap完整兑换能力评分已交付
+## 2026-10-27 当前：共享证据评分设计已交付
+
+task_id=`ALIGN_SHARED_TASK_SCORING_MODEL`设计完成：[ADR-0025](docs/adr/0025-shared-task-declaration-scoring.md)、[声明及实验矩阵](docs/research/MANGOSWAP_DECLARATION_MATRIX_20261027.md)。一任务三维分别取证，声明/案例分层；未决范围与真实结局分开，已知保护退出不伪装UNKNOWN或成交成功；未测功能阻止Agent完整综合分。维度30/40/30与等权基线均说明价值依据，取消用7次/80%替代完整声明覆盖。旧报告13个不同身份的范围分保留，不能直接说13个Agent全部声明已完整评价。
+
+新查MangoSwap官网限价/定时/周期/订单管理及免gas条件；Base V4代码存在、四getter可读，写入/keeper/周期均未证实。新增9外部只读；0付款、0签名、0写入；未重跑旧七笔或工程测试，文档格式检查exit0。源网页/只读原件在runtime，未公开打包。现有网站、代码、共享Schema、数据库、政策和历史分数保持；设计还未实现/新采样/新出分。当前任务分支保存文档、未push/PR，docs/presentation/原样保留。下一task_id=`IMPLEMENT_SHARED_TASK_SCORING_AND_CLAIM_COVERAGE`，补证资金授权已续，但仅为明确缺口开展必要实验。
+
+## 2026-10-27 已完成：三维评分方法审查
+
+task_id=`SCORING_EVIDENCE_REVIEW_20261027`已完成事实核查：[审查文档](docs/research/SCORING_EVIDENCE_AUDIT_20261027.md)。五类资料均有采集，身份与接口关联仍PROVIDER_DECLARED；仅测试Base USDC/WETH兑换，七笔真实交易主要为本平台受控实验，不能外推长期整体声誉。当前全局task_key排他使F/B的业务访问证据未用于A，后续模型应允许同任务按三维分别判定、在维度内去重。UNKNOWN需记录原因及可用性观测，不无依据归责。
+
+现有v1/v2、已发布报告、分数和运行网站均未修改；金融进程保持停止。本轮仅文档更新，未运行测试/联网/付费，文档待提交，b95e0b1未push，无关docs/presentation/保留。下一task_id=`ALIGN_SHARED_TASK_SCORING_MODEL`，具体新公式、阈值和实现尚未冻结或验收。
+
+## 2026-10-27 已交付：MangoSwap兑换能力范围报告
 
 task_id=`SWAP_V2_FOUR_TASK_SUPPLEMENT_20261027`已完成。用户明确批准补采政策后，先冻结ADR-0024、v2配置与master（SHA `c72610e2da3224b513f47121d563e2f707a072b56aeab2c465ba42081a49201c`，2026-10-27 04:20:39UTC），再串行执行4个既定功能请求；首请求04:23:49UTC，4个全部完成，无新增本金兑换。金融操作已结束，不因余额或No Policy自动继续交易；禁止发币、身份铸造及改权限/委托均保持。
 
