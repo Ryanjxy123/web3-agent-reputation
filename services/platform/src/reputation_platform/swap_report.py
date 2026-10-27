@@ -12,16 +12,18 @@ from reputation_core import CapabilityCoverage, MeasurementPurpose, ReportFindin
 from reputation_core.application import normalize_reference
 from reputation_core.prediction_chain import calldata
 from reputation_core.reporting import EvaluationReport
-from reputation_core.scoring import SWAP_POLICY_VERSION
+from reputation_core.scoring import SWAP_EVIDENCE_POLICY_VERSION, SWAP_POLICY_VERSION, SWAP_POLICY_VERSIONS
 from reputation_core.swap import (SwapRequest, SwapVerification, address, integer, plan_facts,
                                   verify_swap_execution, verify_swap_function)
 from reputation_platform.prediction_report import RetainedEvidence
 from reputation_platform.evaluation_report import render_evaluation_report
 
 PLAN = 'configs/swap-task-plan-v1.json'
+EXPANDED_PLAN = 'configs/swap-task-plan-v2.json'
 PROTOCOLS = 'configs/swap-protocols-v1.json'
 ADR = 'docs/adr/0022-evm-swap-builder-scoring.md'
 REASSESSMENT_ADR = 'docs/adr/0023-swap-dimension-reassessment.md'
+EXPANDED_ADR = 'docs/adr/0024-swap-evidence-coverage-v2.md'
 ORIGIN = 'swap-report-origin.json'
 CHECKER = 'evm.uniswap-v3-exact-input-single'
 CAPABILITY = 'erc20-swap-builder'
@@ -126,6 +128,8 @@ def _campaign_times(evidence, campaign, visited=()):
     for item in campaign.get('inputs', []):
         _check(evidence.hashes.get(item['path']) == item['sha256'], 'Frozen campaign dependency changed')
         evidence.raw(item['path'])
+    if campaign['policy_version'] == SWAP_EVIDENCE_POLICY_VERSION:
+        return _union_campaign_times(evidence, campaign, visited)
     _check(campaign['policy_version'] == SWAP_POLICY_VERSION and campaign.get('preregistered') is True,
            'Campaign was not preregistered under the supported policy')
     plan = evidence.json(PLAN)
@@ -166,7 +170,77 @@ def _campaign_times(evidence, campaign, visited=()):
     return times
 
 
+def _union_campaign_times(evidence, campaign, visited):
+    """Bind whole source groups; aliases never replace the original tasks."""
+    _check(campaign.get('schema_version') == 'swap-campaign-v2' and campaign.get('preregistered') is True,
+           'Expanded campaign was not preregistered')
+    dependency_names = {item['path'] for item in campaign['inputs']}
+    _check({EXPANDED_PLAN, EXPANDED_ADR, PROTOCOLS}.issubset(dependency_names),
+           'Expanded campaign did not freeze its v2 policy inputs')
+    plan = evidence.json(EXPANDED_PLAN)
+    evidence.raw(EXPANDED_ADR)
+    _check(plan['policy_version'] == campaign['policy_version'], 'Expanded plan policy differs')
+    union = campaign['aggregation']
+    _check(union['kind'] == plan['aggregation_kind'] and union['policy_note'] == EXPANDED_ADR,
+           'Unsupported source aggregation')
+    parents = union['parents']
+    names = [item['path'] for item in parents]
+    _check(len(names) >= 2 and len(set(names)) == len(names), 'Source aggregation needs distinct complete parent windows')
+    sources, parent_times = {}, {}
+    created = datetime.fromisoformat(campaign['created_at'])
+    previous_time = None
+    for index, entry in enumerate(parents):
+        name = entry['path']
+        _check(name not in visited and evidence.hashes.get(name) == entry['sha256'],
+               'Expanded campaign parent changed or contains a cycle')
+        parent = evidence.json(name)
+        _check(parent['policy_version'] == SWAP_POLICY_VERSION, 'Whole source groups require original v1 windows')
+        for key in ('candidate_key', 'registration_reference', 'identity', 'execution_chain_id', 'buyer'):
+            _check(parent[key] == campaign[key], 'Source union changed identity or execution scope')
+        frozen = datetime.fromisoformat(parent['created_at'])
+        _check(created > frozen and (previous_time is None or frozen > previous_time),
+               'Source windows must precede their union in chronological order')
+        if index:
+            _check(parent.get('reassessment', {}).get('parent_campaign') == names[index - 1]
+                   and 'functional' in parent['reassessment']['renewed_purposes'],
+                   'Functional union must retain complete successive independent windows')
+        previous_time = frozen
+        sources[name] = parent
+        parent_times[name] = _campaign_times(evidence, parent, (*visited, name))
+    _check(union['availability_source'] == names[-1] and union['functional_sources'] == names
+           and union['behavioral_source'] == names[0],
+           'Source selection must keep latest A, every F window and original B')
+    expected, times = [], {}
+    for purpose, source_names, prefix in (
+            ('availability', [names[-1]], 'A'), ('functional', names, 'F'), ('behavioral', [names[0]], 'B')):
+        number = 0
+        for name in source_names:
+            for original in sources[name]['slots']:
+                if original['purpose'] != purpose:
+                    continue
+                number += 1
+                slot_name = f'{prefix}{number:02d}'
+                expected.append({**original, 'slot': slot_name, 'source_campaign': name,
+                                 'source_slot': original['slot']})
+                times[slot_name] = parent_times[name][original['slot']]
+    _check(campaign['slots'] == expected, 'Source union must retain every original group field and task without selection')
+    pending = union['pending_request_ids']
+    _check(len(set(pending)) == len(pending), 'Pending request identifiers repeat')
+    latest_functional = {item['request_id'] for item in expected
+                         if item['purpose'] == 'functional' and item['source_campaign'] == names[-1]}
+    _check(set(pending).issubset(latest_functional), 'Pending requests must belong to the complete latest functional group')
+    for slot in expected:
+        if slot['request_id'] in pending:
+            times[slot['slot']] = created
+    return times
+
+
 def _approach(campaign):
+    if campaign['policy_version'] == SWAP_EVIDENCE_POLICY_VERSION:
+        count = sum(item['purpose'] == 'functional' for item in campaign['slots'])
+        return (f'A沿用最新完整10槽，F合并已冻结来源的全部{count}槽，B沿用最初完整7槽；'
+                'FAIL、UNKNOWN与未执行槽全部保留。F至少7个确定结果且覆盖率至少80%才出分；'
+                '待补任务在v2冻结后执行，历史任务保留各自原时间窗口。提供方构造，操作者签名。')
     refresh = campaign.get('reassessment')
     if not refresh:
         return APPROACH
@@ -366,15 +440,14 @@ def _execution_diagnostics(result, records, request, proof):
 
 def _replay(evidence, origin):
     campaign = evidence.json(origin['campaign'])
-    plan = evidence.json(PLAN)
+    policy = campaign['policy_version']
+    plan = evidence.json(EXPANDED_PLAN if policy == SWAP_EVIDENCE_POLICY_VERSION else PLAN)
     protocols = evidence.json(PROTOCOLS)
     evidence.raw(ADR)
     evidence.raw(REASSESSMENT_ADR)
-    _check(campaign['policy_version'] == origin['policy_version'] == SWAP_POLICY_VERSION,
+    _check(policy == origin['policy_version'] and policy in SWAP_POLICY_VERSIONS,
            'Frozen campaign policy differs')
     slots = campaign['slots']
-    _check([(item['slot'], item['purpose']) for item in slots] == [(item['slot'], item['purpose']) for item in plan['slots']],
-           'Frozen campaign does not retain the 24 planned slots')
     ids = [item['request_id'] for item in slots]
     _check(len(set(ids)) == len(ids) and all(item['task_key'] == item['request_id'] for item in slots), 'Task purposes are not disjoint')
     freeze_times = _campaign_times(evidence, campaign)
@@ -486,7 +559,7 @@ def _replay(evidence, origin):
             if slot['purpose'] == 'availability':
                 a_times.append(observed)
         purpose = MeasurementPurpose(slot['purpose'])
-        sample = ScoredSample(sample_id=f"{SWAP_POLICY_VERSION}:{slot['slot']}:{data['request_id']}",
+        sample = ScoredSample(sample_id=f"{policy}:{slot['slot']}:{data['request_id']}",
             task_key=data['request_id'], purpose=purpose, verdict=result.verdict,
             elapsed_ms=elapsed if purpose == MeasurementPurpose.AVAILABILITY else None,
             reason=result.reason, evidence=list(dict.fromkeys(sources)))
@@ -523,7 +596,7 @@ def _replay(evidence, origin):
                for earlier, later in zip(a_times, a_times[1:])), 'Availability requests did not preserve the frozen interval')
     missing = ['仅覆盖ERC20兑换方案及其本人授权执行；批量支付、其它协议、策略收益和ACP六项服务不由本报告外推。',
                '提供方与注册身份的端点关联来自公开卡显式声明及匹配链上owner；未取得tokenURI对应IPFS内容，不称其已认证。']
-    if campaign.get('reassessment'):
+    if campaign.get('reassessment') or campaign.get('aggregation'):
         missing.append(_approach(campaign) + '原PARTIAL报告保留，不声称全部样本同时新执行。')
     coverage = CapabilityCoverage(capability_id=CAPABILITY, operation='ERC20兑换方案与真实兑换履约',
         description='接收资产、金额和滑点，构造授权及兑换calldata；操作者自行签名，独立核验真实链上结果。',
@@ -540,7 +613,7 @@ def verify_swap_report_sources(root, report, hashes):
     evidence = SwapEvidence(root, hashes)
     origin = evidence.json(origins[0])
     campaign, identity, samples, coverage, limitations, _ = _replay(evidence, origin)
-    _check(report.policy_version == SWAP_POLICY_VERSION and report.registration_reference == identity['canonical']
+    _check(report.policy_version == campaign['policy_version'] and report.registration_reference == identity['canonical']
            and report.candidate_key == campaign['candidate_key'] and report.name == campaign['identity']['name'],
            'Report identity differs from its verified sources')
     _check(report.scope == SCOPE and report.scope_exclusions == EXCLUSIONS and report.approach == _approach(campaign)
@@ -581,11 +654,13 @@ def export_swap_campaign(root: Path, campaign_file: Path, directory: Path) -> Pa
             stream.write(source.read_bytes())
         return remember(target)
 
-    for name in (PLAN, PROTOCOLS, ADR, REASSESSMENT_ADR):
-        remember(root / name)
     campaign = json.loads(campaign_file.read_bytes())
-    _check(campaign.get('schema_version') == 'swap-campaign-v1' and campaign['policy_version'] == SWAP_POLICY_VERSION,
+    expanded = campaign.get('policy_version') == SWAP_EVIDENCE_POLICY_VERSION
+    _check(campaign.get('schema_version') == ('swap-campaign-v2' if expanded else 'swap-campaign-v1')
+           and campaign['policy_version'] in SWAP_POLICY_VERSIONS,
            'Expected a pre-frozen swap campaign')
+    for name in (PLAN, PROTOCOLS, ADR, REASSESSMENT_ADR, *((EXPANDED_PLAN, EXPANDED_ADR) if expanded else ())):
+        remember(root / name)
     _check('candidate_key' in campaign, 'Frozen campaign needs a stable candidate key')
     campaign_name = copy(campaign_file, 'campaign.json')
 
@@ -602,6 +677,12 @@ def export_swap_campaign(root: Path, campaign_file: Path, directory: Path) -> Pa
             _check(_sha(parent.read_bytes()) == refresh['parent_campaign_sha256'], 'Reassessment parent changed before export')
             remember(parent)
             campaign_dependencies(json.loads(parent.read_bytes()), (*seen, refresh['parent_campaign']))
+        for entry in value.get('aggregation', {}).get('parents', []):
+            _check(entry['path'] not in seen, 'Cyclic source aggregation parent')
+            parent = root / entry['path']
+            _check(_sha(parent.read_bytes()) == entry['sha256'], 'Source aggregation parent changed before export')
+            remember(parent)
+            campaign_dependencies(json.loads(parent.read_bytes()), (*seen, entry['path']))
 
     campaign_dependencies(campaign)
     identity_name = campaign['identity']['source_summary']
@@ -730,11 +811,13 @@ def export_swap_campaign(root: Path, campaign_file: Path, directory: Path) -> Pa
                 if original_plan.is_file():
                     item['rpc_sources'].append(copy(original_plan, sub + '/' + original_plan.name))
         items.append(item)
-    origin = {'schema_version': 'evm-swap-report-origin-v1', 'policy_version': SWAP_POLICY_VERSION,
+    origin = {'schema_version': 'evm-swap-report-origin-v2' if expanded else 'evm-swap-report-origin-v1',
+              'policy_version': campaign['policy_version'],
               'campaign': campaign_name, 'identity_summary': identity_name, 'tasks': items}
     save(ORIGIN, origin)
     _write(directory / 'manifest.json', {'schema_version': 'evaluation-input-manifest-v1',
-        'implementation_note': {'path': REASSESSMENT_ADR, 'sha256': inputs[REASSESSMENT_ADR]},
+        'implementation_note': {'path': EXPANDED_ADR if expanded else REASSESSMENT_ADR,
+                                'sha256': inputs[EXPANDED_ADR if expanded else REASSESSMENT_ADR]},
         'inputs': [{'path': name, 'sha256': digest} for name, digest in sorted(inputs.items())]})
     return directory
 
@@ -747,7 +830,7 @@ def build_swap_report(root: Path, directory: Path) -> EvaluationReport:
     origin_name = (directory / ORIGIN).relative_to(root).as_posix()
     origin = evidence.json(origin_name)
     campaign, identity, samples, coverage, limitations, times = _replay(evidence, origin)
-    report = EvaluationReport(policy_version=SWAP_POLICY_VERSION, candidate_key=campaign['candidate_key'],
+    report = EvaluationReport(policy_version=campaign['policy_version'], candidate_key=campaign['candidate_key'],
         name=campaign['identity']['name'], registration_reference=identity['canonical'],
         generated_at=datetime.now(timezone.utc),
         scope=SCOPE,

@@ -19,7 +19,7 @@ from reputation_core.application import AgentDetail, AgentSummary, EvaluationJob
 from reputation_core.chain_review import AgentChainEvidence
 from reputation_core.chain_view import ReportChainEvidence
 from reputation_core.reporting import EvaluationReport
-from reputation_core.scoring import SERVICE_POLICY_VERSIONS, SWAP_POLICY_VERSION, ScoringOutcome
+from reputation_core.scoring import SERVICE_POLICY_VERSIONS, SWAP_POLICY_VERSIONS, ScoringOutcome
 from reputation_platform.settings import PROJECT_ROOT
 from reputation_platform.runtime_status import HEARTBEAT_MAX_AGE_SECONDS, RuntimeStatus, worker_status
 
@@ -159,7 +159,7 @@ class Repository:
         _, hashes = self._manifest(directory)
         report_path = self._runtime_file(directory / "report.json")
         report = _validated_report(json.loads(report_path.read_bytes()))
-        if report.policy_version == SWAP_POLICY_VERSION:
+        if report.policy_version in SWAP_POLICY_VERSIONS:
             from reputation_platform.swap_report import verify_swap_report_sources
 
             registration_reference = verify_swap_report_sources(self.root, report, hashes)

@@ -146,8 +146,9 @@ def render_evaluation_report(report: EvaluationReport) -> str:
     failed = sum(score.failed for score in dimensions.values())
     prediction = report.policy_version in ('prediction-history-v1', 'prediction-history-v2')
     fulfillment = report.policy_version == 'service-fulfillment-v1'
-    swap = report.policy_version == 'evm-swap-builder-v1'
-    generic = report.policy_version in ('service-contract-v1', 'service-fulfillment-v1', 'evm-swap-builder-v1')
+    swap = report.policy_version in ('evm-swap-builder-v1', 'evm-swap-builder-v2')
+    swap_v2 = report.policy_version == 'evm-swap-builder-v2'
+    generic = report.policy_version in ('service-contract-v1', 'service-fulfillment-v1', 'evm-swap-builder-v1', 'evm-swap-builder-v2')
     behavior_label = '可观察服务履约' if fulfillment else '交易行为可靠性'
     coverage_intro = ""
     if scores.status == "COMPLETE":
@@ -162,7 +163,8 @@ def render_evaluation_report(report: EvaluationReport) -> str:
             finding += (f'另 {scores.behavioral.observed} 个任务的履约核验包含链上归属与约定输出，'
                         f'{scores.behavioral.passed} 项通过、{scores.behavioral.failed} 项未通过；具体输出差异与链上发现见逐条结果。')
         elif swap:
-            finding = (f'本次检查 {scores.availability.observed} 次兑换方案请求、{scores.functional.observed} 个独立功能任务，'
+            finding = (f'本报告保留 {scores.availability.observed} 项服务访问记录，功能计划 {scores.functional.planned} 项、'
+                       f'其中 {scores.functional.passed + scores.functional.failed} 项可判，'
                        f'以及另外 {scores.behavioral.observed} 笔真实兑换；真实交易核验 '
                        f'{scores.behavioral.passed} 笔通过、{scores.behavioral.failed} 笔未通过。'
                        'Agent 提供方案，授权钱包签名执行，平台独立核验资产和授权结果。')
@@ -221,6 +223,12 @@ def render_evaluation_report(report: EvaluationReport) -> str:
     if swap:
         functional_method = '使用七个独立兑换任务，核对代币、整数金额、收款人、滑点、最低到账及精确授权，并在同一区块独立模拟完整交易。'
         functional_threshold = '完整任务全部满足才通过；缺必要证据为无法判断。通过数除以确定结论数计分，七个确定结论才出功能分。'
+        if swap_v2:
+            functional_method = (f'本政策保留功能计划的全部{scores.functional.planned}项任务，逐项核对代币、整数金额、收款人、'
+                                 '滑点、最低到账及精确授权，并在固定区块独立模拟完整交易。历史任务与前瞻补采的时间分别列明。')
+            functional_threshold = (f'至少7项可判且可判比例达到80%才出分。当前{scores.functional.passed + scores.functional.failed}/'
+                                    f'{scores.functional.planned}项可判，UNKNOWN不算成功或失败，但仍占计划覆盖分母。'
+                                    '功能分为全部确定结论中的通过率，FAIL同样保留。')
         behavioral_method = '使用另外七个独立真实兑换任务，从冻结方案、签名执行账户和调用参数追到真实成功回执、官方交易池与同笔资产流。本金、实际到账、费用及剩余授权分别核实。'
         behavioral_threshold = '一笔交易中的授权和兑换是两个动作，仍计一个任务。完整履约证据与确认条件充分才通过；七个确定结论才出行为分。'
         availability_intro = f'本次保留十个独立付费兑换方案请求，已有 {scores.availability.observed} 个观察。只计正式业务请求发送到完整响应的耗时，不含付款挑战、签名或平台准备。'

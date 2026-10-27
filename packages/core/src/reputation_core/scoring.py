@@ -16,7 +16,9 @@ SERVICE_CONTRACT_POLICY_VERSION = "service-contract-v1"
 SERVICE_FULFILLMENT_POLICY_VERSION = "service-fulfillment-v1"
 SERVICE_POLICY_VERSIONS = (SERVICE_CONTRACT_POLICY_VERSION, SERVICE_FULFILLMENT_POLICY_VERSION)
 SWAP_POLICY_VERSION = "evm-swap-builder-v1"
-PolicyVersion = Literal["liquidity-history-v1", "prediction-history-v1", "prediction-history-v2", "service-contract-v1", "service-fulfillment-v1", "evm-swap-builder-v1"]
+SWAP_EVIDENCE_POLICY_VERSION = "evm-swap-builder-v2"
+SWAP_POLICY_VERSIONS = (SWAP_POLICY_VERSION, SWAP_EVIDENCE_POLICY_VERSION)
+PolicyVersion = Literal["liquidity-history-v1", "prediction-history-v1", "prediction-history-v2", "service-contract-v1", "service-fulfillment-v1", "evm-swap-builder-v1", "evm-swap-builder-v2"]
 DIMENSION_WEIGHTS = {
     MeasurementPurpose.AVAILABILITY: 0.30,
     MeasurementPurpose.FUNCTIONAL: 0.40,
@@ -90,12 +92,17 @@ def _dimension_score(purpose: MeasurementPurpose, samples: list[ScoredSample],
     passed = sum(sample.verdict == Verdict.PASS for sample in samples)
     failed = sum(sample.verdict == Verdict.FAIL for sample in samples)
     decisive = passed + failed
+    expanded_functional = (policy_version == SWAP_EVIDENCE_POLICY_VERSION
+                           and purpose == MeasurementPurpose.FUNCTIONAL)
+    planned = len(samples) if expanded_functional else PLANNED_SAMPLES[purpose]
+    sufficient = (planned >= 7 and decisive >= 7 and 5 * decisive >= 4 * planned) if expanded_functional else (
+        len(samples) == planned and decisive >= MIN_DECISIVE_SAMPLES[purpose])
     value, p95 = None, None
     if purpose == MeasurementPurpose.AVAILABILITY:
         timings = sorted(sample.elapsed_ms for sample in samples if sample.verdict == Verdict.PASS)
         if timings:
             p95 = timings[ceil(0.95 * len(timings)) - 1]
-    if len(samples) == PLANNED_SAMPLES[purpose] and decisive >= MIN_DECISIVE_SAMPLES[purpose]:
+    if sufficient:
         success_rate = passed / decisive
         if purpose == MeasurementPurpose.AVAILABILITY:
             latency_ratio = 0.0 if p95 is None else max(0.0, min(
@@ -110,7 +117,7 @@ def _dimension_score(purpose: MeasurementPurpose, samples: list[ScoredSample],
             value = 100 * success_rate
     return DimensionScore(
         value=round(value, 2) if value is not None else None,
-        planned=PLANNED_SAMPLES[purpose], observed=len(samples), passed=passed, failed=failed,
+        planned=planned, observed=len(samples), passed=passed, failed=failed,
         unknown=sum(sample.verdict == Verdict.UNKNOWN for sample in samples),
         not_applicable=sum(sample.verdict == Verdict.NOT_APPLICABLE for sample in samples),
         p95_ms=p95,
@@ -119,7 +126,7 @@ def _dimension_score(purpose: MeasurementPurpose, samples: list[ScoredSample],
 
 def calculate_scores(samples: list[ScoredSample], *, policy_version: PolicyVersion = POLICY_VERSION) -> ScoringOutcome:
     """Score disjoint measurement tasks; unknown evidence never becomes a zero."""
-    if policy_version not in (POLICY_VERSION, *PREDICTION_POLICY_VERSIONS, *SERVICE_POLICY_VERSIONS, SWAP_POLICY_VERSION):
+    if policy_version not in (POLICY_VERSION, *PREDICTION_POLICY_VERSIONS, *SERVICE_POLICY_VERSIONS, *SWAP_POLICY_VERSIONS):
         raise ValueError("unsupported scoring policy")
     grouped = {purpose: [] for purpose in DIMENSION_WEIGHTS}
     sample_ids, task_keys = set(), set()
@@ -143,7 +150,9 @@ def calculate_scores(samples: list[ScoredSample], *, policy_version: PolicyVersi
             if sample.elapsed_ms is None or not isfinite(sample.elapsed_ms) or sample.elapsed_ms < 0:
                 raise ValueError("availability PASS requires finite, nonnegative elapsed_ms")
         grouped[sample.purpose].append(sample)
-        if len(grouped[sample.purpose]) > PLANNED_SAMPLES[sample.purpose]:
+        dynamic_functional = (policy_version == SWAP_EVIDENCE_POLICY_VERSION
+                              and sample.purpose == MeasurementPurpose.FUNCTIONAL)
+        if not dynamic_functional and len(grouped[sample.purpose]) > PLANNED_SAMPLES[sample.purpose]:
             raise ValueError(f"sample count exceeds the plan for {sample.purpose}")
     dimensions = {purpose: _dimension_score(purpose, group, policy_version) for purpose, group in grouped.items()}
     complete = all(dimension.value is not None for dimension in dimensions.values())

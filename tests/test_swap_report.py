@@ -12,6 +12,7 @@ import unittest
 from reputation_core import Verdict
 from reputation_core.chain_view import describe_chain_action
 from reputation_core.prediction_chain import calldata
+from reputation_core.scoring import SWAP_EVIDENCE_POLICY_VERSION, SWAP_POLICY_VERSION, calculate_scores
 from reputation_core.swap import SWAP_METHOD, verify_swap_execution, verify_swap_function
 from reputation_platform.db import _validated_report
 from reputation_platform.evaluation_report import render_evaluation_report
@@ -46,8 +47,51 @@ class SwapReportAcceptance(unittest.TestCase):
             self.assertIsNone(report.scores.functional.value)
             self.assertEqual(report.scores.behavioral.value, 100.0)
             self.assertEqual(report.scores.behavioral.passed, 7)
-        self.assertEqual(len(report.samples), 24)
-        self.assertEqual(len({item.sample.task_key for item in report.samples}), 24)
+        expanded = report.policy_version == SWAP_EVIDENCE_POLICY_VERSION
+        count = 31 if expanded else 24
+        self.assertEqual(len(report.samples), count)
+        self.assertEqual(len({item.sample.task_key for item in report.samples}), count)
+        if expanded:
+            scored = [item.sample for item in report.samples]
+            self.assertEqual(report.scores.functional.planned, 14)
+            self.assertEqual(report.scores.functional.passed + report.scores.functional.failed, 12)
+            self.assertEqual(report.scores.functional.unknown, 2)
+            # One less decisive task is 11/14, below the exact 80% gate.
+            decisive = [index for index, sample in enumerate(scored)
+                        if sample.purpose == 'functional' and sample.verdict in (Verdict.PASS, Verdict.FAIL)]
+            eleven = deepcopy(scored)
+            eleven[decisive[-1]] = eleven[decisive[-1]].model_copy(update={'verdict': Verdict.UNKNOWN})
+            below = calculate_scores(eleven, policy_version=SWAP_EVIDENCE_POLICY_VERSION)
+            self.assertIsNone(below.functional.value)
+            self.assertIsNone(below.overall)
+            self.assertEqual(below.status, 'PARTIAL')
+            # FAIL is decisive evidence, stays in the denominator and lowers score.
+            failed = deepcopy(scored)
+            for index in decisive:
+                failed[index] = failed[index].model_copy(update={'verdict': Verdict.PASS})
+            failed[decisive[-1]] = failed[decisive[-1]].model_copy(update={'verdict': Verdict.FAIL})
+            with_failure = calculate_scores(failed, policy_version=SWAP_EVIDENCE_POLICY_VERSION)
+            self.assertEqual(with_failure.functional.value, 91.67)
+            self.assertEqual(with_failure.status, 'COMPLETE')
+            # No fixed functional maximum; a larger bound group remains scored
+            # only when its full decisive coverage reaches the same threshold.
+            extra = scored[decisive[0]].model_copy(update={
+                'sample_id': 'offline-boundary-extra', 'task_key': 'offline-boundary-extra', 'verdict': Verdict.PASS})
+            self.assertEqual(calculate_scores([*scored, extra], policy_version=SWAP_EVIDENCE_POLICY_VERSION).functional.planned, 15)
+            with self.assertRaisesRegex(ValueError, 'sample count exceeds'):
+                calculate_scores(scored, policy_version=SWAP_POLICY_VERSION)
+            old_directory = ROOT / os.environ.get('SWAP_V1_REPORT_DIR', 'runtime/spraay-public-reassessment-20261027')
+            old_raw = json.loads((old_directory / 'report.json').read_bytes())
+            old_report = _validated_report(old_raw)
+            old_manifest = json.loads((old_directory / 'manifest.json').read_bytes())
+            self.assertEqual(verify_swap_report_sources(ROOT, old_report,
+                {item['path']: item['sha256'] for item in old_manifest['inputs']}), old_report.registration_reference)
+            self.assertEqual(old_report.policy_version, SWAP_POLICY_VERSION)
+            self.assertEqual(old_report.scores.status, 'PARTIAL')
+            self.assertEqual(old_report.scores.availability.value, 95.67)
+            self.assertEqual((old_report.scores.functional.passed, old_report.scores.functional.unknown), (2, 5))
+            self.assertIsNone(old_report.scores.functional.value)
+            self.assertIsNone(old_report.scores.overall)
         reader = SwapEvidence(ROOT, hashes)
         origin = reader.json((directory / ORIGIN).relative_to(ROOT).as_posix())
         campaign = reader.json(origin['campaign'])
@@ -66,9 +110,12 @@ class SwapReportAcceptance(unittest.TestCase):
         self.assertEqual(action.action, 'swap_batch')
         self.assertEqual(action.transaction_hash, execution['expected_transaction_hash'])
         html = render_evaluation_report(report)
-        self.assertIn('独立兑换任务', html)
-        self.assertNotIn('MCP tools/list', html)
-        self.assertNotIn('包装原生币、兑换、最终增仓', html)
+        self.assertTrue('最低到账及精确授权' in html, 'Swap HTML must explain minimum output and exact allowance')
+        if expanded:
+            self.assertTrue('全部14项任务' in html and '80%' in html,
+                            'V2 HTML must disclose its full functional plan and coverage threshold')
+        self.assertFalse('MCP tools/list' in html, 'Swap HTML must not describe MCP discovery scoring')
+        self.assertFalse('包装原生币、兑换、最终增仓' in html, 'Swap HTML must not describe liquidity scoring')
 
         changed = deepcopy(builder)
         q = builder['quote']

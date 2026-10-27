@@ -1,22 +1,22 @@
 # 新项目当前状态
 
-## 2026-10-27 当前：真实兑换已核实，等待补采政策确认
+## 2026-10-27 当前：MangoSwap完整兑换能力评分已交付
 
-task_id=`WAITING_SWAP_SAMPLING_DECISION_20261027`。本轮金融操作已停止；不是余额不足，而是现行功能窗口未满足完整性规则，需要用户醒后决定是否修订通用补采政策。此前不设消费/次数上限的授权不作为现在自动重启operator的理由。允许只读复核和报告维护，不新增付款、兑换、权限或充值；用户确认继续后再在既有授权范围推进。
+task_id=`SWAP_V2_FOUR_TASK_SUPPLEMENT_20261027`已完成。用户明确批准补采政策后，先冻结ADR-0024、v2配置与master（SHA `c72610e2da3224b513f47121d563e2f707a072b56aeab2c465ba42081a49201c`，2026-10-27 04:20:39UTC），再串行执行4个既定功能请求；首请求04:23:49UTC，4个全部完成，无新增本金兑换。金融操作已结束，不因余额或No Policy自动继续交易；禁止发币、身份铸造及改权限/委托均保持。
 
-实际对象为Ethereum ERC-8004 **MangoSwap #26345**的ERC20兑换能力，调用Spraay直连网关在Base生成方案，买方钱包依据用户授权签名执行。7笔独立小额双向兑换均已核实真实成交、到账、官方池事件、精确授权及至少64块确认；剩余授权0、既有委托不变。不是Spraay全部六项能力或提供方自主签名。owner/URI与官方卡声明已核，IPFS正文未取得，端点归属仍为PROVIDER_DECLARED。
+最新范围报告`59c87f4e-b202-47ff-8db1-850a03041684`（`runtime/spraay-public-v2-20261027`）已入真实PostgreSQL：A=95.67（9PASS/1UNKNOWN，p95=2946.7189ms），F=100.00（计划14，12PASS/2UNKNOWN，覆盖85.7%），B=100.00（7个独立真实兑换均通过），综合=98.70、COMPLETE。固定三维与30/40/30不变；新v2规则为F至少7个可判且5×可判≥4×计划，保留所有FAIL/UNKNOWN/未执行槽，11/14不放行。产品本轮完整评分目标ACHIEVED。
 
-最新报告`ed426474-5391-4a4a-a48a-77dce25ddd7e`（`runtime/spraay-public-reassessment-20261027`）已入真实PG：A=95.67（9PASS/1UNKNOWN，p95=2946.7189ms），F=null（2PASS/1传输UNKNOWN/4未执行），B=100（7PASS），综合=null、PARTIAL。原报告`382bcb43-5a16-40de-bdcc-a55d7c659694`和`runtime/spraay-public-original-20261027`原样保留。两个功能计划合计14槽：8个独立确定结果均一致、2个真实传输缺源、4个未执行；现行v1不能据此跨窗追认完整分。产品完整评分目标NOT_MET。
+对象为Ethereum ERC-8004 MangoSwap #26345的ERC20兑换能力，使用Spraay网关、在Base执行。Agent构造方案，用户授权的买方钱包签名；不冒充Spraay全六项能力或提供方自主签名。owner/URI与官方卡声明已核，IPFS正文未取得，入口关联仍PROVIDER_DECLARED。新报告31互斥槽（A10/F14/B7），其中27历史槽与4个前瞻补采分开列时间。两份旧v1 PARTIAL报告382bcb43-5a16-40de-bdcc-a55d7c659694、ed426474-5391-4a4a-a48a-77dce25ddd7e及原master/ADR22/23/配置全部保留、未改写。
 
-冻结的原master SHA `21a67e7d4300dc78abe637f6a7fa147733bf6c18d015fe479c10e1336d17dcf7`、复评master SHA `cae53552fccc908971be372a5814bc83b0d249cd89b4f0779d93f067b2ea60c7`、ADR-0022/0023及配置不改。所有未知付款已独立核nonce过期且未用，无未决付款或需重播的资产交易。31次已核USDC服务费共0.465，7B买方网络费0.000005634637367917ETH；最终余额0.723007USDC、0.000540187903644028WETH、0.002993237310238374ETH，三资产与初始加所有记录流精确对应。费用账`runtime/spraay-experiments-20261027/ledger-20261026T192806446097Z-17aff6/safe-ledger.json`。
+本轮新增4次方案费0.06USDC；整段批量实验35次实际服务费共0.525USDC，正式7B网络费累计0.000005634637367917ETH（本次补采无新增本金交易/网络费）。余额0.663007USDC、0.000540187903644028WETH、0.002993237310238374ETH，均与初始加全部记录流精确对平，无未归属扣款。最终只读账`runtime/spraay-experiments-20261027/ledger-20261027T043241594107Z-8fa1b2/safe-ledger.json`，23新RPC/24复用记录，没有重采旧业务。
 
-建议先确认[通用补采提案](docs/research/SWAP_SAMPLING_REVIEW_20261027.md)，再冻结新政策/ADR，保留所有原结果后前瞻补证。提案为功能至少7个可判且计划覆盖率至少80%，目前8/14仍不够，不能直接发完整分；三维、30/40/30和原7B不变。这确实是充分性规则修订，不是把旧v1宣称成通过。实验方法和七笔真实记录见[运行记录](docs/runbooks/MANGOSWAP_EVALUATION_20261027.md)。
+公开包`data/public-reports-swap-v3.tar.gz`（1,433,852B、3200文件，SHA `a9a161f82eed34e4676cfea263a7e132071ddbf5fa6bd291b4ace5f93a9d6933`）已生成并用现有分发器离线verify exit0；默认只导入最新1份COMPLETE，两份旧PARTIAL为历史附件，可按既有目录导入命令追加。3201个压缩包成员已逐个解压扫描，私有路径/本机密钥/私钥标记均0。PG现有13个不同登记身份的完整历史范围分，不全是资产交易Agent。离线导入不需RPC、LLM、钱包或充值。
 
-实现包括通用兑换规则、严格公开源导出/确定性重放、角色/资产解读。共享Schema/TS/OpenAPI生成与前端构建各exit0；唯一必要工程验收1次exit0，明确期望PARTIAL/overallNone，覆盖真实重放、错误收款人FAIL、缺回执UNKNOWN、篡改拒绝、链视图及HTML；不代表完整评分验收通过。实际命令与收据在`runtime/spraay-code-review-closeout-20261027/`。缺实际原件的普通CI用例明确NOT_RUN/skip，不拿跳过当集成通过，旧全套未重跑。
+共享Schema/TS/OpenAPI生成、前端vue-tsc/Vite构建均exit0。v2关键验收覆盖11/14与12/14边界、FAIL纳入、15槽动态扩充、v1仍PARTIAL、错误收款人/缺回执/来源篡改、真实链视图和HTML。首次因旧HTML短语断言失败，修正测试文案后同一验收exit0（1用例）；未重跑旧全套，未网络重采。收据`runtime/spraay-code-review-v2-closeout-20261027/acceptance-receipt.json`。
 
-网站已后台重启于127.0.0.1:7754，PG与独立worker正常，worker为public-off；实际agent/report/chain-evidence接口均HTTP200，两个报告版本可查。链上概览展示B01代表样本，其余交易见7个B样本及文档。进程收据`runtime/background-platform-20261026T193644Z-f1137eab/process.json`，接口核查`runtime/swap-web-verification-20261027/`。Chrome截图命令被自动审批拒绝，原因仅返回blocked by policy，视觉NOT_RUN；不绕过拒绝。
+网站已后台更新于http://127.0.0.1:7754/?agent=mangoswap-26345；实际agent/report/chain-evidence与原件下载均HTTP200，显示最新COMPLETE和3个历史版本，下载SHA匹配。过程记录`runtime/swap-web-v2-verification-20261027/`，进程收据`runtime/background-platform-20261027T043448Z-a8deab56/process.json`。PG与独立public-off worker保持运行，不自动执行付费实验。本轮未再尝试此前被自动审批拒绝的Chrome截图，视觉未重测。
 
-分支`codex/spraay-full-evaluation-20261027`保留本地检查点；未push、未新建PR，main未改，无关docs/presentation/保留。当前新报告均PARTIAL，未伪装为COMPLETE分发包；完整分包脚本只是私有准备，未运行。下一步必须先取得补采政策决定，不继续循环重开窗口或为满分改规则。
+实验与易懂样本解读见[运行记录](docs/runbooks/MANGOSWAP_EVALUATION_20261027.md)。分支`codex/spraay-full-evaluation-20261027`保存本地检查点，未push、未新建PR、main未改；无关docs/presentation/原样保留。下一task_id=`REVIEW_MANGOSWAP_COMPLETE_REPORT`，等待用户使用网站后的反馈，不自动展开新付费对象。
 
 ## 2026-10-23 历史执行状态
 

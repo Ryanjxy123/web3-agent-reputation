@@ -21,8 +21,9 @@ onMounted(async () => {
 onBeforeUnmount(() => chainAbort.abort())
 const isPrediction = computed(() => ['prediction-history-v1', 'prediction-history-v2'].includes(props.report.scores.policy_version ?? ''))
 const isFulfillment = computed(() => String(props.report.scores.policy_version) === 'service-fulfillment-v1')
-const isSwap = computed(() => String(props.report.scores.policy_version) === 'evm-swap-builder-v1')
-const isGeneric = computed(() => ['service-contract-v1', 'service-fulfillment-v1', 'evm-swap-builder-v1'].includes(props.report.scores.policy_version ?? ''))
+const isSwap = computed(() => ['evm-swap-builder-v1', 'evm-swap-builder-v2'].includes(String(props.report.scores.policy_version)))
+const isSwapV2 = computed(() => String(props.report.scores.policy_version) === 'evm-swap-builder-v2')
+const isGeneric = computed(() => ['service-contract-v1', 'service-fulfillment-v1', 'evm-swap-builder-v1', 'evm-swap-builder-v2'].includes(props.report.scores.policy_version ?? ''))
 const capabilities = computed(() => (props.report.capabilities ?? []).filter(item => item.operation !== '未提供可识别操作'))
 const probability = (value: number) => new Intl.NumberFormat('zh-CN', { style: 'percent', maximumFractionDigits: 6 }).format(value)
 const dimensions = computed(() => [
@@ -66,7 +67,7 @@ const conclusion = computed(() => {
   const scores = props.report.scores
   if (isGeneric.value) {
     if (scores.status === 'COMPLETE') {
-      if (isSwap.value) return `本次已检查 ${scores.availability.observed} 次兑换方案请求、${scores.functional.observed} 个独立功能任务，以及另外 ${scores.behavioral.observed} 笔真实兑换。真实交易核验 ${scores.behavioral.passed} 笔通过、${scores.behavioral.failed} 笔未通过；三维样本充分，本次兑换范围综合分为 ${score(scores.overall)} 分。`
+      if (isSwap.value) return `本报告保留 ${scores.availability.observed} 项服务访问记录，功能计划 ${scores.functional.planned} 项、其中 ${scores.functional.passed + scores.functional.failed} 项可判，以及另外 ${scores.behavioral.observed} 笔真实兑换。真实交易核验 ${scores.behavioral.passed} 笔通过、${scores.behavioral.failed} 笔未通过；三维均达到本政策门槛，本次兑换范围综合分为 ${score(scores.overall)} 分。`
       return `本次范围内，${scores.functional.observed} 个不同任务的功能声明核验有 ${scores.functional.passed} 条通过、${scores.functional.failed} 条未通过；另外 ${scores.behavioral.observed} 个任务的${isFulfillment.value ? '可观察服务履约' : '真实交易履约'}核验有 ${scores.behavioral.passed} 条通过、${scores.behavioral.failed} 条未通过。三维样本充分，综合分为 ${score(scores.overall)} 分。`
     }
     const pending = dimensions.value.filter(item => item.dimension.value === null).map(item => item.title).join('、')
@@ -150,7 +151,7 @@ const conclusion = computed(() => {
       <div class="method-grid">
         <div><h3>{{ isPrediction ? '历史交付入口是否能读' : '接口是否能用' }}</h3><p v-if="isPrediction">可用性检查已选历史交付文件是否按约定完整返回、任务号与摘要是否匹配，衡量本次线路的公开历史读取体验，不是实时预测或推理服务的可用率。</p><p v-else-if="isSwap">可用性检查 10 次独立付费兑换方案请求是否完整返回有效方案；只计正式业务请求发送到完整响应的耗时，不含付款挑战、签名和平台准备。</p><p v-else-if="isGeneric">可用性检查本次明确列明的声明服务入口及只读调用，核对协议结果、业务响应与延迟。仅发现接口或读取元数据，不代表已完成业务可用性采样。</p><p v-else>可用性检查公开记录入口是否按约定响应。</p><p>得分由 80% 成功率和 20% 延迟表现组成。</p><p class="latency-note">成功响应 p95：{{ report.scores.availability.p95_ms === null ? '尚无数据' : report.scores.availability.p95_ms.toFixed(2) + ' 毫秒' }}</p><p>p95 表示至少 95% 的成功请求在这个耗时内完成。这是本机经指定代理线路的访问体验，包含网络和代理耗时。</p></div>
         <div v-if="isPrediction"><h3>概率是否支持最终结算结果</h3><p>功能维度使用 7 个不同问题，将原始预测的“是/否”概率与最终二元结算对应。先核对原始题干、选项顺序、内容来源与时间，再评价概率。</p><p>每题按 Brier 概率信用计分，功能分取 7 题平均。确定且符合结算结果为 100，确定且相反为 0；50/50 的中性预测为 75。这个分数不是预测准确率，也不代表收益。</p></div>
-        <div v-else-if="isSwap"><h3>兑换方案是否符合用户要求</h3><p>功能维度使用 7 个独立任务，核对代币、整数金额、收款人、滑点、最低到账与精确授权，再在同一区块独立模拟完整交易。</p><p>实际交易数据和模拟结果均须符合请求；不会仅凭返回格式正确就判通过。报价与后来市场变化的差值会列明，不用涨跌或收益给分。</p></div>
+        <div v-else-if="isSwap"><h3>兑换方案是否符合用户要求</h3><p>功能计划 {{ report.scores.functional.planned }} 个独立任务，核对代币、整数金额、收款人、滑点、最低到账与精确授权，再在固定区块独立模拟完整交易。</p><p v-if="isSwapV2">保留全部计划与结果；至少 7 项可判且可判比例达到 80% 才出分。当前 {{ report.scores.functional.passed + report.scores.functional.failed }}/{{ report.scores.functional.planned }} 项可判，无法判断的记录另列。</p><p>实际交易数据和模拟结果均须符合请求；不会仅凭返回格式正确就判通过。报价与后来市场变化的差值会列明，不用涨跌或收益给分。</p></div>
         <div v-else-if="isGeneric"><h3>实际调用是否兑现了所测声明</h3><p>功能维度使用 7 个不同任务，核对声明的操作、实际输入输出绑定、约定格式和明确限制；需要业务正确性判据时，用独立证据核验结果。</p><p>只有格式符合约定，不能判定整个业务功能通过；缺少必要判据时保留无法判断。评价范围按各功能及任务列明。</p></div>
         <div v-else><h3>公布的结果是否准确</h3><p>功能维度核对历史增仓公布的资产用量和执行后流动性。用固定区块状态与事件顺序独立复算，精确比较实际结果。</p><p>这次评价的是这些具体披露，不涵盖全部策略能力。</p></div>
         <div v-if="isPrediction"><h3>交付能否归属于这个 Agent</h3><p>行为维度使用另外 7 个不同问题，核对真实请求和交付交易、链上事件、任务号、内容摘要，以及任务当时的执行控制权。</p><p>请求者、优先接单者、实际交付者与服务钱包分别核实；接手其他服务的请求时，还要满足交付窗口与授权。成功回执本身不能证明完整履约。</p></div>

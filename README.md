@@ -8,7 +8,7 @@
 
 2026-10-23主线改为**与区块链深度结合**。平台区分资产执行、链上查询和研究交付；新增10个真实Olas/Omen交易者的历史证据，其中8个已由同一规则核齐注册→Safe授权/签名→合约调用→资产及条件头寸到账，2个保留缺源。它们目前是链上证据快照，尚无完整声誉分；不能把只抓到的成功交易换算成100分。另保留Brain真实包装/兑换/增仓报告、九个Mech研究报告和两家仓位查询报告，合计12个不同身份的完整历史范围分。[当前规则与边界](docs/adr/0021-chain-execution-evidence.md)。
 
-2026-10-27本机受控实验已完成MangoSwap #26345的7笔Base真实兑换及独立链核验。最新范围报告为服务可用性95.67、交易行为可靠性100；功能和综合分仍为空，两个预冻功能窗口各有传输缺源，现行政策不足以发布完整分。两窗口已有8个独立功能结果符合声明，原件和PARTIAL历史均保留；没有把新报告伪装进完整评分分发包。见[实验、费用与样本解读](docs/runbooks/MANGOSWAP_EVALUATION_20261027.md)和[待确认的补采建议](docs/research/SWAP_SAMPLING_REVIEW_20261027.md)。当前本机可直接[打开报告](http://127.0.0.1:7754/?agent=mangoswap-26345)，完整分目标尚未达到。
+2026-10-27新增MangoSwap #26345的完整ERC20兑换能力范围分：**A95.67 / F100 / B100 / 综合98.70**。功能计划14项中12项可判、2项UNKNOWN保留；行为维度为7笔Base真实兑换。提供方构造方案，买方钱包依据用户授权签名，平台独立核验资产、授权和交易结果。用户批准后先冻结v2补采政策，再采集剩余4项，两个旧PARTIAL版本保留。见[实验、费用与易懂样本解读](docs/runbooks/MANGOSWAP_EVALUATION_20261027.md)；本机可直接[打开报告](http://127.0.0.1:7754/?agent=mangoswap-26345)。
 
 ## 环境准备
 
@@ -62,6 +62,21 @@ uv run --env-file .env --no-sync python scripts/public_reports.py import data/pu
 ```
 
 补充包约1.6MB，包含两份原始报告和612个公开文件，沿用离线来源核验与事务导入，无需RPC、LLM或重新测评。两个包都导入后共有12个不同Agent的完整结果。两份新评价均为A80 / F100 / B100 / 综合94，范围限本次仓位查询。导入输出的`mapping`记录本机报告ID；源报告UUID只作来源记录，不应复制为其他电脑的固定报告链接。重复导入不会重复创建同一报告，遇不同内容的同路径文件会明确拒绝覆盖。
+
+再导入MangoSwap的完整兑换报告及公开原件（约1.4MB、3200个文件），同样离线重放，不需要RPC、LLM、钱包或充值：
+
+```powershell
+uv run --env-file .env --no-sync python scripts/public_reports.py import data/public-reports-swap-v3.tar.gz --initialize
+```
+
+此包默认只向数据库追加最新V2完整报告（综合98.70），与前两个完整报告包合计13个不同登记身份的完整范围分；它们包括研究、查询与资产操作，不等于13个自主交易Agent。包内两份旧PARTIAL作为历史附件安全恢复，需要在网站查看这两个历史版本时再执行：
+
+```powershell
+uv run --env-file .env --no-sync python scripts/import_local_report.py runtime/spraay-public-original-20261027
+uv run --env-file .env --no-sync python scripts/import_local_report.py runtime/spraay-public-reassessment-20261027
+```
+
+源报告UUID仅作来源记录，本机链接使用导入输出的ID。受控付费采集由已获授权的操作者执行；导入与浏览公开包只读复核证据，不签名或付款。数据包SHA-256为`a9a161f82eed34e4676cfea263a7e132071ddbf5fa6bd291b4ace5f93a9d6933`。
 
 接着导入真实资产执行的证据包（约235KB，521个公开文件）；此步骤同样离线，按原请求、哈希、历史状态和业务规则重建，不产生新评分：
 

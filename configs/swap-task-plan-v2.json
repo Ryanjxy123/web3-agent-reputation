@@ -1,0 +1,18 @@
+{
+  "schema_version": "swap-task-plan-v2",
+  "policy_version": "evm-swap-builder-v2",
+  "policy": "docs/adr/0024-swap-evidence-coverage-v2.md",
+  "protocol": "evm.uniswap-v3-exact-input-single",
+  "execution_envelopes": ["direct-router", "smart-account-execute-batch"],
+  "weights": {"availability": 0.3, "functional": 0.4, "behavioral": 0.3},
+  "planned": {"availability": 10, "functional": "manifest-bound", "behavioral": 7},
+  "minimum_decisive": {"availability": 8, "functional": 7, "behavioral": 7},
+  "functional_coverage": {"numerator": 4, "denominator": 5, "minimum_planned": 7, "maximum_planned": null},
+  "availability_interval_seconds": 30,
+  "availability_timing": "paid-business-post-send-to-complete-response",
+  "confirmation_distance": 64,
+  "task_binding": "Freeze complete source groups, every scoring alias and original UUID/path/SHA before pending requests. Keep all FAIL, UNKNOWN and unsent slots; no replacement or cross-dimension reuse.",
+  "aggregation_kind": "whole-dimension-source-union-v2",
+  "slot_order": ["availability", "functional", "behavioral"],
+  "source_fields": ["source_campaign", "source_slot", "request_id", "task_key", "task_path", "task_sha256"]
+}

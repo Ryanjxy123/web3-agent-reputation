@@ -39,7 +39,7 @@ def profile_from_report(root: Path, row: dict) -> AgentProfile:
             raise ValueError("Profile source changed")
         return json.loads(raw)
 
-    if policy == "evm-swap-builder-v1":
+    if policy in ("evm-swap-builder-v1", "evm-swap-builder-v2"):
         origins = [item for item in inputs if Path(item["path"]).name == "swap-report-origin.json"]
         if len(origins) != 1:
             raise ValueError("No unique authenticated swap report origin")
