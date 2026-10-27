@@ -6,7 +6,7 @@ from typing import Literal, Self
 from pydantic import BaseModel, ConfigDict, computed_field, model_validator
 
 from reputation_core.admission import MeasurementPurpose, Verdict
-from reputation_core.scoring import DimensionScore, ScoringOutcome, SHARED_POLICY_VERSION, MULTICAP_POLICY_VERSION
+from reputation_core.scoring import DimensionScore, ScoringOutcome, SHARED_POLICY_VERSION, MULTICAP_POLICY_VERSION, POINT_POLICY_VERSION
 
 Dimension = Literal['availability', 'functional', 'behavioral']
 CoverageStatus = Literal['FULL', 'PARTIAL', 'NONE']
@@ -141,7 +141,7 @@ class SharedAssessmentResult(SharedModel):
 
 
 class SharedAssessment(SharedModel):
-    schema_version: Literal['shared-task-assessment-v1', 'shared-task-assessment-v2'] = 'shared-task-assessment-v1'
+    schema_version: Literal['shared-task-assessment-v1', 'shared-task-assessment-v2', 'shared-task-assessment-v3'] = 'shared-task-assessment-v1'
     capabilities: list[SharedCapability]
     cases: list[SharedCase]
     tasks: list[SharedTask]
@@ -337,6 +337,9 @@ def _dimension_result(capability, dimension, cases, results, observations, tasks
 
 
 def calculate_shared_assessment(assessment: SharedAssessment) -> SharedAssessmentResult:
+    if assessment.schema_version == 'shared-task-assessment-v3':
+        from reputation_core.point_scoring import calculate_point_assessment
+        return calculate_point_assessment(assessment)
     expanded = assessment.schema_version == 'shared-task-assessment-v2'
     tasks = {task.task_key: task for task in assessment.tasks}
     cases = assessment.cases
@@ -412,6 +415,8 @@ def shared_legacy_scores(assessment: SharedAssessment) -> ScoringOutcome:
             not_applicable=count.not_applicable, p95_ms=source.p95_ms)
     point = (result.overall.lower if result.overall is not None
              and result.overall.lower == result.overall.upper else None)
-    policy_version = MULTICAP_POLICY_VERSION if assessment.schema_version == 'shared-task-assessment-v2' else SHARED_POLICY_VERSION
+    policy_version = {'shared-task-assessment-v1': SHARED_POLICY_VERSION,
+                      'shared-task-assessment-v2': MULTICAP_POLICY_VERSION,
+                      'shared-task-assessment-v3': POINT_POLICY_VERSION}[assessment.schema_version]
     return ScoringOutcome(policy_version=policy_version, **dimensions, overall=point,
         status='COMPLETE' if point is not None else 'PARTIAL' if assessment.observations else 'NOT_EVALUATED')

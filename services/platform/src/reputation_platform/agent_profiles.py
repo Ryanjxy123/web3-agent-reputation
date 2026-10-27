@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 from reputation_core.application import AgentProfile, normalize_reference
-from reputation_core.scoring import SHARED_POLICY_VERSIONS, MULTICAP_POLICY_VERSION
+from reputation_core.scoring import SHARED_POLICY_VERSIONS, MULTICAP_POLICY_VERSION, POINT_POLICY_VERSION
 
 
 def profile_from_report(root: Path, row: dict) -> AgentProfile:
@@ -53,7 +53,7 @@ def profile_from_report(root: Path, row: dict) -> AgentProfile:
         capability_names = [item['title'] for item in declared] if declared else ['ERC20兑换报价', '精确授权与兑换方案']
         summary = ('公开声明' + '、'.join(capability_names) + '；本次范围只验证网关ERC20兑换方案及用户授权执行。'
                    if declared else '根据指定代币、金额和滑点生成Base链兑换报价与待签名方案；经用户授权后，由用户钱包执行，平台核验实际成交、资产到账与授权余额。')
-        if policy == MULTICAP_POLICY_VERSION:
+        if policy in (MULTICAP_POLICY_VERSION, POINT_POLICY_VERSION):
             summary = '提供即时资产兑换、定时与限价订单管理；本次核验兑换，以及订单创建、合约查询、撤销退款。由用户钱包签名执行，自动触发成交仍未验证。'
         return AgentProfile(
             business_summary=summary,

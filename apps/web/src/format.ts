@@ -4,11 +4,6 @@ export function score(value: number | null | undefined): string {
   return value == null ? '待评价' : value.toFixed(2)
 }
 
-export function scoreRange(lower: number | null | undefined, upper: number | null | undefined): string {
-  if (lower == null || upper == null) return '证据不足'
-  return lower === upper ? score(lower) : `${score(lower)}–${score(upper)}`
-}
-
 export function when(value: string | null | undefined): string {
   if (!value) return '具体时刻未记录'
   const date = new Date(value)

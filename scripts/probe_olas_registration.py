@@ -132,7 +132,7 @@ def supplement(identity_run: Path, run: Path, result: dict) -> Path:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--profile", type=Path, default=Path("configs/pilots/olas-predict-2182-v1.json"))
+    parser.add_argument("--profile", type=Path, required=True, help="Explicit operator-owned profile under configs/pilots")
     parser.add_argument("--identity-run", required=True)
     parser.add_argument("--index-run", help="Reuse one previously retained index response; no repeat GET")
     parser.add_argument("--index-provider", choices=tuple(INDEXES), default="8004scan")

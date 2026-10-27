@@ -144,6 +144,7 @@ def _shared_interval(value) -> str:
 def _render_shared_report(report: EvaluationReport) -> str:
     assessment = report.shared_assessment
     result = assessment.result
+    point_scores = assessment.schema_version == 'shared-task-assessment-v3'
     dimensions = []
     for name, title in (('availability', '服务可用性'), ('functional', '功能声明一致性'), ('behavioral', '交易行为可靠性')):
         value = getattr(result, name)
@@ -153,8 +154,11 @@ def _render_shared_report(report: EvaluationReport) -> str:
             f'{_items(value.blocked_reasons)}</article>')
     capabilities = []
     for capability in assessment.capabilities:
+        if point_scores and not capability.selected:
+            continue
         groups = ''.join(f'<li>{_text(group.title)}：{"本次纳入" if group.selected else "未纳入"}'
-            f' {_text(group.selection_reason)}</li>' for group in capability.declaration_groups)
+            f' {_text(group.selection_reason)}</li>' for group in capability.declaration_groups
+            if not point_scores or group.selected)
         capabilities.append(f'<details><summary>{_text(capability.title)} · '
             f'{"本次已测范围" if capability.selected else "未测功能"}</summary>'
             f'<p>{_text(capability.description)}</p><ul>{groups}</ul></details>')
@@ -164,12 +168,25 @@ def _render_shared_report(report: EvaluationReport) -> str:
                 'protected_exit': '保护退出', 'not_executed': '未执行', 'unknown': '结局待核'}
     coverage = {'FULL': '已记录声明均有评价', 'PARTIAL': '仍有声明未覆盖', 'NONE': '声明覆盖待评价'}
     for index, task in enumerate(assessment.tasks, 1):
+        outcome = outcomes[task.outcome]
+        if point_scores:
+            planned = any(case.dimension == 'behavioral' and task.task_key in case.task_keys for case in assessment.cases)
+            rows = [row for row in assessment.observations if row.task_key == task.task_key]
+            if task.outcome == 'not_executed' and not planned:
+                outcome = ('方案已验证' if any(row.criterion_id == 'execution-effect' and row.verdict == Verdict.PASS for row in rows)
+                           else '已返回方案' if any(row.dimension == 'availability' and row.verdict == Verdict.PASS for row in rows)
+                           else '未取得方案')
+            elif task.outcome == 'completed':
+                outcome = ('已撤销退款' if any(row.criterion_id == 'exact-principal-refund' and row.verdict == Verdict.PASS for row in rows)
+                           else '已成交')
         findings = ''.join(f'<li><b>{labels[row.dimension]}</b> {_badge(row.verdict)} '
             f'{_text(row.reason)}</li>' for row in assessment.observations if row.task_key == task.task_key)
         tasks.append(f'<details><summary>任务{index} · {_text(task.input_summary)}</summary>'
-            f'<p>真实结局：{outcomes[task.outcome]}</p>'
+            f'<p>真实结局：{outcome}</p>'
             f'<ul>{findings}</ul><details><summary>原始来源</summary>{_items(task.evidence, sources=True)}</details></details>')
     risk = '<p class="risk">存在重大资金或权限违约，请先查看相关失败证据。</p>' if result.risk_status == 'MAJOR_VIOLATION' else ''
+    scope_note = ('分数基于可判结果，未知与未采另列；本报告评价下方已测功能。' if point_scores else
+        f'全部声明覆盖：{coverage[result.declaration_coverage]}。未测功能不补零、不补满分；这里的范围不是长期可靠率的统计置信区间。')
     return ('<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width,initial-scale=1"><title>已测范围评价</title>'
         '<style>body{font:18px/1.75 system-ui,sans-serif;color:#173b44;background:#f3f7f8;margin:0}'
@@ -180,10 +197,9 @@ def _render_shared_report(report: EvaluationReport) -> str:
         '.risk{color:#982d24;font-weight:700}</style></head><body><main>'
         f'<h1>{_text(report.name)}</h1><p>{_text(report.scope)}</p>{risk}'
         f'<h2>已测范围综合分：{_shared_interval(result.overall)}</h2>'
-        f'<p>全部声明覆盖：{coverage[result.declaration_coverage]}。未测功能不补零、不补满分；'
-        '这里的范围不是长期可靠率的统计置信区间。</p>'
+        f'<p>{scope_note}</p>'
         f'<section>{"".join(dimensions)}</section><p>分数按声明组和案例汇总，同一任务可同时包含通过与不符条款。</p>'
-        f'<h2>已测与未测功能</h2>{"".join(capabilities)}'
+        f'<h2>{"已测功能" if point_scores else "已测与未测功能"}</h2>{"".join(capabilities)}'
         f'<h2>同一任务的多源证据</h2><p>{result.task_count}个独立业务任务，'
         f'{result.observation_count}项判据观察；共享证据不会增加独立任务数量。</p>{"".join(tasks)}'
         f'<h2>方法与限制</h2><p>{_text(report.approach)}</p>{_items(report.limitations)}'

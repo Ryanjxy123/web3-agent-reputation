@@ -5,12 +5,14 @@ import json
 import os
 from pathlib import Path
 import shutil
+import tarfile
 import tempfile
 import unittest
 
 from reputation_core.admission import Verdict
-from reputation_platform.contract_lifecycle_snapshot import restore_snapshot, verify_snapshot
+from reputation_platform.contract_lifecycle_snapshot import MANIFEST_SCHEMA, verify_snapshot
 from reputation_platform.contract_lifecycle_evidence import replay_contract_lifecycle
+from scripts.public_reports import public_path
 
 ROOT=Path(__file__).resolve().parents[1]
 TRANSFER='0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'
@@ -22,7 +24,7 @@ def digest(raw):
 
 class ContractLifecycleSnapshotAcceptance(unittest.TestCase):
     def test_real_package_replay_and_refund_binding(self):
-        archive=ROOT/os.environ.get('CONTRACT_LIFECYCLE_ARCHIVE','data/public-chain-mangoswap-v4-v1.tar.gz')
+        archive=ROOT/os.environ.get('CONTRACT_LIFECYCLE_ARCHIVE','data/public-reports-single-score-v3.tar.gz')
         supplied=os.environ.get('CONTRACT_LIFECYCLE_SNAPSHOT_DIR')
         (ROOT/'runtime').mkdir(exist_ok=True)
         with tempfile.TemporaryDirectory(prefix='contract-lifecycle-acceptance-',dir=ROOT/'runtime') as temporary:
@@ -37,8 +39,21 @@ class ContractLifecycleSnapshotAcceptance(unittest.TestCase):
                     shutil.copyfile(ROOT/name,target)
                 directory=scratch/source.relative_to(ROOT)
             else:
-                self.assertTrue(archive.is_file(),'Real supplement archive required; no fixture or mock substitute')
-                directory,review=restore_snapshot(scratch,archive)
+                self.assertTrue(archive.is_file(),'Real MangoSwap report archive required; no fixture or mock substitute')
+                manifests=[]
+                with tarfile.open(archive,'r:gz') as package:
+                    for member in package.getmembers():
+                        self.assertTrue(member.isfile())
+                        name=public_path(member.name)
+                        target=scratch/name;target.parent.mkdir(parents=True,exist_ok=True)
+                        with package.extractfile(member) as stream:
+                            raw=stream.read()
+                        target.write_bytes(raw)
+                        if name.endswith('/manifest.json') and json.loads(raw).get('schema_version')==MANIFEST_SCHEMA:
+                            manifests.append(target)
+                self.assertEqual(len(manifests),1)
+                directory=manifests[0].parent
+                review,_,_=verify_snapshot(scratch,directory)
             manifest=json.loads((directory/'manifest.json').read_bytes())
             hashes={item['path']:item['sha256'] for item in manifest['inputs']}
             config=json.loads((scratch/manifest['configuration']).read_bytes())

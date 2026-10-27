@@ -26,7 +26,7 @@ class SharedSourceAcceptance(unittest.TestCase):
             root = ROOT
             if not (local / 'report.json').is_file():
                 root = Path(temporary)
-                with tarfile.open(ROOT / 'data/public-reports-shared-v1.tar.gz', 'r:gz') as archive:
+                with tarfile.open(ROOT / 'data/public-reports-single-score-v3.tar.gz', 'r:gz') as archive:
                     for member in archive.getmembers():
                         self.assertTrue(member.isfile())
                         destination = root / public_path(member.name)

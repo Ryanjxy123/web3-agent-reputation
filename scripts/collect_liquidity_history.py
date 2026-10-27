@@ -56,8 +56,13 @@ def request_spec(key: str, method: str, params: list, task: dict | None = None) 
             "source_path": task["source_path"] if task else None}
 
 
-def prepare(history_run: Path, indices: list[int] | None, reuse_runs: list[Path]) -> tuple[dict, dict]:
-    config_path = ROOT / "configs/pilots/brain-defi-liquidity-v1.json"
+def prepare(history_run: Path, indices: list[int] | None, reuse_runs: list[Path],
+            profile: Path | None = None) -> tuple[dict, dict]:
+    if profile is None:
+        raise ValueError("An explicit operator profile is required; old instance profiles are not bundled")
+    config_path = (ROOT / profile).resolve()
+    if not config_path.is_relative_to(ROOT / "configs/pilots") or config_path.suffix != ".json":
+        raise ValueError("Operator profile must be a JSON file under configs/pilots")
     policy_path = ROOT / "docs/adr/0004-liquidity-history-policy.md"
     trusted_path = ROOT / "configs/trusted-bsc-zan.json"
     config = json.loads(config_path.read_bytes())
@@ -305,6 +310,7 @@ def inspect_fixed_results(specs: list[dict], values: dict) -> list[dict]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--profile", type=Path, required=True, help="Explicit operator-owned profile under configs/pilots")
     parser.add_argument("--history-run", required=True, type=Path)
     parser.add_argument("--history-index", nargs="+", type=int, help="Optional subset of the frozen fourteen indices")
     parser.add_argument("--reuse-run", nargs="+", type=Path, default=[], help="Explicit retained RPC runs; digests are checked")
@@ -314,7 +320,7 @@ def main() -> int:
     args = parser.parse_args()
     if args.execute_public_readonly and not args.proxy:
         parser.error("Execution requires --proxy; the default performs no network calls")
-    manifest, cache = prepare(args.history_run, args.history_index, args.reuse_run)
+    manifest, cache = prepare(args.history_run, args.history_index, args.reuse_run, args.profile)
     manifest["execution_enabled"] = args.execute_public_readonly
     manifest["initial_requests"] = [request_spec("chain-id", "eth_chainId", []),
                                     request_spec("confirmation-head", "eth_blockNumber", [])]

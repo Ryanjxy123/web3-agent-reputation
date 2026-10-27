@@ -42,7 +42,7 @@ def retained_hint(directory: Path, request_id: str | None) -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--profile", type=Path, default=Path("configs/pilots/olas-predict-2182-v1.json"))
+    parser.add_argument("--profile", type=Path, required=True, help="Explicit operator-owned profile under configs/pilots")
     parser.add_argument("--reuse-runs", type=Path, nargs="*", default=[])
     parser.add_argument("--pilot-index-run", type=Path, help="One already viewed task; background only, never formal sampling")
     parser.add_argument("--pilot-request-id")

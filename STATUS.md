@@ -1,6 +1,22 @@
 # 新项目当前状态
 
-## 2026-10-27 当前：34任务正式多能力报告已发布到本机
+## 2026-10-27 本机完成，正在同步单分与Mango唯一发布数据
+
+单分默认报告2c7ded39-f808-40b0-8d15-dddebee21704，A100/F91.67/B100/综合96.67；34任务/153判据不变。UNKNOWN/未采另列，不取旧区间端点；主区未测长清单已撤，报价/模拟/成交/撤销退款按真实阶段显示。当前本机HTTP/附件SHA/旧v2字节保持均通过，worker public-off、队列0；无新外网采证/交易/费用。
+
+按用户授权，27个旧发布包/实例/候选文件已删除，Mango必要依赖原字节保持；10个旧采集入口不再默认选旧对象。新data唯一包public-reports-single-score-v3.tar.gz，1004637B/1495文件，SHA34ff0f5e5e6f8b1ebb53366f925fb388835d82d2450380d35ab15d4a9486f7bc，索引只有Mango。1496成员凭据审查0发现。已有个人PG历史不因拉代码自动删除，未动钱包/runtime私有配置。
+
+必要组合验收先因测试computed-property身份比较错误失败，修正后1项56.807s/exit0；前端构建exit0，core/TS/OpenAPI生成exit0；离线包verify通过，结果收据runtime/public-report-restore-d57b5a6b244ab80158bef9c816dbdc5f/result.json；远端requiredCI待执行。CI改用Mango单包，移除6个旧对象/重复阶段专属验收，保留通用纯规则与真实PG并发/租约/不可改报告。视觉NOT_RUN。详情见[单分发布记录](docs/runbooks/MANGOSWAP_SINGLE_SCORE_20261027.md)。
+
+## 2026-10-27 历史：单分与页面修改启动
+
+task_id=`SINGLE_SCORE_REPORT`。用户纠偏：取消区间呈现；删除主页面大段尚未纳入待办；报价/模拟任务没有计划实交易时不能显示未执行。当前保留34原任务及真实FAIL/UNKNOWN，新增单分规则与简洁页面，尚未发布新分；不以区间中点或端点假装评分。无新RPC/签名/付费/交易计划。
+
+用户现已明确授权本轮代码和MangoSwap记录远端同步、移除其它Agent发布记录；旧不push限制已被取代。正在核远端状态及清理范围，不动钱包/私有runtime、不重写远端历史。
+
+本轮分支codex/single-score-report，原cd48d3c保持；已获远端同步授权，PR21不重开，docs/presentation/不动。
+
+## 2026-10-27 历史：v2多能力报告（现已由v3替代）
 
 任务`FORMAL_LIFECYCLE_ASSESSMENT`已完成。默认报告`aa96fe18-a19a-48aa-9600-2e44e02d96d0`，目录`runtime/mangoswap-formal-multicap-20261027-v1`，新policy transaction-agent-evidence-v2/assessment-v2；34任务、153判据、3功能。A20.04–100、F87.62–92.49、B100、综合71.06–97.00；10个真实履约目标为8次兑换+2次管理撤销，不称10笔成交。原31任务与全部原判据保持，旧四份报告字节/分数不改，现在报告历史5份。
 

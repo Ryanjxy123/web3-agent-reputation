@@ -7,12 +7,13 @@ from pathlib import Path
 from reputation_core.admission import MeasurementPurpose, Verdict
 from reputation_core.reporting import (CapabilityCoverage, ReportFinding, SampleExplanation,
                                        parse_evaluation_report)
-from reputation_core.scoring import MULTICAP_POLICY_VERSION, ScoredSample
+from reputation_core.scoring import MULTICAP_POLICY_VERSION, POINT_POLICY_VERSION, ScoredSample
 from reputation_core.shared_scoring import SharedAssessment, SharedDeclarationGroup
 from reputation_core.swap import integer
 from reputation_platform.swap_report import SwapEvidence
 
 ADAPTER = 'retained-evm-multicapability-v2'
+POINT_ADAPTER = 'retained-evm-point-assessment-v3'
 ASSESSMENT_SCHEMA = 'shared-task-assessment-v2'
 GROUPS = {'native_swap': ('native-v4',),
           'scheduled_cancel': ('create-query', 'cancel-refund', 'asset-permission-fees'),
@@ -186,7 +187,8 @@ def _assemble(parent, catalog, config, facts, actions, supplement_sources, proto
             title=action.title if verified else selected['title'] + '（来源待核）', input_summary=input_text,
             claimed_output='完成即时兑换并满足最低到账。' if kind == 'native_swap' else '创建、查询并撤销订单，本金完整退回，不要求触发成交。',
             independent_result=action.summary if verified else reason, checks=sample_checks, capability_id=capability))
-    assessment = SharedAssessment.model_validate_json(json.dumps({'schema_version': ASSESSMENT_SCHEMA,
+    schema = 'shared-task-assessment-v3' if catalog['policy_version'] == POINT_POLICY_VERSION else ASSESSMENT_SCHEMA
+    assessment = SharedAssessment.model_validate_json(json.dumps({'schema_version': schema,
         'capabilities': capabilities, 'cases': [*cases, *new_cases.values()], 'tasks': tasks,
         'observations': observations}, ensure_ascii=False))
     coverage = []
@@ -206,7 +208,8 @@ def _assemble(parent, catalog, config, facts, actions, supplement_sources, proto
             tested_scope='；'.join(selected_groups),
             sample_ids=[*(previous.sample_ids if previous else []), *(sample.sample.sample_id for sample in additions)],
             findings=[*(previous.findings if previous else []), *(check for sample in additions for check in sample.checks)],
-            missing_evidence=[A_REASON, *missing], capability_type='asset-operation', checker_id=ADAPTER, checker_version='v2'))
+            missing_evidence=[A_REASON, *missing], capability_type='asset-operation', checker_id=catalog['checker_id'],
+            checker_version='v' + catalog['policy_version'].rsplit('-v', 1)[1]))
     projected = parent.model_copy(update={'samples': [*parent.samples, *new_samples], 'capabilities': coverage})
     return projected, assessment
 
@@ -223,8 +226,9 @@ def replay_lifecycle_assessment(root: Path, evidence: SwapEvidence, origin: dict
     parent = parse_evaluation_report(evidence.raw(origin['source_report']))
     verify_shared_report_sources(root, parent, parent_hashes)
     catalog = evidence.json(origin['declarations'])
-    _check(catalog['schema_version'] == 'shared-declaration-catalog-v1' and catalog['checker_id'] == ADAPTER
-           and catalog['policy_version'] == MULTICAP_POLICY_VERSION,
+    versions = {ADAPTER: MULTICAP_POLICY_VERSION, POINT_ADAPTER: POINT_POLICY_VERSION}
+    _check(catalog['schema_version'] == 'shared-declaration-catalog-v1' and catalog['checker_id'] in versions
+           and catalog['policy_version'] == versions[catalog['checker_id']],
            '尚未注册此正式补测评价目录')
     _check(catalog['candidate_key'] == parent.candidate_key
            and catalog['registration_reference'] == parent.registration_reference, '新目录与原登记身份不同')

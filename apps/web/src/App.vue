@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import type { AgentChainEvidence, AgentDetail, AgentSummary, EvaluationJob, EvaluationReport } from './contracts'
 import { ApiError, asApiError, getAgent, getAgentChainEvidence, getAgents, getJob, getReport, getRuntimeStatus, submitEvaluation } from './api'
 import type { RuntimeStatus } from './api'
-import { checkLabel, jobLabel, score, scoreRange, stageLabel, when } from './format'
+import { checkLabel, jobLabel, score, stageLabel, when } from './format'
 import { businessRole, businessSummary, chainName, executionChains, isOlasService, profileStatus, registrationType, roleLabels, supportsSubmission } from './agentProfile'
 import ErrorNotice from './components/ErrorNotice.vue'
 import AgentCoverage from './components/AgentCoverage.vue'
@@ -139,26 +139,22 @@ function evaluationScope(agent: AgentSummary): keyof typeof scopeLabels {
     case 'evm-swap-builder-v1':
     case 'evm-swap-builder-v2':
     case 'transaction-agent-evidence-v1':
-    case 'transaction-agent-evidence-v2': return 'transaction'
+    case 'transaction-agent-evidence-v2':
+    case 'transaction-agent-evidence-v3': return 'transaction'
     default: return 'unknown'
   }
 }
 
 function directoryScore(agent: AgentSummary): string {
-  const shared = agent.latest_report?.shared_result
-  return shared ? scoreRange(shared.overall?.lower, shared.overall?.upper) : score(agent.latest_report?.scores.overall)
+  const report = agent.latest_report
+  if (report?.scores.overall != null) return score(report.scores.overall)
+  return report?.shared_result?.overall ? '历史版本' : '未评价'
 }
 
 function directoryScope(agent: AgentSummary): string {
   const shared = agent.latest_report?.shared_result
   return shared ? shared.capabilities.filter(item => item.selected).map(item => item.title).join('、')
     : scopeLabels[evaluationScope(agent)]
-}
-
-function directoryCoverage(agent: AgentSummary): string {
-  const shared = agent.latest_report?.shared_result
-  if (!shared) return '全部声明覆盖尚未单独核定'
-  return { FULL: '已记录声明均有评价', PARTIAL: '部分声明尚未覆盖', NONE: '声明覆盖待评价' }[shared.declaration_coverage]
 }
 
 function compareAgents(left: AgentSummary, right: AgentSummary): number {
@@ -171,8 +167,8 @@ function compareAgents(left: AgentSummary, right: AgentSummary): number {
     const order = { 'asset-execution': 0, 'chain-query': 1, 'research-delivery': 2, unverified: 3 }
     const priority = order[businessRole(left)] - order[businessRole(right)]
     if (priority) return priority
-    const a = left.latest_report?.shared_result ? left.latest_report.shared_result.overall?.lower ?? -1 : left.latest_report?.scores.overall ?? -1
-    const b = right.latest_report?.shared_result ? right.latest_report.shared_result.overall?.lower ?? -1 : right.latest_report?.scores.overall ?? -1
+    const a = left.latest_report?.scores.overall ?? -1
+    const b = right.latest_report?.scores.overall ?? -1
     return b - a || byName()
   }
   const a = left.latest_report ? Date.parse(left.latest_report.generated_at) : NaN
@@ -385,7 +381,7 @@ onBeforeUnmount(() => {
             <label class="directory-filter sort-filter"><span>排序方式</span><select v-model="directorySort"><option value="score-desc">链上执行优先 · 分数降序</option><option value="updated">最近更新</option><option value="name">名称顺序</option></select></label>
           </div>
           <div v-if="!directoryLoading && !directoryError" class="directory-results"><p role="status" aria-live="polite" aria-atomic="true">显示 <strong>{{ matches.length }}</strong> / {{ agents.length }} 个 Agent</p><button v-if="hasDirectoryConditions" class="text-button" @click="clearDirectoryConditions">清空条件</button></div>
-          <p class="directory-comparison-note">默认优先展示链上资产操作，同类按范围分降序；区间按下界排序，这不代表把未知结果扣分。分数仅在相同能力、政策与样本口径下可比。</p>
+          <p class="directory-comparison-note">默认优先展示链上资产操作，同类按综合分降序。分数对应各自报告的功能与样本范围。</p>
         </div>
         <p v-if="directoryLoading" class="loading-state" role="status"><span class="spinner" aria-hidden="true"></span>正在读取 Agent 目录…</p>
         <ErrorNotice v-else-if="directoryError" :error="directoryError"><button class="text-button" @click="loadAgents">重新读取目录</button></ErrorNotice>
@@ -402,7 +398,7 @@ onBeforeUnmount(() => {
               <div class="card-score"><strong>{{ directoryScore(agent) }}</strong><span>本范围综合分</span></div>
               <p class="muted small">已测范围：{{ directoryScope(agent) }}</p>
               <p v-if="(agent.complete_report_count ?? 0) > 0 && evaluationStatus(agent) !== 'COMPLETE'" class="muted small">另保留 {{ agent.complete_report_count }} 份三维齐备的历史报告</p>
-              <p class="muted small">{{ directoryCoverage(agent) }}</p><p class="muted small card-updated">更新于 {{ when(agent.latest_report.generated_at) }}</p>
+              <p class="muted small card-updated">更新于 {{ when(agent.latest_report.generated_at) }}</p>
             </template>
             <template v-else>
               <p v-if="businessRole(agent) === 'asset-execution'" class="unscored-note">{{ agent.profile?.evidence_status === 'verified' ? '已有真实链上样本核验，三维评分仍待补齐采样。' : '正在补齐可归属的链上任务、授权与执行证据。' }}</p>

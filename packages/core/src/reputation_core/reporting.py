@@ -75,8 +75,7 @@ class EvaluationReport(BaseModel):
         if self.policy_version in SHARED_POLICY_VERSIONS:
             if self.shared_assessment is None:
                 raise ValueError('shared policy requires a structured shared assessment')
-            expected_schema = ('shared-task-assessment-v1' if self.policy_version == SHARED_POLICY_VERSION
-                               else 'shared-task-assessment-v2')
+            expected_schema = 'shared-task-assessment-v' + self.policy_version.rsplit('-v', 1)[1]
             if self.shared_assessment.schema_version != expected_schema:
                 raise ValueError('shared policy and assessment schema versions differ')
             return self

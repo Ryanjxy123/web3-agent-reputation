@@ -232,7 +232,8 @@
             "evm-swap-builder-v1",
             "evm-swap-builder-v2",
             "transaction-agent-evidence-v1",
-            "transaction-agent-evidence-v2"
+            "transaction-agent-evidence-v2",
+            "transaction-agent-evidence-v3"
           ],
           "title": "Policy Version",
           "type": "string"

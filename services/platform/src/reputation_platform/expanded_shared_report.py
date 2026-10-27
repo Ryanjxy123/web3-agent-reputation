@@ -5,13 +5,15 @@ import json
 from pathlib import Path
 
 from reputation_core.reporting import EvaluationReport
-from reputation_core.scoring import MULTICAP_POLICY_VERSION
-from reputation_platform.shared_report import SOURCE_ADAPTERS, MULTICAP_ADAPTER
+from reputation_core.scoring import MULTICAP_POLICY_VERSION, POINT_POLICY_VERSION
+from reputation_platform.shared_report import SOURCE_ADAPTERS, MULTICAP_ADAPTER, POINT_ADAPTER
 from reputation_platform.swap_report import SwapEvidence, _check
 
 ORIGIN = 'shared-expanded-origin.json'
 SCHEMA = 'shared-expanded-report-origin-v2'
 ADR = 'docs/adr/0028-formal-multicapability-assessment.md'
+POINT_ADR = 'docs/adr/0029-single-score-and-report-scope.md'
+POINT_APPROACH = '复用原任务与多源原件，按有效可判结果计算单一三维及综合分；未知、未采与测量无效另列，不虚构结果或业务调用。'
 APPROACH = '保留历史任务与已核新交易的原始时间，按统一多能力规则回顾性重评；同一任务共享三维证据，未采响应进入未决范围，不生成新的调用。'
 LIMITATIONS = [
     '新增任务已纳入正式判分；每项结论只对应本报告明确选择的声明和案例，不代表全部功能或长期声誉。',
@@ -20,6 +22,20 @@ LIMITATIONS = [
     '管理任务完成是创建、合约查询、撤销及退款完成；不等于定时或限价触发成交。',
     '单个新场景样本通过只说明该次任务，不是未来可靠率的统计置信区间。',
 ]
+POINT_LIMITATIONS = [
+    '分数来自已核实结果，未知、未采和无效测量不填0或100，覆盖情况与分数分别记录。',
+    '订单管理目标为创建、合约查询、本人撤销及退款，不等于自动成交。',
+    '本报告只代表已测功能与样本，不以少量成功任务保证未来表现。',
+]
+POLICIES = {MULTICAP_ADAPTER: MULTICAP_POLICY_VERSION, POINT_ADAPTER: POINT_POLICY_VERSION}
+
+
+def _policy_adr(adapter):
+    return POINT_ADR if adapter == POINT_ADAPTER else ADR
+
+
+def _approach(policy):
+    return POINT_APPROACH if policy == POINT_POLICY_VERSION else APPROACH
 
 
 def _sha(raw):
@@ -33,12 +49,14 @@ def _write(path, value):
 
 
 def _origin(evidence, value):
-    _check(value.get('schema_version') == SCHEMA and value.get('adapter') == MULTICAP_ADAPTER
+    _check(value.get('schema_version') == SCHEMA and value.get('adapter') in POLICIES
            and value.get('analysis_mode') == 'retrospective-expanded-scope', 'Unsupported formal multi-capability source')
-    evidence.raw(ADR)
-    base, catalog, assessment = SOURCE_ADAPTERS[MULTICAP_ADAPTER](evidence.root, evidence, value)
-    _check(catalog.get('policy_version') == MULTICAP_POLICY_VERSION
-           and assessment.schema_version == 'shared-task-assessment-v2', 'Formal policy and source structure differ')
+    evidence.raw(_policy_adr(value['adapter']))
+    base, catalog, assessment = SOURCE_ADAPTERS[value['adapter']](evidence.root, evidence, value)
+    policy = POLICIES[value['adapter']]
+    _check(catalog.get('policy_version') == policy
+           and assessment.schema_version == 'shared-task-assessment-v' + policy.rsplit('-v', 1)[1],
+           'Formal policy and source structure differ')
     return base, catalog, assessment
 
 
@@ -48,8 +66,9 @@ def _window(assessment):
             if times else '任务时间尚未核齐；不以报告生成时间替代业务观察。')
 
 
-def _limitations(base):
-    return [*('历史来源范围说明：' + item for item in base.limitations), *LIMITATIONS]
+def _limitations(base, policy):
+    return [*('历史来源范围说明：' + item for item in base.limitations),
+            *(POINT_LIMITATIONS if policy == POINT_POLICY_VERSION else LIMITATIONS)]
 
 
 def verify_expanded_report_sources(root, report, hashes):
@@ -57,7 +76,7 @@ def verify_expanded_report_sources(root, report, hashes):
     _check(len(origins) == 1, 'A formal multi-capability report requires one origin')
     evidence = SwapEvidence(root, hashes)
     base, catalog, assessment = _origin(evidence, evidence.json(origins[0]))
-    _check(report.policy_version == MULTICAP_POLICY_VERSION
+    _check(report.policy_version == catalog['policy_version']
            and report.candidate_key == base.candidate_key and report.name == base.name
            and report.registration_reference == base.registration_reference,
            'Formal report identity or policy differs from source replay')
@@ -65,11 +84,11 @@ def verify_expanded_report_sources(root, report, hashes):
            and report.shared_assessment.model_dump(mode='json') == assessment.model_dump(mode='json'),
            'Formal judgments or calculated scores differ from original evidence')
     _check(report.scope == catalog['scope'] and report.scope_exclusions == catalog['scope_exclusions']
-           and report.approach == APPROACH and report.evaluation_window == _window(assessment),
+           and report.approach == _approach(report.policy_version) and report.evaluation_window == _window(assessment),
            'Formal scope, provenance or observation window differs')
     _check(report.samples == base.samples and report.capabilities == base.capabilities,
            'Formal sample explanations must remain source-derived')
-    _check(report.limitations == _limitations(base), 'Formal report changed or omitted evidence limitations')
+    _check(report.limitations == _limitations(base, report.policy_version), 'Formal report changed or omitted evidence limitations')
     _check(set(report.source_references) == set(hashes), 'Formal report source inventory differs')
     return base.registration_reference
 
@@ -98,7 +117,8 @@ def build_expanded_report(root: Path, source_directory: Path, declarations: Path
     for item in parent_manifest['inputs']:
         add(root / item['path'], item['sha256'])
     catalog = json.loads(declarations.read_bytes())
-    _check(catalog.get('checker_id') == MULTICAP_ADAPTER, 'No registered formal source adapter')
+    adapter = catalog.get('checker_id')
+    _check(adapter in POLICIES, 'No registered formal source adapter')
     supplement = catalog['lifecycle_supplement']
     snapshot_manifest = json.loads((root / supplement['snapshot_manifest']).read_bytes())
     for item in snapshot_manifest['inputs']:
@@ -111,21 +131,23 @@ def build_expanded_report(root: Path, source_directory: Path, declarations: Path
         for group in capability['declaration_groups']:
             for name in group['source_references']:
                 add(root / name)
-    add(root / ADR)
-    origin = {'schema_version': SCHEMA, 'adapter': MULTICAP_ADAPTER,
+    adr = _policy_adr(adapter)
+    add(root / adr)
+    origin = {'schema_version': SCHEMA, 'adapter': adapter,
         'analysis_mode': 'retrospective-expanded-scope', 'source_report': add(source_directory / 'report.json'),
         'source_manifest': add(source_directory / 'manifest.json'), 'declarations': add(declarations)}
     directory.mkdir(parents=True, exist_ok=False)
     _write(directory / ORIGIN, origin)
     add(directory / ORIGIN)
     base, catalog, assessment = _origin(SwapEvidence(root, hashes), origin)
-    report = EvaluationReport(policy_version=MULTICAP_POLICY_VERSION, candidate_key=base.candidate_key,
+    policy = POLICIES[adapter]
+    report = EvaluationReport(policy_version=policy, candidate_key=base.candidate_key,
         name=base.name, registration_reference=base.registration_reference, generated_at=datetime.now(timezone.utc),
         scope=catalog['scope'], scope_exclusions=catalog['scope_exclusions'], evaluation_window=_window(assessment),
-        approach=APPROACH, samples=base.samples, capabilities=base.capabilities, shared_assessment=assessment,
-        source_references=sorted(hashes), limitations=_limitations(base))
+        approach=_approach(policy), samples=base.samples, capabilities=base.capabilities, shared_assessment=assessment,
+        source_references=sorted(hashes), limitations=_limitations(base, policy))
     _write(directory / 'manifest.json', {'schema_version': 'evaluation-input-manifest-v1',
-        'implementation_note': {'path': ADR, 'sha256': hashes[ADR]},
+        'implementation_note': {'path': adr, 'sha256': hashes[adr]},
         'inputs': [{'path': name, 'sha256': digest} for name, digest in sorted(hashes.items())]})
     _write(directory / 'report.json', report.model_dump(mode='json'))
     from reputation_platform.evaluation_report import render_evaluation_report

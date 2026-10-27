@@ -6,7 +6,7 @@ from pathlib import Path
 
 from reputation_core import MeasurementPurpose, Verdict
 from reputation_core.reporting import EvaluationReport, parse_evaluation_report
-from reputation_core.scoring import SHARED_POLICY_VERSION, MULTICAP_POLICY_VERSION
+from reputation_core.scoring import SHARED_POLICY_VERSION, MULTICAP_POLICY_VERSION, POINT_POLICY_VERSION
 from reputation_core.shared_scoring import SharedAssessment
 from reputation_core.swap import address, verify_swap_execution, verify_swap_function
 from reputation_platform.swap_report import (
@@ -207,6 +207,7 @@ def _assessment(root, evidence, origin):
 
 
 MULTICAP_ADAPTER = 'retained-evm-multicapability-v2'
+POINT_ADAPTER = 'retained-evm-point-assessment-v3'
 
 
 def _lifecycle_assessment(root, evidence, origin):
@@ -214,7 +215,7 @@ def _lifecycle_assessment(root, evidence, origin):
     return replay_lifecycle_assessment(root, evidence, origin)
 
 
-SOURCE_ADAPTERS = {ADAPTER: _assessment, MULTICAP_ADAPTER: _lifecycle_assessment}
+SOURCE_ADAPTERS = {ADAPTER: _assessment, MULTICAP_ADAPTER: _lifecycle_assessment, POINT_ADAPTER: _lifecycle_assessment}
 
 
 def _replay(root, evidence, origin):
@@ -225,7 +226,7 @@ def _replay(root, evidence, origin):
 
 
 def verify_shared_report_sources(root, report, hashes):
-    if report.policy_version == MULTICAP_POLICY_VERSION:
+    if report.policy_version in (MULTICAP_POLICY_VERSION, POINT_POLICY_VERSION):
         from reputation_platform.expanded_shared_report import verify_expanded_report_sources
         return verify_expanded_report_sources(root, report, hashes)
     origins = [path for path in hashes if Path(path).name == ORIGIN]
@@ -275,7 +276,7 @@ def build_shared_report(root: Path, source_directory: Path, declarations: Path, 
         return name
 
     catalog = _json(declarations)
-    if catalog.get('checker_id') == MULTICAP_ADAPTER:
+    if catalog.get('checker_id') in (MULTICAP_ADAPTER, POINT_ADAPTER):
         from reputation_platform.expanded_shared_report import build_expanded_report
         return build_expanded_report(root, source_directory, declarations, directory)
     origin = {'schema_version': SCHEMA, 'adapter': catalog['checker_id'],

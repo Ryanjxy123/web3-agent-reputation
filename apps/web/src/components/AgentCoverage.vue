@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import type { EvaluationReport } from '../contracts'
 import { businessCapabilities, capabilityKey } from '../capability'
-import { score, scoreRange, when } from '../format'
+import { score, when } from '../format'
 
 const props = defineProps<{
   reports: Array<{ id: string; report: EvaluationReport }>
@@ -26,12 +26,13 @@ const title = (report: EvaluationReport) => report.shared_assessment
   : businessCapabilities(report).map(item => item.operation).join('、')
   || ((report.capabilities ?? []).length ? '协议与可用性资料（尚无能力业务样本）' : report.scope)
 const dimensionValue = (report: EvaluationReport, purpose: 'availability' | 'functional' | 'behavioral') => {
-  const dimension = report.shared_assessment?.result[purpose]
-  return dimension ? scoreRange(dimension.interval?.lower, dimension.interval?.upper) : score(report.scores[purpose].value)
+  const value = report.scores[purpose].value
+  if (value != null) return score(value)
+  const interval = report.shared_assessment?.result[purpose].interval
+  return interval && interval.lower !== interval.upper ? '历史版本' : '未评价'
 }
-const overallValue = (report: EvaluationReport) => report.shared_assessment
-  ? scoreRange(report.shared_assessment.result.overall?.lower, report.shared_assessment.result.overall?.upper)
-  : score(report.scores.overall)
+const overallValue = (report: EvaluationReport) => report.scores.overall != null ? score(report.scores.overall)
+  : report.shared_assessment?.result.overall ? '历史版本' : '未评价'
 </script>
 
 <template>

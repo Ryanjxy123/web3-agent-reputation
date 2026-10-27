@@ -756,7 +756,8 @@
       "default": "shared-task-assessment-v1",
       "enum": [
         "shared-task-assessment-v1",
-        "shared-task-assessment-v2"
+        "shared-task-assessment-v2",
+        "shared-task-assessment-v3"
       ],
       "title": "Schema Version",
       "type": "string"
