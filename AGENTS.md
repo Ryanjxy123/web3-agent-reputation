@@ -75,6 +75,10 @@
 
 ## Git 与交付
 
+- 并行协作先按docs/runbooks/AGENT_EVALUATION_CONTRIBUTOR_GUIDE.md确定共同基线、独立分支/worktree与文件owner。共享core、生成契约、中央注册表、根文档及锁文件由各自唯一owner维护；对象采样进度写docs/collaboration/<agent-key>/，由集成人汇总根PLAN/STATUS。方向或共享语义变化仍须由负责人先同步常查文档，不让各分支自行改出不同评分规则。
+- 2026-10-27用户明确要求队友共用现有Virtuals买方钱包及余额，并可各自直接发起交易，不以固定唯一发送者限制并行。多人签发须先完成各自授权和共用的nonce/资金/授权状态协调；当前协调器尚未实现，不能把文档流程冒称已可安全多端并发。不要求每人另建钱包充值，不复制秘密、不擅自新增Signer或改变No Policy/委托。每单按Agent身份/task_id分账，未知发送先reconcile；不能保证外部业务零失败。
+- 发布到manifest中的catalog、ADR、声明投影与原件保持原字节；扩范围/修订必须追加版本。二进制公开包按对象和版本独立命名，不能合并或覆盖已有压缩包。Git不能解决钱包竞争或证据重复计数，必须另行协调。
+
 - 2026-10-19 用户已授权新项目连接`https://github.com/Ryanjxy123/web3-agent-reputation.git`并提交重构PR，PR #17已合并。2026-10-20 用户进一步明确授权提交当前本地最新优化并合并到main；本次使用`codex/commit-latest-optimizations-20261020`任务分支，经PR合并，保留远程历史、不强推。个人密钥/数据库/私有配置不上传；既有10份真实完整评分公开包保留，新报告的分发范围以README为准。
 
 - 本目录为独立仓库。Git 操作前核实顶层目录、分支、未提交修改和 remote。
