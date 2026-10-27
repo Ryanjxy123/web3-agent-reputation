@@ -15,8 +15,10 @@ defineEmits<{ select: [id: string] }>()
 const tested = computed(() => new Set(props.reports.flatMap(({ report }) => businessCapabilities(report).map(capabilityKey))).size)
 const legacy = computed(() => props.reports.filter(({ report }) => !(report.capabilities ?? []).length
   && report.samples.some(item => ['functional', 'behavioral'].includes(item.sample.purpose))).length)
-const complete = computed(() => props.reports.filter(({ report }) => report.shared_assessment
-  ? report.shared_assessment.result.score_status === 'AVAILABLE' : report.scores.status === 'COMPLETE').length)
+const publishable = (report: EvaluationReport) => report.shared_assessment
+  ? report.shared_assessment.result.score_status === 'AVAILABLE' : report.scores.status === 'COMPLETE'
+const complete = computed(() => props.reports.filter(({ report }) => publishable(report)).length)
+const partial = computed(() => props.reports.filter(({ report }) => !publishable(report) && report.scores.status === 'PARTIAL').length)
 const declared = computed(() => [...new Map(props.reports.flatMap(({ report }) =>
   (report.capabilities ?? []).filter(item => item.operation !== '未提供可识别操作').map(item => [capabilityKey(item), item] as const))).values()])
 const title = (report: EvaluationReport) => report.shared_assessment
@@ -35,7 +37,7 @@ const overallValue = (report: EvaluationReport) => report.shared_assessment
 <template>
   <details class="panel agent-coverage report-secondary" aria-label="Agent 能力覆盖">
     <summary class="section-heading"><h2>其他能力与历史报告</h2><span class="muted small">已读取 {{ reports.length }} / {{ expected }} 份</span></summary>
-    <p class="section-description"><template v-if="tested">已明确关联业务样本的能力类 {{ tested }} 项 · </template><template v-else-if="!legacy">尚无明确关联能力的业务样本 · </template>三维齐备的范围报告 {{ complete }} 份 · 部分范围报告 {{ reports.filter(item => item.report.scores.status === 'PARTIAL').length }} 份。</p>
+    <p class="section-description"><template v-if="tested">已明确关联业务样本的能力类 {{ tested }} 项 · </template><template v-else-if="!legacy">尚无明确关联能力的业务样本 · </template>可发布范围综合结果 {{ complete }} 份 · 证据不足的范围报告 {{ partial }} 份。</p>
     <p v-if="legacy" class="muted small">{{ legacy }} 份旧报告未记录逐能力映射，不能据此认定已测能力为 0。其真实核验范围与样本保留在对应报告中。</p>
     <p class="muted small">每个分数仅属于同一行的报告范围；尚未计算跨能力的 Agent 全局综合分。</p>
     <p v-if="loading" class="muted small" role="status">正在读取其他能力报告…</p>

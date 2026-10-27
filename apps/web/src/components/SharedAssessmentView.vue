@@ -16,6 +16,13 @@ const props = defineProps<{
   sampleLinks: Record<string, number>
 }>()
 const result = computed(() => props.assessment.result)
+const expandedPolicy = computed(() => String(props.report.policy_version) === 'transaction-agent-evidence-v2')
+const unobservedAvailabilityCases = computed(() => result.value.cases.filter(item =>
+  item.dimension === 'availability' && (item.counts.planned ?? 0) > 0 && item.counts.observed === 0).length)
+const executionOnlyTaskCount = computed(() => props.assessment.tasks.filter(task => {
+  const dimensions = new Set(props.assessment.observations.filter(item => item.task_key === task.task_key).map(item => item.dimension))
+  return dimensions.has('functional') && dimensions.has('behavioral') && !dimensions.has('availability')
+}).length)
 const dimensions = computed(() => [
   { purpose: 'availability' as const, title: 'A · 服务可用性', weight: '30%', result: result.value.availability,
     caption: '有效业务调用能否按时取得完整响应。' },
@@ -72,9 +79,11 @@ const caseTitle = (caseId: string, criterionId?: string) => {
 }
 const observationTitle = (item: SharedObservation) => caseTitle(item.case_id, item.criterion_id)
 const observationState = (item: SharedObservation) => item.measurement_validity === 'valid' ? item.verdict : item.measurement_validity
+const isPlanned = (key: string, dimension: MeasurementPurpose) => props.assessment.cases.some(item =>
+  item.dimension === dimension && item.task_keys.includes(key))
 const taskDimensionSummary = (key: string, dimension: MeasurementPurpose) => {
   const items = observationsFor(key, dimension)
-  if (!items.length) return '未涉及'
+  if (!items.length) return isPlanned(key, dimension) ? '尚未观测' : '未涉及'
   const values = [['PASS', '通过'], ['FAIL', '不符'], ['UNKNOWN', '未决'], ['unknown', '有效性待核'], ['invalid', '测量无效'], ['NOT_APPLICABLE', '不适用']] as const
   return values.map(([verdict, title]) => {
     const count = items.filter(item => observationState(item) === verdict).length
@@ -109,6 +118,7 @@ const representative = computed(() => {
       </div>
       <div class="shared-overall"><strong :class="{ 'shared-score-pending': result.overall === null }">{{ scoreRange(result.overall?.lower, result.overall?.upper) }}</strong><span>已测范围综合分 / 100</span><span v-if="hasInterval">区间保留未决结果，不取中点当精确分</span></div>
       <p class="scope-note">未测完全部声明也可以评价已有范围；范围分不代表全部功能已验证。<template v-if="hasInterval">上下界是当前未决结果的可能范围，不是长期成功率的置信区间。</template></p>
+      <p v-if="expandedPolicy" class="scope-note"><template v-if="executionOnlyTaskCount">{{ executionOnlyTaskCount }} 个新增链上任务已参与 F / B 评价。</template><template v-if="unobservedAvailabilityCases"> {{ unobservedAvailabilityCases }} 个入口响应案例尚未观测，其 A 保留 0–100 区间，不沿用其它入口的响应结果。</template>本版扩大了评价范围，分数变化不等于服务性能改善。</p>
     </section>
 
     <section v-if="result.risk_status === 'MAJOR_VIOLATION'" class="shared-risk" role="alert"><h3>已发现重大资金或权限约束违背</h3><ul><li v-for="reason in riskReasons" :key="reason">{{ reason }}</li></ul><p>该状态优先于综合分，不作为正常高分推荐。</p></section>
@@ -139,7 +149,7 @@ const representative = computed(() => {
     <p v-else-if="chainEvidenceError" class="muted small" role="status">链上操作摘要暂时无法读取，任务内的实际结局与原始证据仍保留。</p>
 
     <section v-if="actualExecutions.length" class="panel">
-      <h2>实际交易结局</h2>
+      <h2>链上任务履约结局</h2>
       <p class="section-description">{{ actualExecutions.length }} 个预定正常履约任务：{{ actualExecutions.filter(item => item.outcome === 'completed').length }} 个完成，{{ actualExecutions.filter(item => item.outcome === 'failed').length }} 个真实执行失败，{{ actualExecutions.filter(item => item.outcome === 'protected_exit').length }} 个保护退出，{{ actualExecutions.filter(item => item.outcome === 'not_executed').length }} 个未执行，{{ actualExecutions.filter(item => item.outcome === 'unknown').length }} 个结局待核。<template v-if="actualExecutions.some(item => item.outcome === 'rejected')">另有 {{ actualExecutions.filter(item => item.outcome === 'rejected').length }} 个拒绝。</template></p>
       <p class="muted small">保护退出保留未成交事实，既不冒充成交成功，也不直接等于 Agent 违约；具体约束与归因见任务。</p>
     </section>
@@ -159,7 +169,7 @@ const representative = computed(() => {
         <summary><strong>{{ String(index + 1).padStart(2, '0') }} · {{ capabilityName(task.capability_id) }} · {{ outcomeLabel[task.outcome] }}</strong><span class="shared-task-dimensions"><span>A {{ taskDimensionSummary(task.task_key, 'availability') }}</span><span>F {{ taskDimensionSummary(task.task_key, 'functional') }}</span><span>B {{ taskDimensionSummary(task.task_key, 'behavioral') }}</span></span></summary>
         <div class="shared-task-body"><span :id="legacyAnchor(task.task_key)"></span>
           <div class="shared-task-facts"><section><h4>这次请求</h4><p>{{ task.input_summary }}</p></section><section><h4>观察到的结局</h4><p>{{ outcomeLabel[task.outcome] }} · {{ attributionLabel[task.attribution] }}</p><p v-if="task.outcome === 'not_executed' && !observationsFor(task.task_key, 'behavioral').length">本任务未纳入实际交易履约核验；未执行不等于履约失败。</p><p>{{ when(task.observed_at) }}</p></section></div>
-          <div class="shared-task-observations"><section v-for="dimension in dimensions" :key="dimension.purpose" class="shared-task-observation"><h4>{{ dimension.title }}</h4><ul v-if="observationsFor(task.task_key, dimension.purpose).length"><li v-for="observation in observationsFor(task.task_key, dimension.purpose)" :key="`${observation.case_id}:${observation.criterion_id}`"><strong>{{ observationTitle(observation) }}</strong><StatusBadge v-if="observation.measurement_validity === 'valid'" :verdict="observation.verdict" /><span v-else class="report-status">{{ observation.measurement_validity === 'invalid' ? '测量无效' : '有效性待核' }}</span><p>{{ observation.reason }}</p><p v-if="observation.elapsed_ms !== null">本次观测用时 {{ (observation.elapsed_ms / 1000).toFixed(3) }} 秒</p><p v-if="observation.measurement_validity === 'invalid'">本次测量无效，不作为 Agent 的成功或失败。</p><p v-else-if="observation.measurement_validity === 'unknown'">测量有效性尚待确认。</p><details v-if="observation.evidence.length" class="technical"><summary>这项判断的证据</summary><EvidenceList :sources="observation.evidence" :report-id="reportId" /></details></li></ul><p v-else>该任务没有本维度的核验记录。</p></section></div>
+          <div class="shared-task-observations"><section v-for="dimension in dimensions" :key="dimension.purpose" class="shared-task-observation"><h4>{{ dimension.title }}</h4><ul v-if="observationsFor(task.task_key, dimension.purpose).length"><li v-for="observation in observationsFor(task.task_key, dimension.purpose)" :key="`${observation.case_id}:${observation.criterion_id}`"><strong>{{ observationTitle(observation) }}</strong><StatusBadge v-if="observation.measurement_validity === 'valid'" :verdict="observation.verdict" /><span v-else class="report-status">{{ observation.measurement_validity === 'invalid' ? '测量无效' : '有效性待核' }}</span><p>{{ observation.reason }}</p><p v-if="observation.elapsed_ms !== null">本次观测用时 {{ (observation.elapsed_ms / 1000).toFixed(3) }} 秒</p><p v-if="observation.measurement_validity === 'invalid'">本次测量无效，不作为 Agent 的成功或失败。</p><p v-else-if="observation.measurement_validity === 'unknown'">测量有效性尚待确认。</p><details v-if="observation.evidence.length" class="technical"><summary>这项判断的证据</summary><EvidenceList :sources="observation.evidence" :report-id="reportId" /></details></li></ul><p v-else>{{ isPlanned(task.task_key, dimension.purpose) ? '本维度已安排核验案例，尚未取得观察；未采不等于通过。' : '该任务未安排本维度的核验。' }}</p></section></div>
           <details class="technical"><summary>任务标识与完整证据</summary><p><code>{{ task.task_key }}</code></p><EvidenceList :sources="task.evidence" :report-id="reportId" /></details>
         </div>
       </details></div>

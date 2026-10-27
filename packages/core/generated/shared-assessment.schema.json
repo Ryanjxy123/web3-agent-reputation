@@ -753,8 +753,11 @@
   "additionalProperties": false,
   "properties": {
     "schema_version": {
-      "const": "shared-task-assessment-v1",
       "default": "shared-task-assessment-v1",
+      "enum": [
+        "shared-task-assessment-v1",
+        "shared-task-assessment-v2"
+      ],
       "title": "Schema Version",
       "type": "string"
     },

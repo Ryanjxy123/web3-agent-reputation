@@ -6,7 +6,7 @@ from typing import Literal, Self
 from pydantic import BaseModel, ConfigDict, computed_field, model_validator
 
 from reputation_core.admission import MeasurementPurpose, Verdict
-from reputation_core.scoring import DimensionScore, ScoringOutcome, SHARED_POLICY_VERSION
+from reputation_core.scoring import DimensionScore, ScoringOutcome, SHARED_POLICY_VERSION, MULTICAP_POLICY_VERSION
 
 Dimension = Literal['availability', 'functional', 'behavioral']
 CoverageStatus = Literal['FULL', 'PARTIAL', 'NONE']
@@ -141,7 +141,7 @@ class SharedAssessmentResult(SharedModel):
 
 
 class SharedAssessment(SharedModel):
-    schema_version: Literal['shared-task-assessment-v1'] = 'shared-task-assessment-v1'
+    schema_version: Literal['shared-task-assessment-v1', 'shared-task-assessment-v2'] = 'shared-task-assessment-v1'
     capabilities: list[SharedCapability]
     cases: list[SharedCase]
     tasks: list[SharedTask]
@@ -299,14 +299,14 @@ def _case_result(case, observations, tasks):
         p50_ms=p50, p95_ms=p95, case_ids=[case.case_id])
 
 
-def _dimension_result(capability, dimension, cases, results, observations, tasks):
+def _dimension_result(capability, dimension, cases, results, observations, tasks, *, expanded=False):
     chosen = [case for case in cases if case.capability_id == capability.capability_id and case.dimension == dimension]
     selected_results = [results[case.case_id] for case in chosen]
     blocked = [reason for result in selected_results for reason in result.blocked_reasons]
     if dimension != 'behavioral':
         if not chosen:
             blocked.append('已选范围尚未安排该维度的评估案例。')
-        elif not any(item.case_id in {case.case_id for case in chosen}
+        elif not (expanded and dimension == 'availability') and not any(item.case_id in {case.case_id for case in chosen}
                      and item.measurement_validity == 'valid' and item.verdict in (Verdict.PASS, Verdict.FAIL)
                      for item in observations):
             blocked.append('该维度尚无可判观察，暂不发布范围主结果。')
@@ -337,6 +337,7 @@ def _dimension_result(capability, dimension, cases, results, observations, tasks
 
 
 def calculate_shared_assessment(assessment: SharedAssessment) -> SharedAssessmentResult:
+    expanded = assessment.schema_version == 'shared-task-assessment-v2'
     tasks = {task.task_key: task for task in assessment.tasks}
     cases = assessment.cases
     results = {case.case_id: _case_result(case, assessment.observations, tasks) for case in cases}
@@ -344,7 +345,7 @@ def calculate_shared_assessment(assessment: SharedAssessment) -> SharedAssessmen
     catalog_coverage = []
     for capability in assessment.capabilities:
         dimensions = {dimension: _dimension_result(capability, dimension, cases, results,
-                                                   assessment.observations, tasks) for dimension in DIMENSIONS}
+                                                   assessment.observations, tasks, expanded=expanded) for dimension in DIMENSIONS}
         groups = []
         for group in capability.declaration_groups:
             matching = [result.coverage for result in results.values()
@@ -364,6 +365,11 @@ def calculate_shared_assessment(assessment: SharedAssessment) -> SharedAssessmen
         blocked = [reason for result in dimension_results for reason in result.blocked_reasons]
         if not eligible:
             blocked.append('当前已选范围没有该维度适用的功能。')
+        if expanded and dimension == 'availability':
+            chosen_ids = {case.case_id for case in cases if case.dimension == dimension}
+            if not any(item.case_id in chosen_ids and item.measurement_validity == 'valid'
+                       and item.verdict in (Verdict.PASS, Verdict.FAIL) for item in assessment.observations):
+                blocked.append('整个已选范围尚无有效可判的业务响应；未知区间不能单独充当可用性主结果。')
         interval = None if blocked else _mean([item.interval for item in dimension_results])
         chosen = [case for case in cases if case.dimension == dimension]
         p50, p95 = _timings([item for item in assessment.observations if item.dimension == dimension])
@@ -406,5 +412,6 @@ def shared_legacy_scores(assessment: SharedAssessment) -> ScoringOutcome:
             not_applicable=count.not_applicable, p95_ms=source.p95_ms)
     point = (result.overall.lower if result.overall is not None
              and result.overall.lower == result.overall.upper else None)
-    return ScoringOutcome(policy_version=SHARED_POLICY_VERSION, **dimensions, overall=point,
+    policy_version = MULTICAP_POLICY_VERSION if assessment.schema_version == 'shared-task-assessment-v2' else SHARED_POLICY_VERSION
+    return ScoringOutcome(policy_version=policy_version, **dimensions, overall=point,
         status='COMPLETE' if point is not None else 'PARTIAL' if assessment.observations else 'NOT_EVALUATED')

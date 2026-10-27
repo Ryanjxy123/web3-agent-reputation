@@ -19,7 +19,9 @@ SWAP_POLICY_VERSION = "evm-swap-builder-v1"
 SWAP_EVIDENCE_POLICY_VERSION = "evm-swap-builder-v2"
 SWAP_POLICY_VERSIONS = (SWAP_POLICY_VERSION, SWAP_EVIDENCE_POLICY_VERSION)
 SHARED_POLICY_VERSION = "transaction-agent-evidence-v1"
-PolicyVersion = Literal["liquidity-history-v1", "prediction-history-v1", "prediction-history-v2", "service-contract-v1", "service-fulfillment-v1", "evm-swap-builder-v1", "evm-swap-builder-v2", "transaction-agent-evidence-v1"]
+MULTICAP_POLICY_VERSION = "transaction-agent-evidence-v2"
+SHARED_POLICY_VERSIONS = (SHARED_POLICY_VERSION, MULTICAP_POLICY_VERSION)
+PolicyVersion = Literal["liquidity-history-v1", "prediction-history-v1", "prediction-history-v2", "service-contract-v1", "service-fulfillment-v1", "evm-swap-builder-v1", "evm-swap-builder-v2", "transaction-agent-evidence-v1", "transaction-agent-evidence-v2"]
 DIMENSION_WEIGHTS = {
     MeasurementPurpose.AVAILABILITY: 0.30,
     MeasurementPurpose.FUNCTIONAL: 0.40,

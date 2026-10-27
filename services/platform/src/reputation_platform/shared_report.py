@@ -6,7 +6,7 @@ from pathlib import Path
 
 from reputation_core import MeasurementPurpose, Verdict
 from reputation_core.reporting import EvaluationReport, parse_evaluation_report
-from reputation_core.scoring import SHARED_POLICY_VERSION
+from reputation_core.scoring import SHARED_POLICY_VERSION, MULTICAP_POLICY_VERSION
 from reputation_core.shared_scoring import SharedAssessment
 from reputation_core.swap import address, verify_swap_execution, verify_swap_function
 from reputation_platform.swap_report import (
@@ -206,17 +206,28 @@ def _assessment(root, evidence, origin):
     return base, catalog, assessment
 
 
-SOURCE_ADAPTERS = {ADAPTER: _assessment}
+MULTICAP_ADAPTER = 'retained-evm-multicapability-v2'
+
+
+def _lifecycle_assessment(root, evidence, origin):
+    from reputation_platform.lifecycle_assessment import replay_lifecycle_assessment
+    return replay_lifecycle_assessment(root, evidence, origin)
+
+
+SOURCE_ADAPTERS = {ADAPTER: _assessment, MULTICAP_ADAPTER: _lifecycle_assessment}
 
 
 def _replay(root, evidence, origin):
-    _check(origin['schema_version'] == SCHEMA and origin['adapter'] in SOURCE_ADAPTERS
+    _check(origin['schema_version'] == SCHEMA and origin['adapter'] == ADAPTER
            and origin['analysis_mode'] == 'retrospective-source-reuse',
            'Shared report requires a registered source adapter')
     return SOURCE_ADAPTERS[origin['adapter']](root, evidence, origin)
 
 
 def verify_shared_report_sources(root, report, hashes):
+    if report.policy_version == MULTICAP_POLICY_VERSION:
+        from reputation_platform.expanded_shared_report import verify_expanded_report_sources
+        return verify_expanded_report_sources(root, report, hashes)
     origins = [path for path in hashes if Path(path).name == ORIGIN]
     _check(len(origins) == 1, 'Shared report requires one retained origin')
     evidence = SwapEvidence(root, hashes)
@@ -264,6 +275,9 @@ def build_shared_report(root: Path, source_directory: Path, declarations: Path, 
         return name
 
     catalog = _json(declarations)
+    if catalog.get('checker_id') == MULTICAP_ADAPTER:
+        from reputation_platform.expanded_shared_report import build_expanded_report
+        return build_expanded_report(root, source_directory, declarations, directory)
     origin = {'schema_version': SCHEMA, 'adapter': catalog['checker_id'],
         'analysis_mode': 'retrospective-source-reuse',
         'source_report': add(source_directory / 'report.json'),

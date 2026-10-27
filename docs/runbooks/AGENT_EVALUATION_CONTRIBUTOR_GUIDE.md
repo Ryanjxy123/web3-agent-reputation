@@ -1,5 +1,7 @@
 # Agent 评价实现指南
 
+2026-10-27最新实现：已新增[正式多能力评价](MANGOSWAP_FORMAL_ASSESSMENT_20261027.md)与[ADR-0028](../adr/0028-formal-multicapability-assessment.md)，支持将来源核齐的新任务合入正式报告。下文v1命令仍可复用旧报告；新v2配置示例为`configs/shared-assessments/mangoswap-26345-multicap-v2.json`，未采A按版本化未知区间处理，不生成请求。多人并发已取消，PR21保持关闭。
+
 更新日期：2026-10-27。面向本项目评价实现与取证；在本仓库根目录工作，不读取或恢复上一级失败项目。
 
 ## 1. 项目目标与当前交付边界

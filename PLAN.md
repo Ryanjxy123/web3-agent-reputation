@@ -1,6 +1,18 @@
 # 新项目执行计划
 
-## 2026-10-27 当前：PR21已撤回，MangoSwap三项补测已展示
+## 2026-10-27 当前：34任务正式多能力报告已发布到本机
+
+任务`FORMAL_LIFECYCLE_ASSESSMENT`已完成。默认报告`aa96fe18-a19a-48aa-9600-2e44e02d96d0`，目录`runtime/mangoswap-formal-multicap-20261027-v1`，新policy transaction-agent-evidence-v2/assessment-v2；34任务、153判据、3功能。A20.04–100、F87.62–92.49、B100、综合71.06–97.00；10个真实履约目标为8次兑换+2次管理撤销，不称10笔成交。原31任务与全部原判据保持，旧四份报告字节/分数不改，现在报告历史5份。
+
+ADR-0028仅放宽新版每能力A可判门禁：有计划但未观测的A按0–100参与等权，整体A仍须至少1有效可判；F/B证据与正常履约门槛不变。新三个A案例未采、真实新增A观测0，不沿用旧API A作新入口证明。范围扩大不能解释为服务性能改善；未测自动执行/条件成交/周期/最佳价/免gas与Failed退款风险保留。正式报告已覆盖的旧快照改为简短原件入口。
+
+实际检查：core/TS/OpenAPI各生成exit0；组合验收1用例66.025s/exit0，含新版未知A/全A无可判、F/B门槛、旧v1、真实34任务/篡改拒绝/父字节不变。首次Vue因生成类型可选计数字段未处理失败，修正后exit0，后因范围统计标签修订再构建exit0；未重跑旧工程全套。真实PG导入、默认报告/附件/私有附件404与旧字节保持HTTP核验通过；视觉NOT_RUN。API/worker已更新，进程收据runtime/background-platform-20261027T120303Z-29836dea/process.json，worker public-off。
+
+新包data/public-reports-multicap-v2.tar.gz：954138B/1493文件，SHA 7e5a8e3ed52966b91e3a3f3d758b4855fbcf95a3c6952a81fe66a0de684f706e。导出与离线verify均exit0；1494成员凭据审查0发现，2条普通授权文字已复核。原catalog/ADR/快照及包不改。新外网请求、签名、付款和交易均0，全部复用原件。
+
+当前分支codex/formal-lifecycle-assessment；本轮本地保存，不push、不新建PR，PR21保持关闭，docs/presentation/保留。详见[正式评价说明](docs/runbooks/MANGOSWAP_FORMAL_ASSESSMENT_20261027.md)，收据runtime/formal-multicap-web-verification-20261027/receipt.json。下一task_id=`FORMAL_ASSESSMENT_USER_REVIEW`，无新增资金任务。
+
+## 2026-10-27 上一阶段：独立补测展示（已被正式报告接入取代）
 
 用户取消多人并发协作，相关新增内容已删除，未新增Signer/钱包权限/委托。PR21远端CLOSED、未合并；撤回文档commit `fa9c30f52cac891091489ce1de247ca725ebc98b`已push至原分支，不重开PR。当前task_id=`V4_SOURCE_REPLAYER_INTEGRATION`已完成，下一task_id=`MANGOSWAP_SUPPLEMENT_USER_REVIEW`，无下一笔金融操作计划。
 

@@ -37,6 +37,17 @@ const chainReview = ref<AgentChainEvidence | null>(null)
 const chainReviewLoading = ref(false)
 const chainReviewError = ref(false)
 const report = ref<EvaluationReport | null>(null)
+const chainReviewIncluded = computed(() => {
+  const assessment = report.value?.shared_assessment
+  const actions = chainReview.value?.actions
+  if (!assessment?.tasks.length || !actions?.length) return false
+  const functional = new Set(assessment.observations.filter(item => item.dimension === 'functional').map(item => item.task_key))
+  const behavioral = new Set(assessment.observations.filter(item => item.dimension === 'behavioral').map(item => item.task_key))
+  return actions.every(action => {
+    const key = action.sample_id.startsWith('contract:') ? action.sample_id.slice('contract:'.length) : action.sample_id
+    return functional.has(key) && behavioral.has(key)
+  })
+})
 const reportId = ref('')
 const coverageReports = ref<Array<{ id: string; report: EvaluationReport }>>([])
 const coverageLoading = ref(false)
@@ -127,7 +138,8 @@ function evaluationScope(agent: AgentSummary): keyof typeof scopeLabels {
     case 'service-fulfillment-v1': return 'generic'
     case 'evm-swap-builder-v1':
     case 'evm-swap-builder-v2':
-    case 'transaction-agent-evidence-v1': return 'transaction'
+    case 'transaction-agent-evidence-v1':
+    case 'transaction-agent-evidence-v2': return 'transaction'
     default: return 'unknown'
   }
 }
@@ -413,6 +425,7 @@ onBeforeUnmount(() => {
           <details class="identity-details"><summary>身份与资料来源 · {{ registrationType(detail.agent) }}</summary><p class="multiline">{{ detail.agent.registration_reference.startsWith('eip155:') ? '完整注册标识' : '注册资料线索' }}：{{ detail.agent.registration_reference }}</p><p v-if="isOlasService(detail.agent)">该身份登记于 Olas Service Registry；执行账户与历史授权由实际链上证据另行核验。</p><EvidenceList v-if="detail.candidate" :sources="detail.candidate.source_urls" /></details>
           <p v-if="chainReviewLoading" class="loading-state" role="status"><span class="spinner" aria-hidden="true"></span>正在读取链上核验证据…</p>
           <p v-else-if="chainReviewError" class="muted small" role="status">链上核验证据暂时无法读取，刷新页面可重试；已有报告仍可阅读。</p>
+          <details v-else-if="chainReview && chainReviewIncluded" class="panel report-secondary"><summary>链上补测已纳入当前正式报告 · 查看原件来源</summary><p class="muted small">同一批任务已在下方正式评价中展示，此处保留原证据快照来源。</p><EvidenceList :sources="chainReview.sources" :agent-key="detail.agent.key" /></details>
           <AgentChainReview v-else-if="chainReview" :review="chainReview" :agent-key="detail.agent.key" :has-assessment="detail.reports.length > 0" />
           <AgentCoverage v-if="coverageReports.length" :reports="coverageReports" :expected="detail.reports.length" :selected-id="reportId" :loading="coverageLoading" :incomplete="coverageIncomplete" @select="openAgent(detail.agent.key, $event)" />
           <div v-if="detail.reports.length" class="report-toolbar"><label for="report-history">报告历史 <span class="muted">{{ detail.reports.length }} 份</span></label><select id="report-history" :value="reportId" @change="openAgent(detail.agent.key, ($event.target as HTMLSelectElement).value)"><option v-for="item in detail.reports" :key="item.id" :value="item.id">{{ when(item.generated_at) }} · {{ item.shared_result?.score_status === 'AVAILABLE' ? '已测范围综合评价' : item.scores.status === 'COMPLETE' ? '范围三维齐备' : '部分评价' }} · {{ item.scope }}</option></select></div>

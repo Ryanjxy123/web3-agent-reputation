@@ -12,18 +12,18 @@
 
 该结果是旧政策下有限兑换范围的阶段性评价，历史原件和分数保留。新版已按[共享任务设计](docs/adr/0025-shared-task-declaration-scoring.md)及[范围出分修订](docs/adr/0026-scoped-shared-assessment.md)实现：同一任务分别支持三维，综合结果明确只代表已测范围，未测声明独立展示；不强制测完所有声明才出综合分。现有13个不同身份的范围结果不能直接解释为13个Agent全部声明已评价完整。
 
-最新MangoSwap回顾性共享报告复用31个业务任务，形成131项判据观察；A **90.20–100.00**、F **50.48–69.94**、B **100.00**，已测范围综合 **77.25–87.98**。范围表达未决证据的可能结果，不是长期成功率置信区间。ETH/WETH输入输出标识不一致进入F；七笔真实兑换的正确到账保留。限价、定时/周期、官网V4、原生ETH及条件免gas等缺口见[声明矩阵](docs/research/MANGOSWAP_DECLARATION_MATRIX_20261027.md)。
+最新MangoSwap正式多能力报告已纳入三笔V4原件：**34任务、153项判据、3项功能**。A **20.04–100.00**、F **87.62–92.49**、B **100.00**，范围综合 **71.06–97.00**；新入口响应未采保留未知区间。原31任务、ETH/WETH不一致及旧报告保持。新版分数变化包含范围扩大，不等于服务性能改善；计算与新旧对照见[正式评价说明](docs/runbooks/MANGOSWAP_FORMAL_ASSESSMENT_20261027.md)及[ADR-0028](docs/adr/0028-formal-multicapability-assessment.md)。
 
-评价实现见[实现指南](docs/runbooks/AGENT_EVALUATION_CONTRIBUTOR_GUIDE.md)：包含共享类型、声明/案例配置、同任务证据、来源适配器与实际命令。当前来源适配器支持已冻结Uniswap V3兑换报告的离线转换；其它协议须接入静态来源重放器，不能直接提交手写分数。2026-10-27已按用户要求关闭PR21并取消多人并发协作方案。
+评价实现见[实现指南](docs/runbooks/AGENT_EVALUATION_CONTRIBUTOR_GUIDE.md)。静态来源适配器支持原网关兑换与已核合约生命周期原件的正式共享评价；其它协议仍须接入来源重放器，不能提交手写分数。2026-10-27已按用户要求关闭PR21并取消多人并发协作方案，本轮不重开PR。
 
-新增V4原生ETH兑换、定时与限价订单创建/查询/撤销已完成三笔真实补测，后两笔本金全退。在MangoSwap页面展开“新增链上补测”查看；这些事实与既有网关范围分分别显示，不补造业务可用性或新总分。说明及离线包命令见[补测记录](docs/runbooks/MANGOSWAP_SUPPLEMENT_20261027.md)。
+V4原生兑换、定时与限价订单创建/查询/撤销均已进入最新正式报告，后两笔本金全退；独立快照保留作来源。[补测原始记录](docs/runbooks/MANGOSWAP_SUPPLEMENT_20261027.md)说明实际交易与费用。正式报告默认展示，旧报告在历史中保留。
 
 ## 环境准备
 
-已经完成下文依赖与PostgreSQL配置的机器，可单独导入新版共享报告及其1198个公开依赖（约0.60MB）：
+已经完成下文依赖与PostgreSQL配置的机器，可单独导入最新多能力正式报告及其1493个公开依赖（约0.95MB）：
 
 ```powershell
-uv run --env-file .env --no-sync python scripts/public_reports.py import data/public-reports-shared-v1.tar.gz --initialize
+uv run --env-file .env --no-sync python scripts/public_reports.py import data/public-reports-multicap-v2.tar.gz --initialize
 ```
 
 此包包含所需旧报告原件，无需钱包、RPC或LLM，不要求先重新执行实验。SHA256：`09657600785f729fa4dfb35ddb1e4c8c578d131045e340a9b17d3e03e873108c`。本机报告ID由导入器生成，包中源UUID仅作来源；重导相同报告不会重复创建。网站打开方式与个人RPC/LLM配置见下文，个人凭据不随代码提供。

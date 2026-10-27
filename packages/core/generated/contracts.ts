@@ -129,7 +129,7 @@ export type ScoredSample = {
 };
 
 export type ScoringOutcome = {
-  "policy_version"?: "liquidity-history-v1" | "prediction-history-v1" | "prediction-history-v2" | "service-contract-v1" | "service-fulfillment-v1" | "evm-swap-builder-v1" | "evm-swap-builder-v2" | "transaction-agent-evidence-v1";
+  "policy_version"?: "liquidity-history-v1" | "prediction-history-v1" | "prediction-history-v2" | "service-contract-v1" | "service-fulfillment-v1" | "evm-swap-builder-v1" | "evm-swap-builder-v2" | "transaction-agent-evidence-v1" | "transaction-agent-evidence-v2";
   "availability": DimensionScore;
   "functional": DimensionScore;
   "behavioral": DimensionScore;
@@ -138,7 +138,7 @@ export type ScoringOutcome = {
 };
 
 export type SharedAssessment = {
-  "schema_version"?: "shared-task-assessment-v1";
+  "schema_version"?: "shared-task-assessment-v1" | "shared-task-assessment-v2";
   "capabilities": Array<SharedCapability>;
   "cases": Array<SharedCase>;
   "tasks": Array<SharedTask>;
@@ -479,7 +479,7 @@ export type MarketSettlementVerification = {
 
 export type EvaluationReport = {
   "schema_version"?: "evaluation-report-v1";
-  "policy_version"?: "liquidity-history-v1" | "prediction-history-v1" | "prediction-history-v2" | "service-contract-v1" | "service-fulfillment-v1" | "evm-swap-builder-v1" | "evm-swap-builder-v2" | "transaction-agent-evidence-v1";
+  "policy_version"?: "liquidity-history-v1" | "prediction-history-v1" | "prediction-history-v2" | "service-contract-v1" | "service-fulfillment-v1" | "evm-swap-builder-v1" | "evm-swap-builder-v2" | "transaction-agent-evidence-v1" | "transaction-agent-evidence-v2";
   "candidate_key": string;
   "name": string;
   "registration_reference": string;

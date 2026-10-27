@@ -1158,7 +1158,8 @@
               "service-fulfillment-v1",
               "evm-swap-builder-v1",
               "evm-swap-builder-v2",
-              "transaction-agent-evidence-v1"
+              "transaction-agent-evidence-v1",
+              "transaction-agent-evidence-v2"
             ],
             "title": "Policy Version",
             "default": "liquidity-history-v1"
@@ -1632,7 +1633,8 @@
               "service-fulfillment-v1",
               "evm-swap-builder-v1",
               "evm-swap-builder-v2",
-              "transaction-agent-evidence-v1"
+              "transaction-agent-evidence-v1",
+              "transaction-agent-evidence-v2"
             ],
             "title": "Policy Version",
             "default": "liquidity-history-v1"
@@ -1682,7 +1684,10 @@
         "properties": {
           "schema_version": {
             "type": "string",
-            "const": "shared-task-assessment-v1",
+            "enum": [
+              "shared-task-assessment-v1",
+              "shared-task-assessment-v2"
+            ],
             "title": "Schema Version",
             "default": "shared-task-assessment-v1"
           },

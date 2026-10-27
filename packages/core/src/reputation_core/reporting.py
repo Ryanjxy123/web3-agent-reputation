@@ -8,7 +8,7 @@ from pydantic import BaseModel, ConfigDict, computed_field, model_validator
 
 from reputation_core.admission import MeasurementPurpose, Verdict
 from reputation_core.scoring import (
-    POLICY_VERSION, SERVICE_POLICY_VERSIONS, SHARED_POLICY_VERSION, SWAP_POLICY_VERSIONS, PolicyVersion,
+    POLICY_VERSION, SERVICE_POLICY_VERSIONS, SHARED_POLICY_VERSION, SHARED_POLICY_VERSIONS, SWAP_POLICY_VERSIONS, PolicyVersion,
     ScoredSample, ScoringOutcome, calculate_scores,
 )
 from reputation_core.shared_scoring import SharedAssessment, shared_legacy_scores
@@ -72,9 +72,13 @@ class EvaluationReport(BaseModel):
 
     @model_validator(mode="after")
     def bind_service_contract_capabilities(self) -> Self:
-        if self.policy_version == SHARED_POLICY_VERSION:
+        if self.policy_version in SHARED_POLICY_VERSIONS:
             if self.shared_assessment is None:
                 raise ValueError('shared policy requires a structured shared assessment')
+            expected_schema = ('shared-task-assessment-v1' if self.policy_version == SHARED_POLICY_VERSION
+                               else 'shared-task-assessment-v2')
+            if self.shared_assessment.schema_version != expected_schema:
+                raise ValueError('shared policy and assessment schema versions differ')
             return self
         if self.shared_assessment is not None:
             raise ValueError('shared assessment is only valid under its versioned policy')
@@ -102,7 +106,7 @@ class EvaluationReport(BaseModel):
     @computed_field
     @property
     def scores(self) -> ScoringOutcome:
-        if self.policy_version == SHARED_POLICY_VERSION:
+        if self.policy_version in SHARED_POLICY_VERSIONS:
             return shared_legacy_scores(self.shared_assessment)
         return calculate_scores([explanation.sample for explanation in self.samples], policy_version=self.policy_version)
 
