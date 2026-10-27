@@ -1,15 +1,17 @@
 """User-facing explanations over evidence-derived scores, without I/O."""
 
 from datetime import datetime
+import json
 from typing import Literal, Self
 
 from pydantic import BaseModel, ConfigDict, computed_field, model_validator
 
 from reputation_core.admission import MeasurementPurpose, Verdict
 from reputation_core.scoring import (
-    POLICY_VERSION, SERVICE_POLICY_VERSIONS, SWAP_POLICY_VERSIONS, PolicyVersion,
+    POLICY_VERSION, SERVICE_POLICY_VERSIONS, SHARED_POLICY_VERSION, SWAP_POLICY_VERSIONS, PolicyVersion,
     ScoredSample, ScoringOutcome, calculate_scores,
 )
+from reputation_core.shared_scoring import SharedAssessment, shared_legacy_scores
 
 
 class ReportFinding(BaseModel):
@@ -66,9 +68,16 @@ class EvaluationReport(BaseModel):
     source_references: list[str]
     limitations: list[str]
     capabilities: list[CapabilityCoverage] = []
+    shared_assessment: SharedAssessment | None = None
 
     @model_validator(mode="after")
     def bind_service_contract_capabilities(self) -> Self:
+        if self.policy_version == SHARED_POLICY_VERSION:
+            if self.shared_assessment is None:
+                raise ValueError('shared policy requires a structured shared assessment')
+            return self
+        if self.shared_assessment is not None:
+            raise ValueError('shared assessment is only valid under its versioned policy')
         if self.policy_version not in (*SERVICE_POLICY_VERSIONS, *SWAP_POLICY_VERSIONS):
             return self
         capabilities = {item.capability_id: item for item in self.capabilities}
@@ -93,4 +102,23 @@ class EvaluationReport(BaseModel):
     @computed_field
     @property
     def scores(self) -> ScoringOutcome:
+        if self.policy_version == SHARED_POLICY_VERSION:
+            return shared_legacy_scores(self.shared_assessment)
         return calculate_scores([explanation.sample for explanation in self.samples], policy_version=self.policy_version)
+
+
+def parse_evaluation_report(value: dict | str | bytes) -> EvaluationReport:
+    """Round-trip published computed fields without trusting supplied scores."""
+    data = json.loads(value) if isinstance(value, (str, bytes)) else dict(value)
+    supplied_scores = data.pop('scores', None)
+    supplied_shared = None
+    if data.get('shared_assessment') is not None:
+        shared = dict(data['shared_assessment'])
+        supplied_shared = shared.pop('result', None)
+        data['shared_assessment'] = shared
+    report = EvaluationReport.model_validate_json(json.dumps(data, ensure_ascii=False))
+    if supplied_scores is not None and supplied_scores != report.scores.model_dump(mode='json'):
+        raise ValueError('supplied scores differ from deterministic evaluation')
+    if supplied_shared is not None and supplied_shared != report.shared_assessment.result.model_dump(mode='json'):
+        raise ValueError('supplied shared result differs from deterministic evaluation')
+    return report

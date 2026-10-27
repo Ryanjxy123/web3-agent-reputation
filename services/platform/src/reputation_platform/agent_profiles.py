@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 from reputation_core.application import AgentProfile, normalize_reference
+from reputation_core.scoring import SHARED_POLICY_VERSION
 
 
 def profile_from_report(root: Path, row: dict) -> AgentProfile:
@@ -39,7 +40,7 @@ def profile_from_report(root: Path, row: dict) -> AgentProfile:
             raise ValueError("Profile source changed")
         return json.loads(raw)
 
-    if policy in ("evm-swap-builder-v1", "evm-swap-builder-v2"):
+    if policy in ("evm-swap-builder-v1", "evm-swap-builder-v2", SHARED_POLICY_VERSION):
         origins = [item for item in inputs if Path(item["path"]).name == "swap-report-origin.json"]
         if len(origins) != 1:
             raise ValueError("No unique authenticated swap report origin")
@@ -48,10 +49,14 @@ def profile_from_report(root: Path, row: dict) -> AgentProfile:
         if len(campaigns) != 1:
             raise ValueError("No unique authenticated swap campaign profile")
         campaign = source_json(campaigns[0])
+        declared = (report.get('shared_assessment') or {}).get('capabilities', [])
+        capability_names = [item['title'] for item in declared] if declared else ['ERC20兑换报价', '精确授权与兑换方案']
+        summary = ('公开声明' + '、'.join(capability_names) + '；本次范围只验证网关ERC20兑换方案及用户授权执行。'
+                   if declared else '根据指定代币、金额和滑点生成Base链兑换报价与待签名方案；经用户授权后，由用户钱包执行，平台核验实际成交、资产到账与授权余额。')
         return AgentProfile(
-            business_summary="根据指定代币、金额和滑点生成Base链兑换报价与待签名方案；经用户授权后，由用户钱包执行，平台核验实际成交、资产到账与授权余额。",
+            business_summary=summary,
             ecosystem="Uniswap V3 · x402", role="asset-execution", registration_chain_id=chain,
-            execution_chain_ids=[campaign["execution_chain_id"]], capabilities=["ERC20兑换报价", "精确授权与兑换方案"],
+            execution_chain_ids=[campaign["execution_chain_id"]], capabilities=capability_names,
             execution_accounts=[campaign["buyer"]], evidence_status="verified", sources=[campaigns[0]["path"]],
             boundary="方案由服务生成、用户钱包签名执行。入口归属依据官方卡声明；本轮未取得IPFS注册正文及owner签名认证。",
         )

@@ -34,6 +34,10 @@ jobs:
       - run: uv sync --locked --all-packages
       - name: Core scoring boundary case
         run: uv run --locked --all-packages python -m unittest discover -s tests -p test_scoring.py -v
+      - name: Shared scope scoring and real source boundaries
+        run: |
+          uv run --locked --all-packages python -m unittest discover -s tests -p test_shared_scoring.py -v
+          uv run --locked --all-packages python -m unittest discover -s tests -p test_shared_report.py -v
       - name: Public report selection and frozen dependency bytes
         run: uv run --locked --all-packages python -m unittest discover -s tests -p test_public_reports.py -v
       - name: Real execution evidence replay and integrity boundaries

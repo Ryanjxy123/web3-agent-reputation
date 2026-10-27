@@ -13,6 +13,12 @@ export type {
   EvaluationSubmission,
   MeasurementPurpose,
   ReportChainEvidence,
+  ReportSummary,
   SampleExplanation,
+  SharedAssessment,
+  SharedAssessmentResult,
+  SharedDimensionResult,
+  SharedObservation,
+  SharedTask,
   Verdict,
 } from '../../../packages/core/generated/contracts'

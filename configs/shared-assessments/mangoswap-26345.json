@@ -1,0 +1,58 @@
+{
+  "schema_version": "shared-declaration-catalog-v1",
+  "checker_id": "retained-evm-swap-v1",
+  "candidate_key": "mangoswap-26345",
+  "registration_reference": "eip155:1:0x8004a169fb4a3325136eb29fa0ceb6d2e539a432:26345",
+  "response_deadline_ms": 30000,
+  "scope": "Base网关API的USDC/WETH即时ERC20兑换：响应、任务参数与执行效果、资产标识及真实履约。综合结果仅代表这些已测范围。",
+  "scope_exclusions": [
+    "未覆盖官网V4即时交易、原生ETH、其它资产及Aerodrome路径。",
+    "限价、定时/周期、订单管理、条件免gas、最佳价格及完整费用披露尚未纳入本次评分。",
+    "提供方生成方案、买方钱包签名执行；不代表提供方自主托管或策略收益。"
+  ],
+  "source_documents": [
+    "runtime/spraay-fixed-ipfs-metadata-20261027-171323-b774dadb/current-a2a.response.bin",
+    "data/declarations/mangoswap-26345-20261027.json"
+  ],
+  "capabilities": [
+    {
+      "capability_id": "erc20-swap-builder",
+      "title": "即时兑换",
+      "description": "网关构造兑换方案，授权买方签名并执行；本次仅测Base USDC/WETH的Uniswap V3路径。",
+      "selected": true,
+      "write_operation": true,
+      "declaration_groups": [
+        {"group_id": "intent-binding", "title": "任务参数、收款与授权一致", "selected": true, "source_references": ["runtime/spraay-fixed-ipfs-metadata-20261027-171323-b774dadb/current-a2a.response.bin"]},
+        {"group_id": "execution-effect", "title": "独立模拟或真实执行支持兑换效果", "selected": true, "source_references": ["runtime/spraay-fixed-ipfs-metadata-20261027-171323-b774dadb/current-a2a.response.bin"]},
+        {"group_id": "asset-display", "title": "输入输出资产标识准确", "selected": true, "source_references": ["runtime/spraay-fixed-ipfs-metadata-20261027-171323-b774dadb/current-a2a.response.bin"]},
+        {"group_id": "native-assets", "title": "原生ETH与更多资产支持", "selected": false, "selection_reason": "WETH原件不能证明原生ETH；其它资产类别尚未补测。", "source_references": ["data/declarations/mangoswap-26345-20261027.json"]},
+        {"group_id": "other-routing", "title": "Aerodrome及官网V4入口", "selected": false, "selection_reason": "旧API Router02证据不能替代其它协议和V4路径。", "source_references": ["runtime/spraay-fixed-ipfs-metadata-20261027-171323-b774dadb/current-a2a.response.bin", "data/declarations/mangoswap-26345-20261027.json"]},
+        {"group_id": "fees-and-price", "title": "完整费用与最佳价格声明", "selected": false, "selection_reason": "没有同区块完整可执行报价对照；不同入口费用条件仍需核实。", "source_references": ["data/declarations/mangoswap-26345-20261027.json"]},
+        {"group_id": "gas-sponsorship", "title": "条件免gas", "selected": false, "selection_reason": "旧钱包自付gas不证明适用钱包的赞助路径成功或失败。", "source_references": ["data/declarations/mangoswap-26345-20261027.json"]}
+      ]
+    },
+    {
+      "capability_id": "limit-order-lifecycle",
+      "title": "限价订单",
+      "description": "创建、条件触发执行、到期及取消等生命周期。",
+      "selected": false,
+      "write_operation": true,
+      "declaration_groups": [
+        {"group_id": "limit-order", "title": "限价创建与条件执行", "selected": false, "selection_reason": "已有营销与ABI，尚未取得实际入口和真实订单闭环。", "source_references": ["data/declarations/mangoswap-26345-20261027.json"]},
+        {"group_id": "limit-management", "title": "限价订单查询、取消与退款", "selected": false, "selection_reason": "无本平台订单状态及退款原件。", "source_references": ["data/declarations/mangoswap-26345-20261027.json"]}
+      ]
+    },
+    {
+      "capability_id": "scheduled-order-lifecycle",
+      "title": "定时与周期交易",
+      "description": "按时间执行、重复调度及订单管理；手工调用执行函数不算自动执行证明。",
+      "selected": false,
+      "write_operation": true,
+      "declaration_groups": [
+        {"group_id": "scheduled-execution", "title": "一次性定时与自动执行", "selected": false, "selection_reason": "尚未创建可核验任务与自动执行记录。", "source_references": ["data/declarations/mangoswap-26345-20261027.json"]},
+        {"group_id": "recurring-execution", "title": "日/周/月周期执行", "selected": false, "selection_reason": "可见单时间参数不能证明重复调度；实际周期配置待核。", "source_references": ["data/declarations/mangoswap-26345-20261027.json"]},
+        {"group_id": "schedule-management", "title": "定时订单查询、取消与退款", "selected": false, "selection_reason": "尚无本平台真实生命周期样本。", "source_references": ["data/declarations/mangoswap-26345-20261027.json"]}
+      ]
+    }
+  ]
+}

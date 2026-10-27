@@ -18,6 +18,7 @@ from reputation_core.application import (
 )
 from reputation_core.chain_review import AgentChainEvidence, ChainDimensionEvidence
 from reputation_core.chain_view import ChainAction, ReportChainEvidence
+from reputation_core.shared_scoring import SharedAssessment, SharedAssessmentResult
 
 MODELS = {"admission-report": AdmissionReport, "probe-observation": ProbeObservation,
           "source-document": SourceDocument, "declaration-analysis": DeclarationAnalysis,
@@ -34,7 +35,8 @@ MODELS = {"admission-report": AdmissionReport, "probe-observation": ProbeObserva
           "evaluation-job": EvaluationJob, "evaluation-submission": EvaluationSubmission,
           "health-status": HealthStatus, "chain-action": ChainAction,
           "report-chain-evidence": ReportChainEvidence, "chain-dimension-evidence": ChainDimensionEvidence,
-          "agent-chain-evidence": AgentChainEvidence}
+          "agent-chain-evidence": AgentChainEvidence,
+          "shared-assessment": SharedAssessment, "shared-assessment-result": SharedAssessmentResult}
 ANNOTATIONS = {"title", "description", "default", "format", "readOnly", "$defs", "$schema"}
 SHAPES = {"$ref", "const", "enum", "anyOf", "type", "items", "properties", "required",
           "additionalProperties", "minLength", "minItems", "minimum", "maximum"}

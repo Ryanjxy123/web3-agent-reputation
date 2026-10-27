@@ -8,6 +8,7 @@ import EvidenceList from './EvidenceList.vue'
 import ScoreCard from './ScoreCard.vue'
 import StatusBadge from './StatusBadge.vue'
 import ChainEvidencePanel from './ChainEvidencePanel.vue'
+import SharedAssessmentView from './SharedAssessmentView.vue'
 
 const props = defineProps<{ report: EvaluationReport; reportId: string }>()
 const chainEvidence = ref<ReportChainEvidence | null>(null)
@@ -103,9 +104,10 @@ const conclusion = computed(() => {
 </script>
 
 <template>
-  <div class="report-content">
+  <SharedAssessmentView v-if="report.shared_assessment" :assessment="report.shared_assessment" :report="report" :report-id="reportId" :chain-evidence="chainEvidence" :chain-evidence-error="chainEvidenceError" :sample-links="sampleLinks" />
+  <div v-else class="report-content">
     <section class="report-lead panel">
-      <div class="row-between wrap"><span class="eyebrow">本次评价结论</span><span class="report-status" :class="{ complete: report.scores.status === 'COMPLETE' }">{{ report.scores.status === 'COMPLETE' ? '本范围完整评分' : report.scores.status === 'PARTIAL' ? '部分评价' : '待评价' }} · {{ report.scores.status }}</span></div>
+      <div class="row-between wrap"><span class="eyebrow">本次评价结论</span><span class="report-status" :class="{ complete: report.scores.status === 'COMPLETE' }">{{ report.scores.status === 'COMPLETE' ? '范围三维齐备' : report.scores.status === 'PARTIAL' ? '部分评价' : '待评价' }}</span></div>
       <div class="report-conclusion"><div><h2>{{ conclusion }}</h2><p class="lead-scope">{{ report.scope }}</p></div><div class="overall-block"><strong>{{ score(report.scores.overall) }}</strong><span>本报告范围综合分 S<span v-if="report.scores.overall !== null"> / 100</span></span></div></div>
       <p v-if="isFulfillment" class="scope-note">这份历史查询报告的 B 分衡量查询交付，不证明 Agent 已完成资产交易。三维固定展示，实际测量口径按原政策保留。</p>
       <p v-if="isSwap" class="scope-note">Agent 提供报价和交易方案；交易经用户授权由钱包签名执行，平台独立核验成交、资产到账和剩余授权。</p>
@@ -126,7 +128,7 @@ const conclusion = computed(() => {
     <p v-else-if="chainEvidenceError" class="muted small" role="status">链上操作视图暂时无法读取，逐条样本与原始证据仍在下方保留。</p>
 
     <details v-if="isGeneric || capabilities.length" class="panel report-secondary">
-      <summary class="section-heading"><h2>已测功能与完整能力映射</h2><span>{{ capabilities.length }} 项已记录条目</span></summary>
+      <summary class="section-heading"><h2>本报告已测功能与证据</h2><span>{{ capabilities.length }} 项已记录条目</span></summary>
       <p class="section-description">功能声明、协议发现和实际业务结果分别记录。F 需要适用的独立业务判据；B 依照本报告政策核验履约。下列能力只在该维度全部样本明确关联时展示对应分数；服务入口采样未关联具体能力时，A 仅在报告范围内展示。</p>
       <p v-if="!capabilities.length" class="empty-inline">本轮尚无可列明的功能范围；资料来源与缺项见报告限制。</p>
       <details v-for="capability in capabilityCoverage" :key="capability.capability_id" class="capability-item">

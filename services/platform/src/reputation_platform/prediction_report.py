@@ -37,7 +37,9 @@ class RetainedEvidence:
 
     def path(self, name: str) -> Path:
         path = (self.root / name).resolve()
-        if (not any(path.is_relative_to(self.root / base) for base in ('runtime', 'configs', 'docs/adr'))
+        public = any(path.is_relative_to(self.root / base) for base in ('runtime', 'configs', 'docs/adr'))
+        public = public or (path.is_relative_to(self.root / 'data/declarations') and path.suffix == '.json')
+        if (not public
             or not path.is_file() or any(part.lower() in {'secrets', 'platform-config'}
                                         or '.private' in part.lower() for part in path.parts)):
             raise ValueError('Report input must be retained public evidence or policy')

@@ -1,6 +1,16 @@
 # 新项目当前状态
 
-## 2026-10-27 当前：共享证据评分设计已交付
+## 2026-10-27 当前：共享评分本机验收完成，PR交付中
+
+task_id=`IMPLEMENT_SHARED_TASK_SCORING_AND_CLAIM_COVERAGE`本机完成。ADR-0026允许范围综合分与未测声明并存；纯core共享任务/区间、来源重放/导入、共享契约生成、网站区间/覆盖/任务三维及历史范围标签、队友指南均已实现，旧分原件不改。
+
+新报告`6ff3ad03-49d6-409b-a7da-1dba9dc79eb6`，`runtime/mangoswap-shared-20261027-v2`，复用31真实任务/131判据，A90.20–100/F50.48–69.94/B100/综合77.25–87.98，声明PARTIAL。真实PG与HTTP/链视图/附件SHA/私有附件拒绝通过，public-off worker和网站运行，旧98.70仍在；未新增付费/签名/交易。
+
+必要验证：纯规则1验收exit0；真实来源1验收因DB受限路径遗漏先exit1，修后exit0，缺B证据等边界已测；core/TS/OpenAPI生成exit0；前端3次构建均exit0（两次为后续具体文案修订），未跑旧全套。离线公开包verify exit0：`data/public-reports-shared-v1.tar.gz`，603512B/1198依赖，SHA `09657600785f729fa4dfb35ddb1e4c8c578d131045e340a9b17d3e03e873108c`；1199压缩成员及文本高置信凭据扫描0发现。收据`runtime/shared-web-verification-20261027/`。浏览器视觉NOT_RUN。
+
+Git当前`codex/shared-task-scoring`，origin/main已fetch且无分歧；下一task_id=`SHARED_ASSESSMENT_PR_DELIVERY`，正在提交/push/创建PR，CI状态以远程为准。告知用户完成此步骤后再补MangoSwap，资金授权有效；docs/presentation/保留，未上传个人配置/钱包秘密。相关当前约束见AGENTS与ADR-0026。
+
+## 2026-10-27 已完成：共享证据评分设计
 
 task_id=`ALIGN_SHARED_TASK_SCORING_MODEL`设计完成：[ADR-0025](docs/adr/0025-shared-task-declaration-scoring.md)、[声明及实验矩阵](docs/research/MANGOSWAP_DECLARATION_MATRIX_20261027.md)。一任务三维分别取证，声明/案例分层；未决范围与真实结局分开，已知保护退出不伪装UNKNOWN或成交成功；未测功能阻止Agent完整综合分。维度30/40/30与等权基线均说明价值依据，取消用7次/80%替代完整声明覆盖。旧报告13个不同身份的范围分保留，不能直接说13个Agent全部声明已完整评价。
 

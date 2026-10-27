@@ -10,9 +10,21 @@
 
 2026-10-27新增MangoSwap #26345的完整ERC20兑换能力范围分：**A95.67 / F100 / B100 / 综合98.70**。功能计划14项中12项可判、2项UNKNOWN保留；行为维度为7笔Base真实兑换。提供方构造方案，买方钱包依据用户授权签名，平台独立核验资产、授权和交易结果。用户批准后先冻结v2补采政策，再采集剩余4项，两个旧PARTIAL版本保留。见[实验、费用与易懂样本解读](docs/runbooks/MANGOSWAP_EVALUATION_20261027.md)；本机可直接[打开报告](http://127.0.0.1:7754/?agent=mangoswap-26345)。
 
-该结果是有限兑换范围的阶段性评价。2026-10-27[五类证据与三维评分审查](docs/research/SCORING_EVIDENCE_AUDIT_20261027.md)确认部分声明及长期表现尚未验证。新的[共享任务与声明覆盖评分设计](docs/adr/0025-shared-task-declaration-scoring.md)允许同一次任务分别支持三维，并要求覆盖该身份全部实质功能才发布Agent完整评价；[MangoSwap声明矩阵](docs/research/MANGOSWAP_DECLARATION_MATRIX_20261027.md)还列出了未验证的限价、定时/周期、撤单及条件免gas。新设计尚未接入网站或重算旧分；现有13个不同身份的完整范围分不能直接解释为13个Agent的全部声明都已评价完整。
+该结果是旧政策下有限兑换范围的阶段性评价，历史原件和分数保留。新版已按[共享任务设计](docs/adr/0025-shared-task-declaration-scoring.md)及[范围出分修订](docs/adr/0026-scoped-shared-assessment.md)实现：同一任务分别支持三维，综合结果明确只代表已测范围，未测声明独立展示；不强制测完所有声明才出综合分。现有13个不同身份的范围结果不能直接解释为13个Agent全部声明已评价完整。
+
+最新MangoSwap回顾性共享报告复用31个业务任务，形成131项判据观察；A **90.20–100.00**、F **50.48–69.94**、B **100.00**，已测范围综合 **77.25–87.98**。范围表达未决证据的可能结果，不是长期成功率置信区间。ETH/WETH输入输出标识不一致进入F；七笔真实兑换的正确到账保留。限价、定时/周期、官网V4、原生ETH及条件免gas等缺口见[声明矩阵](docs/research/MANGOSWAP_DECLARATION_MATRIX_20261027.md)。
+
+队友并行评价请先读[可执行接入指南](docs/runbooks/AGENT_EVALUATION_CONTRIBUTOR_GUIDE.md)：共享类型、声明/案例配置、同任务证据、来源适配器与实际命令均已列清。当前来源适配器支持已冻结Uniswap V3兑换报告的离线转换；其它协议须接入静态来源重放器，不能直接提交手写分数。
 
 ## 环境准备
+
+已经完成下文依赖与PostgreSQL配置的机器，可单独导入新版共享报告及其1198个公开依赖（约0.60MB）：
+
+```powershell
+uv run --env-file .env --no-sync python scripts/public_reports.py import data/public-reports-shared-v1.tar.gz --initialize
+```
+
+此包包含所需旧报告原件，无需钱包、RPC或LLM，不要求先重新执行实验。SHA256：`09657600785f729fa4dfb35ddb1e4c8c578d131045e340a9b17d3e03e873108c`。本机报告ID由导入器生成，包中源UUID仅作来源；重导相同报告不会重复创建。网站打开方式与个人RPC/LLM配置见下文，个人凭据不随代码提供。
 
 | 工具 | 本项目使用的版本 |
 | --- | --- |

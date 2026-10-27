@@ -1,0 +1,16 @@
+{
+  "schema_version": "curated-declaration-projection-v1",
+  "snapshot_date": "2026-10-27",
+  "source_url": "https://mangoswap.xyz/",
+  "original_response_sha256": "854f105d26f5fbbaa727427e9f2a61ca51da0346953274b55774e2a7d8e55c6c",
+  "representation": "根据已留存官网HTML整理的中文声明投影，不是完整原始HTTP正文；不包含网页公开的第三方访问配置。",
+  "declarations": [
+    {"id": "instant-swap", "source_lines": "429,446,455-456,1045,1773-1774", "statement": "提供Base代币即时兑换，宣传Uniswap V3流动性和优选价格。官网V4入口与网关API路径不同。"},
+    {"id": "native-and-wrapped", "source_lines": "资产选择器及原生币value分支", "statement": "官网区分原生ETH与WETH，支持自定义Base代币地址。"},
+    {"id": "limit-order", "source_lines": "426-470,1047,1049,1587-1635", "statement": "宣传限价订单，包含读取和取消界面以及创建/执行方法ABI；尚未证实实际创建入口和自动执行。"},
+    {"id": "scheduled-swap", "source_lines": "473-483,1046,1690-1806", "statement": "提供定时表单并宣传按设定时间自动执行；日/周/月周期模式尚未取到实际重复计划的证据。"},
+    {"id": "order-management", "source_lines": "1580-1650,1837-1853", "statement": "显示订单历史、状态并支持取消；状态和退款仍需真实链上验证。"},
+    {"id": "gas-sponsorship", "source_lines": "1299-1332,1667-1686", "statement": "钱包具备paymasterService和atomicBatch能力时启用赞助路径，否则有普通付gas回退。"},
+    {"id": "fees", "source_lines": "764-780,1947-1962", "statement": "展示平台与网络相关费用估算，实际费用及其口径需要按对应入口核验。"}
+  ]
+}

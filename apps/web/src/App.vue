@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import type { AgentChainEvidence, AgentDetail, AgentSummary, EvaluationJob, EvaluationReport } from './contracts'
 import { ApiError, asApiError, getAgent, getAgentChainEvidence, getAgents, getJob, getReport, getRuntimeStatus, submitEvaluation } from './api'
 import type { RuntimeStatus } from './api'
-import { checkLabel, jobLabel, score, stageLabel, when } from './format'
+import { checkLabel, jobLabel, score, scoreRange, stageLabel, when } from './format'
 import { businessRole, businessSummary, chainName, executionChains, isOlasService, profileStatus, registrationType, roleLabels, supportsSubmission } from './agentProfile'
 import ErrorNotice from './components/ErrorNotice.vue'
 import AgentCoverage from './components/AgentCoverage.vue'
@@ -24,7 +24,7 @@ const scopeFilter = ref('all')
 const roleFilter = ref('all')
 const directorySort = ref<'score-desc' | 'updated' | 'name'>('score-desc')
 const scopeLabels = {
-  prediction: '历史预测', liquidity: '历史增仓', generic: '通用服务',
+  prediction: '历史预测', liquidity: '历史增仓', generic: '通用服务', transaction: '链上交易',
   unknown: '范围待确认', unreported: '尚无报告范围',
 }
 const nameOrder = new Intl.Collator('zh-CN', { numeric: true, sensitivity: 'base' })
@@ -46,7 +46,8 @@ const submitting = ref(false)
 const submissionError = ref<ApiError | null>(null)
 const job = ref<EvaluationJob | null>(null)
 const jobError = ref<ApiError | null>(null)
-const completedCount = computed(() => agents.value.filter(agent => (agent.complete_report_count ?? 0) > 0).length)
+const completedCount = computed(() => agents.value.filter(agent => (agent.complete_report_count ?? 0) > 0
+  || agent.latest_report?.shared_result?.score_status === 'AVAILABLE').length)
 const executionCount = computed(() => agents.value.filter(agent => businessRole(agent) === 'asset-execution'
   && agent.profile?.evidence_status === 'verified').length)
 const exampleAgent = computed(() => agents.value.find(agent => agent.latest_report && supportsSubmission(agent))
@@ -70,7 +71,8 @@ const matches = computed(() => {
   return agents.value.filter(agent => [agent.name, businessSummary(agent), ...(agent.profile?.capabilities ?? []), agent.registration_reference, agent.key]
     .some(value => value.toLocaleLowerCase().includes(needle))
     && (statusFilter.value === 'all' || (statusFilter.value === 'COMPLETE'
-      ? (agent.complete_report_count ?? 0) > 0 : evaluationStatus(agent) === statusFilter.value))
+      ? (agent.complete_report_count ?? 0) > 0 || agent.latest_report?.shared_result?.score_status === 'AVAILABLE'
+      : evaluationStatus(agent) === statusFilter.value))
     && (scopeFilter.value === 'all' || evaluationScope(agent) === scopeFilter.value)
     && (roleFilter.value === 'all' || businessRole(agent) === roleFilter.value))
     .sort(compareAgents)
@@ -99,10 +101,14 @@ async function loadRuntime() {
 }
 
 function evaluationStatus(agent: AgentSummary) {
+  if (agent.latest_report?.shared_result?.score_status === 'AVAILABLE') return 'COMPLETE'
   return agent.latest_report?.scores.status ?? 'NOT_EVALUATED'
 }
 
 function directoryStatus(agent: AgentSummary): string {
+  const shared = agent.latest_report?.shared_result
+  if (shared?.risk_status === 'MAJOR_VIOLATION') return '存在重大约束违背'
+  if (shared?.score_status === 'AVAILABLE') return '已测范围有分'
   const status = evaluationStatus(agent)
   if (status === 'COMPLETE') return '本范围已评分'
   if (status === 'PARTIAL') return '部分评价'
@@ -119,19 +125,42 @@ function evaluationScope(agent: AgentSummary): keyof typeof scopeLabels {
     case 'liquidity-history-v1': return 'liquidity'
     case 'service-contract-v1':
     case 'service-fulfillment-v1': return 'generic'
+    case 'evm-swap-builder-v1':
+    case 'evm-swap-builder-v2':
+    case 'transaction-agent-evidence-v1': return 'transaction'
     default: return 'unknown'
   }
+}
+
+function directoryScore(agent: AgentSummary): string {
+  const shared = agent.latest_report?.shared_result
+  return shared ? scoreRange(shared.overall?.lower, shared.overall?.upper) : score(agent.latest_report?.scores.overall)
+}
+
+function directoryScope(agent: AgentSummary): string {
+  const shared = agent.latest_report?.shared_result
+  return shared ? shared.capabilities.filter(item => item.selected).map(item => item.title).join('、')
+    : scopeLabels[evaluationScope(agent)]
+}
+
+function directoryCoverage(agent: AgentSummary): string {
+  const shared = agent.latest_report?.shared_result
+  if (!shared) return '全部声明覆盖尚未单独核定'
+  return { FULL: '已记录声明均有评价', PARTIAL: '部分声明尚未覆盖', NONE: '声明覆盖待评价' }[shared.declaration_coverage]
 }
 
 function compareAgents(left: AgentSummary, right: AgentSummary): number {
   const byName = () => nameOrder.compare(left.name, right.name) || nameOrder.compare(left.key, right.key)
   if (directorySort.value === 'name') return byName()
   if (directorySort.value === 'score-desc') {
+    const riskPriority = Number(left.latest_report?.shared_result?.risk_status === 'MAJOR_VIOLATION')
+      - Number(right.latest_report?.shared_result?.risk_status === 'MAJOR_VIOLATION')
+    if (riskPriority) return riskPriority
     const order = { 'asset-execution': 0, 'chain-query': 1, 'research-delivery': 2, unverified: 3 }
     const priority = order[businessRole(left)] - order[businessRole(right)]
     if (priority) return priority
-    const a = left.latest_report?.scores.overall ?? -1
-    const b = right.latest_report?.scores.overall ?? -1
+    const a = left.latest_report?.shared_result ? left.latest_report.shared_result.overall?.lower ?? -1 : left.latest_report?.scores.overall ?? -1
+    const b = right.latest_report?.shared_result ? right.latest_report.shared_result.overall?.lower ?? -1 : right.latest_report?.scores.overall ?? -1
     return b - a || byName()
   }
   const a = left.latest_report ? Date.parse(left.latest_report.generated_at) : NaN
@@ -334,34 +363,34 @@ onBeforeUnmount(() => {
       </details>
       <template v-if="view === 'browse'">
         <section class="directory-heading"><div><p class="eyebrow">Web3 Agent · 链上业务与声誉</p><h1>看清 Agent 的链上操作，<br>读懂三维评分的依据。</h1><p class="page-description">从资产兑换、仓位管理到链上查询，先了解 Agent 的功能，再用真实任务、交易和状态变化核验其表现。</p></div><button class="primary-button" @click="openSubmission()">接入 Agent <span aria-hidden="true">↗</span></button></section>
-        <section v-if="!directoryLoading && !directoryError" class="directory-stats" aria-label="目录概况"><div><strong>{{ agents.length }}</strong><span>已记录的公共 Agent</span></div><div><strong>{{ executionCount }}</strong><span>已有链上执行证据</span></div><div><strong>{{ completedCount }}</strong><span>已有完整范围分</span></div><p>链上执行对象与完整评分分别统计。<br>分数对应具体能力、政策与样本。</p></section>
+        <section v-if="!directoryLoading && !directoryError" class="directory-stats" aria-label="目录概况"><div><strong>{{ agents.length }}</strong><span>已记录的公共 Agent</span></div><div><strong>{{ executionCount }}</strong><span>已有链上执行证据</span></div><div><strong>{{ completedCount }}</strong><span>已有范围综合分</span></div><p>链上执行对象与完整评分分别统计。<br>分数对应具体能力、政策与样本。</p></section>
         <div class="directory-toolbar">
           <label class="search-field"><svg aria-hidden="true" viewBox="0 0 20 20" fill="none"><circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="m13 13 4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><span class="sr-only">搜索 Agent</span><input v-model="search" type="search" placeholder="搜索名称、能力或注册标识" /></label>
           <div class="directory-filters">
             <label class="directory-filter"><span>业务类型</span><select v-model="roleFilter"><option value="all">全部业务</option><option v-for="(label, value) in roleLabels" :key="value" :value="value">{{ label }}</option></select></label>
-            <label class="directory-filter"><span>评价状态</span><select v-model="statusFilter"><option value="all">全部状态</option><option value="COMPLETE">已有完整报告</option><option value="PARTIAL">最新报告为部分评价</option><option value="NOT_EVALUATED">尚无评分报告</option></select></label>
+            <label class="directory-filter"><span>评价状态</span><select v-model="statusFilter"><option value="all">全部状态</option><option value="COMPLETE">已有范围综合分</option><option value="PARTIAL">最新报告为部分评价</option><option value="NOT_EVALUATED">尚无评分报告</option></select></label>
             <label class="directory-filter"><span>评价范围</span><select v-model="scopeFilter"><option value="all">全部范围</option><option v-for="option in scopeOptions" :key="option.value" :value="option.value">{{ option.label }}</option></select></label>
             <label class="directory-filter sort-filter"><span>排序方式</span><select v-model="directorySort"><option value="score-desc">链上执行优先 · 分数降序</option><option value="updated">最近更新</option><option value="name">名称顺序</option></select></label>
           </div>
           <div v-if="!directoryLoading && !directoryError" class="directory-results"><p role="status" aria-live="polite" aria-atomic="true">显示 <strong>{{ matches.length }}</strong> / {{ agents.length }} 个 Agent</p><button v-if="hasDirectoryConditions" class="text-button" @click="clearDirectoryConditions">清空条件</button></div>
-          <p class="directory-comparison-note">默认优先展示链上资产操作，同类按范围综合分从高到低排列。分数仅在相同能力、政策与样本口径下可比。</p>
+          <p class="directory-comparison-note">默认优先展示链上资产操作，同类按范围分降序；区间按下界排序，这不代表把未知结果扣分。分数仅在相同能力、政策与样本口径下可比。</p>
         </div>
         <p v-if="directoryLoading" class="loading-state" role="status"><span class="spinner" aria-hidden="true"></span>正在读取 Agent 目录…</p>
         <ErrorNotice v-else-if="directoryError" :error="directoryError"><button class="text-button" @click="loadAgents">重新读取目录</button></ErrorNotice>
         <section v-else-if="!matches.length" class="empty-state panel"><h2>{{ agents.length ? '没有符合条件的 Agent' : '目录中还没有 Agent' }}</h2><p>{{ agents.length ? '可以调整搜索词、评价状态或范围，也可以清空条件查看全部对象。' : '提交公开注册信息后，平台会检查资料并推进评价。' }}</p><button v-if="agents.length && hasDirectoryConditions" class="secondary-button" @click="clearDirectoryConditions">清空条件</button><button v-else class="primary-button" @click="openSubmission()">接入 Agent</button></section>
         <section v-else class="agent-grid" aria-label="Agent 目录"><article v-for="agent in matches" :key="agent.key" class="agent-card">
           <header>
-            <div class="agent-card-top"><span class="agent-avatar" aria-hidden="true">{{ agent.name.slice(0, 2).toUpperCase() }}</span><span class="report-status" :class="{ complete: evaluationStatus(agent) === 'COMPLETE' }">{{ directoryStatus(agent) }}</span></div>
+            <div class="agent-card-top"><span class="agent-avatar" aria-hidden="true">{{ agent.name.slice(0, 2).toUpperCase() }}</span><span class="report-status" :class="{ complete: evaluationStatus(agent) === 'COMPLETE' && agent.latest_report?.shared_result?.risk_status !== 'MAJOR_VIOLATION', risk: agent.latest_report?.shared_result?.risk_status === 'MAJOR_VIOLATION' }">{{ directoryStatus(agent) }}</span></div>
             <h2><a :href="'?agent=' + encodeURIComponent(agent.key)" @click.prevent="openAgent(agent.key)">{{ agent.name }}</a></h2>
             <div class="agent-tags"><span>{{ roleLabels[businessRole(agent)] }}</span><span>{{ executionChains(agent) }}</span></div>
           </header>
           <div class="agent-card-body">
             <p class="card-description agent-business-summary">{{ businessSummary(agent) }}</p>
             <template v-if="agent.latest_report">
-              <div class="card-score"><strong>{{ score(agent.latest_report.scores.overall) }}</strong><span>本范围综合分</span></div>
-              <p class="muted small">已测范围：{{ scopeLabels[evaluationScope(agent)] }}</p>
-              <p v-if="(agent.complete_report_count ?? 0) > 0 && evaluationStatus(agent) !== 'COMPLETE'" class="muted small">另保留 {{ agent.complete_report_count }} 份完整历史报告</p>
-              <p class="muted small card-updated">更新于 {{ when(agent.latest_report.generated_at) }}</p>
+              <div class="card-score"><strong>{{ directoryScore(agent) }}</strong><span>本范围综合分</span></div>
+              <p class="muted small">已测范围：{{ directoryScope(agent) }}</p>
+              <p v-if="(agent.complete_report_count ?? 0) > 0 && evaluationStatus(agent) !== 'COMPLETE'" class="muted small">另保留 {{ agent.complete_report_count }} 份三维齐备的历史报告</p>
+              <p class="muted small">{{ directoryCoverage(agent) }}</p><p class="muted small card-updated">更新于 {{ when(agent.latest_report.generated_at) }}</p>
             </template>
             <template v-else>
               <p v-if="businessRole(agent) === 'asset-execution'" class="unscored-note">{{ agent.profile?.evidence_status === 'verified' ? '已有真实链上样本核验，三维评分仍待补齐采样。' : '正在补齐可归属的链上任务、授权与执行证据。' }}</p>
@@ -386,7 +415,7 @@ onBeforeUnmount(() => {
           <p v-else-if="chainReviewError" class="muted small" role="status">链上核验证据暂时无法读取，刷新页面可重试；已有报告仍可阅读。</p>
           <AgentChainReview v-else-if="chainReview" :review="chainReview" :agent-key="detail.agent.key" />
           <AgentCoverage v-if="coverageReports.length" :reports="coverageReports" :expected="detail.reports.length" :selected-id="reportId" :loading="coverageLoading" :incomplete="coverageIncomplete" @select="openAgent(detail.agent.key, $event)" />
-          <div v-if="detail.reports.length" class="report-toolbar"><label for="report-history">报告历史 <span class="muted">{{ detail.reports.length }} 份</span></label><select id="report-history" :value="reportId" @change="openAgent(detail.agent.key, ($event.target as HTMLSelectElement).value)"><option v-for="item in detail.reports" :key="item.id" :value="item.id">{{ when(item.generated_at) }} · {{ item.scores.status === 'COMPLETE' ? '本范围完整评分' : '部分评价' }} · {{ item.scope }}</option></select></div>
+          <div v-if="detail.reports.length" class="report-toolbar"><label for="report-history">报告历史 <span class="muted">{{ detail.reports.length }} 份</span></label><select id="report-history" :value="reportId" @change="openAgent(detail.agent.key, ($event.target as HTMLSelectElement).value)"><option v-for="item in detail.reports" :key="item.id" :value="item.id">{{ when(item.generated_at) }} · {{ item.shared_result?.score_status === 'AVAILABLE' ? '已测范围综合评价' : item.scores.status === 'COMPLETE' ? '范围三维齐备' : '部分评价' }} · {{ item.scope }}</option></select></div>
           <p v-if="pageLoading" class="loading-state" role="status"><span class="spinner" aria-hidden="true"></span>正在读取所选报告…</p>
           <ReportView v-if="report" :key="reportId" :report="report" :report-id="reportId" />
           <section v-else-if="!pageLoading && !detail.reports.length && !chainReview && !chainReviewLoading" class="panel candidate-panel"><span class="report-status">尚未形成完整评价</span><h2>先看已经核实什么，还缺什么。</h2><p class="section-description">目前没有足够证据发布完整三维分。以下内容帮助了解资料状态，不会换算成零分。</p><template v-if="detail.candidate"><div class="candidate-checks"><section v-for="check in detail.candidate.checks" :key="check.code"><div class="row-between"><h3>{{ checkLabel[check.code] }}</h3><StatusBadge :verdict="check.status" /></div><p>{{ check.explanation }}</p><details class="technical"><summary>这项判断的证据</summary><EvidenceList :sources="check.evidence" /></details></section></div><section class="next-actions"><h3>接下来需要什么</h3><ul><li v-for="(action, index) in detail.candidate.next_actions" :key="index">{{ action }}</li></ul></section></template><p v-else class="empty-inline">暂未保存详细资料检查记录。可通过接入入口提交完整注册信息。</p></section>

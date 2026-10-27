@@ -41,7 +41,8 @@ def public_path(name: str) -> str:
         raise ValueError("Package paths must be canonical repository-relative paths")
     path = PurePosixPath(name)
     if (path.is_absolute() or not (name.startswith("runtime/") or name.startswith("configs/")
-                                  or name.startswith("docs/adr/"))
+                                  or name.startswith("docs/adr/")
+                                  or name.startswith("data/declarations/") and path.suffix == '.json')
         or any(part.startswith(".") or ".private" in part.lower() or part.lower() in DENIED for part in path.parts)
         or PRIVATE_NAME.search(path.name)
         or path.suffix.lower() in {".log", ".db", ".sqlite", ".sqlite3", ".dump", ".key", ".pem", ".p12", ".pfx"}):
@@ -72,7 +73,9 @@ def check_report(repo: Repository, item: dict):
     if (report.report_hash != item["report_sha256"] or report.manifest_hash != item["manifest_sha256"]
         or report.registration_reference != item["canonical"] or report.report.candidate_key != item["candidate_key"]
         or report.report.scores.model_dump(mode="json") != item["scores"]
-        or report.report.scores.status != "COMPLETE"):
+        or (report.report.scores.status != "COMPLETE" and not (
+            report.report.shared_assessment is not None
+            and report.report.shared_assessment.result.score_status == 'AVAILABLE'))):
         raise ValueError("Packaged report identity, original bytes or recomputed scores differ")
     return report
 
@@ -84,7 +87,8 @@ def export_package(root: Path, output: Path, report_ids: list[UUID | str] | None
     repo = Repository(load_database_url(), root)
     query = """SELECT r.*, a.registration_reference FROM reports r
             JOIN agents a ON a.key=r.agent_key
-            WHERE r.validated_json->'scores'->>'status'='COMPLETE'"""
+            WHERE (r.validated_json->'scores'->>'status'='COMPLETE'
+                OR r.validated_json#>>'{shared_assessment,result,score_status}'='AVAILABLE')"""
     parameters = ()
     if requested_ids is not None:
         query += " AND r.id = ANY(%s)"
@@ -262,7 +266,7 @@ def main() -> int:
     export.add_argument("--output", type=Path, required=True)
     export.add_argument("--root", type=Path, default=ROOT)
     export.add_argument("--report-id", type=UUID, action="append",
-                        help="Export only this complete report ID; repeat for distinct identities")
+                        help="Export this complete or available shared-scope report; repeat for distinct identities")
     for name in ("verify", "import"):
         restore = subcommands.add_parser(name, help="Verify offline and write missing public runtime files; never overwrite conflicts")
         restore.add_argument("archive", type=Path)

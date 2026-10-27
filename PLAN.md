@@ -1,6 +1,18 @@
 # 新项目执行计划
 
-## 2026-10-27 当前：共享任务与完整声明覆盖方案已形成
+## 2026-10-27 当前：共享评分与网站本机完成，正在交付PR
+
+task_id=`IMPLEMENT_SHARED_TASK_SCORING_AND_CLAIM_COVERAGE`本机实现与必要验收完成。新policy `transaction-agent-evidence-v1`共享任务、声明/场景分层、区间与覆盖分开；按ADR-0026允许已测范围出综合结果，不强制所有声明测全。core生成Schema/TS，平台独立来源重放/导入/离线包，Vue统一任务和已测/未测界面，历史报告文案标范围且分数不改；队友指南已含实际命令与适配边界。
+
+回放复用31真实任务/131判据，最新ID`6ff3ad03-49d6-409b-a7da-1dba9dc79eb6`，目录`runtime/mangoswap-shared-20261027-v2`：A90.20–100、F50.48–69.94、B100、范围综合77.25–87.98，声明覆盖PARTIAL。全部28完整响应均分别核输入/输出标识，ETH/WETH问题入F；9个只有业务响应的任务对独立效果仍UNKNOWN，7笔执行按原件核验。来源为回顾性复用，不是新实验。
+
+实际检查：core新边界1验收exit0；真实来源1验收先因DB未允许公开声明JSON失败，补受限路径后exit0（25.357s），覆盖伪造判定/计算字段/哈希/回顾性说明与缺B证据不缩分母；共享Schema/TS及OpenAPI各生成exit0；Vue构建3次exit0，后两次仅因真实数据文案与中文判据修订。初次builder的公开声明路径拒绝已修，失败草稿保留；有效报告新建不覆盖。未重跑旧全套、未新增业务付费/签名/交易。
+
+新公开包`data/public-reports-shared-v1.tar.gz`：603512B、1198文件、SHA `09657600785f729fa4dfb35ddb1e4c8c578d131045e340a9b17d3e03e873108c`。离线verify exit0，不需RPC/LLM/钱包；含原parent依赖，可独立导入。1199个压缩成员与本分支文本差异的高置信凭据扫描0发现。真实PG导入、agent/report/chain/附件/静态页面HTTP与SHA核验exit0，私有附件404，旧98.70不变；收据`runtime/shared-web-verification-20261027/receipt.json`。本机http://127.0.0.1:7754/?agent=mangoswap-26345已运行；进程`runtime/background-platform-20261027T081955Z-e1d3c051/process.json`、worker public-off，浏览器视觉未执行。
+
+当前Git分支`codex/shared-task-scoring`，已fetch确认origin/main是本地祖先、无远端分歧，既有未发布成果随本次PR交付；docs/presentation/保留。下一task_id=`SHARED_ASSESSMENT_PR_DELIVERY`：提交并push本任务分支、创建PR、等待CI，告知用户后开始MangoSwap原生资产/V4/订单缺口补测。必要业务付费已授权，阶段一没有消费。PR状态以远程检查为准，不把待跑CI写成通过。
+
+## 2026-10-27 已完成：共享任务与声明覆盖方案
 
 task_id=`ALIGN_SHARED_TASK_SCORING_MODEL`已完成设计交付：[ADR-0025](docs/adr/0025-shared-task-declaration-scoring.md)与[MangoSwap声明矩阵](docs/research/MANGOSWAP_DECLARATION_MATRIX_20261027.md)。同任务共享A/F/B原件、分别判据；A改为按时完整交付率并分开归因，F按规范化声明/案例聚合，B核真实履约并保留所有保护退出；UNKNOWN给未决范围，未测组不删分母。30/40/30保留为产品选择，功能/声明等权亦明确为基线，阈值逐项说明来源。完整评价须覆盖该身份全部实质功能；旧13个范围分不自动算作13个声明覆盖完整的Agent，后者尚未重审。
 

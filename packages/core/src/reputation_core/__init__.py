@@ -26,7 +26,12 @@ from reputation_core.planning import (
     prediction_tool_supported, select_plan, select_prediction_plan,
 )
 from reputation_core.prediction import BinaryPrediction
-from reputation_core.reporting import CapabilityCoverage, EvaluationReport, ReportFinding, SampleExplanation
+from reputation_core.reporting import CapabilityCoverage, EvaluationReport, ReportFinding, SampleExplanation, parse_evaluation_report
+from reputation_core.shared_scoring import (
+    ScoreInterval, SharedAssessment, SharedAssessmentResult, SharedCapability, SharedCapabilityResult,
+    SharedCase, SharedCaseResult, SharedCounts, SharedDeclarationGroup, SharedDimensionResult,
+    SharedObservation, SharedTask, calculate_shared_assessment,
+)
 from reputation_core.prediction_chain import MarketSettlementVerification, PredictionChainVerification
 from reputation_core.scoring import (
     AVAILABILITY_LATENCY_WEIGHT,
@@ -44,6 +49,7 @@ from reputation_core.scoring import (
     SWAP_POLICY_VERSION,
     SWAP_EVIDENCE_POLICY_VERSION,
     SWAP_POLICY_VERSIONS,
+    SHARED_POLICY_VERSION,
     PolicyVersion,
     DimensionScore,
     ScoredSample,
@@ -85,6 +91,21 @@ __all__ = [
     "SWAP_POLICY_VERSION",
     "SWAP_EVIDENCE_POLICY_VERSION",
     "SWAP_POLICY_VERSIONS",
+    "SHARED_POLICY_VERSION",
+    "ScoreInterval",
+    "SharedAssessment",
+    "SharedAssessmentResult",
+    "SharedCapability",
+    "SharedCapabilityResult",
+    "SharedCase",
+    "SharedCaseResult",
+    "SharedCounts",
+    "SharedDeclarationGroup",
+    "SharedDimensionResult",
+    "SharedObservation",
+    "SharedTask",
+    "calculate_shared_assessment",
+    "parse_evaluation_report",
     "PredictionChainVerification",
     "PredictionHistoryDescriptor",
     "PredictionToolDescriptor",

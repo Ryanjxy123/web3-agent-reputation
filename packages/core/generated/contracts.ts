@@ -112,6 +112,11 @@ export type SampleExplanation = {
   "capability_id"?: string | null;
 };
 
+export type ScoreInterval = {
+  "lower": number;
+  "upper": number;
+};
+
 export type ScoredSample = {
   "sample_id": string;
   "task_key": string;
@@ -124,12 +129,140 @@ export type ScoredSample = {
 };
 
 export type ScoringOutcome = {
-  "policy_version"?: "liquidity-history-v1" | "prediction-history-v1" | "prediction-history-v2" | "service-contract-v1" | "service-fulfillment-v1" | "evm-swap-builder-v1" | "evm-swap-builder-v2";
+  "policy_version"?: "liquidity-history-v1" | "prediction-history-v1" | "prediction-history-v2" | "service-contract-v1" | "service-fulfillment-v1" | "evm-swap-builder-v1" | "evm-swap-builder-v2" | "transaction-agent-evidence-v1";
   "availability": DimensionScore;
   "functional": DimensionScore;
   "behavioral": DimensionScore;
   "overall": number | null;
   "status": "COMPLETE" | "PARTIAL" | "NOT_EVALUATED";
+};
+
+export type SharedAssessment = {
+  "schema_version"?: "shared-task-assessment-v1";
+  "capabilities": Array<SharedCapability>;
+  "cases": Array<SharedCase>;
+  "tasks": Array<SharedTask>;
+  "observations": Array<SharedObservation>;
+  readonly "result": SharedAssessmentResult;
+};
+
+export type SharedAssessmentResult = {
+  "overall": ScoreInterval | null;
+  "score_status": "AVAILABLE" | "INSUFFICIENT";
+  "selected_scope_coverage": "FULL" | "PARTIAL" | "NONE";
+  "declaration_coverage": "FULL" | "PARTIAL" | "NONE";
+  "availability": SharedDimensionResult;
+  "functional": SharedDimensionResult;
+  "behavioral": SharedDimensionResult;
+  "capabilities": Array<SharedCapabilityResult>;
+  "cases": Array<SharedCaseResult>;
+  "task_count": number;
+  "observation_count": number;
+  "selected_capabilities": Array<string>;
+  "unselected_capabilities": Array<string>;
+  "risk_status": "NORMAL" | "MAJOR_VIOLATION";
+  "blocked_reasons": Array<string>;
+};
+
+export type SharedCapability = {
+  "capability_id": string;
+  "title": string;
+  "description"?: string;
+  "selected": boolean;
+  "write_operation": boolean;
+  "declaration_groups": Array<SharedDeclarationGroup>;
+};
+
+export type SharedCapabilityResult = {
+  "capability_id": string;
+  "title": string;
+  "selected": boolean;
+  "declaration_coverage": "FULL" | "PARTIAL" | "NONE";
+  "availability": SharedDimensionResult;
+  "functional": SharedDimensionResult;
+  "behavioral": SharedDimensionResult;
+};
+
+export type SharedCase = {
+  "case_id": string;
+  "capability_id": string;
+  "dimension": "availability" | "functional" | "behavioral";
+  "declaration_group_id": string | null;
+  "title": string;
+  "criterion_ids": Array<string>;
+  "task_keys": Array<string>;
+  "normal_execution": boolean;
+  "required_decisive": number;
+};
+
+export type SharedCaseResult = {
+  "interval": ScoreInterval | null;
+  "counts": SharedCounts;
+  "coverage": "FULL" | "PARTIAL" | "NONE";
+  "blocked_reasons": Array<string>;
+  "p50_ms"?: number | null;
+  "p95_ms"?: number | null;
+  "case_ids": Array<string>;
+  "case_id": string;
+  "capability_id": string;
+  "dimension": "availability" | "functional" | "behavioral";
+  "declaration_group_id": string | null;
+  "title": string;
+};
+
+export type SharedCounts = {
+  "planned"?: number;
+  "observed"?: number;
+  "passed"?: number;
+  "failed"?: number;
+  "unknown"?: number;
+  "not_applicable"?: number;
+  "measurement_invalid"?: number;
+  "not_run"?: number;
+  "protected_exit"?: number;
+};
+
+export type SharedDeclarationGroup = {
+  "group_id": string;
+  "title": string;
+  "description"?: string;
+  "selected": boolean;
+  "selection_reason"?: string;
+  "source_references": Array<string>;
+};
+
+export type SharedDimensionResult = {
+  "interval": ScoreInterval | null;
+  "counts": SharedCounts;
+  "coverage": "FULL" | "PARTIAL" | "NONE";
+  "blocked_reasons": Array<string>;
+  "p50_ms"?: number | null;
+  "p95_ms"?: number | null;
+  "case_ids": Array<string>;
+};
+
+export type SharedObservation = {
+  "task_key": string;
+  "case_id": string;
+  "criterion_id": string;
+  "dimension": "availability" | "functional" | "behavioral";
+  "verdict": Verdict;
+  "reason": string;
+  "evidence": Array<string>;
+  "measurement_validity": "valid" | "invalid" | "unknown";
+  "elapsed_ms": number | null;
+  "response_complete"?: boolean | null;
+  "critical"?: boolean;
+};
+
+export type SharedTask = {
+  "task_key": string;
+  "capability_id": string;
+  "input_summary": string;
+  "outcome": "completed" | "failed" | "rejected" | "protected_exit" | "not_executed" | "unknown";
+  "attribution": "provider" | "operator" | "network" | "chain_or_market" | "unknown";
+  "observed_at": string | null;
+  "evidence": Array<string>;
 };
 
 export type AgentProfile = {
@@ -151,6 +284,7 @@ export type ReportSummary = {
   "generated_at": string;
   "scope": string;
   "scores": ScoringOutcome;
+  "shared_result"?: SharedAssessmentResult | null;
 };
 
 export type AgentSummary = {
@@ -345,7 +479,7 @@ export type MarketSettlementVerification = {
 
 export type EvaluationReport = {
   "schema_version"?: "evaluation-report-v1";
-  "policy_version"?: "liquidity-history-v1" | "prediction-history-v1" | "prediction-history-v2" | "service-contract-v1" | "service-fulfillment-v1" | "evm-swap-builder-v1" | "evm-swap-builder-v2";
+  "policy_version"?: "liquidity-history-v1" | "prediction-history-v1" | "prediction-history-v2" | "service-contract-v1" | "service-fulfillment-v1" | "evm-swap-builder-v1" | "evm-swap-builder-v2" | "transaction-agent-evidence-v1";
   "candidate_key": string;
   "name": string;
   "registration_reference": string;
@@ -358,6 +492,7 @@ export type EvaluationReport = {
   "source_references": Array<string>;
   "limitations": Array<string>;
   "capabilities"?: Array<CapabilityCoverage>;
+  "shared_assessment"?: SharedAssessment | null;
   readonly "scores": ScoringOutcome;
 };
 

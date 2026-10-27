@@ -18,8 +18,8 @@ from reputation_core.admission import CandidateRecord
 from reputation_core.application import AgentDetail, AgentSummary, EvaluationJob, ReportSummary, normalize_reference
 from reputation_core.chain_review import AgentChainEvidence
 from reputation_core.chain_view import ReportChainEvidence
-from reputation_core.reporting import EvaluationReport
-from reputation_core.scoring import SERVICE_POLICY_VERSIONS, SWAP_POLICY_VERSIONS, ScoringOutcome
+from reputation_core.reporting import EvaluationReport, parse_evaluation_report
+from reputation_core.scoring import SERVICE_POLICY_VERSIONS, SHARED_POLICY_VERSION, SWAP_POLICY_VERSIONS, ScoringOutcome
 from reputation_platform.settings import PROJECT_ROOT
 from reputation_platform.runtime_status import HEARTBEAT_MAX_AGE_SECONDS, RuntimeStatus, worker_status
 
@@ -50,12 +50,10 @@ def _sha(path: Path) -> str:
 
 
 def _validated_report(value: dict) -> EvaluationReport:
-    payload = dict(value)
-    supplied_scores = payload.pop("scores", None)
-    report = EvaluationReport.model_validate_json(json.dumps(payload, ensure_ascii=False))
-    if supplied_scores != report.scores.model_dump(mode="json"):
-        raise EvidenceIntegrityError("Report scores do not match the evidence-derived calculation")
-    return report
+    try:
+        return parse_evaluation_report(value)
+    except ValueError as error:
+        raise EvidenceIntegrityError('Report scores or shared results do not match their calculation') from error
 
 
 class Repository:
@@ -130,7 +128,8 @@ class Repository:
             path = (self.root / reference["path"]).resolve()
             if path.is_relative_to(self.runtime):
                 path = self._runtime_file(path)
-            elif not (path.is_relative_to(self.root / "docs/adr") or path.is_relative_to(self.root / "configs")):
+            elif not (path.is_relative_to(self.root / "docs/adr") or path.is_relative_to(self.root / "configs")
+                      or path.is_relative_to(self.root / 'data/declarations') and path.suffix == '.json'):
                 raise EvidenceIntegrityError("Manifest input is outside retained evidence and public policy configuration")
             if not path.is_file() or _sha(path) != expected:
                 raise EvidenceIntegrityError("A retained report input changed or is missing")
@@ -159,7 +158,11 @@ class Repository:
         _, hashes = self._manifest(directory)
         report_path = self._runtime_file(directory / "report.json")
         report = _validated_report(json.loads(report_path.read_bytes()))
-        if report.policy_version in SWAP_POLICY_VERSIONS:
+        if report.policy_version == SHARED_POLICY_VERSION:
+            from reputation_platform.shared_report import verify_shared_report_sources
+
+            registration_reference = verify_shared_report_sources(self.root, report, hashes)
+        elif report.policy_version in SWAP_POLICY_VERSIONS:
             from reputation_platform.swap_report import verify_swap_report_sources
 
             registration_reference = verify_swap_report_sources(self.root, report, hashes)
@@ -233,7 +236,8 @@ class Repository:
     def _summary(row: dict) -> ReportSummary:
         payload = row["validated_json"]
         return ReportSummary(id=str(row["id"]), candidate_key=row["agent_key"], generated_at=row["generated_at"],
-                             scope=payload["scope"], scores=ScoringOutcome.model_validate(payload["scores"]))
+                             scope=payload["scope"], scores=ScoringOutcome.model_validate(payload["scores"]),
+                             shared_result=(payload.get('shared_assessment') or {}).get('result'))
 
     def _insert_report(self, connection, imported: _ImportedReport) -> ReportSummary:
         report = imported.report

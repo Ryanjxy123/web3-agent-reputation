@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from reputation_core.admission import CandidateRecord
 from reputation_core.scoring import ScoringOutcome
+from reputation_core.shared_scoring import SharedAssessmentResult
 
 
 def normalize_reference(value: str) -> str | None:
@@ -48,6 +49,7 @@ class ReportSummary(BaseModel):
     generated_at: datetime
     scope: str
     scores: ScoringOutcome
+    shared_result: SharedAssessmentResult | None = None
 
 
 class AgentProfile(BaseModel):
