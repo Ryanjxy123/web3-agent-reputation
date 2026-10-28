@@ -1,0 +1,67 @@
+# 多对象首次方案实验结果
+
+日期：2026-10-28。沿用transaction-agent-evidence-v3，旧Mango报告不变。本轮先核7个不同服务，再冻结Tator/SafeRoute两个对象的共同兑换意图，才请求真实方案；不按Agent名称定制评分器。
+
+## 共用路径
+
+同一份exact Base USDC x402取证代码按冻结manifest读取身份、URL、输入和精确费用；钱包、签名权限不变。请求/nonce先持久化，签名前核费用范围，付费POST只发一次，未知先读原nonce。所有程序业务网络走SafeHttp的冻结目标协议适配，通用公开请求头校验未放宽。Privy/Quorum沿用既有运输，不新增密钥。
+
+完整冻结资格和共用判据见[资格与共同任务](TRANSACTION_COHORT_20261028.md)。该文件已被计划绑定，不原地改写；本结果文件和PLAN/STATUS按实际进展更新。原计划SHA90d735285d958b334fa159bbf0ac2b9118535b243ee1e9de609ab00b4b17ced5，替代v2 SHA56545135286d274a2f25d579cca1cc78249f23649795758be8a11d4a8b50eed8；经济任务均为Base的0.10USDC换既有WETH、自有买方收款，不发币、不桥接、不改变权限。
+
+## SafeRoute：真实方案已取得，历史效果已独立核验
+
+官方ACP身份的钱包精确匹配直连x402收款；ERC8004原件尚未取得，不能填假链身份。替代任务`6e25927a-fa0d-46fd-bffc-00283082efb2`用同一helper取得HTTP200，业务请求4625ms。quoteId `38bafd3c-91d7-4e36-83e2-07c57b788e6d`，输入100000 USDC最小单位、报价输出42405665397866 WETH最小单位，最低41981608743887。实际默认约1%最低到账，不冒称已接受50bps请求。
+
+提供方的simulation是skipped，不能记独立模拟PASS。target/spender为0x官方Base AllowanceHolder `0x0000000000001ff3684f28c67538d4d072c22734`，selector `0x2213bc0b`，已按0x协议解码。后续在有效窗口内的可信固定块53188175做完整自调用模拟：USDC扣100000，WETH增42405308249867，达到最低41981608743887，余授权0；原件`runtime/transaction-cohort-pilot-20261028/historical-simulation-20261028T071944Z-b389fb/RESULT.json`。这是F历史效果，不是B实兑。原方案约30秒有效，不执行过期报价。
+
+服务费0.01USDC已在Base交易`0x106a0ff82837ddffe0fcf699f28d1031d35b204c457fc99035aa6f6d36a69f68`核到唯一精确Transfer、成功回执、规范区块和authorizationState，并与支付收据同hash。第一次核对时head距费用块9，不冒称当时64确认；费用不是兑换B证据。
+
+业务原文SHA `ca30bfb6785899e7ecab4e033ba8447897e14c388e63948e06e218f5ba156de8`；安全索引`runtime/transaction-cohort-pilot-20261028/runs/6e25927a-fa0d-46fd-bffc-00283082efb2/SAFE_CLOSEOUT.json`，SHA `0a93e8225f9c335cd1fcc0f8ae6819705547d89fe140009c56a2ff62574f7438`。签名、付款头和私有前检原件不公开。
+
+## Tator：两种钱包路线均保留，普通EOA付款后业务500，已暂停
+
+固定任务`e6888fcb-ca27-4643-99ec-853916c9ca3b`已使用相同helper尝试一次，费前的可信链1271/USDC transfer模拟均通过。实际带付款凭证POST返回402，耗时4718ms，原文为Payment verification failed / invalid signature length。现有智能账户签名为72字节，网关在支付验证阶段拒绝；尚未进入正常方案交付，不能简单记为Agent业务A失败或推断所有钱包不可用。
+
+响应SHA `da88f82e6bea00f69c90c70bcd4bcb804bc01b429e7b8f6fdb81e088ae486233`。没有更改账户权限、换钱包、裁剪签名、换nonce或重试；先对原nonce核账至明确终态，再判断是否需要负责人决定其它支付路线。返回资产calls签名及广播为0，不给不存在的兑换结果打分。
+
+原nonce最终已在可信链核为UNUSED_AND_EXPIRED，费用0。安全索引`runtime/transaction-cohort-pilot-20261028/runs/e6888fcb-ca27-4643-99ec-853916c9ca3b/SAFE_CLOSEOUT.json`，SHA `5230bd299ce5307bb1f631813859de2d2aeaae9238df7a072b1a11b9744fb8b9`。历史原件也显示同账户直接65bytes曾失败，官方72bytes模式才成功；不截短重试或自动撤销委托。
+
+负责人随后明确批准新增普通EOA，转入0.50USDC+0.00001ETH继续Tator。实际资金转入`0x62f91f1e270373be665ddb6888990aba6f4382a582720fa5d7cb429438e7cd09`独立核实，内部资金移动不是Agent履约。普通EOA任务`c60951ca-a41d-4637-a14c-af781c5f1de0`的65bytes付款真实通过，费用0.20USDC（tx`0x6e34433665cf7d4cf69eb609675e61ffebdb5650636456de62c09759476f5fc3`），随后业务HTTP500/5437ms，原文`API keys not configured`，无方案。官方公开条款未要求调用方API key，provider是任意集成标识；不猜他人ID、不继续付费，Tator暂停。EOA余0.30USDC+0.00001ETH，私钥仅本地受限秘密文件。两类历史结果不互相覆盖。
+
+## 方案已揭示的协议事实
+
+SafeRoute的0x外层和内层可离线解出USDC输入、WETH最低到账与买方；外层operator/target均指向Settler，内部有TRANSFER_FROM、两条BASIC费用、MAVERICKV2与POSITIVE_SLIPPAGE动作。除顶层10bps费用外，还存在1500ppm费用及部分正滑点分配条款；静态计算须考虑动态余额，不能冒称实际已扣这些费用，也不能只按feeBps10说已核全部成本。费用是否违反声明需逐项对照明确承诺，不自动扣F。
+
+0x通用协议的部署、池、参数及独立效果分别核实；不能在代码中按SafeRoute名称分支。官方源码与解码材料保存在`runtime/transaction-cohort-pilot-20261028/protocol-review-0x-20261028/`。独立历史模拟已通过，真实成交仍未发生，不为形成分数强行补B。
+
+## 两个ACP对象的接单、交付与共同核验
+
+TheSafeRouteBot与SafeRoute为不同服务/不同ACP身份，不能混成同一对象。首次共同计划SHA`e47c6f99006094447b159c0fe3badbdf5ea7116c13c4914e3bf9c846363b4311`，原件`runtime/acp-quote-cohort-20261028/plan.json`。同一批创建job82343/82344，分别发送0.10USDC→WETH、新EOA收款、50bps需求；两次消息均HTTP201，不重发。
+
+真实建单tx`0x75166ebcdf12fd9f21bd2dca5480c75ddf2ecb3e99942175029fd6cdbf7d18d0`只有两个JobCreated，不计实兑。两家均在收到需求后报预算。实际报价服务付款tx`0x413808e4041db8ed5ceda14d5fd30a8916a05bb56319bcdae3eb332ffd9e7b7e`共扣0.07USDC：SafeBot预算0.05，Hydrex预算0.01另提出0.01服务级转款；没有兑换本金给提供方。独立核实际转款、规范回执、余授权0、委托不变，网络费0.000001469504935791ETH。
+
+两家付款后均提交交付：SafeBot用Kyber，Hydrex用自有包装器+0x。每份原始JSON的keccak与可信链JobSubmitted的jobId、提供方、事件地址和交付hash一致。平台/提供方的GO、PASS不代替独立判定。两份完整实际calldata均用BaseScan Exact Match官方ABI解析、回编码字节完全相等；Hydrex额外绑定EIP1967 implementation slot和代理/实现runtime字节，当前费10bps及官方0x Settler均已读核。原件分别在`runtime/protocol-verified-20261028-hydrex/`和`runtime/protocol-verified-20261028-kyber/`。
+
+共同效果核验使用同一可信块53191231/hash`0x0893398fe3ef68e84e115f52de72730591fa56a875c9c6ee20c9da14211ec18b`，各自单独完整eth_call：两者均扣100000USDC最小单位，SafeBot收到42489699296480WETH最小单位（min42277250799996），Hydrex收到42414809665879（min42202735617548），均余授权0。相同核验方法用于两个实际对象，且适配按协议；不计两笔真实成交。原件`runtime/acp-quote-cohort-20261028/historical-effects-20261028T073551Z-7d5a5b/RESULT.json`。
+
+报价服务已按真实交付结算，tx`0x8ee34a9f2aba0dc93f72b1335c72d3ceaded5db9907450abd11df4870a1af1e8`；没有新增USDC扣款，网络费0.000001402726164464ETH。此结算只确认报价收讫，不是声誉全通过或资产兑换。
+
+Hydrex首次当前实兑预检返回SwapFailed，未签名/广播。外层截止07:36:38，但内层0x期限07:21:38已过；复核准备消耗了有效期，不能把此本地过期尝试归责Agent。保留旧原件，不延长或改写calldata。先在历史有效窗口证明方案效果，再用共用ACP流程冻结新请求。新请求为job82346，plan SHA`559111b400953d0b79c8f05867208727cff5ad278ce8efef82467c22a94b2368`，建单tx`0x29e9ecbe3434153c388133a519765a586038ae84c210ccd055ef2e7a97193dbe`。401已确认是会话到期，按既有授权仅签acp-auth消息刷新，没有重发已接受需求。
+
+新单服务费实际0.02USDC，tx`0x1ece8ad8b52c1a368116744cb0f4c8be246dda3830f5568c736ff053f3777800`。新方案递归最早有效期限07:55:06，先核部署runtime/代理slot、现行费率、官方Settler、交付hash及完整模拟，再在期限内只发送一次真实兑换。实际tx`0xb4c598c9e9c215884f99c48cfb32692e4a699e23505c10fd3aa0a62ea4355e98`：扣100000USDC最小单位，新EOA实收42343137880465WETH最小单位，达到最低到账，授权归零。回执、实际事件、资产与输入逐项核齐，最终复核确认距离307块。服务已结算tx`0xe03d784f1ae6d00dcca0684bda1f1f6f628ba025b8c9f9e753d5a17d3c7781a7`，无新增服务扣款，无待重发交易。
+
+## 首次本地准备故障
+
+SafeRoute原任务`d526e2fa-4a3e-4727-bdab-f25aa795aff3`在本地独立ABI前检被拦下：Python旧编码函数将十进制时间字符串当hex，另有仅大小写的差异。Node签名本身的字节正确，未发付费POST。显式int转换和精确bytes比较修正后，仅做一次跨库参数/字节验证，全部通过；不删除原记录、不扣Agent分。
+
+原授权已用4次可信只读在Base块53188043确认authorizationState=0且超过validBefore，状态UNUSED_AND_EXPIRED。之后才冻结v2与新SafeRoute任务ID。替代任务不是盲目重发未知付款。原事件/终态/本地验证均保留于`runtime/transaction-cohort-pilot-20261028/`。
+
+## 当前可说明的评价结果
+
+SafeRoute、TheSafeRouteBot、Hydrex同任务均已有真实交付及独立历史效果；Hydrex已追加正常真实兑换，正式报告`5267c247-8489-4ea9-a722-f8759de1a664`，原2任务/7判据、A100/F100/B100/已测范围综合100。旧Mango96.67不变，当前发布三维对象2个，至少10个目标未达。其它候选未补B，不计完整评分。Tator有真实收费后的500失败观测，AgentSwap免费OKX方案的身份与协议缺项仍保留。
+
+服务费毛额0.30USDC，ACP evaluator返还0.0035USDC，净服务费0.2965USDC；本轮自有钱包网络费共10329768158741wei，0.10USDC本金已换成自有WETH，内部资金移动不计费用。余额和真实命令见[交付记录](../runbooks/TRANSACTION_COHORT_RELEASE_20261028.md)。
+
+生产解码模块按0x/Hydrex包装/Kyber复用，新来源重放不依赖Mango父报告。公开包含两对象1634文件，可离线复算；本机两对象报告/交易/附件与真实PG导入已通过。旧数据库审计历史保留，当前演示独立schema避免已撤下源文件使列表500。严格禁止发币、身份/报告铸造和钱包权限变动均保持。
+
+评分公式、三维和权重不改；来源适配不能强迫新对象复制Mango旧24/31槽迁移过程。先把实际协议和身份证据补齐，再按共用SharedAssessment v3产分。正常结果、失败与UNKNOWN都保留；旧对象已撤下的评分包不重新发布。

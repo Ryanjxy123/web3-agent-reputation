@@ -138,19 +138,27 @@ def main() -> int:
         repository.finalize_job(queued.id, recovered['lease_owner'], recovered['fencing_token'],
                                 status='NEEDS_INFO', message='CI is public-off; no business execution')
 
-        # Only the selected MangoSwap publication is inserted; parents stay evidence attachments.
-        restored = restore_package(ROOT, ROOT / 'data/public-reports-single-score-v3.tar.gz', True, False)
-        require(restored['reports'] == 1 and restored['mapping'][0]['canonical'] == CANONICAL,
-                'The sole default publication must be the registered MangoSwap identity')
-        report_id = restored['mapping'][0]['imported_report_id']
+        # Only the two selected publications are inserted; parents stay evidence attachments.
+        restored = restore_package(ROOT, ROOT / 'data/public-reports-transaction-v3.tar.gz', True, False)
+        require(restored['reports'] == 2 and {item['canonical'] for item in restored['mapping']} == {
+            CANONICAL, 'eip155:8453:0x8004a169fb4a3325136eb29fa0ceb6d2e539a432:54947'},
+            'The current publications must contain the two independently registered identities')
+        report_id = next(item['imported_report_id'] for item in restored['mapping'] if item['canonical'] == CANONICAL)
         status, agents = request(port, 'GET', '/api/agents')
-        require(status == 200 and len(agents) == 1 and agents[0]['key'] == 'mangoswap-26345',
-                'The imported directory must contain exactly one MangoSwap identity')
+        require(status == 200 and {agent['key'] for agent in agents} == {'mangoswap-26345', 'hydrex-routing-54947'},
+                'The imported directory must contain exactly the two current publications')
         status, report = request(port, 'GET', '/api/reports/' + report_id)
         require(status == 200 and report['policy_version'] == 'transaction-agent-evidence-v3'
                 and report['shared_assessment']['result']['task_count'] == 34
                 and report['scores']['overall'] is not None,
                 'The real API must return the verified single-score, 34-task publication')
+        hydrex_id = next(item['imported_report_id'] for item in restored['mapping'] if item['canonical'] != CANONICAL)
+        status, hydrex = request(port, 'GET', '/api/reports/' + hydrex_id)
+        require(status == 200 and hydrex['shared_assessment']['result']['task_count'] == 2
+                and hydrex['scores']['overall'] == 100, 'The standalone source must replay the two-task Hydrex scope')
+        status, chain = request(port, 'GET', '/api/reports/' + hydrex_id + '/chain-evidence')
+        require(status == 200 and len(chain['actions']) == 1 and chain['actions'][0]['action'] == 'swap',
+                'The new publication must explain its real asset exchange')
         for statement in ('UPDATE reports SET source_directory=source_directory WHERE id=%s',
                           'DELETE FROM reports WHERE id=%s'):
             try:
@@ -165,7 +173,7 @@ def main() -> int:
         print(json.dumps({"status": "PASS", "database": "PostgreSQL 17.11", "http": "real loopback uvicorn",
             "invalid_submission": 422, "canonical_submission": 202, "job_status": "NEEDS_INFO",
             "concurrent_claimants": 3, "lease_recovery": True, "stale_worker_rejected": True,
-            "agents": 1, "reports": 1, "report_policy": "transaction-agent-evidence-v3",
+            "agents": 2, "reports": 2, "report_policy": "transaction-agent-evidence-v3",
             "public_readonly_enabled": False, "model_calls": 0}))
         return 0
     finally:
