@@ -59,6 +59,9 @@
 
 ## Codex 本机 HTTP 代理（2026-10-18）
 
+2026-10-29增补：本机Fake-IP模式下，独立DNS引导的 `1.1.1.1` 出现TLS EOF，导致不同服务同时ConnectError。操作者显式设置 `REPUTATION_DOH_RESOLVER_IPV4=1.0.0.1`，使用Cloudflare官方备用地址；代码只接受这两个已公布的引导IP，不接受Agent提供的resolver，不关闭TLS或公网IP校验、不自动重试换出口。已核A/AAAA及Topaz官方网页HTTP200，相关最小定向检查1项通过。代理组改为已有 `failover`；原选项保存在本机runtime诊断收据，不修改订阅和凭据。中断的任务证据保留UNKNOWN，不算Agent失败。
+
+
 用户明确要求先修复反复重连。检查发现 Windows 系统代理已启用 `127.0.0.1:7897`，但 Process/User/Machine 的代理环境变量均为空；桌面日志另有 WebSocket 建连失败。已将以下变量写入当前 Windows 用户环境，并发送环境变更通知：
 
 ```text

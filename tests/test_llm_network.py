@@ -341,6 +341,21 @@ class LLMNetworkTests(unittest.TestCase):
 class IndependentDNSTests(unittest.TestCase):
     """The resolver is a fixed HTTPS bootstrap, never a new untrusted destination."""
 
+    def test_operator_can_select_only_the_documented_secondary_resolver(self):
+        def handler(request):
+            self.assertEqual(request.url.host, '1.0.0.1')
+            self.assertNotIn('Authorization', request.headers)
+            answer = {'type': 1, 'data': PUBLIC_IP} if request.url.params['type'] == 'A' else {
+                'type': 28, 'data': '2606:4700:4700::1111'}
+            return httpx.Response(200, json={'Status': 0, 'Answer': [answer]})
+        with patch.dict('os.environ', {'REPUTATION_DOH_RESOLVER_IPV4': '1.0.0.1'}):
+            self.assertEqual(len(self._query(handler)), 2)
+        with patch.dict('os.environ', {'REPUTATION_DOH_RESOLVER_IPV4': '127.0.0.1'}), patch(
+            'reputation_platform.llm_network.httpx.Client') as client:
+            with self.assertRaises(ValueError):
+                _doh_addresses('provider.example', 'http://127.0.0.1:7897', 3)
+            client.assert_not_called()
+
     def _query(self, handler, *, timeout=3):
         real_client = httpx.Client
         options = []

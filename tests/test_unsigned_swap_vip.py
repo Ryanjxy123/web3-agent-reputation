@@ -9,6 +9,7 @@ import unittest
 
 from reputation_platform.unsigned_swap_protocol import (
     UNISWAP_V3_VIP,
+    UNISWAP_V3,
     UnsignedSwapMismatch,
     decode_unsigned_swap,
     verify_unsigned_swap_intent,
@@ -20,6 +21,27 @@ FIXTURES = Path(__file__).parent / 'fixtures'
 
 class UnsignedSwapVipTests(unittest.TestCase):
     def test_real_vip_reverse_quote_and_original_quote_equivalence(self):
+        regular = json.loads((FIXTURES / 'unsigned_swap_v3_case.json').read_bytes())
+        normal = verify_unsigned_swap_intent(regular['transaction'], regular['expected'], chain_id=8453)
+        route, = [a for a in normal['actions'] if a['kind'] == 'uniswap-v3']
+        self.assertTrue(normal['call_shapes_supported'])
+        self.assertEqual(route['balance_ppm'], 1_000_000)
+        self.assertEqual(route['hops'][0]['token_in'], regular['expected']['token_in'].lower())
+        self.assertEqual(route['hops'][-1]['token_out'], regular['expected']['token_out'].lower())
+        self.assertFalse(route['hops'][0]['pool_binding_verified'])
+        raw_regular = bytearray.fromhex(regular['transaction']['data'][2:])
+        start_regular = raw_regular.index(bytes.fromhex(UNISWAP_V3[2:])) + 4
+        for slot, value in ((0, 1), (1, 999_999)):
+            changed = bytearray(raw_regular)
+            changed[start_regular + slot * 32:start_regular + (slot + 1) * 32] = value.to_bytes(32, 'big')
+            with self.assertRaises(ValueError):
+                decode_unsigned_swap(dict(regular['transaction'], data='0x' + changed.hex()), chain_id=8453)
+        path_offset = int.from_bytes(raw_regular[start_regular + 64:start_regular + 96], 'big')
+        for position in (0, 44):
+            changed = bytearray(raw_regular)
+            changed[start_regular + path_offset + 32 + position] ^= 1
+            with self.assertRaises(ValueError):
+                decode_unsigned_swap(dict(regular['transaction'], data='0x' + changed.hex()), chain_id=8453)
         case = json.loads((FIXTURES / 'unsigned_swap_vip_case.json').read_bytes())
         transaction, expected = case['transaction'], case['expected']
         fact = verify_unsigned_swap_intent(transaction, expected, chain_id=case['chain_id'])

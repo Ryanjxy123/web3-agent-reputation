@@ -21,6 +21,7 @@ HYDREX = selector('executeSwaps((address,address,address,uint256,uint256,bytes,a
 KYBER = selector('swap((address,address,bytes,(address,address,address[],uint256[],address[],uint256[],address,uint256,uint256,uint256,bytes),bytes))')
 TRANSFER_FROM = selector('TRANSFER_FROM(address,((address,uint256),uint256,uint256),bytes)')
 UNISWAP_V3_VIP = selector('UNISWAPV3_VIP(address,((address,uint256),uint256,uint256),bytes,bytes,uint256)')
+UNISWAP_V3 = selector('UNISWAPV3(address,uint256,bytes,uint256)')
 BASIC = selector('BASIC(address,uint256,address,uint256,bytes)')
 MAVERICK = selector('MAVERICKV2(address,address,uint256,address,bool,int32,uint256)')
 SURPLUS = selector('POSITIVE_SLIPPAGE(address,address,uint256,uint256,uint256)')
@@ -154,6 +155,26 @@ def _settler(transaction, chain_id):
             fact['actions'].append({'kind': 'uniswap-v3-vip', 'target': target, 'recipient': target,
                 'token_in': token, 'token_out': bought, 'amount': amount, 'deadline': deadline,
                 'action_minimum_out': item.word(224), 'hops': hops})
+        elif sig == UNISWAP_V3:
+            path = item.blob(0, 2, 4)
+            _check(item.addr(0) == target and item.word(32) == 1_000_000,
+                   'V3 route must consume the remaining input into this Settler')
+            _check(len(path) >= 64 and (len(path) - 20) % 44 == 0,
+                   'Incomplete V3 hop encoding')
+            current = '0x' + path[:20].hex()
+            _check(current == token, 'V3 input path differs from the forwarded input asset')
+            hops = []
+            for offset in range(20, len(path), 44):
+                hop = path[offset:offset + 44]
+                output = '0x' + hop[24:44].hex()
+                hops.append({'token_in': current, 'token_out': output, 'fork_id': hop[0],
+                    'pool_id': int.from_bytes(hop[1:4], 'big'),
+                    'sqrt_price_limit': int.from_bytes(hop[4:24], 'big'), 'pool_binding_verified': False})
+                current = output
+            _check(current == bought, 'V3 output path differs from Settler final output asset')
+            fact['actions'].append({'kind': 'uniswap-v3', 'target': target, 'recipient': target,
+                'token_in': token, 'token_out': bought, 'balance_ppm': 1_000_000,
+                'action_minimum_out': item.word(96), 'hops': hops})
         elif sig == BASIC:
             sell, ppm, destination, offset = item.addr(0), item.word(32), item.addr(64), item.word(96)
             transfer = item.blob(0, 4, 5)
