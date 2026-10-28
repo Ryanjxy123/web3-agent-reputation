@@ -57,6 +57,7 @@
 .shared-task-observation ul { padding-left: 17px; font-size: 14px; }
 .shared-task-observation li + li { margin-top: 11px; }
 .shared-task-observation .badge { margin-left: 5px; }
+.shared-label-notice{display:inline-flex;margin-left:5px;padding:2px 7px;border:1px solid #809fad38;border-radius:4px;background:#7eabb00a;color:#a6c4ce;font-size:12px;line-height:1.6;white-space:nowrap}
 .shared-task .technical { margin-top: 16px; }
 .shared-method-list { margin: 0; padding-left: 21px; color: var(--muted); font-size: 14px; }
 .shared-method-list li + li { margin-top: 12px; }

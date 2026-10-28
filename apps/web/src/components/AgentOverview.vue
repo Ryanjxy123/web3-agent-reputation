@@ -93,7 +93,7 @@ const mainTask = computed(() => representative.value[0]?.taskKey)
           <span class="ov-task-name"><strong>{{ task.title }}</strong></span>
           <span class="ov-task-summary">{{ task.resultSummary }}</span>
           <span class="ov-task-status" :class="businessTone(task)"><span class="sr-only">业务状态：</span>{{ task.outcomeLabel }}</span>
-          <span class="ov-finding-pill" :class="statusTone(task.verificationStatus)"><span class="sr-only">平台核验：</span>{{ task.verificationLabel }}</span>
+          <span class="ov-finding-pill" :class="task.verificationTone"><span class="sr-only">平台核验：</span>{{ task.verificationLabel }}</span>
           <span class="ov-task-open">查看链路 <span aria-hidden="true">↗</span></span>
           <span class="sr-only">样本 {{ index + 1 }}</span>
         </button>

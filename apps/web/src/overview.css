@@ -95,3 +95,6 @@
 @media(min-width:1700px){.ov-agent-identity h1{font-size:40px}.trust-core svg{max-height:390px}.ov-top-grid{padding-top:32px}.ov-description{font-size:15px}.ov-score-panel{margin-top:4px}}
 @media(max-width:1190px) and (min-width:801px){.trust-core{grid-column:1;grid-row:1;opacity:.32;pointer-events:none;align-self:end;width:250px;justify-self:end;margin:110px -10px -8px 0;z-index:0}.trust-core figcaption{display:none}.ov-agent-panel{grid-column:1;grid-row:1;z-index:1}.ov-score-panel{grid-column:2;grid-row:1}.ov-description{max-width:420px}.ov-agent-panel .ov-actions{margin-top:auto;padding-top:22px}}
 @media(max-width:800px){.ov-top-grid{grid-template-columns:1fr;gap:20px;padding:24px 20px 0}.trust-core{max-width:330px;width:100%;margin:-25px 0 -10px;justify-self:center}.trust-core svg{max-height:250px}.ov-score-panel{width:100%}.ov-description{max-width:100%}.ov-stat-row{padding:20px}.ov-score-caption{padding-right:8px}.ov-agent-identity h1>span{display:inline;margin-left:6px}}
+
+.ov-finding-pill.notice{color:#a9c3d1;background:#88b2c20a}
+.ov-finding-pill.danger{color:#eea1b0;background:#4d263640;border-color:#7a3f5580}

@@ -2,6 +2,16 @@
 
 本轮已完成，保存在本地 `codex/evidence-workbench` 的既有工作区；保留开工前所有未提交成果。验收入口：<http://127.0.0.1:7756/?agent=mangoswap-26345>，既有 API 提供真实报告，最新生产前端已重新构建并实际浏览。未推送或部署。
 
+## 后续修订：资产标注差异提示
+
+用户要求 ETH/WETH 名称差异不要表现为程序故障。新增独立于原 verdict 的展示级别：非 critical 的 functional/asset-display/FAIL 为青灰色标注提示；存在 UNKNOWN 或未采仍提示待核，其他真实 FAIL 或 critical 风险保持危险态。没有更改评分、报告与原观测。
+
+任务列表、节点、步骤检查和报告均采用该区分。F08 现在显示「方案已验证 / 资产标注有差异」，检查统计为2通过、1标注提示；A01保留1未知及其原因。原始FAIL仍可在技术详情和报告证据区查看，技术JSON不改。通过/未通过计数中的标注提示分别列出，未把它算为通过。
+
+最终vue-tsc/Vite构建PASS，投影10/10测试PASS，含标注与真实失败并存的危险优先及critical边界。真实浏览器确认F08危险标记0、节点提示为rgb(164,194,208)、概览与报告标注徽标无红色；A01未知仍可见，390px概览无横向溢出。页面warn/error为0。报告响应逐字节保持，综合96.67。
+
+本次使用仍在运行的 http://127.0.0.1:7754/ 提供最新生产资源；原7756验收进程已停止，未启动worker或新测评。7754与本次开始7756取得的报告原件响应一致。截图：`runtime/asset-label-note-20261028/task-label-note-1440.jpg`、`overview-label-note-1440.jpg`、`report-label-note.jpg`、`mobile-overview.jpg`；收据为同目录browser-checks.json与integrity-checks.json。
+
 ## 展示层改动
 
 - 代表任务按任务名称、关键动作与结果、业务状态、平台核验、查看链路排列。复用同一展示投影，移除默认 UUID、重复能力说明及长参数。

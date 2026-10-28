@@ -29,8 +29,8 @@
 .graph-node strong{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;line-height:1.5}
 .node-summary{font-size:11px;line-height:1.6;color:#a1b7c6;max-width:100%;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;margin-top:3px}
 .node-bottom{display:flex;width:100%;align-items:center;justify-content:space-between;margin-top:auto;line-height:1.3;padding-top:6px}.node-visited{font-size:10px;letter-spacing:.04em;color:#7995a4}.selected .node-visited{color:#9dced5}
-.node-verdict{font-size:10px;color:#a3b5c0;display:flex;align-items:center;gap:4px}.node-verdict i{font-style:normal}.status-PASS .node-verdict{color:#88d8bc}.status-FAIL .node-verdict{color:#f1a1ac}.status-UNKNOWN .node-verdict,.status-invalid .node-verdict{color:#d4b783}
-.graph-node.arrived{animation:node-arrive .7s ease-out}.graph-node.status-PASS.arrived{--arrival:#6dd5ae}.graph-node.status-FAIL.arrived{--arrival:#ee899a}.graph-node.status-UNKNOWN.arrived,.graph-node.status-invalid.arrived,.graph-node.status-unrecorded.arrived,.graph-node.status-NOT_APPLICABLE.arrived{--arrival:#9aa8b5}
+.node-verdict{font-size:10px;color:#a3b5c0;display:flex;align-items:center;gap:4px}.node-verdict i{font-style:normal}.tone-success .node-verdict{color:#88d8bc}.tone-danger .node-verdict{color:#f1a1ac}.tone-warning .node-verdict{color:#d4b783}
+.graph-node.arrived{animation:node-arrive .7s ease-out}.graph-node.tone-success.arrived{--arrival:#6dd5ae}.graph-node.tone-danger.arrived{--arrival:#ee899a}.graph-node.tone-warning.arrived,.graph-node.tone-notice.arrived,.graph-node.tone-neutral.arrived{--arrival:#9aa8b5}
 .edge-group,.signal-group{--signal:#92dce6}.edge-group.chain,.signal-group.chain{--signal:#b4a6ed}.edge-group.evidence,.signal-group.evidence{--signal:#9cc4c9}.edge-group.neutral,.signal-group.neutral{--signal:#99a6b3}
 .trace-edge{stroke:#526d81;stroke-width:1.1;fill:none;opacity:.52;transition:stroke .2s,opacity .2s}.trace-edge.evidence{stroke-dasharray:3 5}
 .edge-aura{fill:none;stroke:var(--signal);stroke-width:6;opacity:0;transition:opacity .2s}
@@ -45,3 +45,5 @@
 @media(prefers-reduced-motion:reduce){.trace-signal{display:none}.graph-node,.trace-edge{transition:none}.graph-node.arrived,.graph-surface{animation:none}}
 @media(max-width:720px){.trace-canvas{display:none}}
 .canvas-viewport{scrollbar-gutter:stable}
+
+.tone-notice .node-verdict{color:#a4c2d0}

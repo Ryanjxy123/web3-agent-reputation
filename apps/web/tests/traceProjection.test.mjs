@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { loadTraceSources, projectTaskTrace, projectTaskTraces, traceExplorerUrl } from '../src/traceProjection.ts'
+import { checkTone, isAssetLabelNotice, loadTraceSources, projectTaskTrace, projectTaskTraces, traceExplorerUrl, verificationTone } from '../src/traceProjection.ts'
 
 // Test fixtures only; the product loads published reports through the API.
 const task = (key, outcome = 'completed') => ({ task_key: key, capability_id: 'swap', input_summary: '输入要求',
@@ -121,7 +121,7 @@ test('business results use actual delivery, preserve quote/finding separation an
   assert.match(quote.resultSummary, /报价 0.071 USDC/)
   assert.doesNotMatch(quote.resultSummary, /实际到账/)
   assert.equal(quote.verificationStatus, 'FAIL')
-  assert.match(quote.verificationSummary, /输出资产显示ETH，实际地址对应WETH/)
+  assert.match(quote.verificationSummary, /服务将 WETH 标注为 ETH；合约地址按 WETH 记录/)
 })
 
 test('order cancellation stays a refund and transaction receipt status must match the actual hash', () => {
@@ -150,6 +150,7 @@ test('order cancellation stays a refund and transaction receipt status must matc
   node = view.nodes.find(n => n.action)
   assert.equal(node.receiptStatus, 'failed')
   assert.equal(node.status, 'FAIL')
+  assert.equal(node.tone, 'danger')
   assert.equal(node.action.verdict, 'PASS')
 })
 
@@ -200,4 +201,52 @@ test('partial criterion gaps remain unknown in the matching lane and retain alre
   assert.equal(independent.status, 'FAIL')
   assert.doesNotMatch(view.verificationLabel, /功能声明/)
   assert.doesNotMatch(independent.statusLabel, /功能声明/)
+})
+
+test('asset labels use a notice without changing verdicts, and execution risks retain priority', () => {
+  const item = task('label', 'not_executed')
+  item.evidence.push('runtime/label/business-request.json')
+  const input = report(item)
+  const labelCheck = { ...observation('label'), criterion_id: 'asset-display', verdict: 'FAIL',
+    reason: 'tokenOut显示ETH，实际地址对应WETH', response_complete: true }
+  input.shared_assessment.observations = [labelCheck,
+    { ...observation('label'), criterion_id: 'execution-effect' }]
+  const before = JSON.stringify(input)
+  let view = projectTaskTrace('r', input, 'label')
+  assert.equal(isAssetLabelNotice(labelCheck), true)
+  assert.equal(checkTone(labelCheck), 'notice')
+  assert.equal(checkTone({ ...labelCheck, critical: true }), 'danger')
+  assert.equal(view.verificationStatus, 'FAIL')
+  assert.equal(view.verificationTone, 'notice')
+  assert.equal(view.verificationLabel, '资产标注有差异')
+  assert.match(view.verificationSummary, /服务将 WETH 标注为 ETH/)
+  for (const id of ['verification', 'criteria']) {
+    const node = view.nodes.find(n => n.id === id)
+    assert.equal(node.status, 'FAIL')
+    assert.equal(node.tone, 'notice')
+    assert.equal(node.statusLabel, '资产标注有差异')
+    assert.equal(node.checks.find(o => o.criterion_id === 'asset-display').verdict, 'FAIL')
+  }
+  assert.equal(view.outcomeLabel, '方案已验证')
+  assert.equal(JSON.stringify(input), before)
+
+  input.shared_assessment.observations[1].verdict = 'UNKNOWN'
+  view = projectTaskTrace('r', input, 'label')
+  assert.equal(view.verificationStatus, 'FAIL')
+  assert.equal(view.verificationTone, 'warning')
+  assert.match(view.verificationLabel, /有待核项/)
+  assert.notEqual(view.outcomeLabel, '方案已验证')
+
+  input.shared_assessment.observations.push({ ...observation('label'), criterion_id: 'intent-binding', verdict: 'FAIL', reason: '接收账户与请求不一致。' })
+  view = projectTaskTrace('r', input, 'label')
+  assert.equal(view.verificationTone, 'danger')
+  assert.equal(view.nodes.find(n => n.id === 'verification').tone, 'danger')
+  assert.match(view.verificationSummary, /接收账户与请求不一致/)
+  assert.equal(verificationTone([labelCheck], 'invalid'), 'warning')
+  assert.equal(verificationTone([], 'unrecorded'), 'neutral')
+  assert.equal(checkTone({ ...labelCheck, measurement_validity: 'unknown' }), 'warning')
+
+  item.outcome = 'failed'
+  view = projectTaskTrace('r', input, 'label')
+  assert.equal(view.nodes.find(n => n.id === 'result').tone, 'danger')
 })

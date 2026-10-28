@@ -2,7 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { AgentSummary, EvaluationReport, MeasurementPurpose, ReportChainEvidence } from '../contracts'
 import { getReportChainEvidence } from '../api'
-import { criterionTitles, loadTraceSources, projectTaskTrace, projectTaskTraces } from '../traceProjection'
+import { businessText, criterionTitles, isAssetLabelNotice, loadTraceSources, projectTaskTrace, projectTaskTraces } from '../traceProjection'
 import type { TraceSourceRecord } from '../traceProjection'
 import { when } from '../format'
 import { chainName } from '../agentProfile'
@@ -55,7 +55,7 @@ const shown=computed(()=>baseTraces.value.filter(t=>(!search.value||[t.title,t.t
 const observations=computed(()=>trace.value?.observations.filter(o=>dimension.value==='all'||o.dimension===dimension.value)??[])
 const attentionChecks=computed(()=>observations.value.filter(o=>o.measurement_validity!=='valid'||o.verdict==='FAIL'||o.verdict==='UNKNOWN'))
 const routineChecks=computed(()=>observations.value.filter(o=>o.measurement_validity==='valid'&&o.verdict!=='FAIL'&&o.verdict!=='UNKNOWN'))
-const checkCounts=computed(()=>({passed:observations.value.filter(o=>o.measurement_validity==='valid'&&o.verdict==='PASS').length,failed:observations.value.filter(o=>o.measurement_validity==='valid'&&o.verdict==='FAIL').length,unknown:observations.value.filter(o=>o.measurement_validity!=='valid'||o.verdict==='UNKNOWN').length}))
+const checkCounts=computed(()=>({passed:observations.value.filter(o=>o.measurement_validity==='valid'&&o.verdict==='PASS').length,failed:observations.value.filter(o=>o.measurement_validity==='valid'&&o.verdict==='FAIL'&&!isAssetLabelNotice(o)).length,notices:observations.value.filter(isAssetLabelNotice).length,unknown:observations.value.filter(o=>o.measurement_validity!=='valid'||o.verdict==='UNKNOWN').length}))
 const checkGroups=computed(()=>[{title:'需要关注',items:attentionChecks.value,attention:true},{title:'通过及不适用项目',items:routineChecks.value,attention:false}].filter(group=>group.items.length))
 const missingChecks=computed(()=>props.report.shared_assessment?.cases.filter(c=>c.task_keys.includes(selectedKey.value)&&(dimension.value==='all'||c.dimension===dimension.value)).flatMap(c=>{
   const observed=trace.value?.observations.filter(o=>o.case_id===c.case_id)??[]
@@ -138,14 +138,14 @@ onBeforeUnmount(()=>{pause();abort?.abort();media.removeEventListener('change',m
         <div class="task-filters">
           <label><span class="sr-only">搜索任务</span><input v-model="search" type="search" placeholder="搜索业务或任务" /></label>
           <label><span class="sr-only">任务能力</span><select v-model="capability"><option value="all">全部业务能力</option><option v-for="c in capabilities" :key="c.capability_id" :value="c.capability_id">{{ c.title }}</option></select></label>
-          <label><span class="sr-only">任务结果</span><select v-model="outcome"><option value="all">全部业务结果</option><option value="completed">已完成 / 撤销退款</option><option value="not_executed">报价 / 方案 / 模拟</option><option value="failed">真实执行失败</option><option value="unknown">结局待核</option><option value="issues">含不符 / 未知 / 未采</option></select></label>
+          <label><span class="sr-only">任务结果</span><select v-model="outcome"><option value="all">全部业务结果</option><option value="completed">已完成 / 撤销退款</option><option value="not_executed">报价 / 方案 / 模拟</option><option value="failed">真实执行失败</option><option value="unknown">结局待核</option><option value="issues">含提示 / 未通过 / 未采</option></select></label>
         </div>
         <div ref="taskIndex" class="task-index">
           <button v-for="(item,index) in shown" :key="item.taskKey" class="task-option" :class="[item.outcome,{selected:item.taskKey===selectedKey}]" :aria-pressed="item.taskKey===selectedKey" @click="selectedKey=item.taskKey">
             <span class="task-option-top"><code>{{ String(index+1).padStart(2,'0') }}</code><span>{{ item.outcomeLabel }}</span></span>
             <strong>{{ item.title }}</strong>
             <span class="task-option-summary">{{ item.resultSummary }}</span>
-            <span class="task-option-verification" :class="'verification-'+item.verificationStatus">{{ item.verificationLabel }}</span>
+            <span class="task-option-verification" :class="'verification-'+item.verificationTone">{{ item.verificationLabel }}</span>
           </button>
           <p v-if="!shown.length" class="empty-inline">没有匹配的任务。<button class="text-button" @click="search='';capability='all';outcome='all';dimension='all'">清空条件</button></p>
         </div>
@@ -156,8 +156,8 @@ onBeforeUnmount(()=>{pause();abort?.abort();media.removeEventListener('change',m
           <div class="task-business-heading"><span class="eyebrow">{{ trace.capabilityTitle }}<template v-if="taskNetworks"> · {{ taskNetworks }}</template></span><span class="trace-result" :class="trace.outcome">{{ trace.outcomeLabel }}</span></div>
           <h2>{{ trace.title }}</h2>
           <dl class="task-business-summary"><div><dt>用户要求</dt><dd>{{ trace.requestSummary }}</dd></div><div><dt>实际结果</dt><dd>{{ trace.resultSummary }}</dd></div></dl>
-          <div class="trace-task-meta"><span class="task-verification" :class="'verification-'+trace.verificationStatus">{{ trace.verificationLabel }}</span><span v-if="uniqueTransactions">{{ uniqueTransactions }} 笔账户交易</span><button class="text-button" @click="emit('report',selectedKey)">完整任务与评价 ↗</button><button class="text-button inspect-toggle" @click="returnFocus=$event.currentTarget as HTMLElement;drawer=true;nextTick(()=>inspectorShell?.querySelector<HTMLButtonElement>('button')?.focus())">查看当前步骤 ↗</button></div>
-          <p v-if="trace.verificationSummary" class="task-verification-note" :class="'verification-'+trace.verificationStatus">{{ trace.verificationSummary }}</p>
+          <div class="trace-task-meta"><span class="task-verification" :class="'verification-'+trace.verificationTone">{{ trace.verificationLabel }}</span><span v-if="uniqueTransactions">{{ uniqueTransactions }} 笔账户交易</span><button class="text-button" @click="emit('report',selectedKey)">完整任务与评价 ↗</button><button class="text-button inspect-toggle" @click="returnFocus=$event.currentTarget as HTMLElement;drawer=true;nextTick(()=>inspectorShell?.querySelector<HTMLButtonElement>('button')?.focus())">查看当前步骤 ↗</button></div>
+          <p v-if="trace.verificationSummary" class="task-verification-note" :class="'verification-'+trace.verificationTone">{{ trace.verificationSummary }}</p>
         </header>
         <div v-if="loading" class="trace-read-status trace-loading-status" role="status">正在读取任务证据…</div>
         <div v-else-if="chainError||sourceError.length" class="trace-read-status warning" role="status">{{ chainError?'链上操作摘要读取失败。':'' }}{{ sourceError.length?sourceError.length+' 份原件暂不可读。':'' }}报告结局与核验项目仍可查看。<button class="text-button" @click="cache.delete(selectedKey);readTask()">重试</button></div>
@@ -181,13 +181,13 @@ onBeforeUnmount(()=>{pause();abort?.abort();media.removeEventListener('change',m
             <div v-if="detailTab==='steps'" class="trace-step-table"><button v-for="(s,i) in trace.steps" :key="s.id" :class="{selected:s.nodeId===selectedNode?.id}" @click="selectNode(s.nodeId)"><code>{{ String(i+1).padStart(2,'0') }}</code><strong>{{ s.label }}</strong><span>{{ s.detail }}</span><span>查看 ↗</span></button></div>
             <div v-else-if="detailTab==='criteria'" class="trace-criteria">
               <label class="criterion-filter">评价维度 <select v-model="dimension"><option value="all">全部维度</option><option v-for="(label,id) in dimensions" :key="id" :value="id">{{ label }}</option></select></label>
-              <p class="criterion-counts"><span>{{ checkCounts.passed }} 项通过</span><span :class="{'verification-FAIL':checkCounts.failed}">{{ checkCounts.failed }} 项不符</span><span :class="{'verification-UNKNOWN':checkCounts.unknown||missingChecks.length}">{{ checkCounts.unknown }} 项待核<template v-if="missingChecks.length"> · {{ missingChecks.length }} 项未采</template></span></p>
+              <p class="criterion-counts"><span>{{ checkCounts.passed }} 项通过</span><span v-if="checkCounts.failed" class="verification-danger">{{ checkCounts.failed }} 项业务未通过</span><span v-if="checkCounts.notices" class="verification-notice">{{ checkCounts.notices }} 项标注提示</span><span :class="{'verification-warning':checkCounts.unknown||missingChecks.length}">{{ checkCounts.unknown }} 项待核<template v-if="missingChecks.length"> · {{ missingChecks.length }} 项未采</template></span></p>
               <div v-if="missingChecks.length" class="criterion-missing"><strong>尚未采集的核验</strong><p v-for="missing in missingChecks" :key="missing.key">{{ dimensions[missing.dimension] }} · {{ missing.title }}</p><span>这些项目无法判断，不计为通过。</span></div>
               <details v-for="group in checkGroups" :key="selectedKey+dimension+group.title" class="criterion-group" :open="group.attention">
                 <summary>{{ group.title }} · {{ group.items.length }}</summary>
                 <article v-for="o in group.items" :key="o.case_id+o.criterion_id" class="criterion-row">
-                  <button class="criterion-select" @click="selectNode('criteria',false)"><span>{{ dimensions[o.dimension] }}</span><strong>{{ criterionTitles[o.criterion_id]||o.criterion_id }}</strong><StatusBadge v-if="o.measurement_validity==='valid'" :verdict="o.verdict"/><span v-else class="report-status">{{ o.measurement_validity==='invalid'?'测量无效':'有效性待核' }}</span></button>
-                  <p>{{ o.reason }}</p>
+                  <button class="criterion-select" @click="selectNode('criteria',false)"><span>{{ dimensions[o.dimension] }}</span><strong>{{ criterionTitles[o.criterion_id]||o.criterion_id }}</strong><span v-if="isAssetLabelNotice(o)" class="criterion-note">标注提示</span><StatusBadge v-else-if="o.measurement_validity==='valid'" :verdict="o.verdict"/><span v-else class="report-status">{{ o.measurement_validity==='invalid'?'测量无效':'有效性待核' }}</span></button>
+                  <p>{{ businessText(o.reason) }}</p>
                   <div class="criterion-actions"><button class="text-button" @click="selectNode('verification')">查看核验依据 ↗</button><button class="text-button" @click="emit('report',selectedKey,o.dimension)">定位评价维度 →</button><details><summary>查看原始证据</summary><EvidenceList :sources="o.evidence" :report-id="reportId" /></details></div>
                 </article>
               </details>

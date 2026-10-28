@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import type { SharedObservation } from '../contracts'
 import type { TraceNode } from '../traceProjection'
-import { businessText, criterionTitles, traceExplorerUrl } from '../traceProjection'
+import { businessText, checkTone, criterionTitles, isAssetLabelNotice, traceExplorerUrl } from '../traceProjection'
 import { chainName } from '../agentProfile'
 import { when } from '../format'
 import EvidenceList from './EvidenceList.vue'
@@ -27,7 +27,8 @@ const passedChecks = computed(() => checks.value.filter(check => check.measureme
 const attentionChecks = computed(() => checks.value.filter(check => check.measurement_validity !== 'valid' || check.verdict === 'FAIL' || check.verdict === 'UNKNOWN'))
 const counts = computed(() => ({
   pass: passedChecks.value.length,
-  fail: checks.value.filter(check => check.measurement_validity === 'valid' && check.verdict === 'FAIL').length,
+  fail: checks.value.filter(check => check.measurement_validity === 'valid' && check.verdict === 'FAIL' && !isAssetLabelNotice(check)).length,
+  notice: checks.value.filter(isAssetLabelNotice).length,
   unknown: checks.value.filter(check => check.measurement_validity === 'unknown' || check.measurement_validity === 'valid' && check.verdict === 'UNKNOWN').length,
   invalid: checks.value.filter(check => check.measurement_validity === 'invalid').length,
   excluded: checks.value.filter(check => check.measurement_validity === 'valid' && check.verdict === 'NOT_APPLICABLE').length,
@@ -39,10 +40,9 @@ const actionFields = computed(() => props.node?.action ? [
   { label: '调用目标合约', value: props.node.action.target, kind: 'address' as const },
 ] : [])
 const shortAddress = (value: string) => /^0x[\da-f]{40,64}$/i.test(value) ? value.slice(0, 8) + '…' + value.slice(-6) : value
-const checkLabel = (check: SharedObservation) => check.measurement_validity === 'invalid' ? '测量无效'
+const checkLabel = (check: SharedObservation) => isAssetLabelNotice(check) ? '标注提示' : check.measurement_validity === 'invalid' ? '测量无效'
   : check.measurement_validity === 'unknown' || check.verdict === 'UNKNOWN' ? '无法判断'
   : check.verdict === 'FAIL' ? '未通过' : check.verdict === 'NOT_APPLICABLE' ? '不适用' : '通过'
-const checkTone = (check: SharedObservation) => check.measurement_validity === 'valid' && check.verdict === 'FAIL' ? 'failure' : 'unknown'
 let previewAbort: AbortController | undefined
 let previewVersion = 0
 
@@ -133,11 +133,11 @@ async function preview() {
       <span class="ti-kicker">步骤检查 <small>EVIDENCE INSPECTOR</small></span>
       <button class="ti-close" type="button" aria-label="关闭步骤检查面板" @click="$emit('close')"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m5 5 10 10M15 5 5 15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
     </header>
-    <div v-if="node" :key="`${reportId}:${taskKey}:${node.id}`" class="ti-content" :class="'ti-status-'+node.status">
+    <div v-if="node" :key="`${reportId}:${taskKey}:${node.id}`" class="ti-content" :class="'ti-tone-'+node.tone">
       <section class="ti-selected" aria-label="当前步骤结论">
         <p class="ti-role">{{ node.role }}</p>
         <div class="ti-node-heading"><h2 id="trace-inspector-title">{{ node.title }}</h2></div>
-        <span class="ti-business-status" :class="node.status">{{ node.statusLabel }}</span>
+        <span class="ti-business-status" :class="node.tone">{{ node.statusLabel }}</span>
         <p class="ti-summary">{{ node.summary }}</p>
       </section>
 
@@ -165,12 +165,12 @@ async function preview() {
 
       <section class="ti-section ti-verification-section">
         <h3>核验结果</h3>
-        <div v-if="checks.length" class="ti-check-counts" aria-label="本步骤核验统计"><span class="pass">{{ counts.pass }} 通过</span><span :class="{failure:counts.fail}">{{ counts.fail }} 未通过</span><span :class="{unknown:counts.unknown}">{{ counts.unknown }} 未知</span><span v-if="counts.invalid" class="unknown">{{ counts.invalid }} 测量无效</span><span v-if="counts.excluded">{{ counts.excluded }} 不适用</span></div>
+        <div v-if="checks.length" class="ti-check-counts" aria-label="本步骤核验统计"><span class="pass">{{ counts.pass }} 通过</span><span v-if="counts.fail" class="failure">{{ counts.fail }} 业务未通过</span><span v-if="counts.notice" class="notice">{{ counts.notice }} 标注提示</span><span :class="{unknown:counts.unknown}">{{ counts.unknown }} 未知</span><span v-if="counts.invalid" class="unknown">{{ counts.invalid }} 测量无效</span><span v-if="counts.excluded">{{ counts.excluded }} 不适用</span></div>
         <p v-if="!checks.length" class="ti-context-note">本步骤没有独立判据观测。已记录业务与平台核验分别展示。</p>
         <div v-if="attentionChecks.length" class="ti-attention-checks">
           <article v-for="check in attentionChecks" :key="check.case_id+':'+check.criterion_id" class="ti-check-issue" :class="checkTone(check)">
-            <div><strong>{{ criterionTitles[check.criterion_id] || check.criterion_id }}</strong><span>{{ checkLabel(check) }}</span></div>
-            <p>{{ businessText(check.reason) }}</p>
+            <div><strong>{{ isAssetLabelNotice(check) ? '资产名称标注' : criterionTitles[check.criterion_id] || check.criterion_id }}</strong><span>{{ checkLabel(check) }}</span></div>
+            <p>{{ businessText(check.reason) }}</p><span v-if="isAssetLabelNotice(check)" class="ti-notice-context">此项针对返回名称；执行参数与效果分别核验，原始判定保留在技术详情。</span>
           </article>
         </div>
         <p v-else-if="passedChecks.length" class="ti-verification-note">本步骤已采集的 {{ passedChecks.length }} 项检查通过，结论依据见逐项结果。</p>
