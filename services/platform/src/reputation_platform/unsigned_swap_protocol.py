@@ -20,6 +20,7 @@ SETTLE = selector('execute((address,address,uint256),bytes[],bytes32)')
 HYDREX = selector('executeSwaps((address,address,address,uint256,uint256,bytes,address,string,address,uint256)[],uint256)')
 KYBER = selector('swap((address,address,bytes,(address,address,address[],uint256[],address[],uint256[],address,uint256,uint256,uint256,bytes),bytes))')
 TRANSFER_FROM = selector('TRANSFER_FROM(address,((address,uint256),uint256,uint256),bytes)')
+UNISWAP_V3_VIP = selector('UNISWAPV3_VIP(address,((address,uint256),uint256,uint256),bytes,bytes,uint256)')
 BASIC = selector('BASIC(address,uint256,address,uint256,bytes)')
 MAVERICK = selector('MAVERICKV2(address,address,uint256,address,bool,int32,uint256)')
 SURPLUS = selector('POSITIVE_SLIPPAGE(address,address,uint256,uint256,uint256)')
@@ -130,15 +131,39 @@ def _settler(transaction, chain_id):
             fact['deadlines'].append({'kind': 'settler-transfer-permit', 'timestamp': deadline})
             fact['actions'].append({'kind': 'allowanceholder-transfer', 'target': target, 'token': token,
                                     'amount': amount, 'deadline': deadline})
+        elif sig == UNISWAP_V3_VIP:
+            # A VIP action pulls the permitted input and executes the V3 path in
+            # one action. Its path omits the initial token, supplied by permit.
+            transfer_count += 1
+            _check(index == 0 and item.addr(0) == target and item.addr(32) == token
+                   and item.word(64) == amount and item.word(96) == 0
+                   and item.blob(0, 6, 8) == b'', 'VIP input, recipient or empty-signature allowance flow differs')
+            path = item.blob(0, 5, 8)
+            _check(path and len(path) % 44 == 0, 'Incomplete V3 VIP hop encoding')
+            hops, current = [], token
+            for offset in range(0, len(path), 44):
+                hop = path[offset:offset + 44]
+                output = '0x' + hop[24:44].hex()
+                hops.append({'token_in': current, 'token_out': output, 'fork_id': hop[0],
+                    'pool_id': int.from_bytes(hop[1:4], 'big'),
+                    'sqrt_price_limit': int.from_bytes(hop[4:24], 'big'), 'pool_binding_verified': False})
+                current = output
+            _check(current == bought, 'VIP output path differs from Settler final output asset')
+            deadline = item.word(128)
+            fact['deadlines'].append({'kind': 'settler-vip-transfer-permit', 'timestamp': deadline})
+            fact['actions'].append({'kind': 'uniswap-v3-vip', 'target': target, 'recipient': target,
+                'token_in': token, 'token_out': bought, 'amount': amount, 'deadline': deadline,
+                'action_minimum_out': item.word(224), 'hops': hops})
         elif sig == BASIC:
             sell, ppm, destination, offset = item.addr(0), item.word(32), item.addr(64), item.word(96)
             transfer = item.blob(0, 4, 5)
-            if (sell != token or destination != token or offset != 36 or ppm > 1_000_000
+            if (sell not in (token, bought) or destination != sell or offset != 36 or ppm > 1_000_000
                     or len(transfer) != 68 or '0x' + transfer[:4].hex() != selector('transfer(address,uint256)')):
                 fact['unsupported_actions'].append(f'BASIC action {index} is not a supported ERC20 fee transfer')
                 continue
             args = _ABI(transfer[4:])
-            fee = {'kind': 'settler-input-balance-fraction', 'token': token, 'recipient': args.addr(0),
+            fee = {'kind': 'settler-input-balance-fraction' if sell == token else 'settler-output-balance-fraction',
+                   'token': sell, 'recipient': args.addr(0),
                    'ppm': ppm, 'denominator': 1_000_000, 'encoded_amount_overwritten': args.word(32),
                    'amount_basis': 'Settler token balance immediately before this action'}
             fact['fees'].append(fee)
