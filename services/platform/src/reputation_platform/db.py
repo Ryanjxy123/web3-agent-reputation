@@ -324,14 +324,14 @@ class Repository:
             report_count=len(summaries), latest_report=summaries[0] if summaries else None),
             reports=summaries, candidate=CandidateRecord.model_validate(candidate["validated_json"]) if candidate else None)
 
-    def report_chain_evidence(self, report_id: str) -> ReportChainEvidence | None:
+    def report_chain_evidence(self, report_id: str, task_key: str | None = None) -> ReportChainEvidence | None:
         with self._connect() as connection:
             row = connection.execute("SELECT validated_json,evidence_files FROM reports WHERE id=%s", (UUID(str(report_id)),)).fetchone()
         if row is None:
             return None
         from reputation_platform.report_chain_view import build_report_chain_evidence
         try:
-            return build_report_chain_evidence(self.root, _validated_report(row['validated_json']), row['evidence_files'])
+            return build_report_chain_evidence(self.root, _validated_report(row['validated_json']), row['evidence_files'], task_key)
         except (OSError, ValueError, KeyError, TypeError) as error:
             raise EvidenceIntegrityError('Chain evidence view failed integrity validation') from error
 

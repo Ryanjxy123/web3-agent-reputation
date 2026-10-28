@@ -1,6 +1,16 @@
 # 新项目当前状态
 
-## 2026-10-28 当前：通用来源与Hydrex正式评分已本机完成
+## 2026-10-28 当前：同步队友可视化并扩大Hydrex采样
+
+当前task_id=HYDREX_EXPANDED_EVALUATION。用户要求先同步远端网站可视化/风格，再把Hydrex样本量做到MangoSwap同等规模；必要实验付费及现有资产操作已授权，禁止发币保持。远程main=0842b21(PR23已合并)，队友origin/codex/evidence-workbench=d86a4b5尚未在main；本轮合并三份队友提交并保留现有Hydrex通用来源。任务分支codex/hydrex-expanded-evaluation，docs/presentation/保留。
+
+先完成视觉兼容：保留任务链路/证据工作台、只读task_key接口与新风格；修正completed+模拟PASS被误叫成交、计划任务被计真实履约、ACP资料被误标未采三个问题。前端构建exit0、前后端各1项必要定向回归exit0、两任务HTTP链路核验exit0；本机7754已重启并服务新界面，评分与原报告保持。
+
+Hydrex计划至少34总任务：复用原H01/H02，新增32个有区分度的真实请求；8次正常真实兑换目标含已有1次，新增7次覆盖四路聚合/双向。其余覆盖金额、滑点、可选字段、同窗路由比较和错误输入安全处理。不得用一个报价的多次本地负控凑多个任务，不借报价/费用/模拟补B。先冻结共用场景及指标，再调用；v3三维、权重及计算规则不变，历史原件和pilot报告不改。
+
+当前新增实验0、付款0、资产发送0；32个新任务及原2引用的矩阵已在调用前冻结，plan SHA dd76d2ce8ea675ccec28c202265fe48ba1cb0c30ade6356e43197cc942c21aaf，详见 docs/research/HYDREX_EXPANDED_MATRIX_20261028.md。普通schema错误/未适配/合法市场拒绝分别记录，不自动扣Agent分。待新方案证据满足再按协议共用取证；不为Hydrex名字写评分分支。
+
+## 2026-10-28 历史：通用来源与Hydrex首次评分
 
 `TRANSACTION_AGENT_COHORT`本机完成本阶段。先核7个服务，再冻结多对象共同任务；TheSafeRouteBot/Hydrex不同协议均通过同一固定块效果核验，SafeRoute直连亦通过历史模拟。随后Hydrex完成新有效报价及一次真实0.10USDC→WETH兑换，输入、收款、最低到账、事件、授权0、307块确认距离均独立核齐。其它对象未用报价/费用填B；Tator收费后500已暂停。
 

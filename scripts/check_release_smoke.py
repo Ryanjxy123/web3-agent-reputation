@@ -11,11 +11,15 @@ import sys
 from threading import Barrier
 import time
 from uuid import UUID
+from urllib.parse import quote
 
 import psycopg
 from psycopg.conninfo import conninfo_to_dict
 
 from reputation_platform.db import LeaseLostError, Repository
+from reputation_core.chain_view import _asset, _transfers
+from reputation_core.swap import decode_batch
+from reputation_platform.unsigned_swap_protocol import decode_unsigned_swap, UnsupportedUnsignedSwap
 from public_reports import restore_package
 
 
@@ -157,8 +161,53 @@ def main() -> int:
         require(status == 200 and hydrex['shared_assessment']['result']['task_count'] == 2
                 and hydrex['scores']['overall'] == 100, 'The standalone source must replay the two-task Hydrex scope')
         status, chain = request(port, 'GET', '/api/reports/' + hydrex_id + '/chain-evidence')
-        require(status == 200 and len(chain['actions']) == 1 and chain['actions'][0]['action'] == 'swap',
+        default_swaps = [item for item in chain.get('actions', []) if item['action'] == 'swap']
+        require(status == 200 and len(default_swaps) == 1,
                 'The new publication must explain its real asset exchange')
+        origin_paths = [path for path in hydrex['source_references'] if Path(path).name == 'unsigned-swap-report-origin.json']
+        require(len(origin_paths) == 1, 'The unsigned publication must retain its unique source origin')
+        origin = json.loads((ROOT / origin_paths[0]).read_bytes())
+        source = json.loads((ROOT / origin['source']).read_bytes())
+        actual_samples = {item['sample']['task_key']: item['sample'] for item in hydrex['samples']
+                          if item['sample']['purpose'] == 'behavioral' and item['sample']['verdict'] == 'PASS'}
+        require(set(actual_samples) == {item['task_key'] for item in source['tasks'] if item.get('execution')},
+                'Only retained actual executions may supply behavioral samples')
+        for task in source['tasks']:
+            status, scoped = request(port, 'GET', '/api/reports/' + hydrex_id + '/chain-evidence?task_key=' + quote(task['task_key'], safe=''))
+            require(status == 200, 'Task-scoped chain evidence must be readable')
+            execution = task.get('execution')
+            if execution is None:
+                require(scoped['actions'] == [], 'A quote or simulation must not acquire transaction actions')
+                continue
+            swaps = [item for item in scoped['actions'] if item['action'] == 'swap']
+            require(len(swaps) == 1, 'Batch reads and approvals must not multiply the real exchange count')
+            swap = swaps[0]
+            tx_hash, payer = execution['transaction_hash'].lower(), execution['payer'].lower()
+            require(swap['transaction_hash'].lower() == tx_hash and swap['executor'].lower() == payer
+                    and swap['sample_id'] == actual_samples[task['task_key']]['sample_id'] and swap['verdict'] == 'PASS'
+                    and default_swaps[0]['transaction_hash'].lower() == tx_hash,
+                    'The displayed exchange must bind the actual transaction, buyer and behavioral sample')
+            records = [json.loads((ROOT / path).read_bytes()).get('result') for path in swap['evidence']]
+            transaction = next(item for item in records if isinstance(item, dict) and item.get('hash', '').lower() == tx_hash and 'input' in item)
+            receipt = next(item for item in records if isinstance(item, dict) and item.get('transactionHash', '').lower() == tx_hash)
+            require(swap['chain_id'] == int(transaction['chainId'], 16) and swap['block_number'] == int(receipt['blockNumber'], 16),
+                    'The exchange must retain its chain instance and actual receipt block')
+            routes = []
+            for call in decode_batch(transaction['input']):
+                try:
+                    routes.append(decode_unsigned_swap({'to': call['target'], 'data': call['data'], 'value': call['value']}, chain_id=swap['chain_id']))
+                except UnsupportedUnsignedSwap:
+                    continue
+            require(len(routes) == 1 and int(receipt['status'], 16) == 1, 'The retained receipt must confirm the supported swap route')
+            route, transfers = routes[0], _transfers(receipt)
+            paid = sum(amount for token, sender, _, amount in transfers if token == route['token_in'] and sender == payer)
+            received = sum(amount for token, _, recipient, amount in transfers if token == route['token_out'] and recipient == route['recipient'])
+            require(paid == route['amount_in'] and received >= route['minimum_out']
+                    and all(part in swap['summary'] for part in (
+                        '实际支付 ' + _asset(swap['chain_id'], route['token_in'], paid),
+                        '实收 ' + _asset(swap['chain_id'], route['token_out'], received),
+                        '最低到账为 ' + _asset(swap['chain_id'], route['token_out'], route['minimum_out']))),
+                    'Swap text must explain the retained actual payment, receipt and decoded minimum output')
         for statement in ('UPDATE reports SET source_directory=source_directory WHERE id=%s',
                           'DELETE FROM reports WHERE id=%s'):
             try:

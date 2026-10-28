@@ -16,6 +16,12 @@ Hydrex通过Virtuals ACP接收兑换意图并生成Base链路由方案，由买�
 
 新来源入口直接重放任务原件，不要求复制MangoSwap父报告。0x、Hydrex包装协议和Kyber按协议解码；TheSafeRouteBot与Hydrex的不同方案已通过同一效果核验，前者尚未补真实兑换，不计完整三维对象。见[来源规则](docs/adr/0030-unsigned-swap-source-replay.md)及[本轮交付记录](docs/runbooks/TRANSACTION_COHORT_RELEASE_20261028.md)。
 
+## 网站任务证据工作台
+
+本轮同步队友的空间背景、概览、任务链路回放和证据检查工作台。先展示Agent功能、已测范围与真实业务结果，具体输入输出、链上动作和原始JSON按需展开。链路动画解释步骤关系，不代表真实请求耗时。报价/模拟与实际成交按真实B证据区分，ACP链上交付和HTTP调用分别呈现；评分与原始报告不因可视化改变。
+
+队友设计与历史视觉验收见[业务优先工作台](docs/runbooks/BUSINESS_FIRST_TRACE_20261028.md)。本轮Hydrex新增采样将在原2任务上追加报告，目标与MangoSwap同等34任务、至少8笔实兑；尚未完成的补测不算现有成绩。
+
 ## 安装与打开网站
 
 需要Python3.12、uv0.9.3、Node.js至少22.12、pnpm11.25.0，以及自己的PostgreSQL数据库（当前验证17.11）。在本仓库根目录执行：

@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { EvaluationReport, MeasurementPurpose, ReportChainEvidence, SharedAssessment, SharedObservation, SharedTask } from '../contracts'
 import { score, when } from '../format'
+import { actualExecutionTasks, businessText, isAssetLabelNotice, traceOutcomeLabel } from '../traceProjection'
 import ChainEvidencePanel from './ChainEvidencePanel.vue'
 import EvidenceList from './EvidenceList.vue'
 import StatusBadge from './StatusBadge.vue'
@@ -15,6 +16,7 @@ const props = defineProps<{
   chainEvidenceError: boolean
   sampleLinks: Record<string, number>
 }>()
+const emit = defineEmits<{ trace: [taskKey: string, dimension?: MeasurementPurpose] }>()
 const result = computed(() => props.assessment.result)
 const singleScorePolicy = computed(() => String(props.report.policy_version) === 'transaction-agent-evidence-v3')
 const dimensions = computed(() => [
@@ -34,53 +36,33 @@ const displayScore = (value: number | null | undefined) => value == null ? '未�
 const caseScore = (interval: { lower: number; upper: number } | null) => interval == null ? '未评价'
   : interval.lower === interval.upper ? score(interval.lower) : '历史版本'
 const riskReasons = computed(() => [...new Set(props.assessment.observations.filter(item => item.critical && item.verdict === 'FAIL').map(item => item.reason))])
-const actualExecutions = computed(() => {
-  const keys = new Set(props.assessment.cases.filter(item => item.dimension === 'behavioral' && item.normal_execution)
-    .flatMap(item => item.task_keys))
-  return props.assessment.tasks.filter(task => keys.has(task.task_key))
-})
+const actualExecutions = computed(() => actualExecutionTasks(props.report))
 const conclusion = computed(() => {
   if (result.value.risk_status === 'MAJOR_VIOLATION') return '已发现重大约束违背，请先查看具体交易与证据。'
   if (result.value.score_status !== 'AVAILABLE') return '已有部分核验结果，仍有维度缺少充分证据。'
   const completed = actualExecutions.value.filter(item => item.outcome === 'completed').length
   const inconsistent = result.value.functional.counts.failed
-  if (completed && inconsistent) return `已核 ${completed} 个真实履约任务，${inconsistent} 个任务含声明不一致项。`
+  if (completed && inconsistent) {
+    const failures = props.assessment.observations.filter(item => item.dimension === 'functional' && item.measurement_validity === 'valid' && item.verdict === 'FAIL')
+    if (failures.length && failures.every(isAssetLabelNotice)) return `已核 ${completed} 个真实履约任务，另有资产名称标注差异，详见样本说明。`
+    return `已核 ${completed} 个真实履约任务，${inconsistent} 个任务含声明不一致项。`
+  }
   if (completed) return `已核 ${completed} 个真实履约任务，三维结论对应下方已测范围。`
   return '本次功能的三维结果与核验样本如下。'
 })
-const plannedExecution = (key: string) => props.assessment.cases.some(item =>
-  item.dimension === 'behavioral' && item.normal_execution && item.task_keys.includes(key))
-const outcomeLabel = (task: SharedTask) => {
-  if (task.outcome === 'completed') {
-    const fulfilled = plannedExecution(task.task_key) && observationsFor(task.task_key, 'behavioral')
-      .some(item => item.measurement_validity === 'valid' && item.verdict === 'PASS')
-    if (!fulfilled) {
-      const verified = observationsFor(task.task_key, 'functional').some(item =>
-        item.criterion_id === 'execution-effect' && item.measurement_validity === 'valid' && item.verdict === 'PASS')
-      if (verified) return '方案已验证'
-      return observationsFor(task.task_key).some(item => item.response_complete === true) ? '已返回方案' : '已完成核验'
-    }
-    const refunded = observationsFor(task.task_key, 'functional').some(item =>
-      item.criterion_id === 'exact-principal-refund' && item.measurement_validity === 'valid' && item.verdict === 'PASS')
-    if (refunded) return '已撤销退款'
-    const exchanged = observationsFor(task.task_key, 'functional').some(item =>
-      ['execution-effect', 'native-input'].includes(item.criterion_id) && item.measurement_validity === 'valid' && item.verdict === 'PASS')
-    return exchanged ? '已成交' : '已完成'
-  }
-  if (task.outcome === 'not_executed' && !plannedExecution(task.task_key)) {
-    const verified = observationsFor(task.task_key, 'functional').some(item =>
-      item.criterion_id === 'execution-effect' && item.measurement_validity === 'valid' && item.verdict === 'PASS')
-    if (verified) return '方案已验证'
-    return observationsFor(task.task_key).some(item => item.response_complete === true) ? '已返回方案' : '未取得方案'
-  }
-  return ({ failed: '真实执行失败', rejected: '已拒绝', protected_exit: '保护退出', not_executed: '尚未执行', unknown: '结局待核' } as const)[task.outcome]
-}
+const outcomeLabel = (task: SharedTask) => traceOutcomeLabel(task, observationsFor(task.task_key), props.report)
 const attributionLabel: Record<SharedTask['attribution'], string> = {
   provider: '提供方', operator: '操作者', network: '网络路径', chain_or_market: '链或市场条件', unknown: '归因未明',
 }
 const capabilityName = (id: string) => props.assessment.capabilities.find(item => item.capability_id === id)?.title ?? id
 const observationsFor = (key: string, dimension?: MeasurementPurpose) => props.assessment.observations.filter(item =>
   item.task_key === key && (!dimension || item.dimension === dimension))
+function openDimension(dimension: MeasurementPurpose) {
+  const observations = props.assessment.observations.filter(item => item.dimension === dimension)
+  const selected = observations.find(item => item.verdict === 'FAIL')
+    ?? observations.find(item => item.verdict === 'UNKNOWN') ?? observations[0]
+  if (selected) emit('trace', selected.task_key, dimension)
+}
 const criterionLabels: Record<string, string> = {
   'complete-response': '业务响应按时完整',
   'onchain-fulfillment': '真实交易与资产履约',
@@ -103,17 +85,18 @@ const taskDimensionSummary = (key: string, dimension: MeasurementPurpose) => {
   const items = observationsFor(key, dimension)
   if (!items.length) return isPlanned(key, dimension) ? '未验证' : '未涉及'
   const values = [['PASS', '通过'], ['FAIL', '不符'], ['UNKNOWN', '未验证'], ['unknown', '有效性待核'], ['invalid', '测量无效'], ['NOT_APPLICABLE', '不适用']] as const
-  return values.map(([verdict, title]) => {
-    const count = items.filter(item => observationState(item) === verdict).length
+  const summaries = values.map(([verdict, title]) => {
+    const count = items.filter(item => observationState(item) === verdict && !isAssetLabelNotice(item)).length
     return count ? `${count}项${title}` : ''
-  }).filter(Boolean).join('、')
+  }).filter(Boolean)
+  const notices = items.filter(isAssetLabelNotice).length
+  if (notices) summaries.push(`${notices}项标注差异`)
+  return summaries.join('、')
 }
 const groupCases = (capabilityId: string, groupId: string) => result.value.cases.filter(item =>
   item.capability_id === capabilityId && item.declaration_group_id === groupId)
-const legacyAnchor = (key: string) => {
-  const index = props.report.samples.findIndex(item => item.sample.task_key === key)
-  return index < 0 ? undefined : `sample-${index + 1}`
-}
+const legacyAnchors = (key: string) => props.report.samples.flatMap((item, index) =>
+  item.sample.task_key === key ? [`sample-${index + 1}`] : [])
 const representative = computed(() => {
   const keys = new Set<string>()
   const failure = props.assessment.observations.find(item => item.verdict === 'FAIL')
@@ -129,18 +112,32 @@ const representative = computed(() => {
 const showAllTasks = ref(/^#(?:task|sample)-\d+$/.test(window.location.hash))
 const visibleTasks = computed(() => props.assessment.tasks.map((task, index) => ({ task, index }))
   .filter(({ task }) => showAllTasks.value || representative.value.has(task.task_key)))
-const revealLinkedSample = async (event: MouseEvent) => {
+async function revealHash() {
+  const hash = window.location.hash
+  if (!/^#(?:(?:task|sample)-\d+|dimension-(?:availability|functional|behavioral))$/.test(hash)) return
+  if (/^#(?:task|sample)-/.test(hash)) showAllTasks.value = true
+  await nextTick()
+  if (hash !== window.location.hash) return
+  const target = document.getElementById(hash.slice(1))
+  for (let ancestor = target; ancestor; ancestor = ancestor.parentElement) {
+    if (ancestor.tagName === 'DETAILS') ancestor.setAttribute('open', '')
+  }
+  target?.scrollIntoView({ block: 'start' })
+}
+const revealLinkedSample = (event: MouseEvent) => {
   const target = event.target as Element | null
   const href = target?.closest('a')?.getAttribute('href') ?? ''
   if (!/^#(?:task|sample)-\d+$/.test(href)) return
   event.preventDefault()
-  showAllTasks.value = true
-  await nextTick()
-  const sample = document.querySelector(href)
-  sample?.closest('details')?.setAttribute('open', '')
-  window.location.hash = href
-  sample?.scrollIntoView({ block: 'start' })
+  if (window.location.hash === href) void revealHash()
+  else window.location.hash = href
 }
+onMounted(() => {
+  window.addEventListener('hashchange', revealHash)
+  void revealHash()
+})
+onBeforeUnmount(() => window.removeEventListener('hashchange', revealHash))
+watch(() => props.chainEvidence, () => { void revealHash() })
 </script>
 
 <template>
@@ -158,7 +155,7 @@ const revealLinkedSample = async (event: MouseEvent) => {
     <section v-if="result.risk_status === 'MAJOR_VIOLATION'" class="shared-risk" role="alert"><h3>已发现重大资金或权限约束违背</h3><ul><li v-for="reason in riskReasons" :key="reason">{{ reason }}</li></ul><p>该状态优先于综合分，不作为正常高分推荐。</p></section>
 
     <section class="score-grid" aria-label="共享任务的三维评分">
-      <article v-for="dimension in dimensions" :key="dimension.purpose" class="score-card shared-score-card">
+      <article v-for="dimension in dimensions" :id="`dimension-${dimension.purpose}`" :key="dimension.purpose" class="score-card shared-score-card">
         <div class="row-between"><h3>{{ dimension.title }}</h3><span class="muted small">{{ dimension.weight }}</span></div>
         <p class="shared-score-value" :class="{ pending: report.scores[dimension.purpose].value === null }">{{ historicalScore && report.scores[dimension.purpose].value === null ? '历史版本' : displayScore(report.scores[dimension.purpose].value) }}</p>
         <p class="shared-score-caption">{{ dimension.caption }}</p>
@@ -167,6 +164,7 @@ const revealLinkedSample = async (event: MouseEvent) => {
         <p v-if="dimension.purpose === 'functional'" class="muted small">同一任务的部分条款可以通过、其它条款不符；分数按声明组汇总，不是任务全项通过率。</p>
         <p v-if="dimension.purpose === 'availability' && dimension.result.p95_ms != null" class="muted small">响应 p50 {{ dimension.result.p50_ms == null ? '未记录' : (dimension.result.p50_ms / 1000).toFixed(2) + ' 秒' }} · p95 {{ (dimension.result.p95_ms / 1000).toFixed(2) }} 秒</p>
         <p v-for="reason in dimension.result.blocked_reasons" :key="reason" class="shared-range-note">{{ reason }}</p>
+        <button v-if="assessment.observations.some(item => item.dimension === dimension.purpose)" class="text-button" @click="openDimension(dimension.purpose)">追踪对应任务与判据 →</button>
       </article>
     </section>
 
@@ -180,12 +178,13 @@ const revealLinkedSample = async (event: MouseEvent) => {
 
     <section class="panel">
       <div class="section-heading"><h2>代表性样本</h2><span>{{ result.task_count }} 个任务 · {{ result.observation_count }} 项判据观察</span></div>
-      <p class="section-description">先看声明不符、未验证与真实履约样本；可展开全部任务核对每项证据。</p>
+      <p class="section-description">先看真实履约结果、资产标注提示与待核事项；可展开全部任务核对每项证据。</p>
       <div class="shared-task-list"><details v-for="{ task, index } in visibleTasks" :id="`task-${index + 1}`" :key="task.task_key" class="shared-task" :open="representative.has(task.task_key)">
         <summary><strong>{{ String(index + 1).padStart(2, '0') }} · {{ capabilityName(task.capability_id) }} · {{ outcomeLabel(task) }}</strong><span class="shared-task-dimensions"><span>A {{ taskDimensionSummary(task.task_key, 'availability') }}</span><span>F {{ taskDimensionSummary(task.task_key, 'functional') }}</span><span>B {{ taskDimensionSummary(task.task_key, 'behavioral') }}</span></span></summary>
-        <div class="shared-task-body"><span :id="legacyAnchor(task.task_key)"></span>
-          <div class="shared-task-facts"><section><h4>这次请求</h4><p>{{ task.input_summary }}</p></section><section><h4>观察到的结局</h4><p>{{ outcomeLabel(task) }}<template v-if="['failed', 'rejected', 'unknown'].includes(task.outcome)"> · {{ attributionLabel[task.attribution] }}</template></p><p>{{ when(task.observed_at) }}</p></section></div>
-          <div class="shared-task-observations"><section v-for="dimension in dimensions" :key="dimension.purpose" class="shared-task-observation"><h4>{{ dimension.title }}</h4><ul v-if="observationsFor(task.task_key, dimension.purpose).length"><li v-for="observation in observationsFor(task.task_key, dimension.purpose)" :key="`${observation.case_id}:${observation.criterion_id}`"><strong>{{ observationTitle(observation) }}</strong><StatusBadge v-if="observation.measurement_validity === 'valid'" :verdict="observation.verdict" /><span v-else class="report-status">{{ observation.measurement_validity === 'invalid' ? '测量无效' : '有效性待核' }}</span><p>{{ observation.reason }}</p><p v-if="observation.elapsed_ms !== null">本次观测用时 {{ (observation.elapsed_ms / 1000).toFixed(3) }} 秒</p><p v-if="observation.measurement_validity === 'invalid'">本次测量无效，不作为 Agent 的成功或失败。</p><p v-else-if="observation.measurement_validity === 'unknown'">测量有效性尚待确认。</p><details v-if="observation.evidence.length" class="technical"><summary>这项判断的证据</summary><EvidenceList :sources="observation.evidence" :report-id="reportId" /></details></li></ul><p v-else>{{ isPlanned(task.task_key, dimension.purpose) ? '本维度已安排核验案例，尚未取得观察；未采不等于通过。' : '该任务未安排本维度的核验。' }}</p></section></div>
+        <div class="shared-task-body"><span v-for="anchor in legacyAnchors(task.task_key)" :id="anchor" :key="anchor"></span>
+          <div class="shared-task-actions"><button class="secondary-button" @click="emit('trace', task.task_key)">查看任务链路 →</button></div>
+          <div class="shared-task-facts"><section><h4>这次请求</h4><p>{{ task.input_summary }}</p></section><section><h4>观察到的结局</h4><p>{{ outcomeLabel(task) }}<template v-if="['failed', 'rejected', 'unknown'].includes(task.outcome)"> · {{ attributionLabel[task.attribution] }}</template></p><p>采证记录时间：{{ when(task.observed_at) }}</p></section></div>
+          <div class="shared-task-observations"><section v-for="dimension in dimensions" :key="dimension.purpose" class="shared-task-observation"><h4>{{ dimension.title }}</h4><ul v-if="observationsFor(task.task_key, dimension.purpose).length"><li v-for="observation in observationsFor(task.task_key, dimension.purpose)" :key="`${observation.case_id}:${observation.criterion_id}`"><strong>{{ isAssetLabelNotice(observation) ? '资产名称标注' : observationTitle(observation) }}</strong><span v-if="isAssetLabelNotice(observation)" class="shared-label-notice">标注差异</span><StatusBadge v-else-if="observation.measurement_validity === 'valid'" :verdict="observation.verdict" /><span v-else class="report-status">{{ observation.measurement_validity === 'invalid' ? '测量无效' : '有效性待核' }}</span><p>{{ businessText(observation.reason) }}</p><button class="text-button" @click="emit('trace', task.task_key, dimension.purpose)">定位关联链路 →</button><p v-if="observation.elapsed_ms !== null">本次观测用时 {{ (observation.elapsed_ms / 1000).toFixed(3) }} 秒</p><p v-if="observation.measurement_validity === 'invalid'">本次测量无效，不作为 Agent 的成功或失败。</p><p v-else-if="observation.measurement_validity === 'unknown'">测量有效性尚待确认。</p><details v-if="observation.evidence.length" class="technical"><summary>这项判断的证据</summary><p v-if="isAssetLabelNotice(observation)">原始判定：FAIL（资产标识一致性）；该项仍按原报告计分。</p><EvidenceList :sources="observation.evidence" :report-id="reportId" /></details></li></ul><p v-else>{{ isPlanned(task.task_key, dimension.purpose) ? '本维度已安排核验案例，尚未取得观察；未采不等于通过。' : '该任务未安排本维度的核验。' }}</p></section></div>
           <details class="technical"><summary>任务标识与完整证据</summary><p><code>{{ task.task_key }}</code></p><EvidenceList :sources="task.evidence" :report-id="reportId" /></details>
         </div>
       </details></div>
