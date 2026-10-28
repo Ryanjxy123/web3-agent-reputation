@@ -63,8 +63,8 @@ def create_app(repository: Repository | None = None) -> FastAPI:
         return report
 
     @app.get('/api/reports/{report_id}/chain-evidence', response_model=ReportChainEvidence)
-    def report_chain_evidence(report_id: UUID):
-        view = repo.report_chain_evidence(str(report_id))
+    def report_chain_evidence(report_id: UUID, task_key: str | None = Query(default=None, min_length=1, max_length=200)):
+        view = repo.report_chain_evidence(str(report_id), task_key)
         if view is None:
             raise HTTPException(status_code=404, detail='没有找到该报告。')
         return view

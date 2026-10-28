@@ -156,6 +156,24 @@
               "format": "uuid",
               "title": "Report Id"
             }
+          },
+          {
+            "name": "task_key",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Task Key"
+            }
           }
         ],
         "responses": {

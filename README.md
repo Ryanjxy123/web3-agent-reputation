@@ -12,6 +12,16 @@ MangoSwap提供即时资产兑换、定时和限价订单管理，由用户钱�
 
 页面主区展示功能、三维/综合单分和代表性样本。报价、模拟、成交、撤销退款按真实阶段命名，完整任务与原件可展开。当前结果限于已测功能和样本。
 
+## 任务证据工作台
+
+界面提供概览、任务链路、评价报告和链上证据四个入口。任务链路按当前报告的task_key、sample_id和原件引用重建，支持任务筛选、节点/步骤/判据联动、合约调用检查、原件按需预览、链上链接与历史步骤回放。回放在已有关系上显示定向信号，抵达后同步点亮节点与证据面板，仅在前端重放，不重新执行交易。未记录的服务内部过程不补造，浏览无需钱包。原生兑换、订单撤销退款、方案返回和未知测量分别展示，分数与评分规则保持。
+
+实现位置、当前环境说明和真实截图见[视觉与链路实施记录](docs/runbooks/VISUAL_TRACE_WORKBENCH_20261028.md)。
+
+进一步的空间背景、全息概览、折返执行拓扑与动态证据回放已完成；支持减少动态效果与页面隐藏暂停。主要改动、真实浏览器截图和MP4/GIF见[视觉深化与动态回放验收](docs/runbooks/VISUAL_DEPTH_AND_REPLAY_20261028.md)。
+
+当前展示采用三级信息：默认解释用户请求、执行主体、实际业务结果与核验结论；关键链上操作主动展开，地址/哈希缩略并可完整复制；完整字段、判据、证据引用与原始 JSON 集中在技术详情。业务完成与功能不一致、未知或未采可同时存在，订单撤销退款不会显示为自动成交。实现与浏览器验收见[业务信息层级优化](docs/runbooks/BUSINESS_FIRST_TRACE_20261028.md)。
+
 ## 安装与打开网站
 
 需要Python3.12、uv0.9.3、Node.js至少22.12、pnpm11.25.0，以及自己的PostgreSQL数据库（当前验证17.11）。在本仓库根目录执行：
@@ -41,7 +51,7 @@ uv run --env-file .env --no-sync python scripts/public_reports.py import data/pu
 uv run --env-file .env --no-sync python -m uvicorn reputation_platform.api:create_app --factory --host 127.0.0.1 --port 7754
 ```
 
-另开终端启动worker：
+只浏览已有报告无需启动worker。需要处理新的评价请求时，另开终端启动worker：
 
 ```powershell
 uv run --env-file .env --no-sync python -m reputation_platform.worker

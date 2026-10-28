@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import type { EvaluationReport, MeasurementPurpose, ReportChainEvidence } from '../contracts'
 import { getReportChainEvidence } from '../api'
 import { capabilityDimension } from '../capability'
@@ -11,15 +11,34 @@ import ChainEvidencePanel from './ChainEvidencePanel.vue'
 import SharedAssessmentView from './SharedAssessmentView.vue'
 
 const props = defineProps<{ report: EvaluationReport; reportId: string }>()
+const emit = defineEmits<{ trace: [taskKey: string, dimension?: MeasurementPurpose] }>()
 const chainEvidence = ref<ReportChainEvidence | null>(null)
 const chainEvidenceError = ref(false)
 const chainAbort = new AbortController()
 const sampleLinks = computed(() => Object.fromEntries(props.report.samples.map((item, index) => [item.sample.sample_id, index + 1])))
+async function revealHash() {
+  if (props.report.shared_assessment) return
+  const hash = window.location.hash
+  if (!/^#(?:sample-\d+|dimension-(?:availability|functional|behavioral))$/.test(hash)) return
+  await nextTick()
+  if (hash !== window.location.hash) return
+  const target = document.getElementById(hash.slice(1))
+  for (let ancestor = target; ancestor; ancestor = ancestor.parentElement) {
+    if (ancestor.tagName === 'DETAILS') ancestor.setAttribute('open', '')
+  }
+  target?.scrollIntoView({ block: 'start' })
+}
 onMounted(async () => {
+  window.addEventListener('hashchange', revealHash)
+  void revealHash()
   try { chainEvidence.value = await getReportChainEvidence(props.reportId, chainAbort.signal) }
   catch { if (!chainAbort.signal.aborted) chainEvidenceError.value = true }
+  if (!chainAbort.signal.aborted) void revealHash()
 })
-onBeforeUnmount(() => chainAbort.abort())
+onBeforeUnmount(() => {
+  chainAbort.abort()
+  window.removeEventListener('hashchange', revealHash)
+})
 const isPrediction = computed(() => ['prediction-history-v1', 'prediction-history-v2'].includes(props.report.scores.policy_version ?? ''))
 const isFulfillment = computed(() => String(props.report.scores.policy_version) === 'service-fulfillment-v1')
 const isSwap = computed(() => ['evm-swap-builder-v1', 'evm-swap-builder-v2'].includes(String(props.report.scores.policy_version)))
@@ -104,7 +123,7 @@ const conclusion = computed(() => {
 </script>
 
 <template>
-  <SharedAssessmentView v-if="report.shared_assessment" :assessment="report.shared_assessment" :report="report" :report-id="reportId" :chain-evidence="chainEvidence" :chain-evidence-error="chainEvidenceError" :sample-links="sampleLinks" />
+  <SharedAssessmentView v-if="report.shared_assessment" :assessment="report.shared_assessment" :report="report" :report-id="reportId" :chain-evidence="chainEvidence" :chain-evidence-error="chainEvidenceError" :sample-links="sampleLinks" @trace="(taskKey, dimension) => emit('trace', taskKey, dimension)" />
   <div v-else class="report-content">
     <section class="report-lead panel">
       <div class="row-between wrap"><span class="eyebrow">本次评价结论</span><span class="report-status" :class="{ complete: report.scores.status === 'COMPLETE' }">{{ report.scores.status === 'COMPLETE' ? '范围三维齐备' : report.scores.status === 'PARTIAL' ? '部分评价' : '待评价' }}</span></div>
@@ -121,7 +140,7 @@ const conclusion = computed(() => {
     </section>
 
     <section class="score-grid" aria-label="三维评价分数">
-      <ScoreCard v-for="item in dimensions" :key="item.purpose" :title="item.title" :weight="item.weight" :dimension="item.dimension" />
+      <ScoreCard v-for="item in dimensions" :id="`dimension-${item.purpose}`" :key="item.purpose" :title="item.title" :weight="item.weight" :dimension="item.dimension" />
     </section>
 
     <ChainEvidencePanel v-if="chainEvidence" :actions="chainEvidence.actions" :summary="chainEvidence.summary" :limitations="chainEvidence.limitations" :report-id="reportId" :sample-links="sampleLinks" />
@@ -174,7 +193,7 @@ const conclusion = computed(() => {
         <details v-for="{ item, index } in samplesFor(group.purpose)" :id="`sample-${index + 1}`" :key="item.sample.sample_id" class="sample" :open="representatives.has(index)">
           <summary><span class="sample-marker">{{ String(index + 1).padStart(2, '0') }}</span><span class="sample-title">{{ item.title }}</span><StatusBadge :verdict="item.sample.verdict" /></summary>
           <div class="sample-body">
-            <p class="muted small">{{ when(item.observed_at) }}<template v-if="item.sample.elapsed_ms !== null"> · 请求耗时 {{ item.sample.elapsed_ms.toFixed(2) }} 毫秒</template></p>
+            <p class="muted small">采证记录时间：{{ when(item.observed_at) }}<template v-if="item.sample.elapsed_ms !== null"> · 请求耗时 {{ item.sample.elapsed_ms.toFixed(2) }} 毫秒</template></p>
             <section v-if="isPrediction && item.sample.purpose === 'functional'" class="prediction-summary">
               <template v-if="item.sample.prediction"><h4>这份预测与最终结算</h4><dl class="report-meta"><div><dt>预测“是”（Yes）</dt><dd>{{ probability(item.sample.prediction.p_yes) }} <span class="muted small">（p_yes={{ item.sample.prediction.p_yes }}）</span></dd></div><div><dt>预测“否”（No）</dt><dd>{{ probability(item.sample.prediction.p_no) }} <span class="muted small">（p_no={{ item.sample.prediction.p_no }}）</span></dd></div><div><dt>最终独立结算</dt><dd>{{ item.sample.prediction.final_outcome === 'yes' ? '是（Yes）' : '否（No）' }}</dd></div></dl><p v-if="item.sample.verdict === 'FAIL'">预测给最终结算结果的概率低于 50%，方向未通过；信用分仍按原始概率计算，并非统一记 0。</p><p v-else>预测给最终结算结果的概率至少为 50%，达到中性方向门槛；PASS 不表示确定正确。</p><p class="muted small">这条预测的信用分与依据见下方独立核验说明。</p></template>
               <p v-else-if="item.sample.verdict === 'FAIL'">已确认输出格式违反声明，本题信用为 0；具体违反项见独立核验说明。</p>

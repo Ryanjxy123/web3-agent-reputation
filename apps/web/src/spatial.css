@@ -1,0 +1,45 @@
+/* Shared materials and motion; ambient layers never intercept interaction. */
+:root{--bg:#080e16;--surface:#0d1722;--ink:#e5edf3;--muted:#9aaebe;--accent:#79d6e5;--teal:#79d6e5;--purple:#a198d7;--success:#77d6b6;--line:#293b4c;--border:var(--line);--line-strong:#3d596b}
+body{background:var(--bg)}
+.app-shell{isolation:isolate;position:relative}
+.spatial-backdrop{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;background:linear-gradient(130deg,#101e2b 0%,#090f19 48%,#0d1322 100%)}
+.ambient-light{position:absolute;width:65vw;height:75vh;border-radius:50%;opacity:.7;animation:ambient-drift 28s ease-in-out infinite alternate}
+.ambient-cyan{left:-20vw;top:-35vh;background:radial-gradient(ellipse,#34778044,transparent 67%)}
+.ambient-violet{right:-22vw;top:5vh;background:radial-gradient(ellipse,#55528e33,transparent 68%);animation-delay:-13s}
+.space-lattice{position:absolute;width:100%;height:100%;opacity:.8;transition:opacity .4s}
+.space-packet{offset-distance:0%;animation:space-transit 22s linear infinite;opacity:0}
+.space-packet.second{animation-delay:-11s;animation-duration:30s}
+.spatial-backdrop.quiet .space-lattice{opacity:.3}.spatial-backdrop.quiet .space-packet{display:none}.spatial-backdrop.quiet .ambient-light{opacity:.35;animation:none}
+.site-header{background:#0b141ee8;border-color:#adc8e01a;backdrop-filter:blur(12px)}
+.brand-mark{border-color:#7897ad55;color:#a4e7e9;background:#142735;box-shadow:inset 0 1px #b2dde329}
+.brand-subtitle{font-size:10px;letter-spacing:.16em;color:#8ea6b8}
+.site-header nav button[aria-current=page]{color:#d7e9ef;border-bottom-color:#81ccd7}
+.main-container{padding-left:28px;padding-right:28px}
+.primary-button,.ov-actions .primary-button{background:#a8e0e7;color:#102c36;border:1px solid #c0eef1;box-shadow:inset 0 1px #fff8,0 4px 18px #0002}
+.primary-button:hover:not(:disabled),.ov-actions .primary-button:hover{background:#c1eef2;color:#0a2630;box-shadow:0 5px 22px #75d3df22;transform:translateY(-1px)}
+.secondary-button{background:#16232e;border-color:#405362;box-shadow:inset 0 1px #c8e0eb08}
+.panel,.score-card{border-color:#9fb9d122;background:linear-gradient(135deg,#142330e8,#0e1925ef);box-shadow:inset 0 1px #e0f2ff07,0 12px 30px #00000012}
+.detail-tabs{gap:12px;border-color:#a2bfd51c}
+.detail-tabs button{border-radius:6px 6px 0 0;transition:color .2s,background .2s}
+.detail-tabs button[aria-current=page]{color:#d8f2f5;border-bottom-color:#8ad8df;background:linear-gradient(0deg,#96d9e514,transparent)}
+.runtime-strip{background:#12202b7a;border-color:#a8c9dc1a}
+.agent-overview,.report-content,.detail-evidence{animation:page-reveal .4s ease-out both}
+/* Keep fixed evidence drawers anchored to the viewport. */
+.trace-workbench{animation:workbench-reveal .4s ease-out}
+.trust-core{margin:-12px -18px 0;align-self:center;min-width:0;position:relative;perspective:900px}
+.trust-core svg{width:100%;max-height:340px;overflow:visible;transition:transform .5s ease}
+.trust-core:hover svg{transform:rotateY(-5deg) rotateX(3deg)}
+.trust-core figcaption{text-align:center;font-size:11px;color:#96b4c6;letter-spacing:.08em;margin-top:-2px}
+.trust-core figcaption span{color:#738c9d;letter-spacing:0}
+.core-float{animation:core-float 9s ease-in-out infinite;transform-origin:220px 165px}
+.core-scan{animation:core-scan 7s ease-in-out infinite}
+.core-packet{animation:space-transit 6s ease-in-out infinite;opacity:0}.core-packet.alternate{animation-delay:-3s}
+.motion-paused *, .motion-paused *::before,.motion-paused *::after{animation-play-state:paused!important}
+@keyframes ambient-drift{to{transform:translate3d(7vw,7vh,0) scale(1.12)}}
+@keyframes space-transit{0%,12%{offset-distance:0%;opacity:0}20%{opacity:.75}65%{opacity:.75}76%,100%{offset-distance:100%;opacity:0}}
+@keyframes core-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+@keyframes core-scan{0%,100%{transform:translateY(-12px);opacity:.1}50%{transform:translateY(18px);opacity:.55}}
+@keyframes page-reveal{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+@keyframes workbench-reveal{from{opacity:0}to{opacity:1}}
+@media(max-width:720px){.main-container{padding-left:16px;padding-right:16px}.trust-core{margin:0;max-width:350px;justify-self:center}.space-lattice{opacity:.35}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}.space-packet,.core-packet{display:none}.trust-core:hover svg{transform:none}}
