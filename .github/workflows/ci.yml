@@ -40,6 +40,8 @@ jobs:
           uv run --locked --all-packages python -m unittest discover -s tests -p test_single_score_report.py -v
       - name: Public report selection and frozen dependency bytes
         run: uv run --locked --all-packages python -m unittest discover -s tests -p test_public_reports.py -v
+      - name: Shared unsigned swap protocol boundaries
+        run: uv run --locked --all-packages python -m unittest discover -s tests -p test_unsigned_swap_protocol.py -v
       - run: pnpm --dir apps/web install --frozen-lockfile
       - run: pnpm --dir apps/web run build
 
@@ -71,5 +73,5 @@ jobs:
           version: '0.9.3'
           python-version: '3.12.4'
       - run: uv sync --locked --all-packages
-      - name: MangoSwap publication, public-off worker and concurrent PostgreSQL leases
+      - name: Transaction Agent publications, public-off worker and concurrent PostgreSQL leases
         run: uv run --locked --all-packages python scripts/check_release_smoke.py

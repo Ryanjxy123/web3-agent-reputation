@@ -10,7 +10,9 @@ PROJECT_ROOT = Path(__file__).resolve().parents[4]
 def load_database_url() -> str:
     value = os.environ.get("REPUTATION_DATABASE_URL")
     if value is None:
-        path = PROJECT_ROOT / "runtime/platform-config/database-url.txt"
+        path = PROJECT_ROOT / "runtime/platform-config/active-database-url.txt"
+        if not path.is_file():
+            path = PROJECT_ROOT / "runtime/platform-config/database-url.txt"
         if not path.is_file():
             raise RuntimeError("Local database configuration is missing")
         value = path.read_text(encoding="utf-8")

@@ -2,7 +2,7 @@
 
 面向公开注册并提供服务信息的Web3 Agent，收集注册资料、自然语言功能描述、服务接口、关联合约和交易历史，评价**服务可用性、功能声明一致性、交易行为可靠性**。
 
-当前发布数据只保留 **MangoSwap #26345**，旧Agent发布包与候选/实例记录已从当前版本移除。实现采用Vue 3＋TypeScript、FastAPI、独立worker及PostgreSQL；不需要运行父目录旧项目。
+当前发布 **MangoSwap #26345** 和 **Hydrex Routing Agent #54947**，使用同一套三维评分规则。实现采用Vue 3＋TypeScript、FastAPI、独立worker及PostgreSQL；不需要运行父目录旧项目。
 
 ## 当前演示
 
@@ -11,6 +11,10 @@ MangoSwap提供即时资产兑换、定时和限价订单管理，由用户钱�
 当前单值评分：**A100 / F91.67 / B100 / 综合96.67**。按有效可判的通过/失败计算；未知与未采单列，不补成0或100。原ETH/WETH标识不一致仍影响F；A只对应已有28份可判响应；10个链上履约任务为8次兑换和2次订单管理。规则见[ADR-0029](docs/adr/0029-single-score-and-report-scope.md)。
 
 页面主区展示功能、三维/综合单分和代表性样本。报价、模拟、成交、撤销退款按真实阶段命名，完整任务与原件可展开。当前结果限于已测功能和样本。
+
+Hydrex通过Virtuals ACP接收兑换意图并生成Base链路由方案，由买方钱包签名执行。本次核两次报价、两次独立完整模拟及一笔0.10USDC真实兑换，实收0.000042343137880465WETH，授权归零；A100/F100/B100/范围综合100。只有这些已测样本通过，不代表全部路由、资产或长期表现。其ERC-8004注册、ACP服务身份、交付哈希、代理实现、交易事件、余额和307块确认距离均有原件。
+
+新来源入口直接重放任务原件，不要求复制MangoSwap父报告。0x、Hydrex包装协议和Kyber按协议解码；TheSafeRouteBot与Hydrex的不同方案已通过同一效果核验，前者尚未补真实兑换，不计完整三维对象。见[来源规则](docs/adr/0030-unsigned-swap-source-replay.md)及[本轮交付记录](docs/runbooks/TRANSACTION_COHORT_RELEASE_20261028.md)。
 
 ## 安装与打开网站
 
@@ -29,10 +33,10 @@ if (-not (Test-Path -LiteralPath .env)) { Copy-Item .env.example .env }
 REPUTATION_DATABASE_URL=postgresql://YOUR_DB_USER:YOUR_DB_PASSWORD@127.0.0.1:5432/YOUR_DATABASE
 ```
 
-导入仓库唯一的MangoSwap发布包。包内含评分、必要历史原件和三笔V4证据，可离线复算，不需要钱包、RPC或LLM：
+导入当前两对象发布包。包内含评分和复核必需原件，可离线复算，不需要钱包、RPC或LLM：
 
 ```powershell
-uv run --env-file .env --no-sync python scripts/public_reports.py import data/public-reports-single-score-v3.tar.gz --initialize
+uv run --env-file .env --no-sync python scripts/public_reports.py import data/public-reports-transaction-v3.tar.gz --initialize
 ```
 
 启动网页/API：
@@ -47,9 +51,11 @@ uv run --env-file .env --no-sync python -m uvicorn reputation_platform.api:creat
 uv run --env-file .env --no-sync python -m reputation_platform.worker
 ```
 
-浏览器打开 **[http://127.0.0.1:7754/](http://127.0.0.1:7754/)**，或[直接打开MangoSwap](http://127.0.0.1:7754/?agent=mangoswap-26345)。无需再启动Vite。默认worker为public-off，浏览已发布报告不会发起新付费任务或资产交易。`.env`通过uv的`--env-file`显式加载。
+浏览器打开 **[http://127.0.0.1:7754/](http://127.0.0.1:7754/)**，或直接查看[MangoSwap](http://127.0.0.1:7754/?agent=mangoswap-26345)、[Hydrex](http://127.0.0.1:7754/?agent=hydrex-routing-54947)。无需再启动Vite。默认worker为public-off，浏览已发布报告不会发起新付费任务或资产交易。`.env`通过uv的`--env-file`显式加载。
 
 本开发机已有数据库与私有配置时，可用`powershell -File scripts/start_platform_background.ps1`后台启动；它不替换已占用端口。其它机器按上述通用命令配置自己的数据库即可。
+
+没有设置`REPUTATION_DATABASE_URL`时，本机可在私有`runtime/platform-config/active-database-url.txt`指定当前演示连接，未配置则使用原`database-url.txt`。用于隔离已撤下对象的历史数据库；不删除旧报告，也不把私有连接上传。
 
 ## RPC、LLM和钱包配置
 
@@ -68,8 +74,8 @@ uv run --env-file .env --no-sync python -m reputation_platform.worker
 
 ## 数据与验证
 
-`data/`只发布MangoSwap单分包及其必要声明。旧对象记录已移除，Git历史未改写；已有个人数据库不会因拉取代码自动删除。新机器只导入上述包即可得到当前演示数据。公开包包含复核必需原件，钱包登录、P256密钥和私有配置均排除。
+当前包`data/public-reports-transaction-v3.tar.gz`只含MangoSwap和Hydrex及其必要原件；原Mango单分包作为历史交付保留。更早对象不恢复到当前发布名单，Git历史未改写；已有个人数据库不会因拉代码自动删除。新机器导入当前包即可得到两对象演示数据。钱包登录、P256密钥和私有配置均排除。
 
 通用评分和协议适配代码保留。旧实例采集CLI已改为显式传入操作者的profile/config，不再默认选择旧对象。评分与原件只追加、分数由后端复算，前端不手填。单值规则/证据来源与本轮验证详见[单分交付记录](docs/runbooks/MANGOSWAP_SINGLE_SCORE_20261027.md)。
 
-当前CI检查纯规则、MangoSwap真实来源/公开包、前端构建，以及真实PostgreSQL并发租约、过期恢复、不可修改报告与HTTP闭环。已有有效测试不因提交重复跑；更改关键行为或出现真实失败时执行必要检查。
+当前CI检查纯规则、共用协议解码、真实来源/公开包、前端构建，以及真实PostgreSQL并发租约、过期恢复、不可修改报告与HTTP闭环。已有有效测试不因提交重复跑；更改关键行为或出现真实失败时执行必要检查。

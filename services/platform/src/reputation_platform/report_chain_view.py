@@ -27,6 +27,39 @@ def _read_source(root: Path, path: str, permitted: dict[str, str]) -> object:
     return value.get("result") if isinstance(value, dict) else None
 
 
+def _describe_unsigned_swap(transaction, receipt, action):
+    """Explain the actual asset movements of a previously source-verified route."""
+    from reputation_core.chain_view import _asset, _transfers
+    from reputation_core.swap import decode_batch
+    from reputation_platform.unsigned_swap_protocol import decode_unsigned_swap, UnsupportedUnsignedSwap
+
+    chain = int(transaction['chainId'], 16)
+    sender = transaction['from'].lower()
+    calls = (decode_batch(transaction['input']) if sender == transaction['to'].lower()
+             else [{'target': transaction['to'], 'data': transaction['input'], 'value': transaction['value']}])
+    routes = []
+    for call in calls:
+        try:
+            routes.append(decode_unsigned_swap({'to': call['target'], 'data': call['data'], 'value': call['value']}, chain_id=chain))
+        except UnsupportedUnsignedSwap:
+            continue
+    if len(routes) != 1:
+        return action
+    route = routes[0]
+    transfers = _transfers(receipt)
+    paid = sum(amount for token, source, _, amount in transfers if token == route['token_in'] and source == sender)
+    received = sum(amount for token, _, target, amount in transfers if token == route['token_out'] and target == route['recipient'])
+    if paid != route['amount_in'] or received < route['minimum_out']:
+        raise ValueError('Published swap transfers contradict the decoded task constraints')
+    methods = {'hydrex-multirouter': 'executeSwaps(...)', '0x-allowanceholder-settler': 'exec(...)',
+               'kyber-metaaggregation-v2': 'swap(...)'}
+    return action.model_copy(update={'action': 'swap', 'title': '兑换资产',
+        'method': ('executeBatch → ' if sender == transaction['to'].lower() else '') + methods[route['protocol']],
+        'summary': f"买方钱包执行服务生成的兑换方案，实际支付 {_asset(chain, route['token_in'], paid)}，"
+                   f"收款账户 {route['recipient']} 实收 {_asset(chain, route['token_out'], received)}；"
+                   f"方案最低到账为 {_asset(chain, route['token_out'], route['minimum_out'])}。"})
+
+
 def build_report_chain_evidence(
     root: Path, report: EvaluationReport, permitted: dict[str, str],
 ) -> ReportChainEvidence:
@@ -66,10 +99,13 @@ def build_report_chain_evidence(
         for transaction, path in selected:
             receipt, receipt_path = receipts[transaction["hash"].lower()]
             block, block_path = blocks[transaction["blockHash"].lower()]
-            actions.append(describe_chain_action(
+            action = describe_chain_action(
                 transaction, receipt, block, sample_id=explanation.sample.sample_id,
                 verdict=explanation.sample.verdict, evidence=[path, receipt_path, block_path],
-            ))
+            )
+            if any(Path(name).name == 'unsigned-swap-report-origin.json' for name in permitted):
+                action = _describe_unsigned_swap(transaction, receipt, action)
+            actions.append(action)
         return ReportChainEvidence(
             actions=actions,
             summary=f"从「{explanation.title}」已引用的原始交易、收据和区块中，展开 {len(actions)} 笔真实链上操作。",

@@ -226,6 +226,9 @@ def _replay(root, evidence, origin):
 
 
 def verify_shared_report_sources(root, report, hashes):
+    if any(Path(name).name == 'unsigned-swap-report-origin.json' for name in hashes):
+        from reputation_platform.unsigned_swap_report import verify_unsigned_swap_report_sources
+        return verify_unsigned_swap_report_sources(root, report, hashes)
     if report.policy_version in (MULTICAP_POLICY_VERSION, POINT_POLICY_VERSION):
         from reputation_platform.expanded_shared_report import verify_expanded_report_sources
         return verify_expanded_report_sources(root, report, hashes)

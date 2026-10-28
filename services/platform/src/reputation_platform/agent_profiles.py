@@ -40,6 +40,16 @@ def profile_from_report(root: Path, row: dict) -> AgentProfile:
             raise ValueError("Profile source changed")
         return json.loads(raw)
 
+    unsigned_origins = [item for item in inputs if Path(item['path']).name == 'unsigned-swap-report-origin.json']
+    if unsigned_origins:
+        if len(unsigned_origins) != 1:
+            raise ValueError('No unique authenticated unsigned swap origin')
+        origin = source_json(unsigned_origins[0])
+        config_refs = [item for item in inputs if item['path'] == origin['source']]
+        if len(config_refs) != 1:
+            raise ValueError('No authenticated unsigned swap source profile')
+        return AgentProfile.model_validate_json(json.dumps(source_json(config_refs[0])['profile']))
+
     if policy in ("evm-swap-builder-v1", "evm-swap-builder-v2", *SHARED_POLICY_VERSIONS):
         origins = [item for item in inputs if Path(item["path"]).name == "swap-report-origin.json"]
         if len(origins) != 1:

@@ -52,6 +52,14 @@ const plannedExecution = (key: string) => props.assessment.cases.some(item =>
   item.dimension === 'behavioral' && item.normal_execution && item.task_keys.includes(key))
 const outcomeLabel = (task: SharedTask) => {
   if (task.outcome === 'completed') {
+    const fulfilled = plannedExecution(task.task_key) && observationsFor(task.task_key, 'behavioral')
+      .some(item => item.measurement_validity === 'valid' && item.verdict === 'PASS')
+    if (!fulfilled) {
+      const verified = observationsFor(task.task_key, 'functional').some(item =>
+        item.criterion_id === 'execution-effect' && item.measurement_validity === 'valid' && item.verdict === 'PASS')
+      if (verified) return '方案已验证'
+      return observationsFor(task.task_key).some(item => item.response_complete === true) ? '已返回方案' : '已完成核验'
+    }
     const refunded = observationsFor(task.task_key, 'functional').some(item =>
       item.criterion_id === 'exact-principal-refund' && item.measurement_validity === 'valid' && item.verdict === 'PASS')
     if (refunded) return '已撤销退款'
@@ -176,7 +184,7 @@ const revealLinkedSample = async (event: MouseEvent) => {
       <div class="shared-task-list"><details v-for="{ task, index } in visibleTasks" :id="`task-${index + 1}`" :key="task.task_key" class="shared-task" :open="representative.has(task.task_key)">
         <summary><strong>{{ String(index + 1).padStart(2, '0') }} · {{ capabilityName(task.capability_id) }} · {{ outcomeLabel(task) }}</strong><span class="shared-task-dimensions"><span>A {{ taskDimensionSummary(task.task_key, 'availability') }}</span><span>F {{ taskDimensionSummary(task.task_key, 'functional') }}</span><span>B {{ taskDimensionSummary(task.task_key, 'behavioral') }}</span></span></summary>
         <div class="shared-task-body"><span :id="legacyAnchor(task.task_key)"></span>
-          <div class="shared-task-facts"><section><h4>这次请求</h4><p>{{ task.input_summary }}</p></section><section><h4>观察到的结局</h4><p>{{ outcomeLabel(task) }} · {{ attributionLabel[task.attribution] }}</p><p>{{ when(task.observed_at) }}</p></section></div>
+          <div class="shared-task-facts"><section><h4>这次请求</h4><p>{{ task.input_summary }}</p></section><section><h4>观察到的结局</h4><p>{{ outcomeLabel(task) }}<template v-if="['failed', 'rejected', 'unknown'].includes(task.outcome)"> · {{ attributionLabel[task.attribution] }}</template></p><p>{{ when(task.observed_at) }}</p></section></div>
           <div class="shared-task-observations"><section v-for="dimension in dimensions" :key="dimension.purpose" class="shared-task-observation"><h4>{{ dimension.title }}</h4><ul v-if="observationsFor(task.task_key, dimension.purpose).length"><li v-for="observation in observationsFor(task.task_key, dimension.purpose)" :key="`${observation.case_id}:${observation.criterion_id}`"><strong>{{ observationTitle(observation) }}</strong><StatusBadge v-if="observation.measurement_validity === 'valid'" :verdict="observation.verdict" /><span v-else class="report-status">{{ observation.measurement_validity === 'invalid' ? '测量无效' : '有效性待核' }}</span><p>{{ observation.reason }}</p><p v-if="observation.elapsed_ms !== null">本次观测用时 {{ (observation.elapsed_ms / 1000).toFixed(3) }} 秒</p><p v-if="observation.measurement_validity === 'invalid'">本次测量无效，不作为 Agent 的成功或失败。</p><p v-else-if="observation.measurement_validity === 'unknown'">测量有效性尚待确认。</p><details v-if="observation.evidence.length" class="technical"><summary>这项判断的证据</summary><EvidenceList :sources="observation.evidence" :report-id="reportId" /></details></li></ul><p v-else>{{ isPlanned(task.task_key, dimension.purpose) ? '本维度已安排核验案例，尚未取得观察；未采不等于通过。' : '该任务未安排本维度的核验。' }}</p></section></div>
           <details class="technical"><summary>任务标识与完整证据</summary><p><code>{{ task.task_key }}</code></p><EvidenceList :sources="task.evidence" :report-id="reportId" /></details>
         </div>
