@@ -22,6 +22,28 @@ MangoSwap提供即时资产兑换、定时和限价订单管理，由用户钱�
 
 当前展示采用三级信息：默认解释用户请求、执行主体、实际业务结果与核验结论；关键链上操作主动展开，地址/哈希缩略并可完整复制；完整字段、判据、证据引用与原始 JSON 集中在技术详情。业务完成与核验差异、未知或未采可同时存在，订单撤销退款不会显示为自动成交。资产名称标注差异采用温和提示，与真实执行失败和重大风险分别呈现，原判定及计分保持。实现与浏览器验收见[业务信息层级优化](docs/runbooks/BUSINESS_FIRST_TRACE_20261028.md)。
 
+## 队友更新到最新工作台
+
+最新交付位于 **`codex/evidence-workbench`** 分支，尚未合并到 `main`。本次包含：
+
+- `0d0ca38`：深色空间界面、真实任务链路与历史回放；业务概览、关键链上操作、原始证据三级展示；支持按任务读取的只读证据接口。
+- `aba8a52`：资产名称标注差异改为温和提示，真实执行失败和重大风险保留告警；原始判定、评分和证据不变。
+
+已有仓库的队友在仓库根目录执行：
+
+```powershell
+git fetch origin
+git switch codex/evidence-workbench
+git pull --ff-only origin codex/evidence-workbench
+uv sync --locked
+pnpm --dir apps/web install --frozen-lockfile
+pnpm --dir apps/web run build
+```
+
+构建后重启下节的 API 服务，打开 <http://127.0.0.1:7754/?agent=mangoswap-26345>。已经导入当前 MangoSwap 公开包的环境无需为本次前端更新重复导入。首次运行仍需按下节配置自己的 PostgreSQL 并导入仓库中的公开包；只浏览报告无需启动 worker。
+
+本次代码已通过前端构建、10项投影测试及真实浏览器检查；原布局/只读接口的有效验证沿用，各阶段证据见上方实施记录。
+
 ## 安装与打开网站
 
 需要Python3.12、uv0.9.3、Node.js至少22.12、pnpm11.25.0，以及自己的PostgreSQL数据库（当前验证17.11）。在本仓库根目录执行：
