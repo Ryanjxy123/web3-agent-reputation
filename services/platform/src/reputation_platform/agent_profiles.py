@@ -12,7 +12,7 @@ def profile_from_report(root: Path, row: dict) -> AgentProfile:
     report = row["validated_json"]
     policy = report["scores"]["policy_version"]
     canonical = normalize_reference(row.get("registration_reference", ""))
-    chain = int(canonical.split(":")[1]) if canonical else None
+    chain = int(canonical.split(":")[1]) if canonical and canonical.startswith('eip155:') else None
     sources = report.get("source_references", [])
     if policy in ("prediction-history-v1", "prediction-history-v2"):
         return AgentProfile(
@@ -39,6 +39,63 @@ def profile_from_report(root: Path, row: dict) -> AgentProfile:
         if hashlib.sha256(raw).hexdigest() != reference["sha256"]:
             raise ValueError("Profile source changed")
         return json.loads(raw)
+
+    cow_origins = [item for item in inputs if Path(item['path']).name == 'cow-swap-report-origin.json']
+    if cow_origins:
+        if len(cow_origins) != 1:
+            raise ValueError('No unique authenticated CoW swap origin')
+        origin = source_json(cow_origins[0])
+        if origin.get('schema_version') != 'cow-swap-report-origin-v1' or origin.get('adapter') != 'retained-cow-swap-campaign-v1':
+            raise ValueError('Unsupported CoW profile origin')
+        configs = [item for item in inputs if item['path'] == origin['source']]
+        if len(configs) != 1:
+            raise ValueError('No authenticated CoW swap source')
+        source = source_json(configs[0])
+        plans = [item for item in inputs if item['path'] == source['campaign_plan']]
+        proofs = [item for item in inputs if item['path'] == source['registration_proof']]
+        if len(plans) != 1 or len(proofs) != 1:
+            raise ValueError('No authenticated CoW campaign or identity profile')
+        plan = source_json(plans[0])
+        source_json(proofs[0])
+        if not canonical or source['registration_reference'] != canonical or plan['registration_reference'] != canonical:
+            raise ValueError('CoW profile identity differs from the report')
+        from reputation_platform.public_service_identity import verify_service_identity
+        identity = verify_service_identity(root, root / source['registration_proof'], canonical)
+        identity_boundary = ('ERC8004链注册已核。' if identity['chain_registration_verified'] else
+                             '官方公共服务目录已核；ERC8004链注册仍为UNKNOWN。')
+        declared = [group['title'] for group in plan['capability']['declaration_groups']]
+        return AgentProfile(
+            business_summary=('根据资产、金额和滑点生成CoW兑换报价与待签名订单，并检查订单参数。'
+                              '买方签名后由solver撮合并在链上结算；本次核验链ID '
+                              + str(plan['chain_id']) + ' 上的冻结ERC20订单任务。'),
+            ecosystem='CoW Protocol · ERC20订单', role='asset-execution',
+            registration_chain_id=identity['registration_chain_id'], execution_chain_ids=[plan['chain_id']],
+            capabilities=declared, execution_accounts=[plan['owner']], evidence_status='verified',
+            sources=[source['registration_proof'], source['campaign_plan']],
+            boundary=identity_boundary + '登记服务与买方钱包是不同角色；报价、构建和验证不代表成交，实际成交须独立核验UID、Trade及净资产证据。',
+        )
+
+    atomic_origins = [item for item in inputs if Path(item['path']).name == 'atomic-swap-report-origin.json']
+    if atomic_origins:
+        if len(atomic_origins) != 1:
+            raise ValueError('No unique authenticated atomic swap origin')
+        origin = source_json(atomic_origins[0])
+        configs = [item for item in inputs if item['path'] == origin['source']]
+        if len(configs) != 1:
+            raise ValueError('No authenticated atomic swap source')
+        source = source_json(configs[0])
+        plans = [item for item in inputs if item['path'] == source['campaign_plan']]
+        if len(plans) != 1:
+            raise ValueError('No authenticated atomic campaign profile')
+        plan = source_json(plans[0])
+        return AgentProfile(
+            business_summary='根据指定ERC20资产、数量和滑点生成报价及原子交易方案，由买方钱包授权执行；本报告范围为' + plan['scope'],
+            ecosystem='ERC20 · 原子兑换方案', role='asset-execution', registration_chain_id=chain,
+            execution_chain_ids=[plan['chain_id']], capabilities=[plan['capability']['title']],
+            execution_accounts=[plan['executor']], evidence_status='verified',
+            sources=[source['registration_proof'], source['campaign_plan']],
+            boundary='登记服务身份与买方执行钱包是不同角色；方案、模拟和真实成交分别核验，未采任务及未测声明不代表通过。',
+        )
 
     unsigned_origins = [item for item in inputs if Path(item['path']).name == 'unsigned-swap-report-origin.json']
     if unsigned_origins:

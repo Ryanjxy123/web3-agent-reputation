@@ -1,0 +1,139 @@
+{
+  "scope": "Actual retained A21 HTTP bytes; controlled TTL mutations in tests are not public samples.",
+  "plan": {
+    "chain_id": 8453,
+    "executor": "0x73d642847cb9a3acef116ea207a74b9956c34a09",
+    "registered_service": "https://agents.topazdex.com",
+    "response_mapping": {
+      "calls_pointer": "/transactions",
+      "fields": {
+        "token_in": "/data/sellToken",
+        "token_out": "/data/buyToken",
+        "amount_in": "/data/sellAmount",
+        "recipient": "/data/payer",
+        "minimum_out": "/data/minOut",
+        "quoted_out": "/data/expectedOut",
+        "slippage_bps": "/data/topazApiQuote/slippageBips",
+        "fixed_block": "/data/topazApiQuote/blockNumber",
+        "chain_id": "/chainId",
+        "issued_at": "/timestamp"
+      },
+      "rejection_error_pointer": "/error",
+      "stage_scope": "Map final build response only; quote does not contain /data/payer or /transactions."
+    },
+    "source_snapshot": {
+      "path": "runtime/candidate-expansion-goal-20261028-direct/phase1/topaz-openapi.response.bin",
+      "sha256": "a97122624efe4f4d75d4f23a8395cc48667b63942cbc393d80c238d16296b863",
+      "observation": "runtime/candidate-expansion-goal-20261028-direct/phase1/topaz-openapi.observation.json"
+    }
+  },
+  "planned": {
+    "task_id": "A21",
+    "task_key": "fcb03346-c908-46d7-bb2c-14a4caa4dc3d",
+    "input_summary": "omit deadlineSeconds; default 600s, timing uncertainty retained",
+    "direction": "USDC-WETH",
+    "requests": [
+      {
+        "stage": "quote",
+        "method": "POST",
+        "url": "https://agents.topazdex.com/api/swap/quote",
+        "json": {
+          "sellToken": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          "buyToken": "0x4200000000000000000000000000000000000006",
+          "sellAmount": "0.10",
+          "chainId": 8453,
+          "slippageBps": 50
+        }
+      },
+      {
+        "stage": "build",
+        "method": "POST",
+        "url": "https://agents.topazdex.com/api/swap/build",
+        "json": {
+          "sellToken": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          "buyToken": "0x4200000000000000000000000000000000000006",
+          "sellAmount": "0.10",
+          "chainId": 8453,
+          "slippageBps": 50,
+          "taker": "0x73d642847cb9a3acef116ea207a74b9956c34a09"
+        }
+      }
+    ],
+    "expected": {
+      "token_in": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "token_out": "0x4200000000000000000000000000000000000006",
+      "amount_in": "100000",
+      "recipient": "0x73d642847cb9a3acef116ea207a74b9956c34a09",
+      "slippage_bps": 50,
+      "deadline_seconds": 600,
+      "safe_rejection": false,
+      "default_assertions": {
+        "deadline_seconds": 600
+      }
+    },
+    "planned_actual_execution": false
+  },
+  "rows": [
+    {
+      "stage": "quote",
+      "observation": {
+        "request_key": "a21-quote",
+        "purpose": "background",
+        "url": "https://agents.topazdex.com/api/swap/quote",
+        "method": "POST",
+        "request_json": "{\"buyToken\": \"0x4200000000000000000000000000000000000006\", \"chainId\": 8453, \"sellAmount\": \"0.10\", \"sellToken\": \"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913\", \"slippageBps\": 50}",
+        "observed_at": "2026-10-28T17:38:05.000945Z",
+        "http_status": 200,
+        "elapsed_ms": 4078.0,
+        "outcome": "PASS",
+        "error_kind": null,
+        "response_file": "a21-quote.response.bin",
+        "response_sha256": "43467e9b3614b47c920ac921a610f6c2d827723c497629c2be15fa2a9d3e508a",
+        "body_complete": true
+      },
+      "raw_utf8": "{\"kind\":\"quote\",\"chainId\":8453,\"timestamp\":\"2026-10-28T17:38:09.903Z\",\"summary\":\"Topaz API smart order routing\",\"data\":{\"bestSource\":\"topaz-api\",\"sellToken\":\"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913\",\"buyToken\":\"0x4200000000000000000000000000000000000006\",\"sellAmount\":\"100000\",\"expectedOut\":\"42807454093150\",\"expectedOutHuman\":\"0.00004280745409315\",\"minOut\":\"42594481684726\",\"minOutHuman\":\"0.000042594481684726\",\"routes\":[{\"protocol\":\"CL\",\"percent\":100,\"amountIn\":\"100000\",\"amountOut\":\"42807454093150\",\"hops\":[{\"protocol\":\"cl\",\"address\":\"0x9DD30d200B5C7e6874aB5a23c7BD7e2AD6d9C135\",\"tokenIn\":\"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913\",\"tokenOut\":\"0x4200000000000000000000000000000000000006\",\"tickSpacing\":50}]}],\"topazApiQuote\":{\"chainId\":8453,\"blockNumber\":53209871,\"tradeType\":\"exactIn\",\"amount\":\"100000\",\"quote\":\"42807454093150\",\"minimumAmountOut\":\"42594481684726\",\"slippageBips\":50,\"routes\":[{\"protocol\":\"CL\",\"percent\":100,\"amountIn\":\"100000\",\"amountOut\":\"42807454093150\",\"hops\":[{\"protocol\":\"cl\",\"address\":\"0x9DD30d200B5C7e6874aB5a23c7BD7e2AD6d9C135\",\"tokenIn\":\"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913\",\"tokenOut\":\"0x4200000000000000000000000000000000000006\",\"tickSpacing\":50}]}]},\"topazV2Quote\":null,\"topazV3Quote\":null},\"sources\":[\"https://quote.topazdex.com\"]}",
+      "source_refs": [
+        {
+          "path": "runtime/atomic-swap-campaign-20261029/tasks/fcb03346-c908-46d7-bb2c-14a4caa4dc3d/a21-quote.observation.json",
+          "sha256": "5ab56f1326fe77699f658736b1756f468255e7bc794b1c20252f105b6a41fa66"
+        },
+        {
+          "path": "runtime/atomic-swap-campaign-20261029/tasks/fcb03346-c908-46d7-bb2c-14a4caa4dc3d/a21-quote.response.bin",
+          "sha256": "43467e9b3614b47c920ac921a610f6c2d827723c497629c2be15fa2a9d3e508a"
+        }
+      ]
+    },
+    {
+      "stage": "build",
+      "observation": {
+        "request_key": "a21-build",
+        "purpose": "background",
+        "url": "https://agents.topazdex.com/api/swap/build",
+        "method": "POST",
+        "request_json": "{\"buyToken\": \"0x4200000000000000000000000000000000000006\", \"chainId\": 8453, \"sellAmount\": \"0.10\", \"sellToken\": \"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913\", \"slippageBps\": 50, \"taker\": \"0x73d642847cb9a3acef116ea207a74b9956c34a09\"}",
+        "observed_at": "2026-10-28T17:38:09.482452Z",
+        "http_status": 200,
+        "elapsed_ms": 3750.0,
+        "outcome": "PASS",
+        "error_kind": null,
+        "response_file": "a21-build.response.bin",
+        "response_sha256": "168533d52ed9b7382af904adbb1dda92cc14299fdadfa438ab310bac29badfa2",
+        "body_complete": true
+      },
+      "raw_utf8": "{\"kind\":\"built_calldata\",\"chainId\":8453,\"timestamp\":\"2026-10-28T17:38:14.039Z\",\"summary\":\"Topaz API smart order routing\",\"data\":{\"bestSource\":\"topaz-api\",\"sellToken\":\"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913\",\"buyToken\":\"0x4200000000000000000000000000000000000006\",\"sellAmount\":\"100000\",\"expectedOut\":\"42807454093150\",\"expectedOutHuman\":\"0.00004280745409315\",\"minOut\":\"42594481684726\",\"minOutHuman\":\"0.000042594481684726\",\"routes\":[{\"protocol\":\"CL\",\"percent\":100,\"amountIn\":\"100000\",\"amountOut\":\"42807454093150\",\"hops\":[{\"protocol\":\"cl\",\"address\":\"0x9DD30d200B5C7e6874aB5a23c7BD7e2AD6d9C135\",\"tokenIn\":\"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913\",\"tokenOut\":\"0x4200000000000000000000000000000000000006\",\"tickSpacing\":50}]}],\"topazApiQuote\":{\"chainId\":8453,\"blockNumber\":53209873,\"tradeType\":\"exactIn\",\"amount\":\"100000\",\"quote\":\"42807454093150\",\"minimumAmountOut\":\"42594481684726\",\"slippageBips\":50,\"routes\":[{\"protocol\":\"CL\",\"percent\":100,\"amountIn\":\"100000\",\"amountOut\":\"42807454093150\",\"hops\":[{\"protocol\":\"cl\",\"address\":\"0x9DD30d200B5C7e6874aB5a23c7BD7e2AD6d9C135\",\"tokenIn\":\"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913\",\"tokenOut\":\"0x4200000000000000000000000000000000000006\",\"tickSpacing\":50}]}]},\"topazV2Quote\":null,\"topazV3Quote\":null,\"atomicRequired\":true,\"permit2SignatureRequired\":false,\"payer\":\"0x73D642847CB9a3acEF116Ea207a74b9956C34a09\",\"deadline\":1793209693},\"transactions\":[{\"to\":\"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913\",\"data\":\"0x095ea7b3000000000000000000000000e4b23f13b24232c1e68ad0575191216152aa94800000000000000000000000000000000000000000000000000000000000000000\",\"value\":\"0\",\"label\":\"Clear legacy direct-router allowance\"},{\"to\":\"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913\",\"data\":\"0x095ea7b3000000000000000000000000000000000022d473030f116ddee9f6b43ac78ba30000000000000000000000000000000000000000000000000000000000000000\",\"value\":\"0\",\"label\":\"Reset token allowance to Permit2\"},{\"to\":\"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913\",\"data\":\"0x095ea7b3000000000000000000000000000000000022d473030f116ddee9f6b43ac78ba300000000000000000000000000000000000000000000000000000000000186a0\",\"value\":\"0\",\"label\":\"Approve input amount to Permit2\"},{\"to\":\"0x000000000022D473030F116dDEE9F6B43aC78BA3\",\"data\":\"0x87517c45000000000000000000000000833589fcd6edb6e08f4c7c32d4f71b54bda02913000000000000000000000000e4b23f13b24232c1e68ad0575191216152aa948000000000000000000000000000000000000000000000000000000000000186a0000000000000000000000000000000000000000000000000000000006ae2355d\",\"value\":\"0\",\"label\":\"Approve Topaz router through Permit2\"},{\"to\":\"0xe4b23F13b24232C1E68AD0575191216152AA9480\",\"data\":\"0x3593564c000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000006ae2355d000000000000000000000000000000000000000000000000000000000000000200040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000001600000000000000000000000000000000000000000000000000000000000000100000000000000000000000000e4b23f13b24232c1e68ad0575191216152aa948000000000000000000000000000000000000000000000000000000000000186a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000002b833589fcd6edb6e08f4c7c32d4f71b54bda0291300003242000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000060000000000000000000000000420000000000000000000000000000000000000600000000000000000000000073d642847cb9a3acef116ea207a74b9956c34a09000000000000000000000000000000000000000000000000000026bd4cf340f6\",\"value\":\"0\",\"label\":\"Swap via Topaz API routing\"},{\"to\":\"0x000000000022D473030F116dDEE9F6B43aC78BA3\",\"data\":\"0x87517c45000000000000000000000000833589fcd6edb6e08f4c7c32d4f71b54bda02913000000000000000000000000e4b23f13b24232c1e68ad0575191216152aa94800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006ae2355d\",\"value\":\"0\",\"label\":\"Clear Topaz Permit2 allowance\"},{\"to\":\"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913\",\"data\":\"0x095ea7b3000000000000000000000000000000000022d473030f116ddee9f6b43ac78ba30000000000000000000000000000000000000000000000000000000000000000\",\"value\":\"0\",\"label\":\"Clear token allowance to Permit2\"}],\"risks\":[\"Submit every returned call in order in one atomic wallet/account batch. No Permit2 signature is needed.\"],\"sources\":[\"https://quote.topazdex.com\"]}",
+      "source_refs": [
+        {
+          "path": "runtime/atomic-swap-campaign-20261029/tasks/fcb03346-c908-46d7-bb2c-14a4caa4dc3d/a21-build.observation.json",
+          "sha256": "07a68c28acefd2ed690c762b287545a6523115f8d3123e86d4e5953e46e10ca0"
+        },
+        {
+          "path": "runtime/atomic-swap-campaign-20261029/tasks/fcb03346-c908-46d7-bb2c-14a4caa4dc3d/a21-build.response.bin",
+          "sha256": "168533d52ed9b7382af904adbb1dda92cc14299fdadfa438ab310bac29badfa2"
+        }
+      ]
+    }
+  ],
+  "legacy_report": "runtime/topaz-report-20261029-v1/report.json",
+  "legacy_manifest": "runtime/topaz-report-20261029-v1/manifest.json",
+  "corrected_source": "runtime/topaz-public-20261029-clock-v2/source.json"
+}

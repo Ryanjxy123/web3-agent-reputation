@@ -4,6 +4,7 @@ from datetime import datetime
 import re
 from typing import Literal
 from urllib.parse import urlsplit
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -18,6 +19,12 @@ def normalize_reference(value: str) -> str | None:
     match = re.fullmatch(r"(?:eip155:)?([0-9]+):(0x[0-9a-fA-F]{40}):([0-9]+)", value)
     if match:
         return f"eip155:{int(match[1])}:{match[2].lower()}:{int(match[3])}"
+    match = re.fullmatch(r'mcp-registry:([A-Za-z0-9][A-Za-z0-9.-]*/[A-Za-z0-9][A-Za-z0-9._-]*)@([0-9]+\.[0-9]+\.[0-9]+(?:[-+][A-Za-z0-9.-]+)?)', value)
+    if match:
+        return 'mcp-registry:' + match[1] + '@' + match[2]
+    match = re.fullmatch(r'acp:virtuals:([0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12})', value)
+    if match and UUID(match[1]).int:
+        return 'acp:virtuals:' + str(UUID(match[1]))
     try:
         parsed = urlsplit(value)
         port = parsed.port

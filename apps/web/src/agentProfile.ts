@@ -38,11 +38,9 @@ export function isOlasService(agent: AgentSummary): boolean {
 }
 
 export function registrationType(agent: AgentSummary): string {
+  if (agent.registration_reference.startsWith('mcp-registry:')) return '官方 MCP Registry 公开登记 · 链注册未证'
+  if (agent.registration_reference.startsWith('acp:virtuals:')) return '官方 ACP 公开服务登记 · 链注册未证'
   if (isOlasService(agent)) return 'Olas Service Registry'
   return agent.registration_reference.split(':')[2]?.toLowerCase() === '0x8004a169fb4a3325136eb29fa0ceb6d2e539a432'
     ? 'ERC-8004 身份注册' : '注册类型待核实'
-}
-
-export function supportsSubmission(agent: AgentSummary): boolean {
-  return agent.registration_reference.split(':')[2]?.toLowerCase() === '0x8004a169fb4a3325136eb29fa0ceb6d2e539a432'
 }

@@ -1,0 +1,676 @@
+{
+  "description": "Controlled offline derivation specifications from the unexecuted DRAFT-v2; real public response bytes are the separately hash-bound cow_swap_pilot_public_case fixture. These are not sampled business tasks.",
+  "draft_sha256": "016ee56775698340925906748455607c22aba57ebc975f840ef5e6cb54af663e",
+  "previous_draft_sha256": "517c0bd04e41cab4fb3e9099f093e4764500fc25de35fa4031dd3b59aaabd989",
+  "tasks": [
+    {
+      "task_id": "C24",
+      "task_key": "cf53d694-3ef0-471f-90ed-ca29e4b1ceaf",
+      "expected": {
+        "owner": "0x176501c795dbc31259bb86a49eb8a88ff2298b85",
+        "token_in": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "token_out": "0x4200000000000000000000000000000000000006",
+        "amount_in": "30000",
+        "slippage_bps": 50,
+        "valid_for_seconds": 1200,
+        "safe_rejection": true,
+        "signed_fee_amount": "0",
+        "invalid_field": "appCode"
+      },
+      "planned_actual_execution": false,
+      "selection_mode": "prospective",
+      "input_summary": "Wrong appCode with a matching exact appData hash, isolating declared attribution validation. Fresh quote and complete build precede validation; the frozen overlay changes only the selected field (appCode text and its corresponding appData hash form one consistent mutation).",
+      "requests": [
+        {
+          "stage": "quote",
+          "tool": "get_quote",
+          "arguments": {
+            "chainId": 8453,
+            "sellToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+            "buyToken": "0x4200000000000000000000000000000000000006",
+            "kind": "sell",
+            "amount": "30000",
+            "from": "0x176501c795dbc31259bb86a49eb8a88ff2298b85",
+            "validForSeconds": 1200
+          }
+        },
+        {
+          "stage": "build",
+          "tool": "build_order",
+          "arguments": {
+            "chainId": 8453,
+            "owner": "0x176501c795dbc31259bb86a49eb8a88ff2298b85",
+            "sellToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+            "buyToken": "0x4200000000000000000000000000000000000006",
+            "sellAmount": "30000",
+            "kind": "sell",
+            "validForSeconds": 1200,
+            "feeAmount": "0",
+            "partiallyFillable": false,
+            "slippageBips": 50,
+            "referrerCode": ""
+          },
+          "derived_arguments": {
+            "buyAmount": {
+              "rule": "quote-minimum",
+              "stage": "quote",
+              "pointer": "/quote/buyAmount",
+              "slippage_bps": 50
+            }
+          }
+        },
+        {
+          "stage": "validate",
+          "tool": "validate_order",
+          "arguments": {
+            "chainId": 8453,
+            "owner": "0x176501c795dbc31259bb86a49eb8a88ff2298b85"
+          },
+          "derived_arguments": {
+            "order": {
+              "rule": "object-overlay",
+              "base": {
+                "rule": "stage-value",
+                "stage": "build",
+                "pointer": "/order"
+              },
+              "derived_overrides": {
+                "/appData": {
+                  "rule": "keccak-utf8",
+                  "value": {
+                    "rule": "json-overlay",
+                    "base": {
+                      "rule": "stage-value",
+                      "stage": "build",
+                      "pointer": "/fullAppData"
+                    },
+                    "overrides": {
+                      "/appCode": "offline-invalid-appcode"
+                    }
+                  }
+                }
+              }
+            },
+            "fullAppData": {
+              "rule": "json-overlay",
+              "base": {
+                "rule": "stage-value",
+                "stage": "build",
+                "pointer": "/fullAppData"
+              },
+              "overrides": {
+                "/appCode": "offline-invalid-appcode"
+              }
+            },
+            "signingDomain": {
+              "rule": "stage-value",
+              "stage": "build",
+              "pointer": "/signing/domain"
+            },
+            "orderbookUrl": {
+              "rule": "stage-value",
+              "stage": "build",
+              "pointer": "/orderbookUrl"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "task_id": "C25",
+      "task_key": "cd420d0d-7cce-4b24-a196-c52bd69f62e5",
+      "expected": {
+        "owner": "0x176501c795dbc31259bb86a49eb8a88ff2298b85",
+        "token_in": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "token_out": "0x4200000000000000000000000000000000000006",
+        "amount_in": "30000",
+        "slippage_bps": 50,
+        "valid_for_seconds": 1200,
+        "safe_rejection": true,
+        "signed_fee_amount": "0",
+        "invalid_field": "receiver"
+      },
+      "planned_actual_execution": false,
+      "selection_mode": "prospective",
+      "input_summary": "Receiver redirected to the real Settlement contract; no signing or submission. Fresh quote and complete build precede validation; the frozen overlay changes only the selected field (appCode text and its corresponding appData hash form one consistent mutation).",
+      "requests": [
+        {
+          "stage": "quote",
+          "tool": "get_quote",
+          "arguments": {
+            "chainId": 8453,
+            "sellToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+            "buyToken": "0x4200000000000000000000000000000000000006",
+            "kind": "sell",
+            "amount": "30000",
+            "from": "0x176501c795dbc31259bb86a49eb8a88ff2298b85",
+            "validForSeconds": 1200
+          }
+        },
+        {
+          "stage": "build",
+          "tool": "build_order",
+          "arguments": {
+            "chainId": 8453,
+            "owner": "0x176501c795dbc31259bb86a49eb8a88ff2298b85",
+            "sellToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+            "buyToken": "0x4200000000000000000000000000000000000006",
+            "sellAmount": "30000",
+            "kind": "sell",
+            "validForSeconds": 1200,
+            "feeAmount": "0",
+            "partiallyFillable": false,
+            "slippageBips": 50,
+            "referrerCode": ""
+          },
+          "derived_arguments": {
+            "buyAmount": {
+              "rule": "quote-minimum",
+              "stage": "quote",
+              "pointer": "/quote/buyAmount",
+              "slippage_bps": 50
+            }
+          }
+        },
+        {
+          "stage": "validate",
+          "tool": "validate_order",
+          "arguments": {
+            "chainId": 8453,
+            "owner": "0x176501c795dbc31259bb86a49eb8a88ff2298b85"
+          },
+          "derived_arguments": {
+            "order": {
+              "rule": "object-overlay",
+              "base": {
+                "rule": "stage-value",
+                "stage": "build",
+                "pointer": "/order"
+              },
+              "overrides": {
+                "/receiver": "0x9008d19f58aabd9ed0d60971565aa8510560ab41"
+              }
+            },
+            "fullAppData": {
+              "rule": "stage-value",
+              "stage": "build",
+              "pointer": "/fullAppData"
+            },
+            "signingDomain": {
+              "rule": "stage-value",
+              "stage": "build",
+              "pointer": "/signing/domain"
+            },
+            "orderbookUrl": {
+              "rule": "stage-value",
+              "stage": "build",
+              "pointer": "/orderbookUrl"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "task_id": "C26",
+      "task_key": "25984be8-2005-40e1-a95c-7e02d77fd304",
+      "expected": {
+        "owner": "0x176501c795dbc31259bb86a49eb8a88ff2298b85",
+        "token_in": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "token_out": "0x4200000000000000000000000000000000000006",
+        "amount_in": "30000",
+        "slippage_bps": 50,
+        "valid_for_seconds": 1200,
+        "safe_rejection": true,
+        "signed_fee_amount": "0",
+        "invalid_field": "appData"
+      },
+      "planned_actual_execution": false,
+      "selection_mode": "prospective",
+      "input_summary": "Exact original fullAppData paired with the wrong signed bytes32 hash. Fresh quote and complete build precede validation; the frozen overlay changes only the selected field (appCode text and its corresponding appData hash form one consistent mutation).",
+      "requests": [
+        {
+          "stage": "quote",
+          "tool": "get_quote",
+          "arguments": {
+            "chainId": 8453,
+            "sellToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+            "buyToken": "0x4200000000000000000000000000000000000006",
+            "kind": "sell",
+            "amount": "30000",
+            "from": "0x176501c795dbc31259bb86a49eb8a88ff2298b85",
+            "validForSeconds": 1200
+          }
+        },
+        {
+          "stage": "build",
+          "tool": "build_order",
+          "arguments": {
+            "chainId": 8453,
+            "owner": "0x176501c795dbc31259bb86a49eb8a88ff2298b85",
+            "sellToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+            "buyToken": "0x4200000000000000000000000000000000000006",
+            "sellAmount": "30000",
+            "kind": "sell",
+            "validForSeconds": 1200,
+            "feeAmount": "0",
+            "partiallyFillable": false,
+            "slippageBips": 50,
+            "referrerCode": ""
+          },
+          "derived_arguments": {
+            "buyAmount": {
+              "rule": "quote-minimum",
+              "stage": "quote",
+              "pointer": "/quote/buyAmount",
+              "slippage_bps": 50
+            }
+          }
+        },
+        {
+          "stage": "validate",
+          "tool": "validate_order",
+          "arguments": {
+            "chainId": 8453,
+            "owner": "0x176501c795dbc31259bb86a49eb8a88ff2298b85"
+          },
+          "derived_arguments": {
+            "order": {
+              "rule": "object-overlay",
+              "base": {
+                "rule": "stage-value",
+                "stage": "build",
+                "pointer": "/order"
+              },
+              "overrides": {
+                "/appData": "0x0000000000000000000000000000000000000000000000000000000000000000"
+              }
+            },
+            "fullAppData": {
+              "rule": "stage-value",
+              "stage": "build",
+              "pointer": "/fullAppData"
+            },
+            "signingDomain": {
+              "rule": "stage-value",
+              "stage": "build",
+              "pointer": "/signing/domain"
+            },
+            "orderbookUrl": {
+              "rule": "stage-value",
+              "stage": "build",
+              "pointer": "/orderbookUrl"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "task_id": "C27",
+      "task_key": "4dd92798-8f2d-4bb5-852d-3b8477f870e5",
+      "expected": {
+        "owner": "0x176501c795dbc31259bb86a49eb8a88ff2298b85",
+        "token_in": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "token_out": "0x4200000000000000000000000000000000000006",
+        "amount_in": "30000",
+        "slippage_bps": 50,
+        "valid_for_seconds": 1200,
+        "safe_rejection": true,
+        "signed_fee_amount": "0",
+        "invalid_field": "feeAmount"
+      },
+      "planned_actual_execution": false,
+      "selection_mode": "prospective",
+      "input_summary": "Nonzero signed feeAmount in the service mode that declares omitted or zero. Fresh quote and complete build precede validation; the frozen overlay changes only the selected field (appCode text and its corresponding appData hash form one consistent mutation).",
+      "requests": [
+        {
+          "stage": "quote",
+          "tool": "get_quote",
+          "arguments": {
+            "chainId": 8453,
+            "sellToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+            "buyToken": "0x4200000000000000000000000000000000000006",
+            "kind": "sell",
+            "amount": "30000",
+            "from": "0x176501c795dbc31259bb86a49eb8a88ff2298b85",
+            "validForSeconds": 1200
+          }
+        },
+        {
+          "stage": "build",
+          "tool": "build_order",
+          "arguments": {
+            "chainId": 8453,
+            "owner": "0x176501c795dbc31259bb86a49eb8a88ff2298b85",
+            "sellToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+            "buyToken": "0x4200000000000000000000000000000000000006",
+            "sellAmount": "30000",
+            "kind": "sell",
+            "validForSeconds": 1200,
+            "feeAmount": "0",
+            "partiallyFillable": false,
+            "slippageBips": 50,
+            "referrerCode": ""
+          },
+          "derived_arguments": {
+            "buyAmount": {
+              "rule": "quote-minimum",
+              "stage": "quote",
+              "pointer": "/quote/buyAmount",
+              "slippage_bps": 50
+            }
+          }
+        },
+        {
+          "stage": "validate",
+          "tool": "validate_order",
+          "arguments": {
+            "chainId": 8453,
+            "owner": "0x176501c795dbc31259bb86a49eb8a88ff2298b85"
+          },
+          "derived_arguments": {
+            "order": {
+              "rule": "object-overlay",
+              "base": {
+                "rule": "stage-value",
+                "stage": "build",
+                "pointer": "/order"
+              },
+              "overrides": {
+                "/feeAmount": "1"
+              }
+            },
+            "fullAppData": {
+              "rule": "stage-value",
+              "stage": "build",
+              "pointer": "/fullAppData"
+            },
+            "signingDomain": {
+              "rule": "stage-value",
+              "stage": "build",
+              "pointer": "/signing/domain"
+            },
+            "orderbookUrl": {
+              "rule": "stage-value",
+              "stage": "build",
+              "pointer": "/orderbookUrl"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "task_id": "C28",
+      "task_key": "b8b854ac-8373-4478-abf2-e6a0fb44146e",
+      "expected": {
+        "owner": "0x176501c795dbc31259bb86a49eb8a88ff2298b85",
+        "token_in": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "token_out": "0x4200000000000000000000000000000000000006",
+        "amount_in": "30000",
+        "slippage_bps": 50,
+        "valid_for_seconds": 1200,
+        "safe_rejection": true,
+        "signed_fee_amount": "0",
+        "invalid_field": "expired"
+      },
+      "planned_actual_execution": false,
+      "selection_mode": "prospective",
+      "input_summary": "Expired uint32 deadline, tested only through native offline validation. Fresh quote and complete build precede validation; the frozen overlay changes only the selected field (appCode text and its corresponding appData hash form one consistent mutation).",
+      "requests": [
+        {
+          "stage": "quote",
+          "tool": "get_quote",
+          "arguments": {
+            "chainId": 8453,
+            "sellToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+            "buyToken": "0x4200000000000000000000000000000000000006",
+            "kind": "sell",
+            "amount": "30000",
+            "from": "0x176501c795dbc31259bb86a49eb8a88ff2298b85",
+            "validForSeconds": 1200
+          }
+        },
+        {
+          "stage": "build",
+          "tool": "build_order",
+          "arguments": {
+            "chainId": 8453,
+            "owner": "0x176501c795dbc31259bb86a49eb8a88ff2298b85",
+            "sellToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+            "buyToken": "0x4200000000000000000000000000000000000006",
+            "sellAmount": "30000",
+            "kind": "sell",
+            "validForSeconds": 1200,
+            "feeAmount": "0",
+            "partiallyFillable": false,
+            "slippageBips": 50,
+            "referrerCode": ""
+          },
+          "derived_arguments": {
+            "buyAmount": {
+              "rule": "quote-minimum",
+              "stage": "quote",
+              "pointer": "/quote/buyAmount",
+              "slippage_bps": 50
+            }
+          }
+        },
+        {
+          "stage": "validate",
+          "tool": "validate_order",
+          "arguments": {
+            "chainId": 8453,
+            "owner": "0x176501c795dbc31259bb86a49eb8a88ff2298b85"
+          },
+          "derived_arguments": {
+            "order": {
+              "rule": "object-overlay",
+              "base": {
+                "rule": "stage-value",
+                "stage": "build",
+                "pointer": "/order"
+              },
+              "overrides": {
+                "/validTo": 1
+              }
+            },
+            "fullAppData": {
+              "rule": "stage-value",
+              "stage": "build",
+              "pointer": "/fullAppData"
+            },
+            "signingDomain": {
+              "rule": "stage-value",
+              "stage": "build",
+              "pointer": "/signing/domain"
+            },
+            "orderbookUrl": {
+              "rule": "stage-value",
+              "stage": "build",
+              "pointer": "/orderbookUrl"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "task_id": "C29",
+      "task_key": "f07eec56-abd8-4f59-8a2b-7b5e041965d5",
+      "expected": {
+        "owner": "0x176501c795dbc31259bb86a49eb8a88ff2298b85",
+        "token_in": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "token_out": "0x4200000000000000000000000000000000000006",
+        "amount_in": "30000",
+        "slippage_bps": 50,
+        "valid_for_seconds": 1200,
+        "safe_rejection": true,
+        "signed_fee_amount": "0",
+        "invalid_field": "domain"
+      },
+      "planned_actual_execution": false,
+      "selection_mode": "prospective",
+      "input_summary": "Signing domain points to the real relayer instead of Settlement. Fresh quote and complete build precede validation; the frozen overlay changes only the selected field (appCode text and its corresponding appData hash form one consistent mutation).",
+      "requests": [
+        {
+          "stage": "quote",
+          "tool": "get_quote",
+          "arguments": {
+            "chainId": 8453,
+            "sellToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+            "buyToken": "0x4200000000000000000000000000000000000006",
+            "kind": "sell",
+            "amount": "30000",
+            "from": "0x176501c795dbc31259bb86a49eb8a88ff2298b85",
+            "validForSeconds": 1200
+          }
+        },
+        {
+          "stage": "build",
+          "tool": "build_order",
+          "arguments": {
+            "chainId": 8453,
+            "owner": "0x176501c795dbc31259bb86a49eb8a88ff2298b85",
+            "sellToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+            "buyToken": "0x4200000000000000000000000000000000000006",
+            "sellAmount": "30000",
+            "kind": "sell",
+            "validForSeconds": 1200,
+            "feeAmount": "0",
+            "partiallyFillable": false,
+            "slippageBips": 50,
+            "referrerCode": ""
+          },
+          "derived_arguments": {
+            "buyAmount": {
+              "rule": "quote-minimum",
+              "stage": "quote",
+              "pointer": "/quote/buyAmount",
+              "slippage_bps": 50
+            }
+          }
+        },
+        {
+          "stage": "validate",
+          "tool": "validate_order",
+          "arguments": {
+            "chainId": 8453,
+            "owner": "0x176501c795dbc31259bb86a49eb8a88ff2298b85"
+          },
+          "derived_arguments": {
+            "order": {
+              "rule": "stage-value",
+              "stage": "build",
+              "pointer": "/order"
+            },
+            "fullAppData": {
+              "rule": "stage-value",
+              "stage": "build",
+              "pointer": "/fullAppData"
+            },
+            "signingDomain": {
+              "rule": "object-overlay",
+              "base": {
+                "rule": "stage-value",
+                "stage": "build",
+                "pointer": "/signing/domain"
+              },
+              "overrides": {
+                "/verifyingContract": "0xc92e8bdf79f0507f65a392b0ab4667716bfe0110"
+              }
+            },
+            "orderbookUrl": {
+              "rule": "stage-value",
+              "stage": "build",
+              "pointer": "/orderbookUrl"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "task_id": "C30",
+      "task_key": "7abcdce0-489b-4606-8b00-2778f0e516b4",
+      "expected": {
+        "owner": "0x176501c795dbc31259bb86a49eb8a88ff2298b85",
+        "token_in": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "token_out": "0x4200000000000000000000000000000000000006",
+        "amount_in": "30000",
+        "slippage_bps": 50,
+        "valid_for_seconds": 1200,
+        "safe_rejection": true,
+        "signed_fee_amount": "0",
+        "invalid_field": "orderbook"
+      },
+      "planned_actual_execution": false,
+      "selection_mode": "prospective",
+      "input_summary": "Base validation paired with the official mainnet API base, isolating wrong per-chain orderbook selection. Fresh quote and complete build precede validation; the frozen overlay changes only the selected field (appCode text and its corresponding appData hash form one consistent mutation).",
+      "requests": [
+        {
+          "stage": "quote",
+          "tool": "get_quote",
+          "arguments": {
+            "chainId": 8453,
+            "sellToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+            "buyToken": "0x4200000000000000000000000000000000000006",
+            "kind": "sell",
+            "amount": "30000",
+            "from": "0x176501c795dbc31259bb86a49eb8a88ff2298b85",
+            "validForSeconds": 1200
+          }
+        },
+        {
+          "stage": "build",
+          "tool": "build_order",
+          "arguments": {
+            "chainId": 8453,
+            "owner": "0x176501c795dbc31259bb86a49eb8a88ff2298b85",
+            "sellToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+            "buyToken": "0x4200000000000000000000000000000000000006",
+            "sellAmount": "30000",
+            "kind": "sell",
+            "validForSeconds": 1200,
+            "feeAmount": "0",
+            "partiallyFillable": false,
+            "slippageBips": 50,
+            "referrerCode": ""
+          },
+          "derived_arguments": {
+            "buyAmount": {
+              "rule": "quote-minimum",
+              "stage": "quote",
+              "pointer": "/quote/buyAmount",
+              "slippage_bps": 50
+            }
+          }
+        },
+        {
+          "stage": "validate",
+          "tool": "validate_order",
+          "arguments": {
+            "chainId": 8453,
+            "owner": "0x176501c795dbc31259bb86a49eb8a88ff2298b85",
+            "orderbookUrl": "https://api.cow.fi/mainnet"
+          },
+          "derived_arguments": {
+            "order": {
+              "rule": "stage-value",
+              "stage": "build",
+              "pointer": "/order"
+            },
+            "fullAppData": {
+              "rule": "stage-value",
+              "stage": "build",
+              "pointer": "/fullAppData"
+            },
+            "signingDomain": {
+              "rule": "stage-value",
+              "stage": "build",
+              "pointer": "/signing/domain"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "chain_id": 8453,
+  "owner": "0x176501c795dbc31259bb86a49eb8a88ff2298b85"
+}

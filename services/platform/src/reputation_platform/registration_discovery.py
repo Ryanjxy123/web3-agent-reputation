@@ -59,7 +59,7 @@ def _configuration(root: Path) -> dict:
 
 def _identity(value: str) -> tuple[str, int, str, int]:
     canonical = normalize_reference(value)
-    if canonical is None:
+    if canonical is None or not canonical.startswith('eip155:'):
         raise ValueError('Expected a canonical ERC-8004 registration reference')
     _, chain, registry, token = canonical.split(':')
     if int(token) >= 2 ** 256 or int(registry, 16) == 0:

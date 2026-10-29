@@ -1,6 +1,124 @@
 # 新项目执行计划
 
-## 2026-10-28 当前：通用来源与Hydrex正式评分已本机完成
+## 当前任务：仅浏览既有报告界面（2026-10-29）
+
+task_id=`BROWSE_ONLY_UI`。已移除“浏览Agent／接入并评价”切换、目录接入按钮与提交页面，并删除前端提交调用、作业轮询和孤立样式。当前仅浏览既有Agent报告；排序筛选、详情、样本与证据照常使用。一次`pnpm --dir apps/web run build`含类型检查，exit 0，Vite538ms；本机HTTP已确认返回新构建且无接入文案/提交调用。无新增实验，不改评分或数据包。现有PR #24的更新结果以交付回执及远程PR为准。
+
+用户取消十对象数量目标后，本轮仅完成MangoSwap、Hydrex、Topaz、Ophis，现均已完成本轮范围评价、正式报告及网站发布。已停止新增Agent实验；其它候选记录保留，不再请求、付款、授权或适配。合计146个实际任务、32笔真实兑换及2笔订单管理，不把计划槽位、接口阶段、模拟或服务费算成额外成交。
+
+| 对象 | 实际任务 | A | F | B | 已测范围综合分 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| MangoSwap | 34 | 100 | 91.67 | 100 | 96.67 |
+| Hydrex | 43 | 82.22 | 100 | 100 | 94.67 |
+| Topaz | 38 | 100 | 98 | 100 | 99.2 |
+| Ophis MCP | 31 | 100 | 100 | 100 | 100 |
+
+Ophis正式报告`6e32f752-1c49-4003-89a4-3d4e38902b42`，目录`runtime/ophis-report-20261029-calibrated-v1`。F为93项PASS/0项FAIL/15项UNKNOWN，严格整任务为16通过/15未知；声明覆盖仍PARTIAL。A为24可判任务通过，p95=16764ms，无公开SLA则不虚构时限。B为8 PASS/1 UNKNOWN：8笔实兑双向各4，均授权归零且至少85块距离，原门槛仍64；原C02本地未提交且已清零授权，fresh C31完成，原件均保留。公开MCP登记已核，ERC-8004链注册UNKNOWN；余额、同期盈余及原生submit公开证据缺项不补PASS。C16是时效保护UNKNOWN，C24是声明告警检查PASS，均不冒充成交。三维及30/40/30不变。
+
+网站7754已由真实PostgreSQL与HTTP核验四对象列表、Ophis含斜杠标识详情、报告、C08链视图1swap及附件原字节SHA。回执`runtime/ophis-cow-publication-20261029/http-verification.json`；进程`runtime/background-platform-20261029T031902Z-ad7aae02/process.json`，worker public-off。新增必要label核验1test/0.808s、路由核验1test/0.365s、诊断校准1test/1.281s均exit0；已有结果复用，未重跑旧suite。
+
+最终四对象包`data/public-reports-trading-closeout-v4.tar.gz`已通过独立离线verify（exit 0）：4份报告、4917份runtime恢复、25份Git原字节环境前置，0联网/0数据库写入。归档6381791字节、4941文件（含索引4942成员），SHA256 `9cbf2cfff85f7b1af9ef16fce542488f7217773838cd3c19d6a50c90a9f3460e`；3类已知本机秘密及私钥标记扫描0命中。回执见`runtime/package-review-trading-closeout-20261029/verification-receipt.json`和`exact-secret-scan.json`。
+
+Git分支`codex/hydrex-expanded-evaluation`，本次`BROWSE_ONLY_UI`更新现有PR #24；提交、push与CI状态以`runtime/release-closeout-review-20261029/git-delivery.json`及远程PR为准。界面与本机资源核验回执为`runtime/browse-only-ui-20261029/verification.json`。下一task_id=`USER_FEEDBACK`，不恢复新实验，严格禁止发币，保留无关`docs/presentation/`。
+
+## 历史记录（以下不再驱动当前任务）
+
+早期目标、进度与费用边界保留追溯；后续执行只按上方当前结论。
+
+## 2026-10-29 历史：Hydrex扩采与任务链路已发布，推进Ophis
+
+Hydrex追加正式报告 `da575ada-2322-47a1-81c8-6f85df1a26a1`，来源 `runtime/hydrex-public-20261029-expanded-v2/source.json`，报告 `runtime/hydrex-report-20261029-expanded-v2`。真实PostgreSQL导入与7754网站列表/报告已通过：43个真实请求、48个冻结槽位，8笔真实兑换（正反各4）均B PASS；A82.22 / F100 / B100 / 综合94.67。旧pilot、v1中间来源和所有原件保持，未改三维/30-40-30/阈值。
+
+A新增H17缺收款地址、H22 OpenOcean、H23 OKX三项完整窗口超时，连同旧H38共4 FAIL。先保存完整链上事件窗口，再取得窗口后的官方history，避免把早于窗口的快照用于超时结论。F100仅对应可判判据；声明/F覆盖仍PARTIAL，不等于43任务全部功能通过。H24 Kyber官方固定commit部署、Exact Match及同块runtime一致；H13未识别BASIC外部AMM与H33未知边界语义保持UNKNOWN，非法输入不执行本金。
+
+本轮新增24个请求全部真实提交；22个获报价服务费请求已规范付款，共0.44USDC，2个入口拒绝不付款。7笔小批付款严格绑定原完整map/原任务/精确金额与清零授权；Windows native signer长命令问题已用1..4项批解决，旧超长scope未发钱包请求，原fence保留。已有8实兑复用，不重做。
+
+网站评分与任务链路均已更新。新来源observation按JSONRPC方法、同目录正文和SHA绑定解引用，并按原task的execution交易hash过滤；H47接口已由root复核HTTP200，8CALL/1swap，仅含0xa9ac…6457，排除3笔ACP服务费。retained H02与旧body路径兼容；首次定向case发现retained指针误判，修复后仅重跑同项，最终1test/0.938s/exit0，未重旧suite。附件HTTP200、SHA原字节相等。最新平台进程收据 `runtime/background-platform-20261029T012150Z-85ffe9ea/process.json`，worker public-off。
+
+当前达到至少30真实任务且已发布三维分的对象为3/10：MangoSwap34/96.67、Topaz38/99.2、Hydrex43/94.67。新三对象包data/public-reports-trading-expanded-v3.tar.gz（5693428B、4272文件，SHA58dd653440e4be9fb24b5f7f8115943bbb6050ca5b2b62954c498a25b3e3f2d7）已生成；独立离线verify补齐22份公共环境前置后exit0，3报告/4251runtime/0网络/0PG；4273成员、3类已知本机credential精确扫描0命中。收据在runtime/package-review-trading-expanded-20261029/verification-receipt.json与exact-secret-scan.json。README已更新导入命令，旧包保留；正式路径、case分值与覆盖口径见docs/runbooks/HYDREX_EXPANDED_RELEASE_20261029.md。
+
+F卡已补通用判据计数说明：仅valid functional观察，按task_key+criterion_id去重；Hydrex显示73通过/0不符/73未知，下方1完全符合/42未验证仍为严格整任务计数。分数/后端/schema/原档与布局样式不变。必要一次pnpm --dir apps/web run build含Vue类型检查与Vite，exit0（Vite541ms）；不重旧tests，不HTTP/PG/钱包/重启。
+
+CoW共用接入组合核验1项6.178s/exit0，pinned operator/protocol保持。Ophis新冻结runtime/ophis-cow-campaign-20261029/plan.json，SHA4112a7a019a4e9145ac3cd83e763646bfa7512cc74fb596483bec6b22a986c88，freeze2026-10-29T01:19:23.764961+00:00；本次记录时root正在采集22个免费功能任务和C02，未取得本轮新增成交/评分。后续按证据资格推进其它独立交易服务，不围单对象写评分分支。严格禁止发币/身份铸造，资金签发仅root单序列。
+
+下一task_id=OPHIS_THIRTY_TASK_CAMPAIGN。Git仍codex/hydrex-expanded-evaluation，远程main0842b21与队友视觉d86a4b5已重新fetch核实未变；本地未提交改动及新三对象公开包待分批提交/推送，保留docs/presentation/。本次文档整理未请求网络/钱包/PG/重启、未重跑测试或修改原件/CI/pinned source，未commit/push。整体10×30未完成。
+
+
+## 2026-10-29 历史：CoW EOA campaign操作接口交付
+
+当前task_id=COW_EOA_CAMPAIGN_OPERATOR。新增ROOT独占、冻结数据驱动的CoW EOA采集/准备/精确approve/独立签名/原UID一次提交/只读订单及链对账接口；复用cow_swap_protocol，不按Agent名/域名/ID分支。旧pilot三份source SHA与原冻结一致。C24–C30保护任务在新DRAFT-v2采用fresh quote/build/完整validate+单字段闭集overlay，appCode同步hash。30任务UUID/expected/cases保留，C01旧pilot回顾映射不重采；草案SHA016ee56775698340925906748455607c22aba57ebc975f840ef5e6cb54af663e，原517c草案保留。
+
+Python3.12 AST与Node语法检查exit0；必要真实原件/单字段隔离/哈希/未知规则负控定向最终1test/0.007s/exit0（fixture可移植调整后仅复核同项），未跑旧suite。本轮0操作phase、0HTTP/RPC、0密钥读取、0签名/send/submit、新业务样本0。软件provenance为不可执行文本快照，签名和私密请求不进source。详见docs/research/COW_EOA_CAMPAIGN_OPERATOR_20261029.md及runtime草案receipt。
+
+Topaz时钟更正报告已由root追加真实PG，id bcbbaaea-df0c-47cb-ad70-31a6e08a3478，A100/F98/B100/overall99.2；旧报告保留，本项不改其ADR0032/0036。下一task_id=COW_EOA_CAMPAIGN_ROOT_REVIEW_FREEZE：root审核新操作器、签名边界和DRAFT-v2，冻结后单序列执行既定任务；整体10×30继续，不能称全部完成。子代理未commit/push，保留同分支其他改动。
+
+
+## 2026-10-29 历史：Hydrex扩采与多对象交易覆盖
+
+10个真实交易Agent、每个至少30个实际任务的目标保持进行中。目前网站3个对象：MangoSwap34任务/96.67，Topaz38任务/99.2，Hydrex仍为旧2任务pilot；仅Mango、Topaz达到本轮数量基线，不把网站对象数当10×30完成数。
+
+Topaz最新正式报告bcbbaaea-df0c-47cb-ad70-31a6e08a3478已追加真实PostgreSQL并HTTP核验：A100/F98/B100/综合99.2，38任务（36有完整HTTP响应、2平台传输中断）、8笔真实兑换均已补64块规范链确认、16份非实兑历史完整模拟。A38真实500按冻结输入校验契约记F FAIL；A21一秒生成时点差按ADR0036校准为UNKNOWN，旧97.2版本和原件保留可复算。新报告仅评价Base USDC/WETH范围，不冒称全部58项能力。API已重启使用队友新版界面，worker public-off。
+
+Hydrex已核5笔真实兑换（原H02及H39/H40/H42/H43）；H41原报价因平台缺V2预付池解析而未执行，已补通用解析并保留原件，H44/H45旧未付款订单接近/超过期限，不对旧单付款或签发。独立双方向采样版本按每方向4个可判真实履约，共8目标；内部source问题仍留A/F，不强迫每路都成交。新plan-v3 SHAfb4314d72fd110dc0947c319e65ea64719598bf7e7c2555ab0f97cc1f3a1d696，H46/H47/H48新请求已冻结建单，按单取有效报价后执行；旧UUID、失败、未知及费用不覆盖。随后补原冻结的金额/滑点/缺省/多source和非法输入请求到至少Mango同等规模，再追加正式报告。
+
+Ophis已完成一笔新真实CoW订单资格：0.1USDC换41856540788113 raw WETH，UID事件/净资产/91块/授权0已核，尚未达到30样本；共用CoW报告与30任务仍在代码/DRAFT阶段。TheSafeRouteBot已核公共ACP目录与真实provider事件，后续按通用字段映射准备；Cleave只取得真实方案和官方部署资料，executor/blob仍待核；Quietwork的两个功能返回metadata错误，Paladin超时，不计已评分。
+
+本机网络已用显式HTTP代理7897和Cloudflare官方备用DNS引导1.0.0.1恢复，TLS/公网地址校验保持；旧网络中断不归责Agent。未发币、未铸造身份/报告，全部金融动作由root单序列发起。Git分支codex/hydrex-expanded-evaluation，队友视觉合并1980482、协议检查点e44448d、DNS/V3修复d139e81；其余必要改动待分批提交/推送，无关docs/presentation/保留。
+
+下一task_id=HYDREX_34_TASK_AND_EIGHT_SWAP_CLOSEOUT；并行只读取证/共用CoW与字段映射开发。真实余额不足且无法自有调拨、外部登录或需要方向决策时再请用户处理，不因旧金额上限停工。
+
+## 2026-10-29 历史：缺省deadline测量校准
+
+当前task_id=DEADLINE_DEFAULT_CLOCK_CORRECTION。root人工复核发现A21默认600秒实际整数差599秒，旧v1误将响应生成时间当deadline创建时间。新request-interval-v1 marker仅在plan-v5启用：精确600可PASS，实测3750ms请求+秒精度窗[595,601]内非精确值为UNKNOWN，窗外才FAIL；默认slippage、A38真实500 FAIL、30/40/30与所有数量规则不改。
+
+plan-v5 SHA f154cc22669ab476db68ccc635a018894e89ad4daa5323d9f203756434a77c3c，previous=v4，原tasks/cases两段JSON字节完全相同；当前38任务/36有HTTP响应/8实兑仍是同批原件。新source runtime/topaz-public-20261029-clock-v2/source.json SHA416b19c8e272bd1d6fd3a085899f5ea3d477a9fe326cb40869c0590fa5f36057，明确retrospective已有证据校准。只新增ADR0036，未改已固定ADR0032、旧source/plan/report/manifest。
+
+一次必要真实A21/明确错误TTL/缺时间/旧v1兼容定向验收1test/7.569s/exit0；本机完整重放已发布v1逐字段相等，新source全38任务只A21 default-contract从FAIL变UNKNOWN，其余verdict不变。旧报告原字节保留。本项0HTTP/RPC/钱包/签名/PG操作，不重跑旧suite。
+
+下一task_id=DEADLINE_CORRECTED_REPORT_PUBLISH：root构建新报告目录并追加真实PG版本，保留v1历史与更正说明；三维目标及10×30整体目标继续，不将测量校准算新业务样本。子代理未commit/push。
+
+## 2026-10-29 官方公开服务身份支持（本项实现，整体目标继续）
+
+当前task_id=PUBLIC_SERVICE_IDENTITY。新增官方MCP具体name/version/remote与ACP UUID/provider钱包/offering/真实链事件的离线身份proof；public_registry_verified与chain_registration_verified独立，链注册未证为BACKGROUND UNKNOWN，不扣A/F/B。core仅扩严格reference解析，不改评分或共享字段；ERC8004原核验语义保持。unsigned/campaign/atomic报表、资料页、导入防重绑兼容新引用，无对象名评分分支。
+
+Ophis官方具体版本GET200并核remote；TheSafeRouteBot目录与job82343真实提交事件proof已核。SafeRoute目前只有目录/x402钱包，未造ACP事件，其完整身份绑定待root补。两对象各30任务DRAFT已保存，未冻结、未发业务，辅助只读声明仍需独立checker；不将目录/计划当采样数。详见docs/research/PUBLIC_SERVICE_IDENTITY_20261029.md及ADR0034。
+
+必要真实原件/篡改单项最终1test/0.363s/exit0（review补链ID存在/错链负控），前端构建exit0；root追加A38的typed HTTP500非法输入处理负例定向1test/0.002s/exit0，阈值与A33/A34 UNKNOWN不改。atomic exporter补收observe-rpc真实simulation来源，execution仍只取proof。本项仅1次免费官方registry GET，无新业务/RPC/钱包/签名/密钥读取。旧suite、实际PG写入、浏览器NOT_RUN；本子任务未commit/push，未动root operator。另新写只读确认收口脚本并离线映射8任务通过，实际head/header采集仅root执行。身份proof及30任务草案最新为只追加v2，原件保留。
+
+下一task_id=PUBLIC_SERVICE_CAMPAIGN_FREEZE：root完成当前atomic实兑/确认后，审两份30任务草案、补SafeRoute实际provider事件并前瞻冻结；整体10×30尚未完成，不因公开登记来源不同降低任务或链证据标准。
+
+## 2026-10-29 atomic公开接入与补采计划（进行中）
+
+当前task_id=ATOMIC_PUBLIC_SOURCE_INTEGRATION。通用atomic origin已接shared来源核验、Repository导入前置、资料页和链证据视图；无对象名/域名/登记ID评分分支，core及30/40/30不改。quote/build仍一任务，方案不标成交；展示已采任务与冻结槽位分开，缺证据保留UNKNOWN。新增只读source exporter，排除私密签名/SIGN/SEND/auth文件，软件provenance使用artifact内不可执行文本快照。
+
+A09–A34的26真实免费HTTP任务/42请求已保留（32次200、10次400），未重复旧stage；A33/A34泛化拒绝原因不足保持UNKNOWN。root单序列执行实兑；A02/A03平台DoH传输中断原件及UNKNOWN保留，追加A35/A36独立任务。plan-v3共36冻结槽位，SHA73ce3e96ef9b726d63e126795e20adea4ff3bfea21792a1164d10c18839c4d66；原plan/v2字节不改，B方向required_decisive仍各4。不得把36计划或一次交易叫完成10×30目标。
+
+离线接入定向组合验收最终1项/3.290s/exit0，涵盖来源重放/导入前置、profile、16CALL链视图、追加冻结时钟、未采计数及防篡改；两次先前失败均为受控夹具字段/文件命名缺口，修正后通过，未放宽安全过滤。前端类型检查+构建exit0。未重跑旧suite；真实PostgreSQL导入、浏览器和公开发布NOT_RUN，本子任务无新增网络/钱包操作。只读导出草稿18:05:08 UTC含30观测任务/28有HTTP响应/1执行source-item，非评分结论。
+
+下一task_id=ATOMIC_REAL_TASK_COMPLETION：root完成既定8次实兑及64块确认，按最新原件追加source/报告后真实导入；其它交易Agent发现与取证继续。Git保留当前codex/hydrex-expanded-evaluation及队友改动，本子任务未commit/push/合并。
+
+## 2026-10-28 历史目标：10个交易Agent，每个至少30个真实样本
+
+最新用户目标为完成10个以交易为核心的真实公共Agent的三维评分，每个至少30个真实任务样本，尽可能覆盖各自公开声明的功能。三维维度与v3单分30/40/30不变；样本按真实任务去重，不把本地负控/多判据/费用/模拟包装成额外Agent或实际成交。Mango34任务是现有基线，Hydrex原发布仍2任务；其余必须先有多个可核服务/声明/交易方案来源再复用协议适配。原预测Agent不用于凑本目标。
+
+用户已明确授权此目标内必要钱包操作，无需逐笔征求同意；继续禁止发币、tokenize、身份/报告铸造，保密、真实对账和不可盲重发。若确需用户账号登录或外部充值等无法独立完成的操作再询问，不因旧金额上限停工。先完成Hydrex/共用协议，再并行发现与只读取证、单序列发送资金交易。
+
+中断恢复核查：原执行句柄22250/5791均已不存在，权威结果已确认H35仅建单和要求提交、未付费；H12/H04亦未付费，现均过45分钟订单期限，不给旧订单付款或盲重发。H03已付0.02USDC并交付反向方案，因平台解码缺口未兑换；新VIP/输出费用通用解析已实现待必要回归，原报价按历史块保留，后续新有效任务另冻结。旧计划/UUID/原件不覆盖。
+
+远程核查main仍0842b21、队友视觉d86a4b5；已本地合并为1980482，新风格构建及必要前后端检查通过。本机7754已按原真实PG配置恢复，HTTP确认两个已发布报告；旧数据和未提交docs/presentation/保留。当前按HTTP实数，Mango34任务/综合96.67达到数量基线，Hydrex公开仍2任务/100；10×30目标目前仅1个达到任务数量，目标保持active。新H36反向报价任务已建单82375，尚未付款；原H03新协议历史固定块模拟通过，净增944817 raw USDC，并非实际兑换。
+
+
+## 2026-10-28 前置阶段：同步队友可视化并扩大Hydrex采样
+
+当前task_id=HYDREX_EXPANDED_EVALUATION。用户要求先同步远端网站可视化/风格，再把Hydrex样本量做到MangoSwap同等规模；必要实验付费及现有资产操作已授权，禁止发币保持。远程main=0842b21(PR23已合并)，队友origin/codex/evidence-workbench=d86a4b5尚未在main；本轮合并三份队友提交并保留现有Hydrex通用来源。任务分支codex/hydrex-expanded-evaluation，docs/presentation/保留。
+
+先完成视觉兼容：保留任务链路/证据工作台、只读task_key接口与新风格；修正completed+模拟PASS被误叫成交、计划任务被计真实履约、ACP资料被误标未采三个问题。前端构建exit0、前后端各1项必要定向回归exit0、两任务HTTP链路核验exit0；本机7754已重启并服务新界面，评分与原报告保持。
+
+Hydrex计划至少34总任务：复用原H01/H02，新增32个有区分度的真实请求；8次正常真实兑换目标含已有1次，新增7次覆盖四路聚合/双向。其余覆盖金额、滑点、可选字段、同窗路由比较和错误输入安全处理。不得用一个报价的多次本地负控凑多个任务，不借报价/费用/模拟补B。先冻结共用场景及指标，再调用；v3三维、权重及计算规则不变，历史原件和pilot报告不改。
+
+本阶段采样起点为新增请求/服务付款0；后续H03与新任务进展以本页最上方当前目标和实时原件为准。已将自有EOA的0.20USDC归集到原SMA，真实transfer回执核验通过（0x6219d64daa07ece5a6d999c98871f11b688cf40715edaa12a94080036a9771a6），内部移动不计Agent履约；32个新任务及原2引用的矩阵已在调用前冻结，plan SHA dd76d2ce8ea675ccec28c202265fe48ba1cb0c30ade6356e43197cc942c21aaf，详见 docs/research/HYDREX_EXPANDED_MATRIX_20261028.md。H03已真实接单并付0.02USDC，取得WETH→USDC反向报价；因协议使用已有官方源码中的UNISWAPV3_VIP而当前decoder仅认TRANSFER_FROM，尚未执行，按平台适配缺口保留。正在补通用selector而非对象分支；报价过期则历史固定块模拟并另取新有效报价，不改原任务。普通schema错误/未适配/合法市场拒绝分别记录，不自动扣Agent分。待新方案证据满足再按协议共用取证；不为Hydrex名字写评分分支。
+
+## 2026-10-28 历史：通用来源与Hydrex首次评分
 
 `TRANSACTION_AGENT_COHORT`本机完成本阶段。先核7个服务，再冻结多对象共同任务；TheSafeRouteBot/Hydrex不同协议均通过同一固定块效果核验，SafeRoute直连亦通过历史模拟。随后Hydrex完成新有效报价及一次真实0.10USDC→WETH兑换，输入、收款、最低到账、事件、授权0、307块确认距离均独立核齐。其它对象未用报价/费用填B；Tator收费后500已暂停。
 
@@ -253,7 +371,7 @@ GitHub workflow权限首次换令牌EOF后，用户完成第二次设备授权�
 
 本轮已完成前端可用性改进和普通预测历史扩量：2359在203条中取得14个不同问题，报告6b154968-0e9b-4315-9122-71db03d3ecc6为A89.79/F68.62/B100、综合84.39；签名协议没有适配或计入。已在0active后重载唯一自有worker。下一任务为`CROSS_PROVIDER_FEASIBILITY`：先复用已有群体声明/原件比较可测覆盖，只在有多对象实际证据时实现共用判据。
 
-## 当前结论与下一步
+## 历史结论与下一步
 
 用户已批准128→512，达到14不同Question即停止筛选；三维、30/40/30、10点A与7F/7B保持。ADR0018同一Marketplace两版普通事件已先经官方固定源码及两个真实对象核实，一次必要离线核验exit0；修订4已使2135原4项UNKNOWN完成独立核验，旧报告保留。ADR0019及新报告明确实际扫描和历史时间范围。
 
@@ -269,7 +387,7 @@ GitHub workflow权限首次换令牌EOF后，用户完成第二次设备授权�
 
 ## 已确认的产品方向
 
-1. 普通用户通过两个主入口完成浏览和接入。
+1. 历史首版曾要求普通用户通过两个主入口完成浏览和接入；该入口要求已由2026-10-29仅浏览既有报告的决定取代。
 2. 大模型分析有来源的业务声明，程序选择可复用方案，真实执行并独立核验后形成报告。
 3. 方案按功能能力及独立判据复用；一个 Agent 可有多功能并适用多类，不给每个 Agent 单独写标准。
 4. 报告是主要交付物，解释范围、结果和限制，不能只呈现一个分数。
@@ -363,7 +481,7 @@ GitHub workflow权限首次换令牌EOF后，用户完成第二次设备授权�
 
 新 GitHub 目标未确定。获得仓库地址及推送授权后，核实远程状态，再按短任务分支推送；不覆盖旧仓库、不强推、不把密钥或旧 runtime 上传。
 
-## 当前完成项
+## 历史完成项
 
 - [x] 创建新项目交接目录及文档。
 - [x] 记录旧失败经验、已确认方向和待对齐事项。

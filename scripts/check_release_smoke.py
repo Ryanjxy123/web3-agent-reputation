@@ -11,6 +11,7 @@ import sys
 from threading import Barrier
 import time
 from uuid import UUID
+from urllib.parse import quote
 
 import psycopg
 from psycopg.conninfo import conninfo_to_dict
@@ -21,6 +22,13 @@ from public_reports import restore_package
 
 ROOT = Path(__file__).resolve().parents[1]
 CANONICAL = "eip155:1:0x8004a169fb4a3325136eb29fa0ceb6d2e539a432:26345"
+PUBLICATIONS = {
+    CANONICAL: ('mangoswap-26345', 34, 96.67),
+    'eip155:56:0x8004a169fb4a3325136eb29fa0ceb6d2e539a432:113284': ('topaz-agent-113284', 38, 99.2),
+    'eip155:8453:0x8004a169fb4a3325136eb29fa0ceb6d2e539a432:54947': ('hydrex-routing-54947', 43, 94.67),
+    'mcp-registry:fi.ophis/mcp@0.2.0': ('mcp-registry:fi.ophis/mcp@0.2.0', 31, 100),
+}
+HYDREX_SWAP = '0xa9ac0e3b1649fc5bdf819f36b1c6b04deb30c887f582d41279a14485e6a56457'
 
 
 def require(condition: bool, message: str) -> None:
@@ -29,7 +37,7 @@ def require(condition: bool, message: str) -> None:
 
 
 def request(port: int, method: str, path: str, body: dict | None = None) -> tuple[int, object]:
-    connection = http.client.HTTPConnection("127.0.0.1", port, timeout=3)
+    connection = http.client.HTTPConnection("127.0.0.1", port, timeout=15)
     try:
         connection.request(method, path, body=json.dumps(body) if body is not None else None,
                            headers={"Content-Type": "application/json"} if body is not None else {})
@@ -138,27 +146,62 @@ def main() -> int:
         repository.finalize_job(queued.id, recovered['lease_owner'], recovered['fencing_token'],
                                 status='NEEDS_INFO', message='CI is public-off; no business execution')
 
-        # Only the two selected publications are inserted; parents stay evidence attachments.
-        restored = restore_package(ROOT, ROOT / 'data/public-reports-transaction-v3.tar.gz', True, False)
-        require(restored['reports'] == 2 and {item['canonical'] for item in restored['mapping']} == {
-            CANONICAL, 'eip155:8453:0x8004a169fb4a3325136eb29fa0ceb6d2e539a432:54947'},
-            'The current publications must contain the two independently registered identities')
-        report_id = next(item['imported_report_id'] for item in restored['mapping'] if item['canonical'] == CANONICAL)
+        # Only the four closeout publications are inserted; prior versions stay attachments.
+        restored = restore_package(ROOT, ROOT / 'data/public-reports-trading-closeout-v4.tar.gz', True, False)
+        require(restored['reports'] == len(PUBLICATIONS)
+                and {item['canonical'] for item in restored['mapping']} == set(PUBLICATIONS),
+                'The closeout package must contain exactly the four selected public identities')
+        imported_ids = {item['canonical']: item['imported_report_id'] for item in restored['mapping']}
+        report_id = imported_ids[CANONICAL]
         status, agents = request(port, 'GET', '/api/agents')
-        require(status == 200 and {agent['key'] for agent in agents} == {'mangoswap-26345', 'hydrex-routing-54947'},
-                'The imported directory must contain exactly the two current publications')
-        status, report = request(port, 'GET', '/api/reports/' + report_id)
-        require(status == 200 and report['policy_version'] == 'transaction-agent-evidence-v3'
-                and report['shared_assessment']['result']['task_count'] == 34
-                and report['scores']['overall'] is not None,
-                'The real API must return the verified single-score, 34-task publication')
-        hydrex_id = next(item['imported_report_id'] for item in restored['mapping'] if item['canonical'] != CANONICAL)
-        status, hydrex = request(port, 'GET', '/api/reports/' + hydrex_id)
-        require(status == 200 and hydrex['shared_assessment']['result']['task_count'] == 2
-                and hydrex['scores']['overall'] == 100, 'The standalone source must replay the two-task Hydrex scope')
-        status, chain = request(port, 'GET', '/api/reports/' + hydrex_id + '/chain-evidence')
-        require(status == 200 and len(chain['actions']) == 1 and chain['actions'][0]['action'] == 'swap',
-                'The new publication must explain its real asset exchange')
+        require(status == 200 and {agent['key'] for agent in agents} == {item[0] for item in PUBLICATIONS.values()},
+                'The imported directory must contain exactly the four closeout publications')
+        reports = {}
+        for canonical, (key, actual_count, overall) in PUBLICATIONS.items():
+            status, report = request(port, 'GET', '/api/reports/' + imported_ids[canonical])
+            require(status == 200 and report['candidate_key'] == key
+                    and report['registration_reference'] == canonical
+                    and report['policy_version'] == 'transaction-agent-evidence-v3'
+                    and report['shared_assessment']['result']['score_status'] == 'AVAILABLE'
+                    and sum(task['observed_at'] is not None for task in report['shared_assessment']['tasks']) == actual_count
+                    and report['scores']['overall'] is not None
+                    and report['scores']['overall'] == overall,
+                    'The real API must return each verified scope score and actual task count: ' + key)
+            reports[key] = report
+
+        hydrex = reports['hydrex-routing-54947']
+        hydrex_id = imported_ids[hydrex['registration_reference']]
+        origin_paths = [path for path in hydrex['source_references'] if Path(path).name == 'unsigned-swap-report-origin.json']
+        require(len(origin_paths) == 1, 'The unsigned publication must retain its unique source origin')
+        origin = json.loads((ROOT / origin_paths[0]).read_bytes())
+        source = json.loads((ROOT / origin['source']).read_bytes())
+        h47 = [task for task in source['tasks']
+               if (task.get('execution') or {}).get('transaction_hash', '').lower() == HYDREX_SWAP]
+        require(len(h47) == 1, 'The expanded publication must retain the H47 execution exactly once')
+        status, scoped = request(port, 'GET', '/api/reports/' + hydrex_id + '/chain-evidence?task_key=' + quote(h47[0]['task_key'], safe=''))
+        swaps = [item for item in scoped.get('actions', []) if item['action'] == 'swap']
+        require(status == 200 and len(swaps) == 1 and swaps[0]['verdict'] == 'PASS'
+                and scoped['actions'] and all(item['transaction_hash'].lower() == HYDREX_SWAP for item in scoped['actions']),
+                'H47 must show its one real exchange without unrelated ACP fee transactions')
+
+        ophis = reports['mcp-registry:fi.ophis/mcp@0.2.0']
+        ophis_id = imported_ids[ophis['registration_reference']]
+        assessment = ophis['shared_assessment']
+        normal_cases = {case['case_id']: case for case in assessment['cases']
+                        if case['dimension'] == 'behavioral' and case['normal_execution']}
+        passed_orders = {item['task_key'] for item in assessment['observations']
+                         if item['case_id'] in normal_cases and item['dimension'] == 'behavioral'
+                         and item['criterion_id'] == 'onchain-fulfillment' and item['verdict'] == 'PASS'
+                         and item['measurement_validity'] == 'valid'}
+        task = next(item for item in assessment['tasks'] if item['task_key'] in passed_orders)
+        status, chain = request(port, 'GET', '/api/reports/' + ophis_id + '/chain-evidence?task_key=' + quote(task['task_key'], safe=''))
+        samples = {item['sample']['sample_id'] for item in ophis['samples']
+                   if item['sample']['task_key'] == task['task_key'] and item['sample']['purpose'] == 'behavioral'
+                   and item['sample']['verdict'] == 'PASS'}
+        require(status == 200 and len(chain.get('actions', [])) == 1
+                and chain['actions'][0]['action'] == 'swap' and chain['actions'][0]['verdict'] == 'PASS'
+                and chain['actions'][0]['sample_id'] in samples and chain['actions'][0]['chain_id'] == 8453,
+                'The selected fulfilled CoW order must expose one task-bound real swap')
         for statement in ('UPDATE reports SET source_directory=source_directory WHERE id=%s',
                           'DELETE FROM reports WHERE id=%s'):
             try:
@@ -173,7 +216,7 @@ def main() -> int:
         print(json.dumps({"status": "PASS", "database": "PostgreSQL 17.11", "http": "real loopback uvicorn",
             "invalid_submission": 422, "canonical_submission": 202, "job_status": "NEEDS_INFO",
             "concurrent_claimants": 3, "lease_recovery": True, "stale_worker_rejected": True,
-            "agents": 2, "reports": 2, "report_policy": "transaction-agent-evidence-v3",
+            "agents": len(PUBLICATIONS), "reports": len(PUBLICATIONS), "report_policy": "transaction-agent-evidence-v3",
             "public_readonly_enabled": False, "model_calls": 0}))
         return 0
     finally:

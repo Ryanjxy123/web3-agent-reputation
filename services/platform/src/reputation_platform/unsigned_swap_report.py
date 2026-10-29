@@ -17,6 +17,7 @@ from reputation_core.scoring import POINT_POLICY_VERSION
 from reputation_core.shared_scoring import SharedAssessment
 from reputation_core.swap import address, encode_batch, hex_bytes, integer
 from reputation_platform.registration_discovery import _configuration, verify_registration_proof
+from reputation_platform.public_service_identity import verify_service_identity, identity_limitations
 from reputation_platform.swap_report import SwapEvidence, _check, _lookup, _normalized, _sha, _write
 from reputation_platform.unsigned_swap_protocol import (
     _ABI, decode_unsigned_swap, verify_unsigned_swap_intent, UnsignedSwapMismatch,
@@ -293,7 +294,7 @@ def _transfers(receipt, token, sender=None, recipient=None):
     return sum(result)
 
 
-def _execution(evidence, item, expected, decoded, transaction, simulation_facts):
+def _execution(evidence, item, expected, decoded, transaction, simulation_facts, *, balance_fields=None):
     source = item.get('execution')
     if not source:
         return Verdict.UNKNOWN, '本报价任务没有安排真实兑换；不能用报价或模拟补交易分。', {}
@@ -301,8 +302,9 @@ def _execution(evidence, item, expected, decoded, transaction, simulation_facts)
     _check(plan['origin_task'] == item['task_key'] and plan['task_key'] == intent['task_key']
            and intent['plan_sha256'] == _sha(evidence.raw(source['plan'])), 'Actual execution intent does not bind the quoted task')
     payer, tx_hash = address(source['payer']), source['transaction_hash'].lower()
-    _check(simulation_facts and str(intent['pre_usdc_raw']) == simulation_facts['pre_input_raw']
-           and str(intent['pre_weth_raw']) == simulation_facts['pre_output_raw']
+    input_field, output_field = balance_fields or ('pre_usdc_raw', 'pre_weth_raw')
+    _check(simulation_facts and str(intent[input_field]) == simulation_facts['pre_input_raw']
+           and str(intent[output_field]) == simulation_facts['pre_output_raw']
            and intent['fixed_block'] == simulation_facts['block']
            and intent['block_hash'].lower() == simulation_facts['block_hash'].lower(),
            'Persisted execution pre-balances are not backed by the fixed-block raw simulation')
@@ -346,7 +348,7 @@ def _execution(evidence, item, expected, decoded, transaction, simulation_facts)
     passed = debit == expected['amount_in'] and credit >= expected['minimum_out'] and values[2] == 0
     facts = {'transaction_hash': tx_hash, 'block': _uint(receipt['blockNumber']), 'timestamp': _uint(header['timestamp']), 'input_debit_raw': str(debit),
         'output_credit_raw': str(credit), 'allowance_raw': str(values[2]), 'confirmation_distance': depth}
-    if passed and (_uint(intent['pre_usdc_raw']) - values[0] != debit or values[1] - _uint(intent['pre_weth_raw']) != credit):
+    if passed and (_uint(intent[input_field]) - values[0] != debit or values[1] - _uint(intent[output_field]) != credit):
         return Verdict.UNKNOWN, '本交易代币事件符合兑换目标，但前置块至回执块末余额窗口存在额外变化，尚不能独立对平；不推定提供方违约。', facts
     return (Verdict.PASS if passed else Verdict.FAIL,
             f'真实交易输入净减少{debit}，指定收款人输出净增加{credit}最小单位；最低{expected["minimum_out"]}，剩余授权{values[2]}，确认距离{depth}块。', facts)
@@ -360,11 +362,13 @@ def replay_unsigned_swap_sources(root, evidence, source):
     for reference in proof['source_refs']:
         _check(evidence.hashes.get(reference['path']) == reference['sha256'], 'Registration source is absent or changed')
         evidence.raw(reference['path'])
-    identity = verify_registration_proof(root, source['registration_proof'], canonical)
-    _check(identity['registration_verified'], 'Independent onchain registration is not verified')
-    owner = address('0x' + proof['rpc']['owner']['value'][-40:])
+    identity = verify_service_identity(root, source['registration_proof'], canonical, chain_verifier=verify_registration_proof)
+    _check(identity['public_registry_verified'], 'Independent public service registration is not verified')
+    service_wallet = (address('0x' + proof['rpc']['owner']['value'][-40:]) if identity['chain_registration_verified']
+                      else identity.get('provider_wallet'))
+    _check(service_wallet, 'ACP delivery requires an independently bound provider wallet')
     profile = AgentProfile.model_validate_json(json.dumps(source['profile']))
-    _check(profile.registration_chain_id == int(canonical.split(':')[1]), 'Profile registration chain differs')
+    _check(profile.registration_chain_id == identity['registration_chain_id'], 'Profile registration chain differs')
     cases, tasks, observations, samples = {}, [], [], []
 
     def observe(task_key, dimension, criterion, verdict, reason, refs, elapsed=None):
@@ -381,7 +385,7 @@ def replay_unsigned_swap_sources(root, evidence, source):
 
     for index, item in enumerate(source['tasks'], 1):
         plan, frozen, delivered, elapsed, submitted, provider = _task_delivery(evidence, source, item)
-        _check(provider == owner, 'Provider wallet is not the independently registered owner')
+        _check(provider == service_wallet, 'ACP provider wallet differs from the independently bound service identity')
         services = [row.get('endpoint', '') for row in (identity.get('document') or {}).get('services', [])]
         _check('https://app.virtuals.io/acp/agent/' + item['acp']['provider_id'] in services, 'Registered document does not bind this ACP service identity')
         refs = [item['plan'], item['acp']['history_observation'], item['acp']['job_observation'], item['acp']['detail_observation'], *item['acp']['rpc_observations']]
@@ -439,13 +443,16 @@ def replay_unsigned_swap_sources(root, evidence, source):
 
 
 def _report(root, evidence, source, generated_at):
+    if source.get('schema_version') == 'unsigned-swap-evidence-v2':
+        from reputation_platform.unsigned_swap_campaign import campaign_report
+        return campaign_report(root, evidence, source, generated_at)
     assessment, samples = replay_unsigned_swap_sources(root, evidence, source)
     times = [row.observed_at for row in assessment.tasks if row.observed_at]
     return EvaluationReport(policy_version=POINT_POLICY_VERSION, candidate_key=source['candidate_key'], name=source['name'],
         registration_reference=source['registration_reference'], generated_at=generated_at, scope=source['scope'],
         scope_exclusions=source['scope_exclusions'], evaluation_window=f'{min(times).isoformat()} 至 {max(times).isoformat()}；保留原任务时间。',
         approach=APPROACH, samples=samples, capabilities=[], shared_assessment=assessment,
-        source_references=sorted(evidence.hashes), limitations=LIMITATIONS)
+        source_references=sorted(evidence.hashes), limitations=identity_limitations(source['registration_reference'], LIMITATIONS))
 
 
 def verify_unsigned_swap_report_sources(root, report, hashes):
@@ -453,10 +460,14 @@ def verify_unsigned_swap_report_sources(root, report, hashes):
     _check(len(origins) == 1, 'Expected a unique unsigned swap source origin')
     evidence = SwapEvidence(root, hashes)
     origin = evidence.json(origins[0])
-    _check(origin['schema_version'] == 'unsigned-swap-report-origin-v1' and origin['adapter'] == ADAPTER, 'Unsupported unsigned swap report origin')
+    versions = {'unsigned-swap-report-origin-v1': ADAPTER,
+                'unsigned-swap-report-origin-v2': 'retained-unsigned-swap-campaign-v2'}
+    _check(versions.get(origin['schema_version']) == origin['adapter'], 'Unsupported unsigned swap report origin')
     evidence.raw(ADR)
     evidence.raw(SOURCE_ADR)
-    expected = _report(root, evidence, evidence.json(origin['source']), report.generated_at)
+    source = evidence.json(origin['source'])
+    _check(source['adapter'] == origin['adapter'], 'Unsigned swap origin/source version mismatch')
+    expected = _report(root, evidence, source, report.generated_at)
     _check(report.model_dump(mode='json') == expected.model_dump(mode='json'), 'Published unsigned swap report differs from original evidence replay')
     return report.registration_reference
 
@@ -467,15 +478,23 @@ def build_unsigned_swap_report(root: Path, source: Path, output: Path):
     _check(source.is_relative_to(root / 'runtime') and output.is_relative_to(root / 'runtime') and not output.exists(), 'Use retained public source and a new runtime output directory')
     config = json.loads(source.read_bytes())
     hashes = {}
+    adrs = (ADR, SOURCE_ADR)
+    if config.get('schema_version') == 'unsigned-swap-evidence-v2':
+        from reputation_platform.unsigned_swap_campaign import ADR as CAMPAIGN_ADR
+        adrs += (CAMPAIGN_ADR,)
     for row in [*config['sources'], {'path': source.relative_to(root).as_posix(), 'sha256': _sha(source.read_bytes())},
-                *({'path': name, 'sha256': _sha((root / name).read_bytes())} for name in (ADR, SOURCE_ADR))]:
+                *({'path': name, 'sha256': _sha((root / name).read_bytes())} for name in adrs)]:
         path = (root / row['path']).resolve()
         _check(path.is_relative_to(root) and not any('.private' in part.lower() or part.lower() in ('secrets', 'platform-config', '.env')
                    for part in path.relative_to(root).parts), 'Private input cannot enter a public unsigned-swap report')
         _check(_sha(path.read_bytes()) == row['sha256'] and (row['path'] not in hashes or hashes[row['path']] == row['sha256']), 'Source hash mismatch')
         hashes[row['path']] = row['sha256']
     output.mkdir(parents=True, exist_ok=False)
-    origin = {'schema_version': 'unsigned-swap-report-origin-v1', 'adapter': ADAPTER, 'source': source.relative_to(root).as_posix()}
+    adapters = {'unsigned-swap-evidence-v1': ADAPTER,
+                'unsigned-swap-evidence-v2': 'retained-unsigned-swap-campaign-v2'}
+    _check(adapters.get(config['schema_version']) == config['adapter'], 'Unsupported unsigned swap source version')
+    origin = {'schema_version': 'unsigned-swap-report-origin-v2' if config['schema_version'] == 'unsigned-swap-evidence-v2' else 'unsigned-swap-report-origin-v1',
+              'adapter': config['adapter'], 'source': source.relative_to(root).as_posix()}
     _write(output / ORIGIN, origin)
     name = (output / ORIGIN).relative_to(root).as_posix()
     hashes[name] = _sha((output / ORIGIN).read_bytes())

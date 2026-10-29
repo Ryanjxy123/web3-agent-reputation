@@ -1,4 +1,4 @@
-import type { CheckCode, EvaluationJob, Verdict } from './contracts'
+import type { CheckCode, Verdict } from './contracts'
 
 export function score(value: number | null | undefined): string {
   return value == null ? '待评价' : value.toFixed(2)
@@ -21,15 +21,6 @@ export const verdictLabel: Record<Verdict, string> = {
 export const checkLabel: Record<CheckCode, string> = {
   registration: '公开注册身份', functional_declaration: '具体功能声明', service_interface: '业务接口',
   independent_oracle: '独立核验依据', execution_binding: '执行身份关联', execution_history: '可归属交易历史',
-}
-
-export const jobLabel: Record<EvaluationJob['status'], string> = {
-  QUEUED: '正在排队', RUNNING: '正在评价', COMPLETE: '评价完成', NEEDS_INFO: '需要补充资料',
-  UNSUPPORTED: '暂未支持这类评价', FAILED: '本次评价未完成',
-}
-
-export const stageLabel: Record<EvaluationJob['stage'], string> = {
-  QUEUED: '等待处理', COLLECTING: '收集资料', VERIFYING: '独立核验', REPORTING: '生成报告', DONE: '处理结束',
 }
 
 export function externalLink(value: string): string | undefined {

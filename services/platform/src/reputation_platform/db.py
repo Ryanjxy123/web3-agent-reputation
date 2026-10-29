@@ -218,7 +218,8 @@ class Repository:
                 ELSE agents.registration_reference END,
             description=CASE WHEN EXCLUDED.description='' THEN agents.description ELSE EXCLUDED.description END,
             updated_at=clock_timestamp()
-            WHERE NOT (%s AND agents.registration_reference ~ '^eip155:[0-9]+:0x[0-9a-f]{40}:[0-9]+$'
+            WHERE NOT (%s AND (agents.registration_reference ~ '^eip155:[0-9]+:0x[0-9a-f]{40}:[0-9]+$'
+                OR agents.registration_reference LIKE 'mcp-registry:%%' OR agents.registration_reference LIKE 'acp:virtuals:%%')
                 AND agents.registration_reference <> EXCLUDED.registration_reference)
             RETURNING key""", (key, name, canonical or reference, description, canonical is not None,
                                canonical is not None)).fetchone()
@@ -324,14 +325,25 @@ class Repository:
             report_count=len(summaries), latest_report=summaries[0] if summaries else None),
             reports=summaries, candidate=CandidateRecord.model_validate(candidate["validated_json"]) if candidate else None)
 
-    def report_chain_evidence(self, report_id: str) -> ReportChainEvidence | None:
+    def report_chain_evidence(self, report_id: str, task_key: str | None = None) -> ReportChainEvidence | None:
         with self._connect() as connection:
-            row = connection.execute("SELECT validated_json,evidence_files FROM reports WHERE id=%s", (UUID(str(report_id)),)).fetchone()
+            row = connection.execute("SELECT validated_json,evidence_files,source_directory,manifest_sha256 FROM reports WHERE id=%s", (UUID(str(report_id)),)).fetchone()
         if row is None:
             return None
         from reputation_platform.report_chain_view import build_report_chain_evidence
         try:
-            return build_report_chain_evidence(self.root, _validated_report(row['validated_json']), row['evidence_files'])
+            if any(Path(name).name == 'cow-swap-report-origin.json' for name in row['evidence_files']):
+                directory = (self.root / row['source_directory']).resolve()
+                manifest_path = self._runtime_file(directory / 'manifest.json')
+                if _sha(manifest_path) != row['manifest_sha256']:
+                    raise EvidenceIntegrityError('CoW source manifest changed after import')
+                _, hashes = self._manifest(directory)
+                if any(hashes.get(name) != digest for name, digest in row['evidence_files'].items()):
+                    raise EvidenceIntegrityError('CoW view sources differ from imported evidence')
+                # Complete replay also needs authenticated ADR/configuration.
+                # Download permission remains the original runtime-only map.
+                return build_report_chain_evidence(self.root, _validated_report(row['validated_json']), hashes, task_key)
+            return build_report_chain_evidence(self.root, _validated_report(row['validated_json']), row['evidence_files'], task_key)
         except (OSError, ValueError, KeyError, TypeError) as error:
             raise EvidenceIntegrityError('Chain evidence view failed integrity validation') from error
 

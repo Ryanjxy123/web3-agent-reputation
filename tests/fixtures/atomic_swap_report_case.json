@@ -1,0 +1,455 @@
+{
+  "fixture_scope": "Actual retained public unsigned responses and request schemas only; RPC/identity in test are explicitly controlled unit inputs, never claimed onchain evidence.",
+  "request_plan": {
+    "phase": "phase3",
+    "purpose": "Free unsigned swap quote and atomic-batch building only; no payment, signature, approvals or broadcasting",
+    "basis": "Official public OpenAPI defines ordinary JSON POST returning quote/transactions, no securitySchemes or payment responses; homepage says no custody/calldata only. Root explicitly authorized few free valid quote/build requests.",
+    "tasks": [
+      {
+        "task_id": "a9193cf6-105b-47bf-a9fb-31203b96014b",
+        "key": "topaz-base-quote",
+        "objective": "quote exact-input 0.10 native USDC to WETH on Base; slippage50bps/deadline600sec"
+      },
+      {
+        "task_id": "4ebf6dc9-c8ad-48d4-8b5b-b788b62d2cc6",
+        "key": "topaz-base-build",
+        "objective": "build unsigned atomic transactions for same0.10USDC to WETH with public self-owned taker; no onchain action"
+      }
+    ],
+    "targets": [
+      {
+        "key": "topaz-base-quote",
+        "url": "https://agents.topazdex.com/api/swap/quote",
+        "method": "POST",
+        "json": {
+          "sellToken": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          "buyToken": "0x4200000000000000000000000000000000000006",
+          "sellAmount": "0.1",
+          "chainId": 8453,
+          "slippageBps": 50,
+          "deadlineSeconds": 600
+        }
+      },
+      {
+        "key": "topaz-base-build",
+        "url": "https://agents.topazdex.com/api/swap/build",
+        "method": "POST",
+        "json": {
+          "sellToken": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          "buyToken": "0x4200000000000000000000000000000000000006",
+          "sellAmount": "0.1",
+          "taker": "0x73d642847cb9a3acef116ea207a74b9956c34a09",
+          "chainId": 8453,
+          "slippageBps": 50,
+          "deadlineSeconds": 600
+        }
+      }
+    ]
+  },
+  "quote_response": {
+    "kind": "quote",
+    "chainId": 8453,
+    "timestamp": "2026-10-28T15:37:47.474Z",
+    "summary": "Topaz API smart order routing",
+    "data": {
+      "bestSource": "topaz-api",
+      "sellToken": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "buyToken": "0x4200000000000000000000000000000000000006",
+      "sellAmount": "100000",
+      "expectedOut": "42915691451258",
+      "expectedOutHuman": "0.000042915691451258",
+      "minOut": "42702180548515",
+      "minOutHuman": "0.000042702180548515",
+      "routes": [
+        {
+          "protocol": "CL",
+          "percent": 100,
+          "amountIn": "100000",
+          "amountOut": "42915691451258",
+          "hops": [
+            {
+              "protocol": "cl",
+              "address": "0x9DD30d200B5C7e6874aB5a23c7BD7e2AD6d9C135",
+              "tokenIn": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+              "tokenOut": "0x4200000000000000000000000000000000000006",
+              "tickSpacing": 50
+            }
+          ]
+        }
+      ],
+      "topazApiQuote": {
+        "chainId": 8453,
+        "blockNumber": 53206259,
+        "tradeType": "exactIn",
+        "amount": "100000",
+        "quote": "42915691451258",
+        "minimumAmountOut": "42702180548515",
+        "slippageBips": 50,
+        "routes": [
+          {
+            "protocol": "CL",
+            "percent": 100,
+            "amountIn": "100000",
+            "amountOut": "42915691451258",
+            "hops": [
+              {
+                "protocol": "cl",
+                "address": "0x9DD30d200B5C7e6874aB5a23c7BD7e2AD6d9C135",
+                "tokenIn": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+                "tokenOut": "0x4200000000000000000000000000000000000006",
+                "tickSpacing": 50
+              }
+            ]
+          }
+        ]
+      },
+      "topazV2Quote": null,
+      "topazV3Quote": null
+    },
+    "sources": [
+      "https://quote.topazdex.com"
+    ]
+  },
+  "build_response": {
+    "kind": "built_calldata",
+    "chainId": 8453,
+    "timestamp": "2026-10-28T15:37:51.470Z",
+    "summary": "Topaz API smart order routing",
+    "data": {
+      "bestSource": "topaz-api",
+      "sellToken": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "buyToken": "0x4200000000000000000000000000000000000006",
+      "sellAmount": "100000",
+      "expectedOut": "42916120680455",
+      "expectedOutHuman": "0.000042916120680455",
+      "minOut": "42702607642243",
+      "minOutHuman": "0.000042702607642243",
+      "routes": [
+        {
+          "protocol": "CL",
+          "percent": 100,
+          "amountIn": "100000",
+          "amountOut": "42916120680455",
+          "hops": [
+            {
+              "protocol": "cl",
+              "address": "0x9DD30d200B5C7e6874aB5a23c7BD7e2AD6d9C135",
+              "tokenIn": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+              "tokenOut": "0x4200000000000000000000000000000000000006",
+              "tickSpacing": 50
+            }
+          ]
+        }
+      ],
+      "topazApiQuote": {
+        "chainId": 8453,
+        "blockNumber": 53206262,
+        "tradeType": "exactIn",
+        "amount": "100000",
+        "quote": "42916120680455",
+        "minimumAmountOut": "42702607642243",
+        "slippageBips": 50,
+        "routes": [
+          {
+            "protocol": "CL",
+            "percent": 100,
+            "amountIn": "100000",
+            "amountOut": "42916120680455",
+            "hops": [
+              {
+                "protocol": "cl",
+                "address": "0x9DD30d200B5C7e6874aB5a23c7BD7e2AD6d9C135",
+                "tokenIn": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+                "tokenOut": "0x4200000000000000000000000000000000000006",
+                "tickSpacing": 50
+              }
+            ]
+          }
+        ]
+      },
+      "topazV2Quote": null,
+      "topazV3Quote": null,
+      "atomicRequired": true,
+      "permit2SignatureRequired": false,
+      "payer": "0x73D642847CB9a3acEF116Ea207a74b9956C34a09",
+      "deadline": 1793202471
+    },
+    "transactions": [
+      {
+        "to": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "data": "0x095ea7b3000000000000000000000000e4b23f13b24232c1e68ad0575191216152aa94800000000000000000000000000000000000000000000000000000000000000000",
+        "value": "0",
+        "label": "Clear legacy direct-router allowance"
+      },
+      {
+        "to": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "data": "0x095ea7b3000000000000000000000000000000000022d473030f116ddee9f6b43ac78ba30000000000000000000000000000000000000000000000000000000000000000",
+        "value": "0",
+        "label": "Reset token allowance to Permit2"
+      },
+      {
+        "to": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "data": "0x095ea7b3000000000000000000000000000000000022d473030f116ddee9f6b43ac78ba300000000000000000000000000000000000000000000000000000000000186a0",
+        "value": "0",
+        "label": "Approve input amount to Permit2"
+      },
+      {
+        "to": "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+        "data": "0x87517c45000000000000000000000000833589fcd6edb6e08f4c7c32d4f71b54bda02913000000000000000000000000e4b23f13b24232c1e68ad0575191216152aa948000000000000000000000000000000000000000000000000000000000000186a0000000000000000000000000000000000000000000000000000000006ae21927",
+        "value": "0",
+        "label": "Approve Topaz router through Permit2"
+      },
+      {
+        "to": "0xe4b23F13b24232C1E68AD0575191216152AA9480",
+        "data": "0x3593564c000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000006ae21927000000000000000000000000000000000000000000000000000000000000000200040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000001600000000000000000000000000000000000000000000000000000000000000100000000000000000000000000e4b23f13b24232c1e68ad0575191216152aa948000000000000000000000000000000000000000000000000000000000000186a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000002b833589fcd6edb6e08f4c7c32d4f71b54bda0291300003242000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000060000000000000000000000000420000000000000000000000000000000000000600000000000000000000000073d642847cb9a3acef116ea207a74b9956c34a09000000000000000000000000000000000000000000000000000026d679c26e83",
+        "value": "0",
+        "label": "Swap via Topaz API routing"
+      },
+      {
+        "to": "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+        "data": "0x87517c45000000000000000000000000833589fcd6edb6e08f4c7c32d4f71b54bda02913000000000000000000000000e4b23f13b24232c1e68ad0575191216152aa94800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006ae21927",
+        "value": "0",
+        "label": "Clear Topaz Permit2 allowance"
+      },
+      {
+        "to": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "data": "0x095ea7b3000000000000000000000000000000000022d473030f116ddee9f6b43ac78ba30000000000000000000000000000000000000000000000000000000000000000",
+        "value": "0",
+        "label": "Clear token allowance to Permit2"
+      }
+    ],
+    "risks": [
+      "Submit every returned call in order in one atomic wallet/account batch. No Permit2 signature is needed."
+    ],
+    "sources": [
+      "https://quote.topazdex.com"
+    ]
+  },
+  "declaration_schema": {
+    "openapi": "3.0.3",
+    "info": {
+      "title": "Topaz Agent API",
+      "version": "0.22.1",
+      "description": "Agentic ve(3,3) DeFi execution and strategy API for Topaz Dex on BNB Chain, Robinhood Chain, Base, Ethereum and Arc. Every market, wallet and calldata endpoint takes a `chainId`; BNB Chain is the default. Non-custodial: builds wallet-ready calldata but never signs or broadcasts transactions.",
+      "contact": {
+        "name": "Topaz Dex",
+        "url": "https://topazdex.com"
+      }
+    },
+    "servers": [
+      {
+        "url": "https://agents.topazdex.com",
+        "description": "Production"
+      }
+    ],
+    "paths": {
+      "/api/swap/quote": {
+        "post": {
+          "summary": "Get Topaz API split/mixed CL and v2 smart order router quote",
+          "operationId": "postSwapQuote",
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "sellToken",
+                    "buyToken",
+                    "sellAmount"
+                  ],
+                  "properties": {
+                    "sellToken": {
+                      "type": "string",
+                      "description": "Token address or symbol (e.g. 'WBNB')"
+                    },
+                    "buyToken": {
+                      "type": "string",
+                      "description": "Token address or symbol"
+                    },
+                    "sellAmount": {
+                      "type": "string",
+                      "description": "Amount in human units (e.g. '1.5'), or hex raw units"
+                    },
+                    "chainId": {
+                      "oneOf": [
+                        {
+                          "type": "integer",
+                          "enum": [
+                            56,
+                            4663,
+                            8453,
+                            1,
+                            5042
+                          ]
+                        },
+                        {
+                          "type": "string"
+                        }
+                      ],
+                      "default": 56,
+                      "description": "Topaz chain: 56 (BNB Chain), 4663 (Robinhood Chain), 8453 (Base), 1 (Ethereum) or 5042 (Arc). Slugs (bnb, robinhood, base, ethereum, arc) are also accepted."
+                    },
+                    "slippageBps": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 500,
+                      "default": 100
+                    },
+                    "deadlineSeconds": {
+                      "type": "integer",
+                      "minimum": 30,
+                      "maximum": 1800,
+                      "default": 600
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Swap quote",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "allOf": [
+                      {
+                        "$ref": "#/components/schemas/AgentResponse"
+                      },
+                      {
+                        "properties": {
+                          "data": {
+                            "$ref": "#/components/schemas/QuoteData"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Invalid input",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/ErrorResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/swap/build": {
+        "post": {
+          "summary": "Build all Permit2 approval, swap and cleanup calls",
+          "description": "Builds against the selected chain's Universal Router and Permit2. ERC20 inputs require one atomic wallet/account batch from taker. No Permit2 signature. The wrapped native (WBNB/WETH) is an ERC20; the native symbol (BNB or ETH) selects native currency. Arc has no native leg — trade USDC as an ERC20. Never send only the swap call or sequential EOA transactions as an atomic batch.",
+          "operationId": "postSwapBuild",
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "sellToken",
+                    "buyToken",
+                    "sellAmount",
+                    "taker"
+                  ],
+                  "properties": {
+                    "sellToken": {
+                      "type": "string"
+                    },
+                    "buyToken": {
+                      "type": "string"
+                    },
+                    "sellAmount": {
+                      "type": "string"
+                    },
+                    "taker": {
+                      "type": "string",
+                      "description": "Input-owning account that executes ALL calls and receives output"
+                    },
+                    "slippageBps": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 500,
+                      "default": 100,
+                      "description": "Slippage in basis points (100 = 1%)"
+                    },
+                    "chainId": {
+                      "oneOf": [
+                        {
+                          "type": "integer",
+                          "enum": [
+                            56,
+                            4663,
+                            8453,
+                            1,
+                            5042
+                          ]
+                        },
+                        {
+                          "type": "string"
+                        }
+                      ],
+                      "default": 56,
+                      "description": "Topaz chain: 56 (BNB Chain), 4663 (Robinhood Chain), 8453 (Base), 1 (Ethereum) or 5042 (Arc). Slugs (bnb, robinhood, base, ethereum, arc) are also accepted."
+                    },
+                    "deadlineSeconds": {
+                      "type": "integer",
+                      "minimum": 30,
+                      "maximum": 1800,
+                      "default": 600
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Complete ordered transactions array",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "allOf": [
+                      {
+                        "$ref": "#/components/schemas/AgentResponse"
+                      },
+                      {
+                        "properties": {
+                          "data": {
+                            "$ref": "#/components/schemas/QuoteData"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Invalid input",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/ErrorResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "actual_source_hashes": {
+    "phase3/topaz-base-quote.response.bin": "b38080833ff495fd1d78f05a73036ae7ca08bd14b236c420fe212c26c253a13e",
+    "phase3/topaz-base-build.response.bin": "69f0a12680c71401eb9325b6ce8bcb3b34fb11d8d6f2b60450bf51603b34ddfa",
+    "phase1/topaz-openapi.response.bin": "a97122624efe4f4d75d4f23a8395cc48667b63942cbc393d80c238d16296b863"
+  }
+}
