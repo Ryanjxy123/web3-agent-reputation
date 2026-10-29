@@ -1,26 +1,39 @@
 # 基于多源证据的 Web3 Agent 声誉评价平台
 
+本轮四个已在测对象均已完成本轮范围评价并正式发布：MangoSwap、Hydrex、Topaz、Ophis。**已停止新增Agent实验，不再以10个对象为目标。** 合计146个实际任务、32笔真实兑换及2笔订单管理；这些是已测范围评价，不代表全部声明功能均已验证。
+
 面向公开注册并提供服务信息的Web3 Agent，收集注册资料、自然语言功能描述、服务接口、关联合约和交易历史，评价**服务可用性、功能声明一致性、交易行为可靠性**。
 
-当前发布 **MangoSwap #26345** 和 **Hydrex Routing Agent #54947**，使用同一套三维评分规则。实现采用Vue 3＋TypeScript、FastAPI、独立worker及PostgreSQL；不需要运行父目录旧项目。
+四个对象使用同一套三维单分规则，按协议核验各自的任务证据。实现采用Vue 3＋TypeScript、FastAPI、独立worker及PostgreSQL；不需要运行父目录旧项目。正式输入、未知项与交付状态见[四对象收口记录](docs/runbooks/TRADING_CLOSEOUT_20261029.md)。
 
 ## 当前演示
 
+| 对象 | 任务数 | A 可用性 | F 功能一致性 | B 行为可靠性 | 综合分 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| MangoSwap | 34 | 100 | 91.67 | 100 | **96.67** |
+| Topaz | 38 | 100 | 98 | 100 | **99.2** |
+| Hydrex | 43 | 82.22 | 100 | 100 | **94.67** |
+| Ophis MCP | 31 | 100 | 100 | 100 | **100** |
+
 MangoSwap提供即时资产兑换、定时和限价订单管理，由用户钱包签名调用Base合约。平台复用34个真实任务、153项判据，核原意图、实际调用、回执、事件、资产/授权和订单状态。三笔V4实验包括原生ETH兑换、定时创建撤销、限价创建查询撤销，后两笔本金全退。
 
-当前单值评分：**A100 / F91.67 / B100 / 综合96.67**。按有效可判的通过/失败计算；未知与未采单列，不补成0或100。原ETH/WETH标识不一致仍影响F；A只对应已有28份可判响应；10个链上履约任务为8次兑换和2次订单管理。规则见[ADR-0029](docs/adr/0029-single-score-and-report-scope.md)。
+MangoSwap当前单值评分：**A100 / F91.67 / B100 / 综合96.67**。按有效可判的通过/失败计算；未知与未采单列，不补成0或100。原ETH/WETH标识不一致仍影响F；A只对应已有28份可判响应；10个链上履约任务为8次兑换和2次订单管理。规则见[ADR-0029](docs/adr/0029-single-score-and-report-scope.md)。
 
 页面主区展示功能、三维/综合单分和代表性样本。报价、模拟、成交、撤销退款按真实阶段命名，完整任务与原件可展开。当前结果限于已测功能和样本。
 
-Hydrex通过Virtuals ACP接收兑换意图并生成Base链路由方案，由买方钱包签名执行。本次核两次报价、两次独立完整模拟及一笔0.10USDC真实兑换，实收0.000042343137880465WETH，授权归零；A100/F100/B100/范围综合100。只有这些已测样本通过，不代表全部路由、资产或长期表现。其ERC-8004注册、ACP服务身份、交付哈希、代理实现、交易事件、余额和307块确认距离均有原件。
+Topaz生成Base链USDC/WETH兑换方案，按通用原子兑换协议核验报价、完整调用、独立模拟和真实执行。当前38个任务保留36份HTTP响应及2次平台传输中断，8笔真实兑换已核64块以上确认距离；另有16份历史完整模拟。F98保留真实非法输入响应不符，未把时钟精度或缺证据统一扣给Agent。
 
-新来源入口直接重放任务原件，不要求复制MangoSwap父报告。0x、Hydrex包装协议和Kyber按协议解码；TheSafeRouteBot与Hydrex的不同方案已通过同一效果核验，前者尚未补真实兑换，不计完整三维对象。见[来源规则](docs/adr/0030-unsigned-swap-source-replay.md)及[本轮交付记录](docs/runbooks/TRANSACTION_COHORT_RELEASE_20261028.md)。
+Hydrex通过Virtuals ACP接收兑换意图并生成Base链路由方案，由买方钱包签名执行。正式扩采报告包含43个实际任务、48个冻结槽位，8笔真实兑换为双方向各4笔。4项完整窗口超时使A降至82.22；H13、H33保持UNKNOWN，H24的Kyber入口另有独立部署与runtime绑定。F100只对应已知可判判据，声明覆盖仍为PARTIAL；未知、未采和模拟均不冒充成交。其身份、交付、实际交易、净资产与授权清零保留原件，详见[Hydrex扩采发布记录](docs/runbooks/HYDREX_EXPANDED_RELEASE_20261029.md)。
+
+Ophis通过公开MCP接口提供CoW报价、订单构建与校验，由买方钱包签名，solver在Base结算。31个任务包含8笔双向真实兑换，均核UID、Trade、本人净资产、期限、授权归零及至少85块距离；原门槛仍为64块。F的93项可判判据通过、15项UNKNOWN，严格整任务计数为16通过/15未知，所以100分只描述已知可判部分，声明覆盖仍为PARTIAL。目录登记已核实，ERC-8004链注册未证实；独立同块余额、同期盈余基准和原生submit公开证据缺项保留UNKNOWN。
+
+新来源入口直接重放任务原件，不要求复制MangoSwap父报告。0x、Hydrex包装协议、Kyber、原子兑换和CoW按通用协议核验；TheSafeRouteBot等历史候选材料保留，不启动后续实验，也不计正式评分对象。见[来源规则](docs/adr/0030-unsigned-swap-source-replay.md)及[历史交付记录](docs/runbooks/TRANSACTION_COHORT_RELEASE_20261028.md)。
 
 ## 网站任务证据工作台
 
 本轮同步队友的空间背景、概览、任务链路回放和证据检查工作台。先展示Agent功能、已测范围与真实业务结果，具体输入输出、链上动作和原始JSON按需展开。链路动画解释步骤关系，不代表真实请求耗时。报价/模拟与实际成交按真实B证据区分，ACP链上交付和HTTP调用分别呈现；评分与原始报告不因可视化改变。
 
-队友设计与历史视觉验收见[业务优先工作台](docs/runbooks/BUSINESS_FIRST_TRACE_20261028.md)。本轮Hydrex新增采样将在原2任务上追加报告，目标与MangoSwap同等34任务、至少8笔实兑；尚未完成的补测不算现有成绩。
+队友设计与历史视觉验收见[业务优先工作台](docs/runbooks/BUSINESS_FIRST_TRACE_20261028.md)。Hydrex任务链路按已认证RPC observation与原任务执行hash展开，服务费交易不算兑换履约；Ophis按UID解释solver结算，签名钱包与交易发送者分别标明。本轮四对象均已正式发布，未自动启动其它候选。
 
 ## 安装与打开网站
 
@@ -39,10 +52,10 @@ if (-not (Test-Path -LiteralPath .env)) { Copy-Item .env.example .env }
 REPUTATION_DATABASE_URL=postgresql://YOUR_DB_USER:YOUR_DB_PASSWORD@127.0.0.1:5432/YOUR_DATABASE
 ```
 
-导入当前两对象发布包。包内含评分和复核必需原件，可离线复算，不需要钱包、RPC或LLM：
+导入当前四对象发布包；已从Git公共依赖原字节独立离线重放4份报告，exit 0，无网络或数据库操作。详情见[四对象收口记录](docs/runbooks/TRADING_CLOSEOUT_20261029.md#四对象公开包与复现)。
 
 ```powershell
-uv run --env-file .env --no-sync python scripts/public_reports.py import data/public-reports-transaction-v3.tar.gz --initialize
+uv run --env-file .env --no-sync python scripts/public_reports.py import data/public-reports-trading-closeout-v4.tar.gz --initialize
 ```
 
 启动网页/API：
@@ -57,7 +70,7 @@ uv run --env-file .env --no-sync python -m uvicorn reputation_platform.api:creat
 uv run --env-file .env --no-sync python -m reputation_platform.worker
 ```
 
-浏览器打开 **[http://127.0.0.1:7754/](http://127.0.0.1:7754/)**，或直接查看[MangoSwap](http://127.0.0.1:7754/?agent=mangoswap-26345)、[Hydrex](http://127.0.0.1:7754/?agent=hydrex-routing-54947)。无需再启动Vite。默认worker为public-off，浏览已发布报告不会发起新付费任务或资产交易。`.env`通过uv的`--env-file`显式加载。
+浏览器打开 **[http://127.0.0.1:7754/](http://127.0.0.1:7754/)**，或直接查看[MangoSwap](http://127.0.0.1:7754/?agent=mangoswap-26345)、[Topaz](http://127.0.0.1:7754/?agent=topaz-agent-113284)、[Hydrex](http://127.0.0.1:7754/?agent=hydrex-routing-54947)、[Ophis](http://127.0.0.1:7754/?agent=mcp-registry%3Afi.ophis%2Fmcp%400.2.0)。无需再启动Vite。默认worker为public-off，浏览已发布报告不会发起新付费任务或资产交易。`.env`通过uv的`--env-file`显式加载。
 
 本开发机已有数据库与私有配置时，可用`powershell -File scripts/start_platform_background.ps1`后台启动；它不替换已占用端口。其它机器按上述通用命令配置自己的数据库即可。
 
@@ -80,7 +93,9 @@ uv run --env-file .env --no-sync python -m reputation_platform.worker
 
 ## 数据与验证
 
-当前包`data/public-reports-transaction-v3.tar.gz`只含MangoSwap和Hydrex及其必要原件；原Mango单分包作为历史交付保留。更早对象不恢复到当前发布名单，Git历史未改写；已有个人数据库不会因拉代码自动删除。新机器导入当前包即可得到两对象演示数据。钱包登录、P256密钥和私有配置均排除。
+最终四对象包`data/public-reports-trading-closeout-v4.tar.gz`已通过独立离线verify（exit 0）：4份报告、4917份runtime恢复、25份Git原字节环境前置，0联网/0数据库写入。归档6381791字节、4941文件（含索引4942成员），SHA256 `9cbf2cfff85f7b1af9ef16fce542488f7217773838cd3c19d6a50c90a9f3460e`；3类已知本机秘密及私钥标记扫描0命中。回执见`runtime/package-review-trading-closeout-20261029/verification-receipt.json`和`exact-secret-scan.json`。
+
+网站四对象的真实PostgreSQL导入、列表、Ophis含斜杠标识详情、正式报告、C08单笔兑换链视图与附件SHA已核验。当前代码检查点`a80f327`，分支`codex/hydrex-expanded-evaluation`；最终提交、PR与CI状态以`runtime/release-closeout-review-20261029/git-delivery.json`交付回执为准。
 
 通用评分和协议适配代码保留。旧实例采集CLI已改为显式传入操作者的profile/config，不再默认选择旧对象。评分与原件只追加、分数由后端复算，前端不手填。单值规则/证据来源与本轮验证详见[单分交付记录](docs/runbooks/MANGOSWAP_SINGLE_SCORE_20261027.md)。
 

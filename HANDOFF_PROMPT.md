@@ -1,6 +1,24 @@
 # 当前工作交接
 
-## 2026-10-27 当前：MangoSwap完整兑换能力评分已交付
+## 当前结论：四对象实验已结束（2026-10-29）
+
+主工作目录`D:/xjtu_project/block_chain_new/block_chain_new_new`。先读AGENTS、PLAN、STATUS、README和[四对象收口记录](docs/runbooks/TRADING_CLOSEOUT_20261029.md)，不扫描父失败项目。用户已取消十对象目标；本轮只完成MangoSwap、Hydrex、Topaz、Ophis，现均正式发布。**不要启动其它候选实验，不自动签名、付费或交易。** 仍严格禁止发币、tokenize、身份/报告铸造，密钥不进入源码、日志或公开包。
+
+当前四份范围分：MangoSwap34任务，A100/F91.67/B100/96.67；Hydrex43任务，A82.22/F100/B100/94.67；Topaz38任务，A100/F98/B100/99.2；Ophis31任务，A/F/B100/100。总146实际任务、32笔兑换加2笔订单管理。共享任务证据，按任务+维度+判据去重；原三维与30/40/30不变，不把全声明测完设为综合分门禁，也不声称全部功能已覆盖。
+
+Ophis正式报告`6e32f752-1c49-4003-89a4-3d4e38902b42`，目录`runtime/ophis-report-20261029-calibrated-v1`，来源`runtime/ophis-public-20261029-calibrated-v1/source.json`。公开MCP登记已核，链注册UNKNOWN；F93P/0F/15U，严格任务16P/15U、declaration PARTIAL。C16保护退出UNKNOWN；C24明确告警核验PASS，静态HTML及前端均不可称成交。余额无固定块、surplus无同期独立基准、私密原生submit请求未公开，相关项仍UNKNOWN，不用事后当前值补PASS。
+
+Ophis原plan-v2 SHA`188540b1dbcc8cd5208495fbe339fa34bec1e078b37544329fc01b7745ea6dc6`，契约SHA`c72173d6160304433243bdfbc4d00461f159ac2a2da0afab684e0e8d0e866b28`。C01旧pilot复用；C02本地临期未submit且授权已清零；fresh C31完成；总8笔实兑双向各4，原UID、canonical Trade、本人净资产、授权0和至少85块距离已核（门槛64不改）。金融序列已结束，不要恢复或重签有SIGNING/SEND/SUBMIT围栏的旧任务。保留原任务/失败/未知/旧报告。
+
+本机网站`http://127.0.0.1:7754/`已在真实PostgreSQL核四对象、Ophis含斜杠key详情/报告/C08链视图与附件SHA，回执`runtime/ophis-cow-publication-20261029/http-verification.json`。进程收据`runtime/background-platform-20261029T031902Z-ad7aae02/process.json`，worker public-off；不要重新激活公网worker。新路由及标签必要组合验收均通过，旧suite不重复跑。端口/进程管理先核项目与进程启动时间，不杀不明进程。
+
+最终四对象包`data/public-reports-trading-closeout-v4.tar.gz`已通过独立离线verify（exit 0）：4份报告、4917份runtime恢复、25份Git原字节环境前置，0联网/0数据库写入。归档6381791字节、4941文件（含索引4942成员），SHA256 `9cbf2cfff85f7b1af9ef16fce542488f7217773838cd3c19d6a50c90a9f3460e`；3类已知本机秘密及私钥标记扫描0命中。回执见`runtime/package-review-trading-closeout-20261029/verification-receipt.json`和`exact-secret-scan.json`。 本轮转为等待用户反馈，不再恢复候选实验。交付分支`codex/hydrex-expanded-evaluation`，最终提交/PR/CI读`runtime/release-closeout-review-20261029/git-delivery.json`及远程PR；不恢复PR21，不改写历史，保留无关`docs/presentation/`。
+
+## 历史记录（不再驱动当前任务）
+
+下方的旧数量、费用和执行顺序仅用于追溯，不能覆盖上方当前范围。
+
+## 2026-10-27 历史：MangoSwap完整兑换能力评分已交付
 
 task_id=`SWAP_V2_FOUR_TASK_SUPPLEMENT_20261027`已完成。用户明确批准补采政策后，先冻结ADR-0024、v2配置与master（SHA `c72610e2da3224b513f47121d563e2f707a072b56aeab2c465ba42081a49201c`，2026-10-27 04:20:39UTC），再串行执行4个既定功能请求；首请求04:23:49UTC，4个全部完成，无新增本金兑换。金融操作已结束，不因余额或No Policy自动继续交易；禁止发币、身份铸造及改权限/委托均保持。
 
