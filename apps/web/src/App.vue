@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
-import type { AgentChainEvidence, AgentDetail, AgentSummary, EvaluationJob, EvaluationReport } from './contracts'
-import { ApiError, asApiError, getAgent, getAgentChainEvidence, getAgents, getJob, getReport, getRuntimeStatus, submitEvaluation } from './api'
+import type { AgentChainEvidence, AgentDetail, AgentSummary, EvaluationReport } from './contracts'
+import { ApiError, asApiError, getAgent, getAgentChainEvidence, getAgents, getReport, getRuntimeStatus } from './api'
 import type { RuntimeStatus } from './api'
-import { checkLabel, jobLabel, score, stageLabel, when } from './format'
-import { businessRole, businessSummary, chainName, executionChains, isOlasService, profileStatus, registrationType, roleLabels, supportsSubmission } from './agentProfile'
+import { checkLabel, score, when } from './format'
+import { businessRole, businessSummary, chainName, executionChains, isOlasService, profileStatus, registrationType, roleLabels } from './agentProfile'
 import ErrorNotice from './components/ErrorNotice.vue'
 import AgentCoverage from './components/AgentCoverage.vue'
 import AgentChainReview from './components/AgentChainReview.vue'
@@ -15,7 +15,7 @@ import AgentOverview from './components/AgentOverview.vue'
 import SpatialBackdrop from './components/SpatialBackdrop.vue'
 import TaskTraceWorkbench from './components/TaskTraceWorkbench.vue'
 
-const view = ref<'browse' | 'detail' | 'submit'>('browse')
+const view = ref<'browse' | 'detail'>('browse')
 const detailTab = ref<'overview' | 'trace' | 'report' | 'evidence'>('overview')
 const traceTaskKey = ref('')
 const traceDimension = ref('')
@@ -24,7 +24,6 @@ const featuredReportError = ref<ApiError | null>(null)
 const runtime = ref<RuntimeStatus | null>(null)
 const runtimeError = ref(false)
 const runtimeLoading = ref(false)
-const workerLabels = { 'public-off': '在线 · 公开取证关闭', scoped: '在线 · 限定身份', online: '在线 · 公开只读已启用', stopped: '已停止', unavailable: '没有有效在线心跳' }
 const agents = ref<AgentSummary[]>([])
 const search = ref('')
 const statusFilter = ref<'all' | 'COMPLETE' | 'PARTIAL' | 'NOT_EVALUATED'>('all')
@@ -60,19 +59,9 @@ const reportId = ref('')
 const coverageReports = ref<Array<{ id: string; report: EvaluationReport }>>([])
 const coverageLoading = ref(false)
 const coverageIncomplete = ref(false)
-const reference = ref('')
-const submitting = ref(false)
-const submissionError = ref<ApiError | null>(null)
-const job = ref<EvaluationJob | null>(null)
-const jobError = ref<ApiError | null>(null)
-const exampleAgent = computed(() => agents.value.find(agent => agent.latest_report && supportsSubmission(agent))
-  ?? agents.value.find(supportsSubmission))
-const evaluationServiceLabel = computed(() => {
-  if (runtimeError.value || !runtime.value) return '评价服务状态待确认'
-  return {
-    online: '评价服务在线', scoped: '评价服务限定身份', 'public-off': '当前可处理资料检查',
-    stopped: '新评价等待处理', unavailable: '新评价等待处理',
-  }[runtime.value.worker.state]
+const reportServiceLabel = computed(() => {
+  if (runtimeError.value || !runtime.value) return '报告服务状态待确认'
+  return runtime.value.database === 'ready' ? '已发布报告可浏览' : '报告读取暂不可用'
 })
 const scopeOptions = computed(() => {
   const present = new Set(agents.value.map(evaluationScope))
@@ -92,12 +81,8 @@ const matches = computed(() => {
     && (roleFilter.value === 'all' || businessRole(agent) === roleFilter.value))
     .sort(compareAgents)
 })
-const jobActive = computed(() => job.value?.status === 'QUEUED' || job.value?.status === 'RUNNING')
-const stages = ['QUEUED', 'COLLECTING', 'VERIFYING', 'REPORTING'] as const
 let routeVersion = 0
 let routeAbort: AbortController | undefined
-let pollingGeneration = 0
-let pollTimer: ReturnType<typeof setTimeout> | undefined
 let runtimeTimer: ReturnType<typeof setTimeout> | undefined
 let runtimeDisposed = false
 
@@ -190,12 +175,6 @@ function clearDirectoryConditions() {
   directorySort.value = 'score-desc'
 }
 
-function stopPolling() {
-  pollingGeneration += 1
-  if (pollTimer !== undefined) clearTimeout(pollTimer)
-  pollTimer = undefined
-}
-
 function navigate(parameters: Record<string, string> = {}) {
   const query = new URLSearchParams(parameters).toString()
   history.pushState(null, '', location.pathname + (query ? '?' + query : ''))
@@ -205,12 +184,6 @@ function navigate(parameters: Record<string, string> = {}) {
 
 function openAgent(key: string, id?: string) {
   navigate(id ? { agent: key, report: id } : { agent: key })
-}
-
-function openSubmission(value?: string) {
-  if (value !== undefined) reference.value = value.startsWith('eip155:') ? value : ''
-  submissionError.value = null
-  navigate({ view: 'submit' })
 }
 
 function openDetailTab(tab: typeof detailTab.value, taskKey = '', dimension = '') {
@@ -251,38 +224,6 @@ async function loadAgents() {
   finally { directoryLoading.value = false }
 }
 
-function applyJob(updated: EvaluationJob) {
-  job.value = updated
-  jobError.value = null
-  stopPolling()
-  if (updated.status === 'COMPLETE' && updated.candidate_key && updated.report_id) {
-    void loadAgents()
-    openAgent(updated.candidate_key, updated.report_id)
-  } else if (updated.status === 'QUEUED' || updated.status === 'RUNNING') {
-    const generation = pollingGeneration
-    pollTimer = setTimeout(() => { void pollJob(updated.id, generation) }, 2000)
-  }
-}
-
-async function pollJob(id: string, generation: number) {
-  if (generation !== pollingGeneration) return
-  try {
-    const updated = await getJob(id)
-    if (generation === pollingGeneration) applyJob(updated)
-  } catch (error) {
-    if (generation === pollingGeneration) {
-      jobError.value = asApiError(error)
-      stopPolling()
-    }
-  }
-}
-
-async function resumeJob() {
-  if (!job.value || !jobActive.value) return
-  jobError.value = null
-  await pollJob(job.value.id, pollingGeneration)
-}
-
 async function loadCoverage(found: AgentDetail, selected: EvaluationReport, version: number, signal: AbortSignal) {
   coverageReports.value = [{ id: reportId.value, report: selected }]
   coverageLoading.value = found.reports.length > 1
@@ -308,7 +249,6 @@ async function loadChainReview(key: string, version: number, signal: AbortSignal
 
 async function loadRoute() {
   const version = ++routeVersion
-  stopPolling()
   routeAbort?.abort()
   routeAbort = new AbortController()
   const signal = routeAbort.signal
@@ -349,33 +289,7 @@ async function loadRoute() {
     } catch (error) {
       if (version === routeVersion && !signal.aborted) pageError.value = asApiError(error)
     } finally { if (version === routeVersion) pageLoading.value = false }
-  } else if (parameters.get('view') === 'submit' || parameters.has('job')) {
-    view.value = 'submit'
-    job.value = null
-    jobError.value = null
-    if (parameters.has('job')) {
-      pageLoading.value = true
-      try {
-        const updated = await getJob(parameters.get('job')!, signal)
-        if (version === routeVersion) applyJob(updated)
-      } catch (error) {
-        if (version === routeVersion && !signal.aborted) pageError.value = asApiError(error)
-      } finally { if (version === routeVersion) pageLoading.value = false }
-    }
   } else view.value = 'browse'
-}
-
-async function submit() {
-  if (!reference.value.trim() || submitting.value) return
-  submitting.value = true
-  submissionError.value = null
-  const version = routeVersion
-  try {
-    const created = await submitEvaluation({ reference: reference.value.trim() })
-    if (version === routeVersion) navigate({ view: 'submit', job: created.id })
-  } catch (error) {
-    if (version === routeVersion) submissionError.value = asApiError(error)
-  } finally { submitting.value = false }
 }
 
 onMounted(() => {
@@ -387,7 +301,6 @@ onMounted(() => {
 onBeforeUnmount(() => {
   runtimeDisposed = true
   if (runtimeTimer !== undefined) clearTimeout(runtimeTimer)
-  stopPolling()
   routeAbort?.abort()
   window.removeEventListener('popstate', loadRoute)
 })
@@ -399,17 +312,16 @@ onBeforeUnmount(() => {
     <a class="skip-link" href="#main">跳到主要内容</a>
     <header class="site-header"><div class="header-inner">
       <a href="?" class="brand" @click.prevent="navigate()"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="m16 3 11 6.5v13L16 29 5 22.5v-13L16 3Z" stroke="currentColor" stroke-width="1.6"/><path d="m10.5 16 3.7 3.7 7.3-7.4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Agent 声誉<span class="brand-subtitle">WEB3 · 多源证据评价</span></span></a>
-      <nav aria-label="主导航"><button :aria-current="view !== 'submit' ? 'page' : undefined" @click="navigate()">浏览 Agent</button><button :aria-current="view === 'submit' ? 'page' : undefined" @click="openSubmission()">接入并评价</button></nav>
       <span class="local-indicator"><i aria-hidden="true"></i>本机运行</span>
     </div></header>
 
     <main id="main" class="main-container">
       <details v-if="view!=='detail'" class="runtime-strip" aria-label="平台实时运行状态">
-        <summary class="runtime-compact"><strong>{{ runtimeError ? '平台状态待确认' : runtime ? '平台在线' : '正在连接平台' }}</strong><span>{{ evaluationServiceLabel }}</span><span class="runtime-disclosure">运行详情</span></summary>
-        <div class="runtime-details"><div class="runtime-line"><span>API：{{ runtimeError ? '状态读取失败' : runtime ? '在线' : '正在读取' }}</span><span>数据库：{{ runtimeError || !runtime ? '待确认' : runtime.database === 'ready' ? '就绪' : '不可用' }}</span><span>Worker：{{ runtimeError || !runtime ? '待确认' : workerLabels[runtime.worker.state] }}</span><span>作业：排队 {{ runtimeError ? '—' : runtime?.queued ?? '—' }} · 处理中 {{ runtimeError ? '—' : runtime?.running ?? '—' }}</span><button class="text-button" :disabled="runtimeLoading" @click="loadRuntime">刷新状态</button></div><p v-if="runtimeError" class="muted small">无法读取当前运行状态，请刷新；已有报告可继续查看。</p><template v-else-if="runtime"><p v-if="runtime.worker.state === 'unavailable' || runtime.worker.state === 'stopped'" class="muted small">当前没有已确认在线的 Worker，新的请求可能等待队列处理。</p><p v-else-if="runtime.worker.state === 'public-off'" class="muted small">Worker 可处理请求并说明缺项；当前公开取证关闭，不会自动调用外部 Agent。</p><p v-else-if="runtime.worker.state === 'scoped'" class="muted small multiline">公开取证仅限身份：{{ runtime.worker.scope_reference }}</p><p class="muted small">状态读取于 {{ when(runtime.observed_at) }}<template v-if="runtime.worker.last_seen_at"> · 最近心跳 {{ when(runtime.worker.last_seen_at) }}</template></p></template></div>
+        <summary class="runtime-compact"><strong>{{ runtimeError ? '平台状态待确认' : runtime ? '平台在线' : '正在连接平台' }}</strong><span>{{ reportServiceLabel }}</span><span class="runtime-disclosure">运行详情</span></summary>
+        <div class="runtime-details"><div class="runtime-line"><span>API：{{ runtimeError ? '状态读取失败' : runtime ? '在线' : '正在读取' }}</span><span>数据库：{{ runtimeError || !runtime ? '待确认' : runtime.database === 'ready' ? '就绪' : '不可用' }}</span><button class="text-button" :disabled="runtimeLoading" @click="loadRuntime">刷新状态</button></div><p v-if="runtimeError" class="muted small">无法读取当前运行状态，请刷新；已加载的报告可继续查看。</p><p v-else-if="runtime" class="muted small">状态读取于 {{ when(runtime.observed_at) }}</p></div>
       </details>
       <template v-if="view === 'browse'">
-        <section class="directory-heading" v-if="agents.length !== 1"><div><p class="eyebrow">WEB3 AGENT REPUTATION</p><h1>用真实任务，读懂 Agent 声誉。</h1><p class="page-description">从服务请求到链上结果，循着证据理解每一项评价。</p></div><button class="primary-button" @click="openSubmission()">接入 Agent ↗</button></section>
+        <section class="directory-heading" v-if="agents.length !== 1"><div><p class="eyebrow">WEB3 AGENT REPUTATION</p><h1>用真实任务，读懂 Agent 声誉。</h1><p class="page-description">从服务请求到链上结果，循着证据理解每一项评价。</p></div></section>
         <div class="directory-toolbar" :class="{'single-agent-toolbar':agents.length===1}">
           <label class="search-field"><svg aria-hidden="true" viewBox="0 0 20 20" fill="none"><circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="m13 13 4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><span class="sr-only">搜索 Agent</span><input v-model="search" type="search" placeholder="搜索名称、能力或注册标识" /></label>
           <details class="directory-filter-disclosure"><summary>筛选与排序</summary><div class="directory-filters">
@@ -423,7 +335,7 @@ onBeforeUnmount(() => {
         </div>
         <p v-if="directoryLoading" class="loading-state" role="status"><span class="spinner" aria-hidden="true"></span>正在读取 Agent 目录…</p>
         <ErrorNotice v-else-if="directoryError" :error="directoryError"><button class="text-button" @click="loadAgents">重新读取目录</button></ErrorNotice>
-        <section v-else-if="!matches.length" class="empty-state panel"><h2>{{ agents.length ? '没有符合条件的 Agent' : '目录中还没有 Agent' }}</h2><p>{{ agents.length ? '可以调整搜索词、评价状态或范围，也可以清空条件查看全部对象。' : '提交公开注册信息后，平台会检查资料并推进评价。' }}</p><button v-if="agents.length && hasDirectoryConditions" class="secondary-button" @click="clearDirectoryConditions">清空条件</button><button v-else class="primary-button" @click="openSubmission()">接入 Agent</button></section>
+        <section v-else-if="!matches.length" class="empty-state panel"><h2>{{ agents.length ? '没有符合条件的 Agent' : '目录中还没有 Agent' }}</h2><p>{{ agents.length ? '可以调整搜索词、评价状态或范围，也可以清空条件查看全部对象。' : '已发布的 Agent 评价报告会显示在这里。' }}</p><button v-if="agents.length && hasDirectoryConditions" class="secondary-button" @click="clearDirectoryConditions">清空条件</button></section>
         <template v-else-if="agents.length === 1 && matches[0]"><ErrorNotice v-if="featuredReportError" :error="featuredReportError"><button class="text-button" @click="loadAgents">重新读取完整报告</button></ErrorNotice><AgentOverview :agent="matches[0]" :report="featuredReport" :report-id="matches[0].latest_report?.id" @open="openFeatured('trace', $event)" @report="openFeatured('report')" @dimension="openFeatured('trace', undefined, $event)" /></template>
         <section v-else class="agent-grid" aria-label="Agent 目录"><article v-for="agent in matches" :key="agent.key" class="agent-card">
           <header>
@@ -474,23 +386,11 @@ onBeforeUnmount(() => {
           <p v-if="pageLoading" class="loading-state" role="status"><span class="spinner" aria-hidden="true"></span>正在读取所选报告…</p>
           <div v-if="report && detailTab === 'report'" class="report-actions"><span class="muted small">当前报告 · <code>{{ reportId }}</code></span><a :href="'/api/reports/'+encodeURIComponent(reportId)" :download="'report-'+reportId+'.json'">下载报告 JSON ↗</a></div>
           <ReportView v-if="report && detailTab === 'report'" :key="reportId" :report="report" :report-id="reportId" @trace="openTrace" />
-          <section v-if="!pageLoading && !detail.reports.length && !chainReview && !chainReviewLoading" class="panel candidate-panel"><span class="report-status">尚未形成完整评价</span><h2>先看已经核实什么，还缺什么。</h2><p class="section-description">目前没有足够证据发布完整三维分。以下内容帮助了解资料状态，不会换算成零分。</p><template v-if="detail.candidate"><div class="candidate-checks"><section v-for="check in detail.candidate.checks" :key="check.code"><div class="row-between"><h3>{{ checkLabel[check.code] }}</h3><StatusBadge :verdict="check.status" /></div><p>{{ check.explanation }}</p><details class="technical"><summary>这项判断的证据</summary><EvidenceList :sources="check.evidence" /></details></section></div><section class="next-actions"><h3>接下来需要什么</h3><ul><li v-for="(action, index) in detail.candidate.next_actions" :key="index">{{ action }}</li></ul></section></template><p v-else class="empty-inline">暂未保存详细资料检查记录。可通过接入入口提交完整注册信息。</p></section>
+          <section v-if="!pageLoading && !detail.reports.length && !chainReview && !chainReviewLoading" class="panel candidate-panel"><span class="report-status">尚未形成完整评价</span><h2>先看已经核实什么，还缺什么。</h2><p class="section-description">目前没有足够证据发布完整三维分。以下内容帮助了解资料状态，不会换算成零分。</p><template v-if="detail.candidate"><div class="candidate-checks"><section v-for="check in detail.candidate.checks" :key="check.code"><div class="row-between"><h3>{{ checkLabel[check.code] }}</h3><StatusBadge :verdict="check.status" /></div><p>{{ check.explanation }}</p><details class="technical"><summary>这项判断的证据</summary><EvidenceList :sources="check.evidence" /></details></section></div><section class="next-actions"><h3>接下来需要什么</h3><ul><li v-for="(action, index) in detail.candidate.next_actions" :key="index">{{ action }}</li></ul></section></template><p v-else class="empty-inline">暂未保存详细资料检查记录。现有结论以已发布报告和证据为准。</p></section>
         </template>
         <ErrorNotice v-if="pageError" :error="pageError" />
       </template>
 
-      <template v-else>
-        <section class="submission-heading"><p class="eyebrow">接入 Agent · 提交评价请求</p><h1>提交公开注册信息，<br>让评价回到真实证据。</h1><p class="page-description">平台按身份、能力与可用证据选择适用的评价方式。公开取证是否执行取决于后台当前配置；尚未开启、资料不足或暂不支持时，任务会说明实际原因。</p></section>
-        <div class="submission-layout"><section class="panel submission-form-panel"><h2>提交 Agent 评价请求</h2><form @submit.prevent="submit"><label for="agent-reference">完整注册标识或注册页面链接</label><textarea id="agent-reference" v-model="reference" rows="3" required spellcheck="false" placeholder="粘贴完整注册标识，或公开注册页面的 HTTPS 链接" :disabled="submitting" aria-describedby="reference-hint"></textarea><p id="reference-hint" class="muted small">当前自动采评支持 ERC-8004 注册身份。Olas Service Registry 历史对象请从目录查看链上证据。</p><button v-if="exampleAgent && !reference" type="button" class="example-button" @click="reference = exampleAgent.registration_reference">使用目录中的真实示例：{{ exampleAgent.name }}</button><button class="primary-button submit-button" type="submit" :disabled="submitting || !reference.trim()"><span v-if="submitting" class="spinner" aria-hidden="true"></span>{{ submitting ? '正在提交…' : '提交评价请求' }}<span v-if="!submitting" aria-hidden="true">→</span></button></form><ErrorNotice v-if="submissionError" :error="submissionError" /></section>
-          <aside class="submission-guide"><p class="eyebrow">提交之后</p><ol><li><span>01</span><div><h3>收集公开资料</h3><p>定位注册身份、功能声明、服务接口与执行线索。</p></div></li><li><span>02</span><div><h3>独立核验结果</h3><p>按适用方案核对实际服务和可归属的链上记录。</p></div></li><li><span>03</span><div><h3>阅读具体结论</h3><p>报告解释得分、样本与边界；缺少证据的部分明确列出。</p></div></li></ol></aside></div>
-        <p v-if="pageLoading" class="loading-state" role="status"><span class="spinner" aria-hidden="true"></span>正在读取评价进度…</p><ErrorNotice v-if="pageError" :error="pageError" />
-        <section v-if="job" class="panel job-panel" aria-live="polite"><div class="row-between wrap"><div><p class="eyebrow">本次评价进度</p><h2>{{ jobLabel[job.status] }}</h2></div><span class="report-status" :class="{ complete: job.status === 'COMPLETE' }">{{ stageLabel[job.stage] }}</span></div><p class="job-message">{{ job.message }}</p><p class="muted small">状态更新于 {{ when(job.updated_at) }}</p>
-          <ol v-if="jobActive" class="job-stages" aria-label="评价阶段"><li v-for="(stage, index) in stages" :key="stage" :class="{ current: job.stage === stage, done: stages.indexOf(job.stage as typeof stages[number]) > index }"><span>{{ String(index + 1).padStart(2, '0') }}</span>{{ stageLabel[stage] }}</li></ol>
-          <p v-if="jobActive && !jobError" class="muted small"><span class="spinner small-spinner" aria-hidden="true"></span>正在自动读取进度，完成后会打开报告。</p><ErrorNotice v-if="jobError" :error="jobError"><button v-if="jobActive" class="text-button" @click="resumeJob">重新读取进度</button></ErrorNotice>
-          <button v-if="job.status === 'COMPLETE' && job.candidate_key && job.report_id" class="primary-button" @click="openAgent(job.candidate_key, job.report_id)">打开评价报告 →</button>
-          <details class="technical"><summary>本次提交记录</summary><p class="multiline">提交信息：{{ job.reference }}</p><p>创建于 {{ when(job.created_at) }}<br>更新于 {{ when(job.updated_at) }}</p><p>任务标识：<code>{{ job.id }}</code></p></details>
-        </section>
-      </template>
     </main>
     <footer class="site-footer"><div><span>Web3 Agent 声誉评价</span><p>公开资料 · 实际核验 · 可追溯证据</p></div><p>分数适用于各份报告列明的业务范围与样本时间。</p></footer>
   </div>

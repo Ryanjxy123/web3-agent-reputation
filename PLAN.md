@@ -1,6 +1,8 @@
 # 新项目执行计划
 
-## 当前结论：四对象正式评分已完成（2026-10-29）
+## 当前任务：仅浏览既有报告界面（2026-10-29）
+
+task_id=`BROWSE_ONLY_UI`。已移除“浏览Agent／接入并评价”切换、目录接入按钮与提交页面，并删除前端提交调用、作业轮询和孤立样式。当前仅浏览既有Agent报告；排序筛选、详情、样本与证据照常使用。一次`pnpm --dir apps/web run build`含类型检查，exit 0，Vite538ms；本机HTTP已确认返回新构建且无接入文案/提交调用。无新增实验，不改评分或数据包。现有PR #24的更新结果以交付回执及远程PR为准。
 
 用户取消十对象数量目标后，本轮仅完成MangoSwap、Hydrex、Topaz、Ophis，现均已完成本轮范围评价、正式报告及网站发布。已停止新增Agent实验；其它候选记录保留，不再请求、付款、授权或适配。合计146个实际任务、32笔真实兑换及2笔订单管理，不把计划槽位、接口阶段、模拟或服务费算成额外成交。
 
@@ -17,7 +19,7 @@ Ophis正式报告`6e32f752-1c49-4003-89a4-3d4e38902b42`，目录`runtime/ophis-r
 
 最终四对象包`data/public-reports-trading-closeout-v4.tar.gz`已通过独立离线verify（exit 0）：4份报告、4917份runtime恢复、25份Git原字节环境前置，0联网/0数据库写入。归档6381791字节、4941文件（含索引4942成员），SHA256 `9cbf2cfff85f7b1af9ef16fce542488f7217773838cd3c19d6a50c90a9f3460e`；3类已知本机秘密及私钥标记扫描0命中。回执见`runtime/package-review-trading-closeout-20261029/verification-receipt.json`和`exact-secret-scan.json`。
 
-Git分支`codex/hydrex-expanded-evaluation`，代码检查点`a80f327`已commit；最终提交、PR与CI以`runtime/release-closeout-review-20261029/git-delivery.json`回执为准。禁止发币、tokenize及身份/报告铸造，保留无关`docs/presentation/`。交付后下一task_id=`USER_FEEDBACK`；等待用户反馈，不因剩余资产或旧目标自动交易。
+Git分支`codex/hydrex-expanded-evaluation`，本次`BROWSE_ONLY_UI`更新现有PR #24；提交、push与CI状态以`runtime/release-closeout-review-20261029/git-delivery.json`及远程PR为准。界面与本机资源核验回执为`runtime/browse-only-ui-20261029/verification.json`。下一task_id=`USER_FEEDBACK`，不恢复新实验，严格禁止发币，保留无关`docs/presentation/`。
 
 ## 历史记录（以下不再驱动当前任务）
 
@@ -385,7 +387,7 @@ GitHub workflow权限首次换令牌EOF后，用户完成第二次设备授权�
 
 ## 已确认的产品方向
 
-1. 普通用户通过两个主入口完成浏览和接入。
+1. 历史首版曾要求普通用户通过两个主入口完成浏览和接入；该入口要求已由2026-10-29仅浏览既有报告的决定取代。
 2. 大模型分析有来源的业务声明，程序选择可复用方案，真实执行并独立核验后形成报告。
 3. 方案按功能能力及独立判据复用；一个 Agent 可有多功能并适用多类，不给每个 Agent 单独写标准。
 4. 报告是主要交付物，解释范围、结果和限制，不能只呈现一个分数。

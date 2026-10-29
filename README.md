@@ -1,5 +1,7 @@
 # 基于多源证据的 Web3 Agent 声誉评价平台
 
+当前网站只提供**浏览既有Agent评价报告**：查看功能介绍、排序筛选、三维评分、任务样本与多源证据。普通用户不能自主提交Agent评价请求；“浏览Agent／接入并评价”切换及接入页面不再属于当前产品。历史自动接入实现仅作为后台或未来扩展能力保留。
+
 本轮四个已在测对象均已完成本轮范围评价并正式发布：MangoSwap、Hydrex、Topaz、Ophis。**已停止新增Agent实验，不再以10个对象为目标。** 合计146个实际任务、32笔真实兑换及2笔订单管理；这些是已测范围评价，不代表全部声明功能均已验证。
 
 面向公开注册并提供服务信息的Web3 Agent，收集注册资料、自然语言功能描述、服务接口、关联合约和交易历史，评价**服务可用性、功能声明一致性、交易行为可靠性**。
@@ -27,7 +29,7 @@ Hydrex通过Virtuals ACP接收兑换意图并生成Base链路由方案，由买�
 
 Ophis通过公开MCP接口提供CoW报价、订单构建与校验，由买方钱包签名，solver在Base结算。31个任务包含8笔双向真实兑换，均核UID、Trade、本人净资产、期限、授权归零及至少85块距离；原门槛仍为64块。F的93项可判判据通过、15项UNKNOWN，严格整任务计数为16通过/15未知，所以100分只描述已知可判部分，声明覆盖仍为PARTIAL。目录登记已核实，ERC-8004链注册未证实；独立同块余额、同期盈余基准和原生submit公开证据缺项保留UNKNOWN。
 
-新来源入口直接重放任务原件，不要求复制MangoSwap父报告。0x、Hydrex包装协议、Kyber、原子兑换和CoW按通用协议核验；TheSafeRouteBot等历史候选材料保留，不启动后续实验，也不计正式评分对象。见[来源规则](docs/adr/0030-unsigned-swap-source-replay.md)及[历史交付记录](docs/runbooks/TRANSACTION_COHORT_RELEASE_20261028.md)。
+后台来源工具直接重放任务原件，不要求复制MangoSwap父报告；它不是面向普通用户的自助接入入口。0x、Hydrex包装协议、Kyber、原子兑换和CoW按通用协议核验；TheSafeRouteBot等历史候选材料保留，不启动后续实验，也不计正式评分对象。见[来源规则](docs/adr/0030-unsigned-swap-source-replay.md)及[历史交付记录](docs/runbooks/TRANSACTION_COHORT_RELEASE_20261028.md)。
 
 ## 网站任务证据工作台
 
@@ -64,7 +66,7 @@ uv run --env-file .env --no-sync python scripts/public_reports.py import data/pu
 uv run --env-file .env --no-sync python -m uvicorn reputation_platform.api:create_app --factory --host 127.0.0.1 --port 7754
 ```
 
-另开终端启动worker：
+仅浏览已发布报告无需启动worker；本机需要运行后台worker时可另开终端，默认仍为public-off：
 
 ```powershell
 uv run --env-file .env --no-sync python -m reputation_platform.worker
@@ -100,3 +102,5 @@ uv run --env-file .env --no-sync python -m reputation_platform.worker
 通用评分和协议适配代码保留。旧实例采集CLI已改为显式传入操作者的profile/config，不再默认选择旧对象。评分与原件只追加、分数由后端复算，前端不手填。单值规则/证据来源与本轮验证详见[单分交付记录](docs/runbooks/MANGOSWAP_SINGLE_SCORE_20261027.md)。
 
 当前CI检查纯规则、共用协议解码、真实来源/公开包、前端构建，以及真实PostgreSQL并发租约、过期恢复、不可修改报告与HTTP闭环。已有有效测试不因提交重复跑；更改关键行为或出现真实失败时执行必要检查。
+
+本次移除自助接入页面后，`pnpm --dir apps/web run build`的类型检查和构建exit 0（Vite538ms），本机已提供新构建；前端不再包含评价提交或作业轮询调用。本次提交与[PR #24](https://github.com/Ryanjxy123/web3-agent-reputation/pull/24)的CI状态见交付回执`runtime/release-closeout-review-20261029/git-delivery.json`，已有评分与数据包保持原版本。

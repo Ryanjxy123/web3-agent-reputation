@@ -13,7 +13,6 @@ body{background:var(--bg)}
 .site-header{background:#0b141ee8;border-color:#adc8e01a;backdrop-filter:blur(12px)}
 .brand-mark{border-color:#7897ad55;color:#a4e7e9;background:#142735;box-shadow:inset 0 1px #b2dde329}
 .brand-subtitle{font-size:10px;letter-spacing:.16em;color:#8ea6b8}
-.site-header nav button[aria-current=page]{color:#d7e9ef;border-bottom-color:#81ccd7}
 .main-container{padding-left:28px;padding-right:28px}
 .primary-button,.ov-actions .primary-button{background:#a8e0e7;color:#102c36;border:1px solid #c0eef1;box-shadow:inset 0 1px #fff8,0 4px 18px #0002}
 .primary-button:hover:not(:disabled),.ov-actions .primary-button:hover{background:#c1eef2;color:#0a2630;box-shadow:0 5px 22px #75d3df22;transform:translateY(-1px)}

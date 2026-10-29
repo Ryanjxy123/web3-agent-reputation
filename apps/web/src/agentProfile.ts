@@ -44,7 +44,3 @@ export function registrationType(agent: AgentSummary): string {
   return agent.registration_reference.split(':')[2]?.toLowerCase() === '0x8004a169fb4a3325136eb29fa0ceb6d2e539a432'
     ? 'ERC-8004 身份注册' : '注册类型待核实'
 }
-
-export function supportsSubmission(agent: AgentSummary): boolean {
-  return agent.registration_reference.split(':')[2]?.toLowerCase() === '0x8004a169fb4a3325136eb29fa0ceb6d2e539a432'
-}

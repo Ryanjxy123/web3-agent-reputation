@@ -1,4 +1,4 @@
-import type { AgentChainEvidence, AgentDetail, AgentSummary, EvaluationJob, EvaluationReport, EvaluationSubmission, ReportChainEvidence } from './contracts'
+import type { AgentChainEvidence, AgentDetail, AgentSummary, EvaluationReport, ReportChainEvidence } from './contracts'
 
 export class ApiError extends Error {
   constructor(message: string, public detail: string) { super(message) }
@@ -34,11 +34,6 @@ export const getAgent = (key: string, signal?: AbortSignal) => request<AgentDeta
 export const getReport = (id: string, signal?: AbortSignal) => request<EvaluationReport>('/reports/' + encodeURIComponent(id), { signal })
 export const getReportChainEvidence = (id: string, signal?: AbortSignal, taskKey?: string) => request<ReportChainEvidence>('/reports/' + encodeURIComponent(id) + '/chain-evidence' + (taskKey ? '?task_key=' + encodeURIComponent(taskKey) : ''), { signal })
 export const getAgentChainEvidence = (key: string, signal?: AbortSignal) => request<AgentChainEvidence | null>('/agents/' + encodeURIComponent(key) + '/chain-evidence', { signal })
-export const getJob = (id: string, signal?: AbortSignal) => request<EvaluationJob>('/jobs/' + encodeURIComponent(id), { signal })
-export const submitEvaluation = (submission: EvaluationSubmission) => request<EvaluationJob>('/evaluations', {
-  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(submission),
-})
-
 export function asApiError(error: unknown): ApiError {
   return error instanceof ApiError ? error : new ApiError('暂时无法完成操作，请稍后再试。', String(error))
 }

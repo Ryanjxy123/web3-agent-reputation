@@ -1,6 +1,8 @@
 # 当前工作交接
 
-## 当前结论：四对象实验已结束（2026-10-29）
+## 当前任务：仅浏览既有报告界面（2026-10-29）
+
+task_id=`BROWSE_ONLY_UI`。已移除“浏览Agent／接入并评价”切换、目录接入按钮与提交页面，并删除前端提交调用、作业轮询和孤立样式。当前仅浏览既有Agent报告；排序筛选、详情、样本与证据照常使用。一次`pnpm --dir apps/web run build`含类型检查，exit 0，Vite538ms；本机HTTP已确认返回新构建且无接入文案/提交调用。无新增实验，不改评分或数据包。现有PR #24的更新结果以交付回执及远程PR为准。
 
 主工作目录`D:/xjtu_project/block_chain_new/block_chain_new_new`。先读AGENTS、PLAN、STATUS、README和[四对象收口记录](docs/runbooks/TRADING_CLOSEOUT_20261029.md)，不扫描父失败项目。用户已取消十对象目标；本轮只完成MangoSwap、Hydrex、Topaz、Ophis，现均正式发布。**不要启动其它候选实验，不自动签名、付费或交易。** 仍严格禁止发币、tokenize、身份/报告铸造，密钥不进入源码、日志或公开包。
 
@@ -12,7 +14,7 @@ Ophis原plan-v2 SHA`188540b1dbcc8cd5208495fbe339fa34bec1e078b37544329fc01b7745ea
 
 本机网站`http://127.0.0.1:7754/`已在真实PostgreSQL核四对象、Ophis含斜杠key详情/报告/C08链视图与附件SHA，回执`runtime/ophis-cow-publication-20261029/http-verification.json`。进程收据`runtime/background-platform-20261029T031902Z-ad7aae02/process.json`，worker public-off；不要重新激活公网worker。新路由及标签必要组合验收均通过，旧suite不重复跑。端口/进程管理先核项目与进程启动时间，不杀不明进程。
 
-最终四对象包`data/public-reports-trading-closeout-v4.tar.gz`已通过独立离线verify（exit 0）：4份报告、4917份runtime恢复、25份Git原字节环境前置，0联网/0数据库写入。归档6381791字节、4941文件（含索引4942成员），SHA256 `9cbf2cfff85f7b1af9ef16fce542488f7217773838cd3c19d6a50c90a9f3460e`；3类已知本机秘密及私钥标记扫描0命中。回执见`runtime/package-review-trading-closeout-20261029/verification-receipt.json`和`exact-secret-scan.json`。 本轮转为等待用户反馈，不再恢复候选实验。交付分支`codex/hydrex-expanded-evaluation`，最终提交/PR/CI读`runtime/release-closeout-review-20261029/git-delivery.json`及远程PR；不恢复PR21，不改写历史，保留无关`docs/presentation/`。
+最终四对象包`data/public-reports-trading-closeout-v4.tar.gz`已通过独立离线verify（exit 0）：4份报告、4917份runtime恢复、25份Git原字节环境前置，0联网/0数据库写入。归档6381791字节、4941文件（含索引4942成员），SHA256 `9cbf2cfff85f7b1af9ef16fce542488f7217773838cd3c19d6a50c90a9f3460e`；3类已知本机秘密及私钥标记扫描0命中。回执见`runtime/package-review-trading-closeout-20261029/verification-receipt.json`和`exact-secret-scan.json`。 本次只完成`BROWSE_ONLY_UI`及PR #24更新后等待用户反馈，不恢复候选实验。交付分支`codex/hydrex-expanded-evaluation`，最终提交/PR/CI读`runtime/release-closeout-review-20261029/git-delivery.json`及远程PR；不恢复PR21，不改写历史，保留无关`docs/presentation/`。
 
 ## 历史记录（不再驱动当前任务）
 
