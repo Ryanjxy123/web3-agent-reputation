@@ -1,0 +1,223 @@
+{
+  "scope": "Retained real A38 HTTP500 negative business sample; fixture relocation only, no new request.",
+  "planned": {
+    "task_id": "A38",
+    "task_key": "51a982de-04db-4a89-8d39-61f730247eb0",
+    "input_summary": "Reject non-finite or malformed hexadecimal exact-input amount; additional distinct schema boundary, no execution",
+    "direction": "USDC-WETH",
+    "requests": [
+      {
+        "stage": "quote",
+        "method": "POST",
+        "url": "https://agents.topazdex.com/api/swap/quote",
+        "json": {
+          "sellToken": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          "buyToken": "0x4200000000000000000000000000000000000006",
+          "sellAmount": "0xzz",
+          "chainId": 8453,
+          "slippageBps": 50,
+          "deadlineSeconds": 600
+        }
+      }
+    ],
+    "expected": {
+      "token_in": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "token_out": "0x4200000000000000000000000000000000000006",
+      "amount_in": "100000",
+      "recipient": "0x73d642847cb9a3acef116ea207a74b9956c34a09",
+      "slippage_bps": 50,
+      "safe_rejection": true,
+      "invalid_field": "sellAmount",
+      "rejection_statuses": [
+        400,
+        422
+      ]
+    },
+    "planned_actual_execution": false
+  },
+  "observation": {
+    "request_key": "a38-quote",
+    "purpose": "background",
+    "url": "https://agents.topazdex.com/api/swap/quote",
+    "method": "POST",
+    "request_json": "{\"buyToken\": \"0x4200000000000000000000000000000000000006\", \"chainId\": 8453, \"deadlineSeconds\": 600, \"sellAmount\": \"0xzz\", \"sellToken\": \"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913\", \"slippageBps\": 50}",
+    "observed_at": "2026-10-28T18:28:23.719956Z",
+    "http_status": 500,
+    "elapsed_ms": 4609.0,
+    "outcome": "UNKNOWN",
+    "error_kind": "http_status_not_success",
+    "response_file": "a38-quote.response.bin",
+    "response_sha256": "5bf7ec49dbc20c7f390fcae51fa3a849ed59296db93f86d8dbe4be2460551e2f",
+    "body_complete": true
+  },
+  "response": {
+    "kind": "error",
+    "chainId": 56,
+    "timestamp": "2026-10-28T18:28:29.170Z",
+    "summary": "Internal server error. Please try again.",
+    "data": null
+  },
+  "sources": [
+    {
+      "path": "runtime/atomic-swap-campaign-20261029/tasks/51a982de-04db-4a89-8d39-61f730247eb0/a38-quote.observation.json",
+      "sha256": "2c6740d034be658c7d5ea815cc99f12948772a28ee5bae1302c5e22208856bff"
+    },
+    {
+      "path": "runtime/atomic-swap-campaign-20261029/tasks/51a982de-04db-4a89-8d39-61f730247eb0/a38-quote.response.bin",
+      "sha256": "5bf7ec49dbc20c7f390fcae51fa3a849ed59296db93f86d8dbe4be2460551e2f"
+    }
+  ],
+  "plan": {
+    "registered_service": "https://agents.topazdex.com",
+    "source_snapshot": {
+      "path": "frozen-openapi"
+    },
+    "response_mapping": {
+      "calls_pointer": "/transactions",
+      "fields": {
+        "token_in": "/data/sellToken",
+        "token_out": "/data/buyToken",
+        "amount_in": "/data/sellAmount",
+        "recipient": "/data/payer",
+        "minimum_out": "/data/minOut",
+        "quoted_out": "/data/expectedOut",
+        "slippage_bps": "/data/topazApiQuote/slippageBips",
+        "fixed_block": "/data/topazApiQuote/blockNumber",
+        "chain_id": "/chainId",
+        "issued_at": "/timestamp"
+      },
+      "rejection_error_pointer": "/error",
+      "stage_scope": "Map final build response only; quote does not contain /data/payer or /transactions."
+    }
+  },
+  "schema": {
+    "paths": {
+      "/api/swap/quote": {
+        "post": {
+          "summary": "Get Topaz API split/mixed CL and v2 smart order router quote",
+          "operationId": "postSwapQuote",
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "sellToken",
+                    "buyToken",
+                    "sellAmount"
+                  ],
+                  "properties": {
+                    "sellToken": {
+                      "type": "string",
+                      "description": "Token address or symbol (e.g. 'WBNB')"
+                    },
+                    "buyToken": {
+                      "type": "string",
+                      "description": "Token address or symbol"
+                    },
+                    "sellAmount": {
+                      "type": "string",
+                      "description": "Amount in human units (e.g. '1.5'), or hex raw units"
+                    },
+                    "chainId": {
+                      "oneOf": [
+                        {
+                          "type": "integer",
+                          "enum": [
+                            56,
+                            4663,
+                            8453,
+                            1,
+                            5042
+                          ]
+                        },
+                        {
+                          "type": "string"
+                        }
+                      ],
+                      "default": 56,
+                      "description": "Topaz chain: 56 (BNB Chain), 4663 (Robinhood Chain), 8453 (Base), 1 (Ethereum) or 5042 (Arc). Slugs (bnb, robinhood, base, ethereum, arc) are also accepted."
+                    },
+                    "slippageBps": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 500,
+                      "default": 100
+                    },
+                    "deadlineSeconds": {
+                      "type": "integer",
+                      "minimum": 30,
+                      "maximum": 1800,
+                      "default": 600
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Swap quote",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "allOf": [
+                      {
+                        "$ref": "#/components/schemas/AgentResponse"
+                      },
+                      {
+                        "properties": {
+                          "data": {
+                            "$ref": "#/components/schemas/QuoteData"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Invalid input",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/ErrorResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "schemas": {
+        "ErrorResponse": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "error"
+              ]
+            },
+            "chainId": {
+              "type": "integer"
+            },
+            "timestamp": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "summary": {
+              "type": "string",
+              "description": "Human-readable error message"
+            },
+            "data": {}
+          }
+        }
+      }
+    }
+  }
+}

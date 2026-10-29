@@ -22,6 +22,7 @@ KYBER = selector('swap((address,address,bytes,(address,address,address[],uint256
 TRANSFER_FROM = selector('TRANSFER_FROM(address,((address,uint256),uint256,uint256),bytes)')
 UNISWAP_V3_VIP = selector('UNISWAPV3_VIP(address,((address,uint256),uint256,uint256),bytes,bytes,uint256)')
 UNISWAP_V3 = selector('UNISWAPV3(address,uint256,bytes,uint256)')
+UNISWAP_V2 = selector('UNISWAPV2(address,address,uint256,address,uint24,uint256)')
 BASIC = selector('BASIC(address,uint256,address,uint256,bytes)')
 MAVERICK = selector('MAVERICKV2(address,address,uint256,address,bool,int32,uint256)')
 SURPLUS = selector('POSITIVE_SLIPPAGE(address,address,uint256,uint256,uint256)')
@@ -120,17 +121,25 @@ def _settler(transaction, chain_id):
     actions = [abi.blob_at(at) for at in abi.array(0, 3, 5, dynamic=True)]
     fact = _base('0x-allowanceholder-settler', transaction, chain_id, token, bought, amount, recipient, minimum)
     fact['required_contracts'].append(target)
-    transfer_count = 0
+    transfer_count, forwarded_recipient = 0, None
     for index, raw in enumerate(actions):
         sig, item = '0x' + raw[:4].hex(), _ABI(raw[4:])
         if sig == TRANSFER_FROM:
             transfer_count += 1
-            _check(index == 0 and item.addr(0) == target and item.addr(32) == token
+            forwarded_recipient = item.addr(0)
+            _check(index == 0 and item.addr(32) == token
                 and item.word(64) == amount and item.word(96) == 0 and item.blob(0, 5, 6) == b'',
                 'Forwarded input transfer differs from the complete exact-input plan')
+            if forwarded_recipient != target:
+                prepaid = [_ABI(action[4:]) for action in actions[1:]
+                           if '0x' + action[:4].hex() == UNISWAP_V2]
+                _check(forwarded_recipient != ZERO and len(prepaid) == 1
+                       and prepaid[0].addr(0) == target and prepaid[0].addr(32) == token
+                       and prepaid[0].word(64) == 0 and prepaid[0].addr(96) == forwarded_recipient,
+                       'Prepaid input requires one matching V2 pool, asset and Settler recipient')
             deadline = item.word(128)
             fact['deadlines'].append({'kind': 'settler-transfer-permit', 'timestamp': deadline})
-            fact['actions'].append({'kind': 'allowanceholder-transfer', 'target': target, 'token': token,
+            fact['actions'].append({'kind': 'allowanceholder-transfer', 'target': forwarded_recipient, 'token': token,
                                     'amount': amount, 'deadline': deadline})
         elif sig == UNISWAP_V3_VIP:
             # A VIP action pulls the permitted input and executes the V3 path in
@@ -175,6 +184,25 @@ def _settler(transaction, chain_id):
             fact['actions'].append({'kind': 'uniswap-v3', 'target': target, 'recipient': target,
                 'token_in': token, 'token_out': bought, 'balance_ppm': 1_000_000,
                 'action_minimum_out': item.word(96), 'hops': hops})
+        elif sig == UNISWAP_V2:
+            receiver, sell, ppm, pool = item.addr(0), item.addr(32), item.word(64), item.addr(96)
+            swap_info, action_minimum = item.word(128), item.word(160)
+            _check(len(item.data) == 192 and receiver == target and sell == token
+                   and pool not in (ZERO, target), 'V2 input asset, pool or Settler recipient differs')
+            prepaid = forwarded_recipient == pool
+            _check((prepaid and ppm == 0) or (forwarded_recipient == target and ppm == 1_000_000),
+                   'V2 funding must match the prepaid pool or full Settler input balance')
+            # Official uint24: bit0=zeroForOne, bit1=sellTokenHasFee,
+            # bits2..7=reserved, upper16=feeBps. Pool token membership and
+            # token0/token1 orientation still require independent chain reads.
+            _check(swap_info < 2**24 and swap_info & 0xfc == 0 and swap_info >> 8 < 10_000,
+                   'Invalid V2 swapInfo flags or pool fee encoding')
+            fact['required_contracts'].append(pool)
+            fact['actions'].append({'kind': 'uniswap-v2', 'target': pool, 'recipient': receiver,
+                'token_in': sell, 'expected_token_out': bought, 'balance_ppm': ppm,
+                'input_prepaid': prepaid, 'token0_for_token1': bool(swap_info & 1),
+                'sell_token_has_transfer_fee': bool(swap_info & 2), 'pool_fee_bps': swap_info >> 8,
+                'action_minimum_out': action_minimum, 'pool_tokens_verified': False})
         elif sig == BASIC:
             sell, ppm, destination, offset = item.addr(0), item.word(32), item.addr(64), item.word(96)
             transfer = item.blob(0, 4, 5)

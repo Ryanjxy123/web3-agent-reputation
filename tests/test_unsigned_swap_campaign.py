@@ -56,6 +56,10 @@ class UnsignedCampaignAcceptance(unittest.TestCase):
                 (root / campaign.ADR).parent.mkdir(parents=True, exist_ok=True)
                 (root / campaign.ADR).write_bytes(campaign_adr)
             hashes[campaign.ADR] = hashlib.sha256(campaign_adr).hexdigest()
+            reassessment_adr = (ROOT / campaign.REASSESSMENT_ADR).read_bytes()
+            if root != ROOT:
+                (root / campaign.REASSESSMENT_ADR).write_bytes(reassessment_adr)
+            hashes[campaign.REASSESSMENT_ADR] = hashlib.sha256(reassessment_adr).hexdigest()
             evidence = SwapEvidence(root, hashes)
             fresh = source['tasks'][1]
             planned = {'retained': True}
@@ -108,6 +112,58 @@ class UnsignedCampaignAcceptance(unittest.TestCase):
                         campaign._delivery(evidence, fresh, planned, True)
 
             no_execution = dict(fresh, execution=None)
+            # Controlled native-schema projection: authentic request bytes and
+            # legacy no-mapping behavior remain untouched. Not a public sample.
+            field_map = {'fromTokenAddress': 'sellToken', 'toTokenAddress': 'buyToken',
+                         'amount': 'amountIn', 'taker': 'buyer', 'slippage': 'slippageBps',
+                         'source': 'aggregator'}
+            native = copy.deepcopy(facts)
+            original_request = native['frozen']['requirement']
+            native_request = {field_map.get(key, key): value for key, value in original_request.items()}
+            native_request['aggregator'] = 'native-route'
+            native['frozen'] = dict(native['frozen'], offering='safe_quote', requirement=native_request)
+            native['request_mapping'] = {'fields': field_map,
+                'source_values': {'native-route': original_request['source']},
+                'default_slippage_bps': 100, 'slippage_maximum_bps': 2000,
+                'route_offerings': ['safe_quote']}
+            native_schema = {'properties': {name: {'type': 'string'} for name in field_map.values()},
+                'required': ['sellToken', 'buyToken', 'amountIn', 'buyer']}
+            native_schema['properties']['slippageBps'] = {'type': 'integer',
+                'description': 'Max slippage in basis points (default 100 = 1%, hard cap 2000 = 20%).'}
+            native_schema['properties']['aggregator'] = {'type': 'string', 'enum': ['native-route']}
+            native['detail'] = dict(native['detail'], offerings=[{'name': 'safe_quote', 'requirements': native_schema}])
+            before_projection = copy.deepcopy(native)
+            native_metrics, native_quote = campaign._metrics(evidence, source, no_execution, planned, native)
+            self.assertEqual(native_quote['expected'], quote['expected'])
+            self.assertEqual(native_metrics['intent-binding'][0], Verdict.PASS)
+            self.assertEqual(native['frozen'], before_projection['frozen'])
+            self.assertEqual(native['detail'], before_projection['detail'])
+            self.assertEqual(campaign._request_view(facts)[0], facts['frozen']['requirement'])
+            for field, message, criterion in [('buyer', 'buyer is required', 'safe-validation'),
+                                               ('aggregator', 'unsupported aggregator', 'safe-source-validation'),
+                                               ('slippageBps', 'slippageBps out of range', 'safe-validation')]:
+                changed = copy.deepcopy(native)
+                if field == 'buyer':
+                    changed['frozen']['requirement'].pop(field)
+                else:
+                    changed['frozen']['requirement'][field] = 2001 if field == 'slippageBps' else 'unsupported'
+                changed['delivery'] = {'error': message}
+                checked, _ = campaign._metrics(evidence, source, no_execution, planned, changed)
+                self.assertEqual(checked[criterion][0], Verdict.PASS)
+            omitted = copy.deepcopy(native)
+            omitted['frozen']['requirement'].pop('slippageBps')
+            checked, _ = campaign._metrics(evidence, source, no_execution, planned, omitted)
+            self.assertEqual(checked['default-slippage'][0], Verdict.PASS)
+            wrong_default = copy.deepcopy(native)
+            wrong_default['request_mapping']['default_slippage_bps'] = 101
+            with self.assertRaisesRegex(ValueError, 'default slippage mapping differs'):
+                campaign._metrics(evidence, source, no_execution, planned, wrong_default)
+            auxiliary = copy.deepcopy(native)
+            auxiliary['frozen'] = dict(auxiliary['frozen'], offering='batch_screen', requirement={'tokens': ['0x1']})
+            auxiliary['delivery'] = {'screened': 1, 'results': []}
+            checked, result = campaign._metrics(evidence, source, no_execution, planned, auxiliary)
+            self.assertIsNone(result)
+            self.assertTrue(all(verdict == Verdict.UNKNOWN for verdict, _ in checked.values()))
             for field, criterion in [('slippage', 'default-slippage'), ('taker', 'undocumented-taker-default')]:
                 changed = copy.deepcopy(facts)
                 changed['frozen']['requirement'].pop(field)
@@ -218,6 +274,171 @@ class UnsignedCampaignAcceptance(unittest.TestCase):
             self.assertEqual(missing.outcome, 'unknown')
             self.assertFalse(any(row.task_key == new_key for row in replay.shared_assessment.observations))
             self.assertEqual((root / report_dir / 'report.json').read_bytes(), raw_report)
+
+            # Controlled verification-boundary fixture: a different authenticated
+            # registry owner may bind the same exact service. It is not a claim
+            # that the original on-chain owner has changed.
+            verified_identity = campaign.verify_registration_proof(root, source['registration_proof'],
+                                                                    source['registration_reference'])
+            role_proof = copy.deepcopy(evidence.json(source['registration_proof']))
+            role_proof['rpc']['owner']['value'] = '0x' + format(1, '064x')
+            self.assertNotEqual('0x' + role_proof['rpc']['owner']['value'][-40:], facts['provider'])
+            role_evidence = OverlayEvidence(root, hashes, {plan_path: plan, source['registration_proof']: role_proof})
+            with patch.object(campaign, 'verify_registration_proof', return_value=verified_identity) as verifier:
+                role_report = campaign.campaign_report(root, role_evidence, expanded,
+                                                       datetime(2026, 10, 28, tzinfo=timezone.utc))
+                self.assertEqual(role_report.shared_assessment.result.task_count, 3)
+                verifier.assert_called_once_with(root, source['registration_proof'], source['registration_reference'])
+            wrong_service = copy.deepcopy(verified_identity)
+            wrong_service['document']['services'] = [{'endpoint': 'https://app.virtuals.io/acp/agent/another-service'}]
+            wrong_service['document']['walletAddress'] = facts['provider']
+            with patch.object(campaign, 'verify_registration_proof', return_value=wrong_service):
+                with self.assertRaisesRegex(ValueError, 'Registration does not bind this campaign service'):
+                    campaign.campaign_report(root, role_evidence, expanded,
+                                             datetime(2026, 10, 28, tzinfo=timezone.utc))
+
+            # Controlled append-only lineage: original tasks keep their first
+            # authenticated freeze and declaration defaults across later additions.
+            lineage_root = copy.deepcopy(plan)
+            lineage_paths = [plan_path, 'runtime/campaign-unit/plan-v2.json', 'runtime/campaign-unit/plan-v3.json']
+            snapshots = ['runtime/campaign-unit/detail-v1.json', 'runtime/campaign-unit/detail-v2.json',
+                         'runtime/campaign-unit/detail-v3.json']
+            overlay = {}
+            revisions = []
+            appended_keys = [new_key, str(uuid4()), str(uuid4())]
+            for index, frozen in enumerate(('2026-10-28T09:34:29+00:00',
+                                            '2026-10-28T10:16:50+00:00',
+                                            '2026-10-28T15:40:10+00:00')):
+                revision = copy.deepcopy(lineage_root if not index else revisions[-1])
+                revision['frozen_at'] = frozen
+                revision['request_mapping'] = {'fields': {'amount': 'amount'},
+                                               'default_slippage_bps': 50 + index * 25}
+                detail = {'data': {'id': fresh['acp']['provider_id'],
+                                  'walletAddress': fresh['acp']['provider_wallet'],
+                                  'observed_default_slippage': 50 + index * 25}}
+                overlay[snapshots[index]] = detail
+                revision['source_snapshot'] = {'path': snapshots[index],
+                    'sha256': hashlib.sha256(json.dumps(detail).encode()).hexdigest()}
+                if index:
+                    revision['previous_plan'] = {'path': lineage_paths[index - 1],
+                        'sha256': hashlib.sha256(json.dumps(revisions[-1]).encode()).hexdigest()}
+                    task = dict(copy.deepcopy(lineage_root['new_tasks'][0]),
+                                task_id='H0' + str(index + 3), task_key=appended_keys[index])
+                    revision['new_tasks'].append(task)
+                    for case in revision['cases']:
+                        case['planned_task_ids'].append(task['task_id'])
+                revisions.append(revision)
+                overlay[lineage_paths[index]] = revision
+            lineage_evidence = OverlayEvidence(root, hashes, overlay)
+            self.assertEqual([row['frozen_at'] for row in campaign._campaign_lineage(lineage_evidence, lineage_paths[-1])],
+                             [campaign._time(row['frozen_at']) for row in revisions])
+            inherited = dict(expanded, campaign_plan=lineage_paths[-1], tasks=[*expanded['tasks'],
+                dict(no_execution, task_key=appended_keys[0], simulation=None),
+                dict(no_execution, task_key=appended_keys[1], simulation=None)])
+            submitted_at = {appended_keys[0]: campaign._time('2026-10-28T09:50:00+00:00'),
+                            appended_keys[1]: campaign._time('2026-10-28T10:22:00+00:00'),
+                            appended_keys[2]: campaign._time('2026-10-28T10:22:00+00:00')}
+            observed_defaults = {}
+            observed_mappings = {}
+
+            def unit_delivery(_evidence, item, _planned, _retained):
+                value = copy.deepcopy(facts)
+                value['requirement_submitted_at'] = submitted_at.get(item['task_key'], value['requirement_submitted_at'])
+                return value
+
+            def unit_metrics(_evidence, _source, item, _planned, delivered):
+                if item and item['task_key'] in submitted_at:
+                    observed_defaults[item['task_key']] = delivered['contract_detail']['observed_default_slippage']
+                    observed_mappings[item['task_key']] = delivered['request_mapping']['default_slippage_bps']
+                return {name: campaign.UNKNOWN for name in campaign.METRICS}, None
+
+            with patch.object(campaign, '_delivery', side_effect=unit_delivery), patch.object(campaign, '_metrics', side_effect=unit_metrics):
+                inherited_report = campaign.campaign_report(root, lineage_evidence, inherited,
+                                                            datetime(2026, 10, 28, tzinfo=timezone.utc))
+                self.assertEqual(inherited_report.shared_assessment.result.task_count, 5)
+                self.assertEqual(observed_defaults, {appended_keys[0]: 50, appended_keys[1]: 75})
+                self.assertEqual(observed_mappings, {appended_keys[0]: 50, appended_keys[1]: 75})
+                too_early = dict(inherited, tasks=[*inherited['tasks'],
+                    dict(no_execution, task_key=appended_keys[2], simulation=None)])
+                with self.assertRaisesRegex(ValueError, 'predates campaign freeze'):
+                    campaign.campaign_report(root, lineage_evidence, too_early,
+                                             datetime(2026, 10, 28, tzinfo=timezone.utc))
+                duplicate_execution = copy.deepcopy(inherited)
+                for task in duplicate_execution['tasks']:
+                    if task['task_key'] in appended_keys[:2]:
+                        task['execution'] = fresh['execution']
+                with self.assertRaisesRegex(ValueError, 'execution transaction is reused across tasks'):
+                    campaign.campaign_report(root, lineage_evidence, duplicate_execution,
+                                             datetime(2026, 10, 28, tzinfo=timezone.utc))
+            for mutation, message in [('time', 'predates its previous freeze'),
+                                      ('digest', 'previous plan digest mismatch'),
+                                      ('input', 'changed or removed an original task'),
+                                      ('criterion', 'changed original case rules'),
+                                      ('membership', 'changed original task case assignments')]:
+                changed_revision = copy.deepcopy(revisions[-1])
+                if mutation == 'time':
+                    changed_revision['frozen_at'] = '2026-10-28T09:00:00+00:00'
+                elif mutation == 'digest':
+                    changed_revision['previous_plan']['sha256'] = '00' * 32
+                elif mutation == 'input':
+                    changed_revision['new_tasks'][0]['request']['amount'] = '1'
+                elif mutation == 'criterion':
+                    changed_revision['cases'][0]['required_decisive'] += 1
+                else:
+                    changed_revision['cases'][0]['planned_task_ids'].remove('H03')
+                changed_overlay = dict(overlay, **{lineage_paths[-1]: changed_revision})
+                with self.subTest(lineage_conflict=mutation), self.assertRaisesRegex(ValueError, message):
+                    campaign._campaign_lineage(OverlayEvidence(root, hashes, changed_overlay), lineage_paths[-1])
+
+            # A separate assessment can regroup cases retrospectively without
+            # rewriting an append-only ancestor or inventing a new task freeze.
+            independent = copy.deepcopy(revisions[-1])
+            independent.pop('previous_plan')
+            independent['frozen_at'] = '2026-10-29T00:00:00+00:00'
+            independent['retained_tasks'].extend(dict(copy.deepcopy(task),
+                origin_campaign={'path': lineage_paths[-1],
+                    'sha256': hashlib.sha256(json.dumps(revisions[-1]).encode()).hexdigest()},
+                retention_purpose='retrospective-case-remap') for task in independent['new_tasks'])
+            independent['new_tasks'] = []
+            independent_path = 'runtime/campaign-unit/independent.json'
+            independent_overlay = dict(overlay, **{independent_path: independent})
+            independent_source = dict(inherited, campaign_plan=independent_path)
+            with patch.object(campaign, '_delivery', side_effect=unit_delivery), patch.object(campaign, '_metrics', side_effect=unit_metrics):
+                mapped_report = campaign.campaign_report(root, OverlayEvidence(root, hashes, independent_overlay),
+                    independent_source, datetime(2026, 10, 29, tzinfo=timezone.utc))
+                self.assertEqual(mapped_report.shared_assessment.result.task_count, 5)
+                self.assertIn('回顾映射', mapped_report.evaluation_window)
+                changed = copy.deepcopy(independent)
+                changed['retained_tasks'][2]['request']['amount'] = '1'
+                with self.assertRaisesRegex(ValueError, 'differs from original frozen request'):
+                    campaign.campaign_report(root, OverlayEvidence(root, hashes,
+                        dict(overlay, **{independent_path: changed})), independent_source,
+                        datetime(2026, 10, 29, tzinfo=timezone.utc))
+
+            # Pure scoring control, never public transaction evidence: four real
+            # decisive samples per direction are required; UNKNOWN cannot fill it.
+            control = report.shared_assessment.model_dump(mode='json')
+            control.pop('result')
+            capability = control['capabilities'][0]['capability_id']
+            control['tasks'], control['cases'], control['observations'] = [], [], []
+            for direction in ('forward', 'reverse'):
+                keys = [str(uuid4()) for _ in range(4)]
+                control['cases'].append({'case_id': direction, 'capability_id': capability,
+                    'dimension': 'behavioral', 'declaration_group_id': None, 'title': direction,
+                    'criterion_ids': ['onchain-fulfillment'], 'task_keys': keys,
+                    'normal_execution': True, 'required_decisive': 4})
+                for key in keys:
+                    control['tasks'].append(dict(report.shared_assessment.tasks[0].model_dump(mode='json'),
+                                                 task_key=key, outcome='completed'))
+                    control['observations'].append({'task_key': key, 'case_id': direction,
+                        'criterion_id': 'onchain-fulfillment', 'dimension': 'behavioral',
+                        'verdict': 'PASS', 'reason': 'Controlled unit fixture only', 'evidence': [],
+                        'measurement_validity': 'valid', 'elapsed_ms': None})
+            complete = campaign.SharedAssessment.model_validate_json(json.dumps(control))
+            self.assertIsNotNone(complete.result.behavioral.interval)
+            control['observations'][-1]['verdict'] = 'UNKNOWN'
+            insufficient = campaign.SharedAssessment.model_validate_json(json.dumps(control))
+            self.assertIsNone(insufficient.result.behavioral.interval)
 
             changed_plan = copy.deepcopy(plan)
             changed_plan['new_tasks'].append(copy.deepcopy(changed_plan['new_tasks'][0]))

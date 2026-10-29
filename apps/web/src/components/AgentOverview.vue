@@ -18,6 +18,7 @@ const currentReport = computed(() => props.report?.candidate_key === props.agent
 const assessment = computed(() => currentReport.value?.shared_assessment)
 const scores = computed(() => currentReport.value?.scores ?? props.agent.latest_report?.scores)
 const result = computed(() => assessment.value?.result ?? props.agent.latest_report?.shared_result)
+const observedTaskCount = computed(() => assessment.value?.tasks.filter(task => task.observed_at != null).length)
 const identity = computed(() => props.agent.registration_reference.split(':').at(-1))
 const capabilities = computed(() => assessment.value?.capabilities.filter(item => item.selected).map(item => item.title)
   ?? props.agent.profile?.capabilities ?? [])
@@ -50,7 +51,8 @@ const representative = computed(() => {
   }
   if (failure.value) keys.add(failure.value.task_key)
   if (unknown.value) keys.add(unknown.value.task_key)
-  if (!keys.size && data.tasks[0]) keys.add(data.tasks[0].task_key)
+  const firstObserved = data.tasks.find(task => task.observed_at != null)
+  if (!keys.size && firstObserved) keys.add(firstObserved.task_key)
   return [...keys].map(key => traces.value.find(item => item.taskKey === key)).filter((task): task is TaskTraceViewModel => !!task)
 })
 const statusTone = (status: TraceStatus) => status === 'PASS' ? 'success' : status === 'FAIL' ? 'failure' : 'warning'
@@ -80,11 +82,11 @@ const mainTask = computed(() => representative.value[0]?.taskKey)
           <p class="ov-score-note">分数来自当前报告，仅代表已测功能与样本。</p>
         </aside>
       </div>
-      <div class="ov-stat-row"><div><strong>{{ result?.task_count ?? '—' }}</strong><span>真实任务</span></div><div><strong>{{ executions ?? '—' }}</strong><span>链上履约任务<small>任务数不等于交易数</small></span></div><div><strong>{{ result?.observation_count ?? '—' }}</strong><span>判据观测</span></div><div class="ov-report-date"><span>报告生成</span><time>{{ when(currentReport?.generated_at ?? agent.latest_report?.generated_at) }}</time></div></div>
+      <div class="ov-stat-row"><div><strong>{{ observedTaskCount ?? '—' }}</strong><span>真实任务</span></div><div><strong>{{ executions ?? '—' }}</strong><span>链上履约任务<small>任务数不等于交易数</small></span></div><div><strong>{{ result?.observation_count ?? '—' }}</strong><span>判据观测</span></div><div class="ov-report-date"><span>报告生成</span><time>{{ when(currentReport?.generated_at ?? agent.latest_report?.generated_at) }}</time></div></div>
     </section>
 
     <section v-if="assessment" class="ov-tasks-panel">
-      <div class="ov-section-heading"><div><p class="ov-kicker">从任务走向证据</p><h2>代表性真实任务</h2></div><button class="text-button" @click="emit('open')">查看全部 {{ result?.task_count }} 个任务 <span aria-hidden="true">→</span></button></div>
+      <div class="ov-section-heading"><div><p class="ov-kicker">从任务走向证据</p><h2>代表性真实任务</h2></div><button class="text-button" @click="emit('open')">查看全部 {{ observedTaskCount ?? 0 }} 个已采任务 <span aria-hidden="true">→</span></button></div>
       <div class="ov-task-table" role="group" aria-label="代表性真实任务">
         <div class="ov-task-columns" aria-hidden="true"><span>真实任务</span><span>关键业务动作与结果</span><span>业务状态</span><span>平台核验</span><span></span></div>
         <button v-for="(task, index) in representative" :key="task.taskKey" class="ov-task-row" @click="emit('open', task.taskKey)">

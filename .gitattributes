@@ -7,4 +7,5 @@
 
 # Preserve the original bytes referenced by published report manifests.
 configs/chain-supplements/*.json -text whitespace=cr-at-eol
+docs/adr/0031-prospective-unsigned-swap-campaign.md -text whitespace=cr-at-eol
 data/*.tar.gz -text

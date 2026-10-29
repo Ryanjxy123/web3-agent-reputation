@@ -17,6 +17,7 @@ from reputation_core.scoring import POINT_POLICY_VERSION
 from reputation_core.shared_scoring import SharedAssessment
 from reputation_core.swap import address, encode_batch, hex_bytes, integer
 from reputation_platform.registration_discovery import _configuration, verify_registration_proof
+from reputation_platform.public_service_identity import verify_service_identity, identity_limitations
 from reputation_platform.swap_report import SwapEvidence, _check, _lookup, _normalized, _sha, _write
 from reputation_platform.unsigned_swap_protocol import (
     _ABI, decode_unsigned_swap, verify_unsigned_swap_intent, UnsignedSwapMismatch,
@@ -361,11 +362,13 @@ def replay_unsigned_swap_sources(root, evidence, source):
     for reference in proof['source_refs']:
         _check(evidence.hashes.get(reference['path']) == reference['sha256'], 'Registration source is absent or changed')
         evidence.raw(reference['path'])
-    identity = verify_registration_proof(root, source['registration_proof'], canonical)
-    _check(identity['registration_verified'], 'Independent onchain registration is not verified')
-    owner = address('0x' + proof['rpc']['owner']['value'][-40:])
+    identity = verify_service_identity(root, source['registration_proof'], canonical, chain_verifier=verify_registration_proof)
+    _check(identity['public_registry_verified'], 'Independent public service registration is not verified')
+    service_wallet = (address('0x' + proof['rpc']['owner']['value'][-40:]) if identity['chain_registration_verified']
+                      else identity.get('provider_wallet'))
+    _check(service_wallet, 'ACP delivery requires an independently bound provider wallet')
     profile = AgentProfile.model_validate_json(json.dumps(source['profile']))
-    _check(profile.registration_chain_id == int(canonical.split(':')[1]), 'Profile registration chain differs')
+    _check(profile.registration_chain_id == identity['registration_chain_id'], 'Profile registration chain differs')
     cases, tasks, observations, samples = {}, [], [], []
 
     def observe(task_key, dimension, criterion, verdict, reason, refs, elapsed=None):
@@ -382,7 +385,7 @@ def replay_unsigned_swap_sources(root, evidence, source):
 
     for index, item in enumerate(source['tasks'], 1):
         plan, frozen, delivered, elapsed, submitted, provider = _task_delivery(evidence, source, item)
-        _check(provider == owner, 'Provider wallet is not the independently registered owner')
+        _check(provider == service_wallet, 'ACP provider wallet differs from the independently bound service identity')
         services = [row.get('endpoint', '') for row in (identity.get('document') or {}).get('services', [])]
         _check('https://app.virtuals.io/acp/agent/' + item['acp']['provider_id'] in services, 'Registered document does not bind this ACP service identity')
         refs = [item['plan'], item['acp']['history_observation'], item['acp']['job_observation'], item['acp']['detail_observation'], *item['acp']['rpc_observations']]
@@ -449,7 +452,7 @@ def _report(root, evidence, source, generated_at):
         registration_reference=source['registration_reference'], generated_at=generated_at, scope=source['scope'],
         scope_exclusions=source['scope_exclusions'], evaluation_window=f'{min(times).isoformat()} 至 {max(times).isoformat()}；保留原任务时间。',
         approach=APPROACH, samples=samples, capabilities=[], shared_assessment=assessment,
-        source_references=sorted(evidence.hashes), limitations=LIMITATIONS)
+        source_references=sorted(evidence.hashes), limitations=identity_limitations(source['registration_reference'], LIMITATIONS))
 
 
 def verify_unsigned_swap_report_sources(root, report, hashes):

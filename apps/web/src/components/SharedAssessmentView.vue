@@ -18,6 +18,21 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{ trace: [taskKey: string, dimension?: MeasurementPurpose] }>()
 const result = computed(() => props.assessment.result)
+const observedTaskCount = computed(() => props.assessment.tasks.filter(task => task.observed_at != null).length)
+const functionalCriteria = computed(() => {
+  const counts = { passed: 0, failed: 0, unknown: 0 }
+  const seen = new Set<string>()
+  for (const item of props.assessment.observations) {
+    if (item.dimension !== 'functional' || item.measurement_validity !== 'valid') continue
+    const key = JSON.stringify([item.task_key, item.criterion_id])
+    if (seen.has(key)) continue
+    seen.add(key)
+    if (item.verdict === 'PASS') counts.passed++
+    else if (item.verdict === 'FAIL') counts.failed++
+    else if (item.verdict === 'UNKNOWN') counts.unknown++
+  }
+  return counts
+})
 const singleScorePolicy = computed(() => String(props.report.policy_version) === 'transaction-agent-evidence-v3')
 const dimensions = computed(() => [
   { purpose: 'availability' as const, title: 'A · 服务可用性', weight: '30%', result: result.value.availability,
@@ -106,7 +121,8 @@ const representative = computed(() => {
     const task = props.assessment.tasks.find(item => item.capability_id === capability.capability_id && item.outcome === 'completed')
     if (task) keys.add(task.task_key)
   }
-  if (!keys.size && props.assessment.tasks[0]) keys.add(props.assessment.tasks[0].task_key)
+  const firstObserved = props.assessment.tasks.find(task => task.observed_at != null)
+  if (!keys.size && firstObserved) keys.add(firstObserved.task_key)
   return keys
 })
 const showAllTasks = ref(/^#(?:task|sample)-\d+$/.test(window.location.hash))
@@ -159,9 +175,9 @@ watch(() => props.chainEvidence, () => { void revealHash() })
         <div class="row-between"><h3>{{ dimension.title }}</h3><span class="muted small">{{ dimension.weight }}</span></div>
         <p class="shared-score-value" :class="{ pending: report.scores[dimension.purpose].value === null }">{{ historicalScore && report.scores[dimension.purpose].value === null ? '历史版本' : displayScore(report.scores[dimension.purpose].value) }}</p>
         <p class="shared-score-caption">{{ dimension.caption }}</p>
+        <p v-if="dimension.purpose === 'functional'" class="muted small">功能判据：通过 {{ functionalCriteria.passed }}、不符 {{ functionalCriteria.failed }}、未知 {{ functionalCriteria.unknown }}；功能分按可判判据计算，下方计数为任务完整程度。</p>
         <div class="score-counts"><span>{{ dimension.purpose === 'functional' ? '完全符合' : '通过' }} <b>{{ dimension.result.counts.passed }}</b></span><span>{{ dimension.purpose === 'functional' ? '含不符' : '不符' }} <b>{{ dimension.result.counts.failed }}</b></span><span>未验证 <b>{{ dimension.result.counts.unknown }}</b></span><span>未采样 <b>{{ dimension.result.counts.not_run }}</b></span></div>
         <p class="muted small">保留 {{ dimension.result.counts.observed }} 个任务观察<template v-if="dimension.result.counts.measurement_invalid"> · 测量无效 {{ dimension.result.counts.measurement_invalid }} 项</template><template v-if="dimension.result.counts.not_applicable"> · 不适用 {{ dimension.result.counts.not_applicable }} 项</template><template v-if="dimension.result.counts.protected_exit"> · 保护退出 {{ dimension.result.counts.protected_exit }} 项</template></p>
-        <p v-if="dimension.purpose === 'functional'" class="muted small">同一任务的部分条款可以通过、其它条款不符；分数按声明组汇总，不是任务全项通过率。</p>
         <p v-if="dimension.purpose === 'availability' && dimension.result.p95_ms != null" class="muted small">响应 p50 {{ dimension.result.p50_ms == null ? '未记录' : (dimension.result.p50_ms / 1000).toFixed(2) + ' 秒' }} · p95 {{ (dimension.result.p95_ms / 1000).toFixed(2) }} 秒</p>
         <p v-for="reason in dimension.result.blocked_reasons" :key="reason" class="shared-range-note">{{ reason }}</p>
         <button v-if="assessment.observations.some(item => item.dimension === dimension.purpose)" class="text-button" @click="openDimension(dimension.purpose)">追踪对应任务与判据 →</button>
@@ -177,7 +193,7 @@ watch(() => props.chainEvidence, () => { void revealHash() })
     </section>
 
     <section class="panel">
-      <div class="section-heading"><h2>代表性样本</h2><span>{{ result.task_count }} 个任务 · {{ result.observation_count }} 项判据观察</span></div>
+      <div class="section-heading"><h2>代表性样本</h2><span>{{ observedTaskCount }} 个已采任务 · {{ result.task_count }} 个冻结槽位 · {{ result.observation_count }} 项判据观察</span></div>
       <p class="section-description">先看真实履约结果、资产标注提示与待核事项；可展开全部任务核对每项证据。</p>
       <div class="shared-task-list"><details v-for="{ task, index } in visibleTasks" :id="`task-${index + 1}`" :key="task.task_key" class="shared-task" :open="representative.has(task.task_key)">
         <summary><strong>{{ String(index + 1).padStart(2, '0') }} · {{ capabilityName(task.capability_id) }} · {{ outcomeLabel(task) }}</strong><span class="shared-task-dimensions"><span>A {{ taskDimensionSummary(task.task_key, 'availability') }}</span><span>F {{ taskDimensionSummary(task.task_key, 'functional') }}</span><span>B {{ taskDimensionSummary(task.task_key, 'behavioral') }}</span></span></summary>

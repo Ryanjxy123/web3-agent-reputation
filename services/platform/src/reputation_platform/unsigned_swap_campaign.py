@@ -19,10 +19,12 @@ from reputation_core.shared_scoring import SharedAssessment
 from reputation_core.swap import address, hex_bytes
 from reputation_platform import unsigned_swap_report as old
 from reputation_platform.registration_discovery import verify_registration_proof
+from reputation_platform.public_service_identity import verify_service_identity, identity_limitations
 from reputation_platform.unsigned_swap_protocol import UnsupportedUnsignedSwap, decode_unsigned_swap
 
 ADAPTER = 'retained-unsigned-swap-campaign-v2'
 ADR = 'docs/adr/0031-prospective-unsigned-swap-campaign.md'
+REASSESSMENT_ADR = 'docs/adr/0033-independent-campaign-assessment.md'
 METRICS = {'complete-response', 'intent-binding', 'deliverable-schema', 'execution-effect',
            'route-filter', 'default-slippage', 'undocumented-taker-default', 'explicit-slippage',
            'candidate-coverage', 'net-best-selection', 'safe-validation', 'safe-source-validation',
@@ -207,6 +209,76 @@ def _requirement_schema(offering):
     return json.loads(value) if isinstance(value, str) else value
 
 
+def _request_mapping(facts):
+    mapping = facts.get('request_mapping')
+    if mapping is None:
+        return None
+    old._check(isinstance(mapping, dict), 'Invalid frozen request mapping')
+    fields = mapping.get('fields', {})
+    old._check(set(mapping) <= {'fields', 'source_values', 'default_slippage_bps',
+                               'slippage_maximum_bps', 'route_offerings'}
+               and isinstance(fields, dict) and fields
+               and set(fields) <= {'fromTokenAddress', 'toTokenAddress', 'amount', 'taker', 'slippage', 'source'}
+               and all(isinstance(value, str) and value for value in fields.values())
+               and len(set(fields.values())) == len(fields), 'Invalid frozen request field mapping')
+    values = mapping.get('source_values', {})
+    old._check(isinstance(values, dict) and all(isinstance(key, str) and isinstance(value, str)
+               and key and value for key, value in values.items())
+               and len(set(values.values())) == len(values), 'Invalid frozen source value mapping')
+    for key in ('default_slippage_bps', 'slippage_maximum_bps'):
+        old._check(key not in mapping or type(mapping[key]) is int and 0 <= mapping[key] < 10000,
+                   'Invalid frozen slippage mapping')
+    routes = mapping.get('route_offerings')
+    old._check(routes is None or isinstance(routes, list) and routes
+               and all(isinstance(value, str) and value for value in routes)
+               and len(set(routes)) == len(routes), 'Invalid frozen route offering scope')
+    return mapping
+
+
+def _request_view(facts):
+    """Project authenticated bytes for rules; never replace the original request."""
+    request = dict(facts['frozen']['requirement'])
+    offering = _offering(facts.get('contract_detail') or facts['detail'], facts['frozen']['offering'])
+    mapping = _request_mapping(facts)
+    if mapping is None:
+        return request, offering, None
+    fields, values = mapping['fields'], mapping.get('source_values', {})
+    names = {native: canonical for canonical, native in fields.items()}
+    projected = {key: value for key, value in request.items() if key not in names}
+    for canonical, native in fields.items():
+        old._check(canonical == native or canonical not in request, 'Ambiguous native/canonical request aliases')
+        if native in request:
+            projected[canonical] = request[native]
+    schema = _requirement_schema(offering)
+    old._check(set(fields.values()) <= set(schema.get('properties', {})),
+               'Request field mapping lacks declared native properties')
+    properties = {names.get(key, key): dict(value) for key, value in schema.get('properties', {}).items()}
+    if values:
+        prop = properties.get('source', {})
+        allowed = prop.get('enum') or re.findall(r"['\"]([^'\"]+)['\"]", prop.get('description', ''))
+        old._check(allowed and set(values) <= set(allowed), 'Source value mapping lacks declared enum values')
+        properties['source'] = dict(prop, enum=[values.get(value, value) for value in allowed])
+        if isinstance(projected.get('source'), str):
+            projected['source'] = values.get(projected['source'], projected['source'])
+    offering = dict(offering, requirements=dict(schema, properties=properties,
+        required=[names.get(key, key) for key in schema.get('required', [])]))
+    if 'default_slippage_bps' in mapping:
+        prop = properties.get('slippage', {})
+        match = re.search(r'\bdefault\s*:?\s*(\d+)\s*=', prop.get('description', ''), re.I)
+        declared = _default_slippage(offering)
+        if declared is None and match:
+            declared = int(match[1])
+        old._check(declared == mapping['default_slippage_bps'],
+                   'Frozen default slippage mapping differs from declaration')
+        properties['slippage'] = dict(prop, default=declared)
+    if 'slippage_maximum_bps' in mapping:
+        prop = properties.get('slippage', {})
+        cap = re.search(r'\b(?:hard\s+)?cap\s*:?\s*(\d+)', prop.get('description', ''), re.I)
+        maximum = prop.get('maximum', int(cap[1]) if cap else None)
+        old._check(maximum == mapping['slippage_maximum_bps'], 'Frozen slippage cap differs from declaration')
+    return projected, offering, mapping
+
+
 def _default_slippage(offering):
     prop = _requirement_schema(offering).get('properties', {}).get('slippage', {})
     if type(prop.get('default')) is int:
@@ -215,12 +287,13 @@ def _default_slippage(offering):
     return int(match[1]) if match else None
 
 
-def _invalid_fields(request, offering):
+def _invalid_fields(request, offering, mapping=None):
     invalid = set()
     if not isinstance(request.get('amount'), str) or not request['amount'].isdigit() or int(request['amount']) <= 0:
         invalid.add('amount')
     for field in ('fromTokenAddress', 'toTokenAddress', 'taker'):
-        if field == 'taker' and field not in request:
+        if field == 'taker' and field not in request and (not mapping
+                or field not in _requirement_schema(offering).get('required', [])):
             continue
         try:
             value = address(request[field])
@@ -229,6 +302,9 @@ def _invalid_fields(request, offering):
         except (ValueError, KeyError, TypeError):
             invalid.add(field)
     if 'slippage' in request and (type(request['slippage']) is not int or not 0 <= request['slippage'] < 10000):
+        invalid.add('slippage')
+    if (mapping and 'slippage' in request and type(request['slippage']) is int
+            and request['slippage'] > mapping.get('slippage_maximum_bps', 9999)):
         invalid.add('slippage')
     prop = _requirement_schema(offering).get('properties', {}).get('source', {})
     allowed = prop.get('enum') or re.findall(r'\b[A-Z][A-Z0-9_]{2,}\b', prop.get('description', ''))
@@ -251,9 +327,8 @@ def _quote_input(facts):
     delivered = facts['delivery']
     if not isinstance(delivered, dict) or not (delivered.get('quote') or delivered.get('route')):
         return None
-    request = dict(facts['frozen']['requirement'])
-    offering = _offering(facts.get('contract_detail') or facts['detail'], facts['frozen']['offering'])
-    if _invalid_fields(request, offering):
+    request, offering, mapping = _request_view(facts)
+    if _invalid_fields(request, offering, mapping):
         return None
     if 'slippage' not in request:
         default = _default_slippage(offering)
@@ -345,16 +420,20 @@ def _metrics(evidence, source, item, planned, facts):
     metrics = {name: UNKNOWN for name in METRICS}
     if facts is None:
         return metrics, None
+    mapping = _request_mapping(facts)
+    if mapping and mapping.get('route_offerings') is not None and facts['frozen']['offering'] not in mapping['route_offerings']:
+        # Retain authenticated auxiliary deliveries without pretending their
+        # schemas or correctness are adapted as exact-input swap routes.
+        return metrics, None
     elapsed = facts['elapsed_ms']
     if facts.get('timeout_proven') and elapsed > source['response_deadline_ms']:
         metrics['complete-response'] = (Verdict.FAIL, '资金已就绪，完整身份绑定事件范围证明交付未在预定SLA内提交。')
     if not facts['authenticated']:
         return metrics, None
     delivered = facts['delivery']
-    offering = _offering(facts.get('contract_detail') or facts['detail'], facts['frozen']['offering'])
-    request = facts['frozen']['requirement']
+    request, offering, mapping = _request_view(facts)
     rejection = _rejection(delivered)
-    invalid = _invalid_fields(request, offering)
+    invalid = _invalid_fields(request, offering, mapping)
     if elapsed is not None:
         route = delivered.get('quote') if isinstance(delivered, dict) else None
         route_fields = ('amountIn', 'amountOut', 'minOutputAmount', 'routerContract', 'calldata', 'value')
@@ -375,7 +454,8 @@ def _metrics(evidence, source, item, planned, facts):
     if rejection and invalid:
         # A generic upstream/500 error does not prove correct parameter validation.
         validation = bool(re.search(r'invalid|required|positive|validation|unsupported|not supported|must be|out of range', rejection, re.I))
-        field_named = any(field.lower() in rejection.lower() for field in invalid)
+        field_named = any(name.lower() in rejection.lower() for field in invalid
+                          for name in (field, (mapping or {}).get('fields', {}).get(field, field)))
         if validation and field_named:
             metric = 'safe-source-validation' if invalid == {'source'} else 'safe-validation'
             metrics[metric] = (Verdict.PASS, '认证交付明确拒绝了实际非法参数；没有产生资产执行或扩大授权。')
@@ -436,33 +516,130 @@ def _comparison(plan, evaluated):
                                                      f'同参数同块自动选择净到账{net}，预定可核source最大净到账{best}；未添加事后价格容差。')
 
 
+def _campaign_lineage(evidence, current_path):
+    """Authenticate append-only revisions; task clocks come from real freezes."""
+    versions, visited = [], set()
+    path, expected = current_path, None
+    while path:
+        old._check(path not in visited, 'Campaign plan lineage contains a cycle')
+        visited.add(path)
+        raw = evidence.raw(path)
+        old._check(expected is None or old._sha(raw) == expected, 'Campaign previous plan digest mismatch')
+        plan = json.loads(raw)
+        old._check(plan['status'] == 'FROZEN' and plan.get('frozen_at'), 'Campaign plan is not frozen')
+        frozen_at = _time(plan['frozen_at'])
+        tasks = [*plan['new_tasks'], *plan.get('retained_tasks', [])]
+        old._check(len({row['task_id'] for row in tasks}) == len(tasks), 'Duplicate campaign task labels')
+        old._check(len({row['task_key'] for row in tasks}) == len(tasks), 'Duplicated campaign task identity')
+        cases = {row['case_id']: row for row in plan['cases']}
+        old._check(len(cases) == len(plan['cases']), 'Duplicate campaign case identity')
+        labels = {row['task_id'] for row in tasks}
+        for case in cases.values():
+            members = case['planned_task_ids']
+            old._check(len(set(members)) == len(members) and set(members) <= labels,
+                       'Unknown/duplicate planned case task')
+        snapshot = plan.get('source_snapshot')
+        if snapshot:
+            old._check(evidence.hashes.get(snapshot['path']) == snapshot['sha256']
+                       and old._sha(evidence.raw(snapshot['path'])) == snapshot['sha256'],
+                       'Frozen service declaration source changed')
+        versions.append({'path': path, 'plan': plan, 'frozen_at': frozen_at})
+        previous = plan.get('previous_plan')
+        if previous:
+            old._check(set(previous) == {'path', 'sha256'}, 'Invalid previous campaign plan reference')
+            path, expected = previous['path'], previous['sha256']
+        else:
+            path = None
+    versions.reverse()
+    for before, after in zip(versions, versions[1:]):
+        previous, current = before['plan'], after['plan']
+        old._check(before['frozen_at'] <= after['frozen_at'], 'Campaign revision predates its previous freeze')
+        for field in ('registration_reference', 'candidate_key', 'provider', 'capability',
+                      'common_new_task_parameters', 'metric_definitions', 'scoring_contract', 'comparison_groups'):
+            old._check(previous.get(field) == current.get(field), 'Campaign revision changed frozen ' + field)
+        for field in ('new_tasks', 'retained_tasks'):
+            originals = previous.get(field, [])
+            old._check(current.get(field, [])[:len(originals)] == originals,
+                       'Campaign revision changed or removed an original task')
+        old_labels = {row['task_id'] for row in [*previous['new_tasks'], *previous.get('retained_tasks', [])]}
+        new_labels = {row['task_id'] for row in [*current['new_tasks'], *current.get('retained_tasks', [])]} - old_labels
+        old_cases = {row['case_id']: row for row in previous['cases']}
+        new_cases = {row['case_id']: row for row in current['cases']}
+        old._check(set(old_cases) <= set(new_cases), 'Campaign revision removed an original case')
+        for case_id, case in new_cases.items():
+            if case_id in old_cases:
+                original = old_cases[case_id]
+                old._check({key: value for key, value in case.items() if key != 'planned_task_ids'}
+                           == {key: value for key, value in original.items() if key != 'planned_task_ids'},
+                           'Campaign revision changed original case rules')
+                members = original['planned_task_ids']
+                old._check(case['planned_task_ids'][:len(members)] == members
+                           and set(case['planned_task_ids'][len(members):]) <= new_labels,
+                           'Campaign revision changed original task case assignments')
+            else:
+                old._check(set(case['planned_task_ids']) <= new_labels,
+                           'New campaign case cannot change original task rules')
+    return versions
+
+
+def _task_observed_at(facts, quote=None):
+    """Task sampling time is separate from the provider's delivery/SLA clock.
+
+    requirement_submitted_at is set only after exact official job, buyer and
+    frozen JSON binding in _delivery; a plan or creation map alone cannot set it.
+    """
+    when = (facts.get('observed_at') or facts.get('requirement_submitted_at')) if facts else None
+    if quote and quote['execution'][2].get('timestamp'):
+        executed_at = datetime.fromtimestamp(quote['execution'][2]['timestamp'], timezone.utc)
+        when = max(when, executed_at) if when else executed_at
+    return when
+
+
 def campaign_report(root, evidence, source, generated_at):
     old._check(source['schema_version'] == 'unsigned-swap-evidence-v2' and source['adapter'] == ADAPTER,
                'Unsupported unsigned swap campaign source')
     evidence.raw(ADR)
-    plan = evidence.json(source['campaign_plan'])
-    old._check(plan['status'] == 'FROZEN' and plan.get('frozen_at'), 'Campaign plan is not frozen')
-    frozen_at = _time(plan['frozen_at'])
+    lineage = _campaign_lineage(evidence, source['campaign_plan'])
+    plan = lineage[-1]['plan']
+    task_versions = {}
+    for version in lineage:
+        for task in [*version['plan']['new_tasks'], *version['plan'].get('retained_tasks', [])]:
+            task_versions.setdefault(task['task_id'], version)
+    mapped = [row for row in plan.get('retained_tasks', []) if row.get('origin_campaign')]
+    if mapped:
+        evidence.raw(REASSESSMENT_ADR)
+    for row in mapped:
+        reference = row['origin_campaign']
+        old._check(set(reference) == {'path', 'sha256'}
+                   and old._sha(evidence.raw(reference['path'])) == reference['sha256'],
+                   'Retained campaign digest mismatch')
+        history = _campaign_lineage(evidence, reference['path'])
+        original = history[-1]['plan']
+        old._check(original['registration_reference'] == plan['registration_reference']
+                   and original['candidate_key'] == plan['candidate_key']
+                   and original.get('provider') == plan.get('provider'), 'Retained campaign identity mismatch')
+        matches = [task for task in original['new_tasks'] if task['task_key'] == row['task_key']]
+        old._check(len(matches) == 1 and {key: value for key, value in row.items()
+                   if key not in ('origin_campaign', 'retention_purpose')} == matches[0]
+                   and row.get('retention_purpose') == 'retrospective-case-remap',
+                   'Retained campaign task differs from original frozen request')
+        first = next(version for version in history
+                     if any(task['task_key'] == row['task_key'] for task in version['plan']['new_tasks']))
+        task_versions[row['task_id']] = dict(first, origin_lineage=history)
     canonical = normalize_reference(source['registration_reference'])
     old._check(canonical == source['registration_reference'] == plan['registration_reference'], 'Campaign canonical identity mismatch')
     old._check(source['candidate_key'] == plan['candidate_key'], 'Campaign candidate key mismatch')
     if plan.get('common_new_task_parameters'):
         old._check(source['response_deadline_ms'] == plan['common_new_task_parameters']['normal_response_deadline_ms'],
                    'Source response SLA differs from frozen campaign')
-    contract_detail = None
-    if plan.get('source_snapshot'):
-        snapshot = plan['source_snapshot']
-        old._check(evidence.hashes.get(snapshot['path']) == snapshot['sha256'], 'Frozen service declaration source changed')
-        contract_detail = evidence.json(snapshot['path'])['data']
     proof = evidence.json(source['registration_proof'])
     for reference in proof['source_refs']:
         old._check(evidence.hashes.get(reference['path']) == reference['sha256'], 'Campaign registration source changed')
         evidence.raw(reference['path'])
-    identity = verify_registration_proof(root, source['registration_proof'], canonical)
-    old._check(identity['registration_verified'], 'Campaign registration is not independently verified')
-    owner = address('0x' + proof['rpc']['owner']['value'][-40:])
+    identity = verify_service_identity(root, source['registration_proof'], canonical, chain_verifier=verify_registration_proof)
+    old._check(identity['public_registry_verified'], 'Campaign public registration is not independently verified')
     profile = AgentProfile.model_validate_json(json.dumps(source['profile']))
-    old._check(profile.registration_chain_id == int(canonical.split(':')[1]), 'Campaign profile registration chain mismatch')
+    old._check(profile.registration_chain_id == identity['registration_chain_id'], 'Campaign profile registration chain mismatch')
     by_label = {row['task_id']: dict(row) for row in plan['new_tasks']}
     retained = {row['task_id']: row for row in plan.get('retained_tasks', [])}
     old._check(len(by_label) == len(plan['new_tasks'])
@@ -474,10 +651,18 @@ def campaign_report(root, evidence, source, generated_at):
     old._check(len({row['task_key'] for row in by_label.values()}) == len(by_label), 'Duplicated campaign task identity')
     supplied = {row['task_key']: row for row in source['tasks']}
     old._check(len(supplied) == len(source['tasks']) and set(supplied) <= {row['task_key'] for row in by_label.values()}, 'Unexpected or duplicate source task')
-    evaluated = {}
+    evaluated, execution_transactions = {}, set()
     for label, planned in by_label.items():
         item = supplied.get(planned['task_key'])
         refs, facts = [source['campaign_plan']], None
+        version = task_versions.get(label)
+        contract_detail = None
+        if version:
+            refs.append(version['path'])
+            snapshot = version['plan'].get('source_snapshot')
+            if snapshot:
+                refs.append(snapshot['path'])
+                contract_detail = evidence.json(snapshot['path'])['data']
         if item and item.get('retained_source'):
             old._check(planned.get('retained') and item['retained_source'] == retained[label]['source'], 'Unexpected retained source')
             retained_source = evidence.json(item['retained_source'])
@@ -494,6 +679,16 @@ def campaign_report(root, evidence, source, generated_at):
                            'Source provider differs from frozen campaign')
             old._check(not item.get('execution') or planned.get('retained') or planned['planned_actual_execution'],
                        'Unplanned actual execution cannot enter this campaign')
+            if item.get('execution'):
+                execution = item['execution']
+                execution_plan = evidence.json(execution['plan'])
+                transaction = (old._uint(execution_plan['chain_id']), execution['transaction_hash'].lower())
+                # This v2 adapter accepts one swap in an exact eight-call batch.
+                # Its transaction cannot supply multiple task samples; adapters
+                # for genuine multi-task receipts need their own event binding.
+                old._check(transaction not in execution_transactions,
+                           'Single-swap campaign execution transaction is reused across tasks')
+                execution_transactions.add(transaction)
             refs.extend([item['plan'], *(name for key, name in item['acp'].items() if key.endswith('_observation') and name),
                          *item['acp'].get('rpc_observations', []), *item['acp'].get('observation_end_rpc_observations', [])])
             for stage in ('simulation', 'execution'):
@@ -501,14 +696,25 @@ def campaign_report(root, evidence, source, generated_at):
                     refs.extend([item[stage]['plan'], *item[stage]['rpc_observations']])
                     if stage == 'execution':
                         refs.append(item[stage]['intent_path'])
-            facts = _delivery(evidence, item, planned, planned.get('retained', False))
-            old._check(facts['provider'] == owner, 'Campaign provider differs from registry owner')
+            inherited_campaign = bool(planned.get('origin_campaign'))
+            facts = _delivery(evidence, item, planned, planned.get('retained', False) and not inherited_campaign)
+            facts['request_mapping'] = version['plan'].get('request_mapping') if version else None
+            if identity.get('provider_wallet'):
+                old._check(facts['provider'] == identity['provider_wallet'], 'Actual provider differs from public registry proof')
+            # The registry owner controls the verified tokenURI service binding;
+            # the service wallet is a separate role. _delivery binds that exact
+            # service's official id/wallet to the real job provider independently.
             services = [row.get('endpoint', '') for row in (identity.get('document') or {}).get('services', [])]
             old._check('https://app.virtuals.io/acp/agent/' + item['acp']['provider_id'] in services,
                        'Registration does not bind this campaign service')
-            if not planned.get('retained') and facts.get('requirement_submitted_at'):
-                old._check(facts['requirement_submitted_at'] >= frozen_at, 'Actual requirement predates campaign freeze')
-            if contract_detail and not planned.get('retained'):
+            if (not planned.get('retained') or inherited_campaign) and facts.get('requirement_submitted_at'):
+                old._check(facts['requirement_submitted_at'] >= version['frozen_at'], 'Actual requirement predates campaign freeze')
+                request_campaign = facts['plan'].get('campaign_source')
+                if request_campaign:
+                    old._check(any(row['path'] == request_campaign['path']
+                                   and old._sha(evidence.raw(row['path'])) == request_campaign['sha256']
+                                   for row in version.get('origin_lineage', lineage)), 'Actual request campaign is absent from authenticated lineage')
+            if contract_detail and (not planned.get('retained') or inherited_campaign):
                 old._check(contract_detail['id'] == item['acp']['provider_id']
                            and address(contract_detail['walletAddress']) == facts['provider'], 'Frozen service declaration provider mismatch')
                 facts['contract_detail'] = contract_detail
@@ -546,10 +752,7 @@ def campaign_report(root, evidence, source, generated_at):
                         refs.append(raw)
         request = planned.get('request') or (facts['frozen']['requirement'] if facts else {})
         summary = json.dumps(request, ensure_ascii=False, sort_keys=True)
-        when = facts['observed_at'] if facts else None
-        if quote and quote['execution'][2].get('timestamp'):
-            executed_at = datetime.fromtimestamp(quote['execution'][2]['timestamp'], timezone.utc)
-            when = max(when, executed_at) if when else executed_at
+        when = _task_observed_at(facts, quote)
         tasks.append({'task_key': planned['task_key'], 'capability_id': capability_id, 'input_summary': summary,
                       'outcome': outcome, 'attribution': 'unknown', 'observed_at': when, 'evidence': refs})
         samples.append(SampleExplanation(sample=ScoredSample(sample_id='campaign:' + row['label'], task_key=planned['task_key'],
@@ -587,7 +790,9 @@ def campaign_report(root, evidence, source, generated_at):
         'cases': cases, 'tasks': tasks, 'observations': observations}, ensure_ascii=False, default=lambda value: value.isoformat()))
     return EvaluationReport(policy_version=POINT_POLICY_VERSION, candidate_key=source['candidate_key'], name=source['name'],
         registration_reference=canonical, generated_at=generated_at, scope=source['scope'], scope_exclusions=source['scope_exclusions'],
-        evaluation_window='前瞻冻结于' + plan['frozen_at'] + '；旧任务按原时间回放，未采槽位保留。',
+        evaluation_window=('独立评价冻结于' + plan['frozen_at'] + '；旧任务按明确回顾映射重放，原冻结链、时间与声明快照保持；新任务先冻结再提交。'
+            if mapped else '前瞻首版冻结于' + lineage[0]['plan']['frozen_at'] + '；当前追加版冻结于' + plan['frozen_at']
+            + '；各任务使用首次纳入的原冻结时间与声明快照，未采槽位保留。'),
         approach='按冻结案例完整重放真实ACP原件；缺省参数、拒绝、缺证据与正常真实履约分别判断，沿用v3单分及30/40/30。',
         samples=samples, capabilities=[], shared_assessment=assessment, source_references=sorted(evidence.hashes),
-        limitations=[*old.LIMITATIONS, '扩大任务数量不证明长期可靠率；source与最佳价缺独立来源时保留UNKNOWN，不能用标签或重复简单任务补证。'])
+        limitations=identity_limitations(canonical, [*old.LIMITATIONS, '扩大任务数量不证明长期可靠率；source与最佳价缺独立来源时保留UNKNOWN，不能用标签或重复简单任务补证。']))
