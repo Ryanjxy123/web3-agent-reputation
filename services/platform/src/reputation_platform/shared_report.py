@@ -226,6 +226,17 @@ def _replay(root, evidence, origin):
 
 
 def verify_shared_report_sources(root, report, hashes):
+    if any(Path(name).name == 'cow-swap-report-origin.json' for name in hashes):
+        _check(not any(Path(name).name in {'atomic-swap-report-origin.json', 'unsigned-swap-report-origin.json',
+                   'shared-report-origin.json', 'shared-expanded-origin.json', 'swap-report-origin.json'}
+                   for name in hashes), 'Conflicting CoW and other report origins')
+        from reputation_platform.cow_swap_report import verify_cow_swap_report_sources
+        return verify_cow_swap_report_sources(root, report, hashes)
+    if any(Path(name).name == 'atomic-swap-report-origin.json' for name in hashes):
+        _check(not any(Path(name).name == 'unsigned-swap-report-origin.json' for name in hashes),
+               'Conflicting atomic and unsigned report origins')
+        from reputation_platform.atomic_swap_report import verify_atomic_swap_report_sources
+        return verify_atomic_swap_report_sources(root, report, hashes)
     if any(Path(name).name == 'unsigned-swap-report-origin.json' for name in hashes):
         from reputation_platform.unsigned_swap_report import verify_unsigned_swap_report_sources
         return verify_unsigned_swap_report_sources(root, report, hashes)

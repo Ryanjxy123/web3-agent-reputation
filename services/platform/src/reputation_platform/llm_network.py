@@ -54,13 +54,16 @@ def _doh_addresses(host: str, proxy: str, timeout: float) -> list[str]:
     """Fixed, certificate-verified bootstrap; never sends the LLM key to DNS."""
     deadline = time.monotonic() + timeout
     addresses = []
+    resolver = os.environ.get('REPUTATION_DOH_RESOLVER_IPV4', '1.1.1.1')
+    if resolver not in ('1.1.1.1', '1.0.0.1'):
+        raise ValueError('DNS bootstrap must use a documented Cloudflare resolver IP')
     # This IP is the resolver's documented HTTPS endpoint, not a destination allowlist.
     with httpx.Client(proxy=proxy, trust_env=False, follow_redirects=False) as client:
         for record_type in ("A", "AAAA"):
             remaining = deadline - time.monotonic()
             if remaining <= 0:
                 raise httpx.ConnectTimeout("Independent DNS timeout")
-            with client.stream("GET", "https://1.1.1.1/dns-query",
+            with client.stream("GET", f"https://{resolver}/dns-query",
                                params={"name": host, "type": record_type},
                                headers={"Accept": "application/dns-json"}, timeout=remaining) as response:
                 if response.status_code != 200:

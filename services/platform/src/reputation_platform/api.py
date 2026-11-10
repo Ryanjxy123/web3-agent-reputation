@@ -48,13 +48,6 @@ def create_app(repository: Repository | None = None) -> FastAPI:
         except psycopg.Error:
             return unavailable_runtime()
 
-    @app.get("/api/agents/{key}", response_model=AgentDetail)
-    def get_agent(key: str):
-        agent = repo.get_agent(key)
-        if agent is None:
-            raise HTTPException(status_code=404, detail="没有找到该 Agent。")
-        return agent
-
     @app.get("/api/reports/{report_id}", response_model=EvaluationReport)
     def get_report(report_id: UUID):
         report = repo.get_report(str(report_id))
@@ -63,24 +56,32 @@ def create_app(repository: Repository | None = None) -> FastAPI:
         return report
 
     @app.get('/api/reports/{report_id}/chain-evidence', response_model=ReportChainEvidence)
-    def report_chain_evidence(report_id: UUID):
-        view = repo.report_chain_evidence(str(report_id))
+    def report_chain_evidence(report_id: UUID, task_key: str | None = Query(default=None, min_length=1, max_length=200)):
+        view = repo.report_chain_evidence(str(report_id), task_key)
         if view is None:
             raise HTTPException(status_code=404, detail='没有找到该报告。')
         return view
 
-    @app.get('/api/agents/{key}/chain-evidence', response_model=AgentChainEvidence | None)
-    def agent_chain_evidence(key: str):
-        if repo.get_agent(key) is None:
-            raise HTTPException(status_code=404, detail='没有找到该Agent。')
-        return repo.agent_chain_evidence(key)
-
-    @app.get('/api/agents/{key}/chain-evidence/file', response_class=FileResponse)
+    # MCP registry keys contain a slash; specific suffix routes must precede detail.
+    @app.get('/api/agents/{key:path}/chain-evidence/file', response_class=FileResponse)
     def agent_chain_file(key: str, path: str = Query(min_length=1)):
         evidence = repo.agent_chain_evidence_file(key, path)
         if evidence is None:
             raise HTTPException(status_code=404, detail='该Agent快照没有引用此证据。')
         return FileResponse(evidence, media_type='application/octet-stream', filename=evidence.name)
+
+    @app.get('/api/agents/{key:path}/chain-evidence', response_model=AgentChainEvidence | None)
+    def agent_chain_evidence(key: str):
+        if repo.get_agent(key) is None:
+            raise HTTPException(status_code=404, detail='没有找到该Agent。')
+        return repo.agent_chain_evidence(key)
+
+    @app.get("/api/agents/{key:path}", response_model=AgentDetail)
+    def get_agent(key: str):
+        agent = repo.get_agent(key)
+        if agent is None:
+            raise HTTPException(status_code=404, detail="没有找到该 Agent。")
+        return agent
 
     @app.get("/api/reports/{report_id}/evidence", response_class=FileResponse)
     def get_evidence(report_id: UUID, path: str = Query(min_length=1)):

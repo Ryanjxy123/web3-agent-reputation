@@ -1,0 +1,612 @@
+{
+  "scope": "Retained real HTTP400 parser fixture; no new requests or chain evidence.",
+  "schema": {
+    "paths": {
+      "/api/swap/quote": {
+        "post": {
+          "summary": "Get Topaz API split/mixed CL and v2 smart order router quote",
+          "operationId": "postSwapQuote",
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "sellToken",
+                    "buyToken",
+                    "sellAmount"
+                  ],
+                  "properties": {
+                    "sellToken": {
+                      "type": "string",
+                      "description": "Token address or symbol (e.g. 'WBNB')"
+                    },
+                    "buyToken": {
+                      "type": "string",
+                      "description": "Token address or symbol"
+                    },
+                    "sellAmount": {
+                      "type": "string",
+                      "description": "Amount in human units (e.g. '1.5'), or hex raw units"
+                    },
+                    "chainId": {
+                      "oneOf": [
+                        {
+                          "type": "integer",
+                          "enum": [
+                            56,
+                            4663,
+                            8453,
+                            1,
+                            5042
+                          ]
+                        },
+                        {
+                          "type": "string"
+                        }
+                      ],
+                      "default": 56,
+                      "description": "Topaz chain: 56 (BNB Chain), 4663 (Robinhood Chain), 8453 (Base), 1 (Ethereum) or 5042 (Arc). Slugs (bnb, robinhood, base, ethereum, arc) are also accepted."
+                    },
+                    "slippageBps": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 500,
+                      "default": 100
+                    },
+                    "deadlineSeconds": {
+                      "type": "integer",
+                      "minimum": 30,
+                      "maximum": 1800,
+                      "default": 600
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Swap quote",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "allOf": [
+                      {
+                        "$ref": "#/components/schemas/AgentResponse"
+                      },
+                      {
+                        "properties": {
+                          "data": {
+                            "$ref": "#/components/schemas/QuoteData"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Invalid input",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/ErrorResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "mapping": {
+    "calls_pointer": "/transactions",
+    "fields": {
+      "token_in": "/data/sellToken",
+      "token_out": "/data/buyToken",
+      "amount_in": "/data/sellAmount",
+      "recipient": "/data/payer",
+      "minimum_out": "/data/minOut",
+      "quoted_out": "/data/expectedOut",
+      "slippage_bps": "/data/topazApiQuote/slippageBips",
+      "fixed_block": "/data/topazApiQuote/blockNumber",
+      "chain_id": "/chainId",
+      "issued_at": "/timestamp"
+    },
+    "rejection_error_pointer": "/error",
+    "stage_scope": "Map final build response only; quote does not contain /data/payer or /transactions."
+  },
+  "cases": [
+    {
+      "planned": {
+        "task_id": "A25",
+        "task_key": "4bc78afb-35d0-4c95-b866-7dd4e88c40c7",
+        "input_summary": "zero exact input must produce an explicit input-validation rejection",
+        "direction": "USDC-WETH",
+        "requests": [
+          {
+            "stage": "quote",
+            "method": "POST",
+            "url": "https://agents.topazdex.com/api/swap/quote",
+            "json": {
+              "sellToken": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+              "buyToken": "0x4200000000000000000000000000000000000006",
+              "sellAmount": "0",
+              "chainId": 8453,
+              "slippageBps": 50,
+              "deadlineSeconds": 600
+            }
+          }
+        ],
+        "expected": {
+          "token_in": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          "token_out": "0x4200000000000000000000000000000000000006",
+          "amount_in": "100000",
+          "recipient": "0x73d642847cb9a3acef116ea207a74b9956c34a09",
+          "slippage_bps": 50,
+          "safe_rejection": true,
+          "invalid_field": "sellAmount",
+          "rejection_statuses": [
+            400,
+            422
+          ]
+        },
+        "planned_actual_execution": false
+      },
+      "response": {
+        "kind": "error",
+        "chainId": 56,
+        "timestamp": "2026-10-28T17:38:45.316Z",
+        "summary": "Amount must be a positive uint160 value",
+        "data": null
+      },
+      "response_path": "runtime/atomic-swap-campaign-20261029/tasks/4bc78afb-35d0-4c95-b866-7dd4e88c40c7/a25-quote.response.bin",
+      "response_sha256": "a5dfa10403f0d57a75aa10ceca5db5ce8dc3d8817f7ca2411bc2e4429b177d00"
+    },
+    {
+      "planned": {
+        "task_id": "A26",
+        "task_key": "0104904e-7645-4301-9f12-e446320c548c",
+        "input_summary": "negative exact input must produce an explicit input-validation rejection",
+        "direction": "USDC-WETH",
+        "requests": [
+          {
+            "stage": "quote",
+            "method": "POST",
+            "url": "https://agents.topazdex.com/api/swap/quote",
+            "json": {
+              "sellToken": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+              "buyToken": "0x4200000000000000000000000000000000000006",
+              "sellAmount": "-1",
+              "chainId": 8453,
+              "slippageBps": 50,
+              "deadlineSeconds": 600
+            }
+          }
+        ],
+        "expected": {
+          "token_in": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          "token_out": "0x4200000000000000000000000000000000000006",
+          "amount_in": "100000",
+          "recipient": "0x73d642847cb9a3acef116ea207a74b9956c34a09",
+          "slippage_bps": 50,
+          "safe_rejection": true,
+          "invalid_field": "sellAmount",
+          "rejection_statuses": [
+            400,
+            422
+          ]
+        },
+        "planned_actual_execution": false
+      },
+      "response": {
+        "kind": "error",
+        "chainId": 56,
+        "timestamp": "2026-10-28T17:38:49.239Z",
+        "summary": "Amount must be a positive uint160 value",
+        "data": null
+      },
+      "response_path": "runtime/atomic-swap-campaign-20261029/tasks/0104904e-7645-4301-9f12-e446320c548c/a26-quote.response.bin",
+      "response_sha256": "50c22135ad4264daa932976306c6a05e1d06ae47c59b76afa642bfec12fbffd2"
+    },
+    {
+      "planned": {
+        "task_id": "A27",
+        "task_key": "2a6ef1b1-edd6-42ce-9c72-cc05ac14fb8f",
+        "input_summary": "slippage 0 below official minimum 1",
+        "direction": "USDC-WETH",
+        "requests": [
+          {
+            "stage": "quote",
+            "method": "POST",
+            "url": "https://agents.topazdex.com/api/swap/quote",
+            "json": {
+              "sellToken": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+              "buyToken": "0x4200000000000000000000000000000000000006",
+              "sellAmount": "0.1",
+              "chainId": 8453,
+              "slippageBps": 0,
+              "deadlineSeconds": 600
+            }
+          }
+        ],
+        "expected": {
+          "token_in": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          "token_out": "0x4200000000000000000000000000000000000006",
+          "amount_in": "100000",
+          "recipient": "0x73d642847cb9a3acef116ea207a74b9956c34a09",
+          "slippage_bps": 50,
+          "safe_rejection": true,
+          "invalid_field": "slippageBps",
+          "rejection_statuses": [
+            400,
+            422
+          ]
+        },
+        "planned_actual_execution": false
+      },
+      "response": {
+        "kind": "error",
+        "chainId": 56,
+        "timestamp": "2026-10-28T17:38:53.200Z",
+        "summary": "Invalid swap request: chainId 56, 4663, 8453, 1 or 5042, positive amount, slippageBps 1-500, deadlineSeconds 30-1800; build requires taker",
+        "data": null
+      },
+      "response_path": "runtime/atomic-swap-campaign-20261029/tasks/2a6ef1b1-edd6-42ce-9c72-cc05ac14fb8f/a27-quote.response.bin",
+      "response_sha256": "9009881f8d6069dd0d43e64720e4128623502fa3e84ed98bff5fe1199f9cf5b1"
+    },
+    {
+      "planned": {
+        "task_id": "A28",
+        "task_key": "bf7c2ced-eb23-4f47-b5cf-98e08a1b3caf",
+        "input_summary": "slippage 501 above official maximum 500",
+        "direction": "USDC-WETH",
+        "requests": [
+          {
+            "stage": "quote",
+            "method": "POST",
+            "url": "https://agents.topazdex.com/api/swap/quote",
+            "json": {
+              "sellToken": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+              "buyToken": "0x4200000000000000000000000000000000000006",
+              "sellAmount": "0.1",
+              "chainId": 8453,
+              "slippageBps": 501,
+              "deadlineSeconds": 600
+            }
+          }
+        ],
+        "expected": {
+          "token_in": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          "token_out": "0x4200000000000000000000000000000000000006",
+          "amount_in": "100000",
+          "recipient": "0x73d642847cb9a3acef116ea207a74b9956c34a09",
+          "slippage_bps": 50,
+          "safe_rejection": true,
+          "invalid_field": "slippageBps",
+          "rejection_statuses": [
+            400,
+            422
+          ]
+        },
+        "planned_actual_execution": false
+      },
+      "response": {
+        "kind": "error",
+        "chainId": 56,
+        "timestamp": "2026-10-28T17:38:57.081Z",
+        "summary": "Invalid swap request: chainId 56, 4663, 8453, 1 or 5042, positive amount, slippageBps 1-500, deadlineSeconds 30-1800; build requires taker",
+        "data": null
+      },
+      "response_path": "runtime/atomic-swap-campaign-20261029/tasks/bf7c2ced-eb23-4f47-b5cf-98e08a1b3caf/a28-quote.response.bin",
+      "response_sha256": "55887b3f41555c2fe1ad428e75d9d4fed1035247ea9622336fabad64fc1cea94"
+    },
+    {
+      "planned": {
+        "task_id": "A29",
+        "task_key": "08af2aab-d0e0-46b2-a021-93048a6e2a46",
+        "input_summary": "deadline 29 below official minimum 30",
+        "direction": "USDC-WETH",
+        "requests": [
+          {
+            "stage": "quote",
+            "method": "POST",
+            "url": "https://agents.topazdex.com/api/swap/quote",
+            "json": {
+              "sellToken": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+              "buyToken": "0x4200000000000000000000000000000000000006",
+              "sellAmount": "0.1",
+              "chainId": 8453,
+              "slippageBps": 50,
+              "deadlineSeconds": 29
+            }
+          }
+        ],
+        "expected": {
+          "token_in": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          "token_out": "0x4200000000000000000000000000000000000006",
+          "amount_in": "100000",
+          "recipient": "0x73d642847cb9a3acef116ea207a74b9956c34a09",
+          "slippage_bps": 50,
+          "safe_rejection": true,
+          "invalid_field": "deadlineSeconds",
+          "rejection_statuses": [
+            400,
+            422
+          ]
+        },
+        "planned_actual_execution": false
+      },
+      "response": {
+        "kind": "error",
+        "chainId": 56,
+        "timestamp": "2026-10-28T17:39:02.026Z",
+        "summary": "Invalid swap request: chainId 56, 4663, 8453, 1 or 5042, positive amount, slippageBps 1-500, deadlineSeconds 30-1800; build requires taker",
+        "data": null
+      },
+      "response_path": "runtime/atomic-swap-campaign-20261029/tasks/08af2aab-d0e0-46b2-a021-93048a6e2a46/a29-quote.response.bin",
+      "response_sha256": "61b14156528b7078c37762aa1b832ebd32c83ad83ddd1b8c4cf394ea19bf62b2"
+    },
+    {
+      "planned": {
+        "task_id": "A30",
+        "task_key": "ef6196c1-ae6f-46a7-b36e-4ae8f2910915",
+        "input_summary": "deadline 1801 above official maximum 1800",
+        "direction": "USDC-WETH",
+        "requests": [
+          {
+            "stage": "quote",
+            "method": "POST",
+            "url": "https://agents.topazdex.com/api/swap/quote",
+            "json": {
+              "sellToken": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+              "buyToken": "0x4200000000000000000000000000000000000006",
+              "sellAmount": "0.1",
+              "chainId": 8453,
+              "slippageBps": 50,
+              "deadlineSeconds": 1801
+            }
+          }
+        ],
+        "expected": {
+          "token_in": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          "token_out": "0x4200000000000000000000000000000000000006",
+          "amount_in": "100000",
+          "recipient": "0x73d642847cb9a3acef116ea207a74b9956c34a09",
+          "slippage_bps": 50,
+          "safe_rejection": true,
+          "invalid_field": "deadlineSeconds",
+          "rejection_statuses": [
+            400,
+            422
+          ]
+        },
+        "planned_actual_execution": false
+      },
+      "response": {
+        "kind": "error",
+        "chainId": 56,
+        "timestamp": "2026-10-28T17:39:05.968Z",
+        "summary": "Invalid swap request: chainId 56, 4663, 8453, 1 or 5042, positive amount, slippageBps 1-500, deadlineSeconds 30-1800; build requires taker",
+        "data": null
+      },
+      "response_path": "runtime/atomic-swap-campaign-20261029/tasks/ef6196c1-ae6f-46a7-b36e-4ae8f2910915/a30-quote.response.bin",
+      "response_sha256": "a43d04ee8b8481664c8b9065c2f0e65266d00b6f3edbc80557448bc9a18a87a0"
+    },
+    {
+      "planned": {
+        "task_id": "A31",
+        "task_key": "9f7628b9-bc8a-4116-9e13-5d9a756c6cc3",
+        "input_summary": "malformed source asset address must be rejected, not silently substituted",
+        "direction": "USDC-WETH",
+        "requests": [
+          {
+            "stage": "quote",
+            "method": "POST",
+            "url": "https://agents.topazdex.com/api/swap/quote",
+            "json": {
+              "sellToken": "0x1234",
+              "buyToken": "0x4200000000000000000000000000000000000006",
+              "sellAmount": "0.1",
+              "chainId": 8453,
+              "slippageBps": 50,
+              "deadlineSeconds": 600
+            }
+          }
+        ],
+        "expected": {
+          "token_in": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          "token_out": "0x4200000000000000000000000000000000000006",
+          "amount_in": "100000",
+          "recipient": "0x73d642847cb9a3acef116ea207a74b9956c34a09",
+          "slippage_bps": 50,
+          "safe_rejection": true,
+          "invalid_field": "sellToken",
+          "rejection_statuses": [
+            400,
+            422
+          ],
+          "invalid_kind": "evm-address"
+        },
+        "planned_actual_execution": false
+      },
+      "response": {
+        "kind": "error",
+        "chainId": 56,
+        "timestamp": "2026-10-28T17:39:09.936Z",
+        "summary": "Could not resolve token \"0x1234\" on Base (8453) — not a known symbol or a valid 0x address.",
+        "data": null
+      },
+      "response_path": "runtime/atomic-swap-campaign-20261029/tasks/9f7628b9-bc8a-4116-9e13-5d9a756c6cc3/a31-quote.response.bin",
+      "response_sha256": "46e757baf7559e7983f0e5e4d99fecb056f8cfd3ec1fb9b6b720cc7483c0d345"
+    },
+    {
+      "planned": {
+        "task_id": "A32",
+        "task_key": "11ffab19-b318-4376-a1c2-ac23344ef647",
+        "input_summary": "chain outside published supported enum, without using an RPC from service metadata",
+        "direction": "USDC-WETH",
+        "requests": [
+          {
+            "stage": "quote",
+            "method": "POST",
+            "url": "https://agents.topazdex.com/api/swap/quote",
+            "json": {
+              "sellToken": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+              "buyToken": "0x4200000000000000000000000000000000000006",
+              "sellAmount": "0.1",
+              "chainId": 11155111,
+              "slippageBps": 50,
+              "deadlineSeconds": 600
+            }
+          }
+        ],
+        "expected": {
+          "token_in": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          "token_out": "0x4200000000000000000000000000000000000006",
+          "amount_in": "100000",
+          "recipient": "0x73d642847cb9a3acef116ea207a74b9956c34a09",
+          "slippage_bps": 50,
+          "safe_rejection": true,
+          "invalid_field": "chainId",
+          "rejection_statuses": [
+            400,
+            422
+          ]
+        },
+        "planned_actual_execution": false
+      },
+      "response": {
+        "kind": "error",
+        "chainId": 56,
+        "timestamp": "2026-10-28T17:39:13.881Z",
+        "summary": "Invalid swap request: chainId 56, 4663, 8453, 1 or 5042, positive amount, slippageBps 1-500, deadlineSeconds 30-1800; build requires taker",
+        "data": null
+      },
+      "response_path": "runtime/atomic-swap-campaign-20261029/tasks/11ffab19-b318-4376-a1c2-ac23344ef647/a32-quote.response.bin",
+      "response_sha256": "fc7d19086d2554e65b24c4570d65bea70a0e5c8103adb83473770c248ea86561"
+    },
+    {
+      "planned": {
+        "task_id": "A33",
+        "task_key": "59bdcc5f-7245-4a22-9864-cc9fc3b80d2d",
+        "input_summary": "missing officially required buyToken",
+        "direction": "USDC-WETH",
+        "requests": [
+          {
+            "stage": "quote",
+            "method": "POST",
+            "url": "https://agents.topazdex.com/api/swap/quote",
+            "json": {
+              "sellToken": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+              "sellAmount": "0.1",
+              "chainId": 8453,
+              "slippageBps": 50,
+              "deadlineSeconds": 600
+            }
+          }
+        ],
+        "expected": {
+          "token_in": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          "token_out": "0x4200000000000000000000000000000000000006",
+          "amount_in": "100000",
+          "recipient": "0x73d642847cb9a3acef116ea207a74b9956c34a09",
+          "slippage_bps": 50,
+          "safe_rejection": true,
+          "invalid_field": "buyToken",
+          "rejection_statuses": [
+            400,
+            422
+          ]
+        },
+        "planned_actual_execution": false
+      },
+      "response": {
+        "kind": "error",
+        "chainId": 56,
+        "timestamp": "2026-10-28T17:39:17.742Z",
+        "summary": "Invalid swap request: chainId 56, 4663, 8453, 1 or 5042, positive amount, slippageBps 1-500, deadlineSeconds 30-1800; build requires taker",
+        "data": null
+      },
+      "response_path": "runtime/atomic-swap-campaign-20261029/tasks/59bdcc5f-7245-4a22-9864-cc9fc3b80d2d/a33-quote.response.bin",
+      "response_sha256": "1b22158a25d9b42413103b7c8b58aae5d48ac2a63a9560d7e63506582569d937"
+    },
+    {
+      "planned": {
+        "task_id": "A34",
+        "task_key": "27849d9e-2137-4223-bdb1-8ef14b881361",
+        "input_summary": "missing officially required sellToken",
+        "direction": "USDC-WETH",
+        "requests": [
+          {
+            "stage": "quote",
+            "method": "POST",
+            "url": "https://agents.topazdex.com/api/swap/quote",
+            "json": {
+              "buyToken": "0x4200000000000000000000000000000000000006",
+              "sellAmount": "0.1",
+              "chainId": 8453,
+              "slippageBps": 50,
+              "deadlineSeconds": 600
+            }
+          }
+        ],
+        "expected": {
+          "token_in": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          "token_out": "0x4200000000000000000000000000000000000006",
+          "amount_in": "100000",
+          "recipient": "0x73d642847cb9a3acef116ea207a74b9956c34a09",
+          "slippage_bps": 50,
+          "safe_rejection": true,
+          "invalid_field": "sellToken",
+          "rejection_statuses": [
+            400,
+            422
+          ]
+        },
+        "planned_actual_execution": false
+      },
+      "response": {
+        "kind": "error",
+        "chainId": 56,
+        "timestamp": "2026-10-28T17:39:21.678Z",
+        "summary": "Invalid swap request: chainId 56, 4663, 8453, 1 or 5042, positive amount, slippageBps 1-500, deadlineSeconds 30-1800; build requires taker",
+        "data": null
+      },
+      "response_path": "runtime/atomic-swap-campaign-20261029/tasks/27849d9e-2137-4223-bdb1-8ef14b881361/a34-quote.response.bin",
+      "response_sha256": "a692ad3f612c8134d6f29fdc8899d33d549c23c0864eaadb82b9dfb23abcdd87"
+    }
+  ],
+  "declaration_source": {
+    "path": "runtime/candidate-expansion-goal-20261028-direct/phase1/topaz-openapi.response.bin",
+    "sha256": "a97122624efe4f4d75d4f23a8395cc48667b63942cbc393d80c238d16296b863",
+    "error_schema_pointer": "/components/schemas/ErrorResponse"
+  },
+  "public_error_envelope_schema": {
+    "type": "object",
+    "properties": {
+      "kind": {
+        "type": "string",
+        "enum": [
+          "error"
+        ]
+      },
+      "chainId": {
+        "type": "integer"
+      },
+      "timestamp": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "summary": {
+        "type": "string",
+        "description": "Human-readable error message"
+      },
+      "data": {}
+    }
+  }
+}

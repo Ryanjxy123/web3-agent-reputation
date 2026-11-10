@@ -144,6 +144,7 @@ def _shared_interval(value) -> str:
 def _render_shared_report(report: EvaluationReport) -> str:
     assessment = report.shared_assessment
     result = assessment.result
+    observed_tasks = sum(task.observed_at is not None for task in assessment.tasks)
     point_scores = assessment.schema_version == 'shared-task-assessment-v3'
     dimensions = []
     for name, title in (('availability', '服务可用性'), ('functional', '功能声明一致性'), ('behavioral', '交易行为可靠性')):
@@ -177,8 +178,11 @@ def _render_shared_report(report: EvaluationReport) -> str:
                            else '已返回方案' if any(row.dimension == 'availability' and row.verdict == Verdict.PASS for row in rows)
                            else '未取得方案')
             elif task.outcome == 'completed':
-                outcome = ('已撤销退款' if any(row.criterion_id == 'exact-principal-refund' and row.verdict == Verdict.PASS for row in rows)
-                           else '已成交')
+                passed = [row for row in rows if row.verdict == Verdict.PASS and row.measurement_validity == 'valid']
+                fulfilled = any(row.dimension == 'behavioral' and row.criterion_id in
+                                {'onchain-fulfillment', 'execution-effect'} for row in passed)
+                outcome = ('已撤销退款' if any(row.criterion_id == 'exact-principal-refund' for row in passed)
+                           else '已成交' if fulfilled else '检查已完成')
         findings = ''.join(f'<li><b>{labels[row.dimension]}</b> {_badge(row.verdict)} '
             f'{_text(row.reason)}</li>' for row in assessment.observations if row.task_key == task.task_key)
         tasks.append(f'<details><summary>任务{index} · {_text(task.input_summary)}</summary>'
@@ -200,7 +204,7 @@ def _render_shared_report(report: EvaluationReport) -> str:
         f'<p>{scope_note}</p>'
         f'<section>{"".join(dimensions)}</section><p>分数按声明组和案例汇总，同一任务可同时包含通过与不符条款。</p>'
         f'<h2>{"已测功能" if point_scores else "已测与未测功能"}</h2>{"".join(capabilities)}'
-        f'<h2>同一任务的多源证据</h2><p>{result.task_count}个独立业务任务，'
+        f'<h2>同一任务的多源证据</h2><p>{observed_tasks}个已采业务任务，{result.task_count}个冻结任务槽位，'
         f'{result.observation_count}项判据观察；共享证据不会增加独立任务数量。</p>{"".join(tasks)}'
         f'<h2>方法与限制</h2><p>{_text(report.approach)}</p>{_items(report.limitations)}'
         '</main></body></html>')

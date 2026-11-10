@@ -28,6 +28,11 @@ SCHEMA = "public-reports-package-v1"
 INDEX = re.compile(r"runtime/public-reports/[0-9a-f]{32}/package\.json")
 DENIED = {"secrets", "platform-config", "platform-postgres", ".git", ".venv", "node_modules"}
 PRIVATE_NAME = re.compile(r"secret|password|api[-_]?key|balance[-_](?:before|after)", re.I)
+CAMPAIGN_UUID = r"[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}"
+PUBLIC_BALANCE_RPC = re.compile(
+    rf"runtime/[A-Za-z0-9][A-Za-z0-9_-]*/tasks/{CAMPAIGN_UUID}/states/{CAMPAIGN_UUID}/chain/"
+    r"balance-after-[0-9]+\.(?:observation\.json|response\.bin)"
+)
 
 
 def digest(path: Path) -> str:
@@ -40,11 +45,16 @@ def public_path(name: str) -> str:
         or any(part in ("", ".", "..") for part in name.split("/"))):
         raise ValueError("Package paths must be canonical repository-relative paths")
     path = PurePosixPath(name)
+    # Public fixed-block RPC originals are still checked by manifest SHA and
+    # source replay; this exception does not admit private wallet snapshots.
+    public_balance_rpc = PUBLIC_BALANCE_RPC.fullmatch(name) and not any(
+        PRIVATE_NAME.search(part) for part in path.parts[:-1]
+    )
     if (path.is_absolute() or not (name.startswith("runtime/") or name.startswith("configs/")
                                   or name.startswith("docs/adr/")
                                   or name.startswith("data/declarations/") and path.suffix == '.json')
         or any(part.startswith(".") or ".private" in part.lower() or part.lower() in DENIED for part in path.parts)
-        or PRIVATE_NAME.search(path.name)
+        or (PRIVATE_NAME.search(path.name) and not public_balance_rpc)
         or path.suffix.lower() in {".log", ".db", ".sqlite", ".sqlite3", ".dump", ".key", ".pem", ".p12", ".pfx"}):
         raise ValueError("Package contains a nonpublic or unsupported file path")
     return name
